@@ -3,33 +3,34 @@
     "type": "module",
     "version": "0.0.1",
     "scripts": {
-      "dev": "astro dev",
-      "start": "astro dev",
-      "build": "astro build",
-      "preview": "astro preview",
-      "astro": "astro",
-      "setup": "node scripts/setup.js",
-      "check": "astro check",
-      "lint": "astro check",
-      "clean": "rm -rf dist .astro node_modules/.cache",
-      "deploy": "npm run build && npm run preview"
+        "dev": "astro dev",
+        "start": "astro dev",
+        "build": "astro build",
+        "preview": "astro preview",
+        "astro": "astro",
+        "setup": "node scripts/setup.js",
+        "check": "astro check",
+        "lint": "astro check",
+        "clean": "rm -rf dist .astro node_modules/.cache",
+        "deploy": "npm run build && npm run preview"
     },
     "dependencies": {
-      "@astrojs/tailwind": "^5.1.0",
-      "@astrojs/sitemap": "^3.1.6",
-      "@astrojs/react": "^3.6.2",
-      "astro": "^4.15.0",
-      "tailwindcss": "^3.4.0",
-      "framer-motion": "^11.5.0",
-      "canvas-confetti": "^1.9.3",
-      "react": "^18.3.0",
-      "react-dom": "^18.3.0",
-      "@types/react": "^18.3.0",
-      "@types/react-dom": "^18.3.0",
-      "@types/canvas-confetti": "^1.6.4"
+        "@astrojs/react": "^3.6.2",
+        "@astrojs/sitemap": "^3.1.6",
+        "@astrojs/tailwind": "^5.1.0",
+        "@types/canvas-confetti": "^1.6.4",
+        "@types/react": "^18.3.0",
+        "@types/react-dom": "^18.3.0",
+        "astro": "^4.15.0",
+        "canvas-confetti": "^1.9.3",
+        "framer-motion": "^11.5.0",
+        "lucide-react": "^0.523.0",
+        "react": "^18.3.0",
+        "react-dom": "^18.3.0",
+        "tailwindcss": "^3.4.0"
     },
     "devDependencies": {
-      "@astrojs/check": "^0.9.0",
-      "typescript": "^5.5.0"
+        "@astrojs/check": "^0.9.0",
+        "typescript": "^5.5.0"
     }
-  }
+}
