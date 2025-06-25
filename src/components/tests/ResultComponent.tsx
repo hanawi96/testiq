@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 interface ResultData {
@@ -15,7 +16,18 @@ interface ResultData {
   };
   timeTaken: number;
   timeLimit: number;
-  answerDetails: any[];
+  answerDetails: Array<{
+    questionId: number;
+    question: string;
+    userAnswer: number;
+    correctAnswer: number;
+    isCorrect: boolean;
+    explanation: string;
+    points: number;
+    maxPoints: number;
+    difficulty: string;
+    type: string;
+  }>;
   completionRate: number;
 }
 
@@ -25,80 +37,209 @@ interface ResultComponentProps {
   onHome: () => void;
 }
 
+interface SkillScores {
+  logic: number;
+  visual: number;
+  speed: number;
+  math: number;
+  memory: number;
+}
+
+// Badge info based on score
+const getBadgeInfo = (score: number) => {
+  if (score >= 140) return { 
+    type: 'genius', 
+    label: 'Thiên tài', 
+    color: 'from-purple-500 to-pink-500', 
+    icon: '⭐', 
+    bgColor: 'bg-purple-100',
+    textColor: 'text-purple-800'
+  };
+  if (score >= 130) return { 
+    type: 'superior', 
+    label: 'Xuất sắc', 
+    color: 'from-blue-500 to-cyan-500', 
+    icon: '🏆', 
+    bgColor: 'bg-blue-100',
+    textColor: 'text-blue-800'
+  };
+  if (score >= 115) return { 
+    type: 'above', 
+    label: 'Trên trung bình', 
+    color: 'from-green-500 to-emerald-500', 
+    icon: '⚡', 
+    bgColor: 'bg-green-100',
+    textColor: 'text-green-800'
+  };
+  return { 
+    type: 'average', 
+    label: 'Trung bình', 
+    color: 'from-orange-500 to-red-500', 
+    icon: '✓', 
+    bgColor: 'bg-orange-100',
+    textColor: 'text-orange-800'
+  };
+};
+
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const ShareButton: React.FC<{ onShare: () => void; icon: string; label: string; color: string }> = ({ 
+  onShare, icon, label, color 
+}) => (
+  <button 
+    onClick={onShare}
+    className={`flex flex-col items-center justify-center p-3 rounded-lg ${color} transition-all duration-200 hover:scale-105`}
+  >
+    <span className="text-lg mb-1">{icon}</span>
+    <span className="text-xs font-medium">{label}</span>
+  </button>
+);
+
+const RadarChart: React.FC<{ skills: SkillScores }> = ({ skills }) => {
+  const center = 150;
+  const maxRadius = 120;
+  const skillOrder: (keyof SkillScores)[] = ['logic', 'visual', 'speed', 'math', 'memory'];
+  const angles = skillOrder.map((_, i) => (i * 2 * Math.PI) / 5 - Math.PI / 2);
+  
+  const points = skillOrder.map((skill, i) => {
+    const value = skills[skill] / 100;
+    const radius = value * maxRadius;
+    const x = center + radius * Math.cos(angles[i]);
+    const y = center + radius * Math.sin(angles[i]);
+    return { x, y, skill };
+  });
+  
+  const pointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <div className="relative mx-auto" style={{ width: '280px', height: '280px' }}>
+      <svg viewBox="0 0 300 300" className="w-full h-full">
+        {/* Background Grid */}
+        <g className="opacity-30" stroke="#e5e7eb" strokeWidth="1" fill="none">
+          <circle cx="150" cy="150" r="120" />
+          <circle cx="150" cy="150" r="90" />
+          <circle cx="150" cy="150" r="60" />
+          <circle cx="150" cy="150" r="30" />
+          <line x1="150" y1="30" x2="150" y2="270" />
+          <line x1="30" y1="150" x2="270" y2="150" />
+          <line x1="67" y1="67" x2="233" y2="233" />
+          <line x1="233" y1="67" x2="67" y2="233" />
+        </g>
+        
+        {/* Skill Polygon */}
+        <motion.polygon
+          points={pointsStr}
+          fill="rgba(59, 130, 246, 0.2)"
+          stroke="#3b82f6"
+          strokeWidth="2"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+        />
+        
+        {/* Skill Points */}
+        {points.map((point, i) => (
+          <motion.circle
+            key={skillOrder[i]}
+            cx={point.x}
+            cy={point.y}
+            r="4"
+            fill="#3b82f6"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: i * 0.2 + 1, duration: 0.3 }}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+};
+
 export default function ResultComponent({ results, onRetake, onHome }: ResultComponentProps) {
-  const [showDetails, setShowDetails] = useState(false);
-  const [animatedScore, setAnimatedScore] = useState(0);
+  const [showShareDropdown, setShowShareDropdown] = useState(false);
+  const [skills, setSkills] = useState<SkillScores>({ logic: 0, visual: 0, speed: 0, math: 0, memory: 0 });
+  const badgeInfo = getBadgeInfo(results.score);
 
+  // Calculate skills based on answer details
   useEffect(() => {
-    // Trigger confetti for good scores
-    if (results.score >= 115) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
+    const calculateSkills = (): SkillScores => {
+      const base = Math.max(50, Math.min(95, results.score * 0.7 + 15));
+      const typePerformance: Record<string, { correct: number; total: number }> = {};
+      
+      results.answerDetails.forEach(detail => {
+        if (!typePerformance[detail.type]) {
+          typePerformance[detail.type] = { correct: 0, total: 0 };
+        }
+        typePerformance[detail.type].total++;
+        if (detail.isCorrect) {
+          typePerformance[detail.type].correct++;
+        }
       });
+
+      return {
+        logic: Math.round(base + (typePerformance.logic?.correct || 0) / (typePerformance.logic?.total || 1) * 30 - 15),
+        visual: Math.round(base + (typePerformance.spatial?.correct || 0) / (typePerformance.spatial?.total || 1) * 30 - 15),
+        speed: Math.round(base + (results.timeTaken < results.timeLimit * 0.7 ? 20 : -10)),
+        math: Math.round(base + (typePerformance.math?.correct || 0) / (typePerformance.math?.total || 1) * 30 - 15),
+        memory: Math.round(base + (results.completionRate > 0.8 ? 15 : -5))
+      };
+    };
+
+    setSkills(calculateSkills());
+  }, [results]);
+
+  // Trigger confetti on mount
+  useEffect(() => {
+    if (results.score >= 115) {
+      setTimeout(() => {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }, 500);
     }
-
-    // Animate score counting
-    const duration = 2000;
-    const steps = 60;
-    const increment = results.score / steps;
-    let currentScore = 0;
-    
-    const timer = setInterval(() => {
-      currentScore += increment;
-      if (currentScore >= results.score) {
-        setAnimatedScore(results.score);
-        clearInterval(timer);
-      } else {
-        setAnimatedScore(Math.floor(currentScore));
-      }
-    }, duration / steps);
-
-    return () => clearInterval(timer);
   }, [results.score]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins} phút ${secs} giây`;
+  const shareToFacebook = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Tôi vừa đạt ${results.score} điểm IQ! 🧠✨ Thử sức với bài test này nhé!`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 130) return 'text-purple-600';
-    if (score >= 115) return 'text-blue-600';
-    if (score >= 85) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
-    return 'text-red-600';
+  const shareToTwitter = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Tôi vừa đạt ${results.score} điểm IQ! 🧠✨ #IQTest #BrainPower`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=400');
   };
 
-  const getScoreIcon = (score: number) => {
-    if (score >= 130) return '🏆';
-    if (score >= 115) return '🎖️';
-    if (score >= 85) return '✨';
-    if (score >= 70) return '👍';
-    return '💪';
+  const shareToWhatsApp = () => {
+    const text = encodeURIComponent(`🧠 Tôi vừa đạt ${results.score} điểm IQ! 
+
+🎯 Vượt qua ${results.percentile}% dân số thế giới
+✨ Bạn có thể đạt được bao nhiêu điểm?
+
+Thử ngay test IQ này!`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
-  const shareResults = (platform: string) => {
-    const text = `Tôi vừa đạt ${results.score} điểm IQ! Bạn thử test xem sao nhé: ${window.location.origin}`;
-    const url = encodeURIComponent(window.location.origin);
-    
-    switch (platform) {
-      case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(text)}`, '_blank');
-        break;
-      case 'twitter':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-        break;
-      case 'linkedin':
-        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
-        break;
-      case 'copy':
-        navigator.clipboard.writeText(text);
-        alert('Đã sao chép link chia sẻ!');
-        break;
-    }
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      alert('🔗 Đã copy link thành công!');
+    }).catch(() => {
+      alert('❌ Không thể copy link');
+    });
+  };
+
+  const getSkillLevel = (score: number): string => {
+    if (score >= 85) return 'Xuất sắc';
+    if (score >= 75) return 'Tốt';
+    if (score >= 65) return 'Khá';
+    return 'Cần cải thiện';
   };
 
   const analyzeStrengths = () => {
@@ -119,7 +260,10 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
 
     Object.entries(typePerformance).forEach(([type, performance]) => {
       const percentage = (performance.correct / performance.total) * 100;
-      const typeName = getTypeName(type);
+      const typeName = type === 'logic' ? 'Tư duy logic' : 
+                      type === 'math' ? 'Toán học' :
+                      type === 'spatial' ? 'Tư duy không gian' :
+                      type === 'pattern' ? 'Nhận dạng mẫu' : type;
       
       if (percentage >= 70) {
         strengths.push(typeName);
@@ -131,303 +275,405 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     return { strengths, improvements };
   };
 
-  const getTypeName = (type: string) => {
-    const typeMap: Record<string, string> = {
-      'logical_sequence': 'Chuỗi Logic',
-      'logical_reasoning': 'Suy Luận Logic',
-      'pattern_recognition': 'Nhận Dạng Mẫu',
-      'mathematical_reasoning': 'Suy Luận Toán Học',
-      'spatial_reasoning': 'Tư Duy Không Gian',
-      'analogy': 'Tương Tự'
-    };
-    return typeMap[type] || type;
-  };
-
   const { strengths, improvements } = analyzeStrengths();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Main Results Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 px-8 py-12 text-white text-center">
-            <div className="text-6xl mb-4">{getScoreIcon(results.score)}</div>
-            <h1 className="text-3xl md:text-4xl font-bold font-display mb-2">
-              Chúc mừng! Bạn đã hoàn thành test IQ
-            </h1>
-            <p className="text-xl opacity-90">
-              Dưới đây là kết quả chi tiết của bạn
-            </p>
+        {/* Main Result Card */}
+        <motion.div 
+          className="bg-white rounded-3xl shadow-md p-8 mb-8 relative overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-purple-600"></div>
           </div>
-
-          {/* Score Display */}
-          <div className="px-8 py-12 text-center">
-            <div className="mb-8">
-              <div className="text-6xl md:text-8xl font-bold font-display mb-4">
-                <span className={getScoreColor(results.score)}>
-                  {animatedScore}
-                </span>
+          
+          <div className="relative z-10">
+            {/* Header Row with Badge and Quick Stats */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div className="flex items-center mb-4 sm:mb-0">
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${badgeInfo.color} flex items-center justify-center mr-4 shadow-lg`}>
+                  <span className="text-white text-2xl">{badgeInfo.icon}</span>
+                </div>
+                <div>
+                  <div className={`inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r ${badgeInfo.color} text-white font-semibold text-sm shadow-md`}>
+                    <span className="mr-1">{badgeInfo.icon}</span>
+                    {badgeInfo.label}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Vượt qua <span className="font-bold text-blue-600">{results.percentile}%</span> dân số</p>
+                </div>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Điểm IQ của bạn
-              </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                Cao hơn {results.percentile}% dân số
-              </p>
-              <div className={`inline-flex items-center px-6 py-3 rounded-full text-lg font-semibold ${
-                results.classification.color === 'purple' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' :
-                results.classification.color === 'blue' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
-                results.classification.color === 'green' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                results.classification.color === 'yellow' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-              }`}>
-                {results.classification.level} - {results.classification.description}
+              
+              {/* Quick Stats */}
+              <div className="flex space-x-4 text-center">
+                <div className="bg-green-50 rounded-xl px-3 py-2">
+                  <div className="text-lg font-bold text-green-600">{Math.round(results.completionRate * 100)}%</div>
+                  <div className="text-xs text-gray-500">Chính xác</div>
+                </div>
+                <div className="bg-blue-50 rounded-xl px-3 py-2">
+                  <div className="text-lg font-bold text-blue-600">{formatTime(results.timeTaken)}</div>
+                  <div className="text-xs text-gray-500">Thời gian</div>
+                </div>
+                <div className="bg-purple-50 rounded-xl px-3 py-2">
+                  <div className="text-lg font-bold text-purple-600">{results.correctAnswers}/{results.totalQuestions}</div>
+                  <div className="text-xs text-gray-500">Đúng/Tổng</div>
+                </div>
               </div>
             </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {results.correctAnswers}/{results.totalQuestions}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Câu đúng</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {formatTime(results.timeTaken)}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Thời gian</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {Math.round((results.correctAnswers / results.totalQuestions) * 100)}%
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Độ chính xác</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {results.rawScore}/{results.maxScore}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Điểm thô</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Detailed Analysis */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
-          <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Phân tích chi tiết
-            </h3>
-          </div>
-
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Strengths */}
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <span className="text-green-500 mr-2">💪</span>
-                  Điểm mạnh
-                </h4>
-                {strengths.length > 0 ? (
-                  <ul className="space-y-2">
-                    {strengths.map((strength, index) => (
-                      <li key={index} className="flex items-center text-gray-600 dark:text-gray-400">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                        {strength}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Hãy tiếp tục luyện tập để phát triển điểm mạnh
-                  </p>
-                )}
-              </div>
-
-              {/* Areas for Improvement */}
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <span className="text-orange-500 mr-2">🎯</span>
-                  Cần cải thiện
-                </h4>
-                {improvements.length > 0 ? (
-                  <ul className="space-y-2">
-                    {improvements.map((improvement, index) => (
-                      <li key={index} className="flex items-center text-gray-600 dark:text-gray-400">
-                        <span className="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
-                        {improvement}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Bạn đã thể hiện tốt ở tất cả các lĩnh vực!
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Toggle Detailed Results */}
-            <div className="mt-8">
-              <button
-                onClick={() => setShowDetails(!showDetails)}
-                className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+            
+            {/* Main Score Section */}
+            <div className="text-center mb-8">
+              <motion.h1 
+                className="text-7xl md:text-8xl font-bold text-gray-900 mb-2 leading-none"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.8, type: "spring" }}
               >
-                <span>Xem chi tiết từng câu hỏi</span>
-                <svg 
-                  className={`w-5 h-5 ml-2 transition-transform ${showDetails ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                {results.score}
+              </motion.h1>
+              <p className="text-xl text-gray-600 mb-6">Chỉ số IQ của bạn</p>
+              
+              {/* Mini IQ Scale */}
+              <div className="max-w-md mx-auto mb-6">
+                <div className="relative h-3 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400 rounded-full">
+                  <motion.div 
+                    className="absolute w-4 h-4 bg-white border-3 border-blue-600 rounded-full shadow-md transform -translate-y-0.5 -translate-x-2"
+                    style={{ left: `${Math.min(Math.max(((results.score - 70) / 75) * 100, 0), 100)}%` }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <span>70</span>
+                  <span>100</span>
+                  <span>130</span>
+                  <span>145+</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Làm lại IQ Button */}
+              <motion.button
+                onClick={onRetake}
+                className="group bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="mr-2 group-hover:rotate-180 transition-transform duration-300">🔄</span>
+                <span className="text-sm">Làm lại IQ</span>
+              </motion.button>
 
-              {showDetails && (
-                <div className="mt-6 space-y-4">
-                  {results.answerDetails.map((detail, index) => (
-                    <div 
-                      key={detail.questionId}
-                      className={`p-4 rounded-xl border ${
-                        detail.isCorrect 
-                          ? 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/20' 
-                          : 'border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900/20'
-                      }`}
+              {/* Trang chủ Button */}
+              <motion.button
+                onClick={onHome}
+                className="group bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="mr-2">🏠</span>
+                <span className="text-sm">Trang chủ</span>
+              </motion.button>
+
+              {/* Test EQ Button */}
+              <motion.button
+                onClick={() => window.location.href = '/test/eq'}
+                className="group bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="mr-2 group-hover:scale-110 transition-transform duration-300">❤️</span>
+                <span className="text-sm">Test EQ</span>
+              </motion.button>
+
+              {/* Bảng xếp hạng Button */}
+              <motion.button
+                onClick={() => window.location.href = '/leaderboard'}
+                className="group bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="mr-2 group-hover:bounce transition-transform duration-300">🏆</span>
+                <span className="text-sm">Bảng xếp hạng</span>
+              </motion.button>
+
+              {/* Chia sẻ Button với Dropdown */}
+              <div className="relative">
+                <motion.button 
+                  onClick={() => setShowShareDropdown(!showShareDropdown)}
+                  className="group w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="mr-2">📤</span>
+                  <span className="text-sm">Chia sẻ</span>
+                  <span className={`ml-1 transition-transform duration-200 ${showShareDropdown ? 'rotate-180' : ''}`}>⬇️</span>
+                </motion.button>
+
+                <AnimatePresence>
+                  {showShareDropdown && (
+                    <motion.div 
+                      className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-56 bg-white rounded-lg shadow-md border border-gray-100 z-50"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-white">
-                          Câu {index + 1}: {getTypeName(detail.type)}
-                        </h5>
-                        <div className={`flex items-center ${
-                          detail.isCorrect ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {detail.isCorrect ? (
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                          <span className="ml-1 font-medium">
-                            {detail.points}/{detail.maxPoints} điểm
-                          </span>
+                      <div className="p-3">
+                        <div className="grid grid-cols-4 gap-2">
+                          <ShareButton onShare={shareToFacebook} icon="📘" label="Facebook" color="bg-blue-50 hover:bg-blue-100 text-blue-600" />
+                          <ShareButton onShare={shareToTwitter} icon="🐦" label="Twitter" color="bg-gray-50 hover:bg-gray-100 text-gray-700" />
+                          <ShareButton onShare={shareToWhatsApp} icon="💬" label="WhatsApp" color="bg-green-50 hover:bg-green-100 text-green-600" />
+                          <ShareButton onShare={copyLink} icon="🔗" label="Copy" color="bg-purple-50 hover:bg-purple-100 text-purple-600" />
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {detail.question}
-                      </p>
-                      <div className="text-sm">
-                        <span className="text-gray-700 dark:text-gray-300">Đáp án đúng: </span>
-                        <span className="font-medium text-green-600">{detail.correctAnswer.toUpperCase()}</span>
-                        {detail.userAnswer && (
-                          <>
-                            <span className="text-gray-700 dark:text-gray-300 ml-4">Bạn chọn: </span>
-                            <span className={`font-medium ${
-                              detail.isCorrect ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {detail.userAnswer.toUpperCase()}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
-                        {detail.explanation}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Share Results */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
-          <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Chia sẻ kết quả
-            </h3>
-          </div>
-
-          <div className="p-8">
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Chia sẻ kết quả test IQ của bạn với bạn bè và gia đình!
-            </p>
-            
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={() => shareResults('facebook')}
-                className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                Facebook
-              </button>
-              
-              <button
-                onClick={() => shareResults('twitter')}
-                className="flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                </svg>
-                Twitter
-              </button>
-              
-              <button
-                onClick={() => shareResults('linkedin')}
-                className="flex items-center px-6 py-3 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-                LinkedIn
-              </button>
-              
-              <button
-                onClick={() => shareResults('copy')}
-                className="flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Sao chép link
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            onClick={onRetake}
-            className="flex items-center justify-center px-8 py-4 text-lg font-semibold text-blue-600 bg-white border-2 border-blue-600 rounded-full hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700 transition-all transform hover:scale-105"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Làm lại test
-          </button>
+        {/* Score Comparison Chart */}
+        <motion.div 
+          className="bg-white rounded-2xl shadow-md p-8 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <span className="mr-3 text-indigo-600">📊</span>
+            So sánh với cộng đồng
+          </h2>
           
-          <button
-            onClick={onHome}
-            className="flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Về trang chủ
-          </button>
-        </div>
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Distribution Chart */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Phân bố điểm IQ</h3>
+              <div className="space-y-3">
+                {[
+                  { label: 'Thiên tài (140+)', width: 2, color: 'purple', isUser: results.score >= 140 },
+                  { label: 'Xuất sắc (130-139)', width: 6, color: 'blue', isUser: results.score >= 130 && results.score < 140 },
+                  { label: 'Trên TB (115-129)', width: 14, color: 'green', isUser: results.score >= 115 && results.score < 130 },
+                  { label: 'Trung bình (85-114)', width: 68, color: 'yellow', isUser: results.score >= 85 && results.score < 115 },
+                  { label: 'Dưới TB (70-84)', width: 10, color: 'orange', isUser: results.score >= 70 && results.score < 85 }
+                ].map((item, index) => (
+                  <motion.div 
+                    key={index}
+                    className="flex items-center justify-between"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                  >
+                    <span className="text-sm text-gray-600">{item.label}</span>
+                    <div className="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
+                      <motion.div 
+                        className={`h-3 bg-gradient-to-r from-${item.color}-400 to-${item.color}-600 rounded-full`}
+                        style={{ width: `${item.width}%` }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${item.width}%` }}
+                        transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
+                      />
+                      {item.isUser && (
+                        <motion.div 
+                          className={`absolute top-0 right-0 w-3 h-3 bg-white border-2 border-${item.color}-600 rounded-full transform translate-x-1`}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 1.3 + index * 0.1 }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">{item.width}%</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Your Position */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Vị trí của bạn</h3>
+              <div className="space-y-4">
+                <motion.div 
+                  className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 text-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 1, duration: 0.5 }}
+                >
+                  <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+                    #{Math.ceil((100 - results.percentile) / 100 * 1000)}
+                  </div>
+                  <p className="text-sm text-gray-600">Trong 1000 người</p>
+                </motion.div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-green-50 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-green-600 mb-1">{results.percentile}%</div>
+                    <p className="text-xs text-gray-600">Cao hơn</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-600 mb-1">{100 - results.percentile}%</div>
+                    <p className="text-xs text-gray-600">Thấp hơn</p>
+                  </div>
+                </div>
+
+                <div className="text-center py-4">
+                  <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-100 to-emerald-200 rounded-full">
+                    <span className="text-emerald-600 mr-2">🏆</span>
+                    <span className="text-sm font-medium text-emerald-800">
+                      {results.score >= 130 ? 'Top 6% xuất sắc!' : 
+                       results.score >= 115 ? 'Top 20% trên trung bình!' : 
+                       'Điểm tốt, tiếp tục cố gắng!'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+          
+        {/* Analysis Section */}
+        <motion.div 
+          className="bg-white rounded-2xl shadow-md p-8 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <span className="mr-3 text-blue-600">📊</span>
+            Phân tích chi tiết
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Strengths */}
+            <div>
+              <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center">
+                <span className="mr-2">⚡</span>
+                Điểm mạnh
+              </h3>
+              <div className="space-y-3">
+                {strengths.length > 0 ? strengths.map((strength, index) => (
+                  <motion.div 
+                    key={index}
+                    className="flex items-center p-3 bg-green-50 rounded-lg"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                  >
+                    <span className="text-green-500 mr-3">✅</span>
+                    <span className="text-gray-700">{strength}</span>
+                  </motion.div>
+                )) : (
+                  <div className="flex items-center p-3 bg-green-50 rounded-lg">
+                    <span className="text-green-500 mr-3">✅</span>
+                    <span className="text-gray-700">Tư duy tổng hợp tốt</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Improvements */}
+            <div>
+              <h3 className="text-lg font-semibold text-orange-600 mb-4 flex items-center">
+                <span className="mr-2">🏆</span>
+                Cơ hội phát triển
+              </h3>
+              <div className="space-y-3">
+                {improvements.length > 0 ? improvements.map((area, index) => (
+                  <motion.div 
+                    key={index}
+                    className="flex items-center p-3 bg-orange-50 rounded-lg"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                  >
+                    <span className="text-orange-500 mr-3">🧠</span>
+                    <span className="text-gray-700">{area}</span>
+                  </motion.div>
+                )) : (
+                  <div className="flex items-center p-3 bg-orange-50 rounded-lg">
+                    <span className="text-orange-500 mr-3">🧠</span>
+                    <span className="text-gray-700">Luyện tập thêm để nâng cao</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Skill Breakdown Section */}
+        <motion.div 
+          className="bg-white rounded-2xl shadow-md p-8 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <span className="mr-3 text-purple-600">🧠</span>
+            Phân tích theo kỹ năng
+          </h2>
+          
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Radar Chart */}
+            <div className="relative">
+              <RadarChart skills={skills} />
+            </div>
+            
+            {/* Skills List */}
+            <div className="space-y-4">
+              {[
+                { key: 'logic', icon: '🧠', title: 'Logic & Suy luận', desc: 'Giải quyết vấn đề, chuỗi lập luận', bg: 'bg-blue-50', color: 'text-blue-600' },
+                { key: 'visual', icon: '👁️', title: 'Tư duy trực quan', desc: 'Nhận diện mẫu, hình khối', bg: 'bg-green-50', color: 'text-green-600' },
+                { key: 'speed', icon: '⏱️', title: 'Phản xạ & tốc độ', desc: 'Trả lời nhanh & chính xác', bg: 'bg-amber-50', color: 'text-amber-600' },
+                { key: 'math', icon: '📐', title: 'Khả năng toán học', desc: 'Dạng số học, dãy số logic', bg: 'bg-purple-50', color: 'text-purple-600' },
+                { key: 'memory', icon: '🔄', title: 'Ghi nhớ & tập trung', desc: 'Giữ thông tin & duy trì chú ý', bg: 'bg-red-50', color: 'text-red-600' }
+              ].map((skill, index) => (
+                <motion.div 
+                  key={skill.key}
+                  className={`flex items-center justify-between p-4 ${skill.bg} rounded-xl hover:shadow-md transition-all duration-200`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.8 + index * 0.1 }}
+                >
+                  <div className="flex items-center">
+                    <div className={`w-10 h-10 ${skill.bg.replace('50', '500')} rounded-lg flex items-center justify-center mr-4`}>
+                      <span className="text-white text-lg">{skill.icon}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{skill.title}</h3>
+                      <p className="text-sm text-gray-600">{skill.desc}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-2xl font-bold ${skill.color}`}>
+                      {skills[skill.key as keyof SkillScores]}%
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {getSkillLevel(skills[skill.key as keyof SkillScores])}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Social Sharing - Simplified */}
+        <motion.div 
+          className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+        >
+          <h2 className="text-xl font-bold text-gray-900 mb-3">💡 Mẹo nhỏ</h2>
+          <p className="text-gray-600 text-sm">Chia sẻ kết quả để thử thách bạn bè của bạn! Ai sẽ có điểm cao hơn? 🎯</p>
+        </motion.div>
       </div>
     </div>
   );

@@ -55,7 +55,7 @@ export default function QuestionCard({
       className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.2 }}
       layout
     >
       {/* Header */}
@@ -85,7 +85,7 @@ export default function QuestionCard({
           className="mb-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.05 }}
         >
           <p className="text-lg leading-relaxed text-gray-800 font-medium whitespace-pre-wrap">
             {question.question}
@@ -99,7 +99,7 @@ export default function QuestionCard({
             const isCorrect = isReviewMode && index === question.correct;
             const isWrong = isReviewMode && isSelected && index !== question.correct;
             
-            let buttonClass = 'w-full p-4 text-left border-2 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2';
+            let buttonClass = 'w-full p-4 text-left border-2 rounded-xl transition-colors duration-200 focus:outline-none';
             
             if (isReviewMode) {
               if (isCorrect) {
@@ -110,9 +110,9 @@ export default function QuestionCard({
                 buttonClass += ' bg-gray-50 border-gray-200 text-gray-600';
               }
             } else if (isSelected) {
-              buttonClass += ' bg-primary-50 border-primary-300 text-primary-800 shadow-md';
+              buttonClass += ' bg-primary-50 border-primary-300 text-primary-800';
             } else {
-              buttonClass += ' bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm';
+              buttonClass += ' bg-white border-gray-200 text-gray-700 hover:bg-gray-50';
             }
 
             return (
@@ -123,9 +123,7 @@ export default function QuestionCard({
                 disabled={isReviewMode}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                whileHover={!isReviewMode ? { scale: 1.02 } : {}}
-                whileTap={!isReviewMode ? { scale: 0.98 } : {}}
+                transition={{ delay: 0.1 + index * 0.02 }}
               >
                 <div className="flex items-center space-x-3">
                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold

@@ -20,6 +20,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [justAnswered, setJustAnswered] = useState(false);
   
   const { fireMultipleBursts } = useConfetti();
 
@@ -31,24 +32,37 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Handle answer selection
   const handleAnswerSelect = useCallback((answerIndex: number) => {
+    console.log('Answer selected:', answerIndex, 'for question:', currentQuestion);
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
+    setJustAnswered(true);
   }, [answers, currentQuestion]);
 
   // Navigate to next question
   const nextQuestion = useCallback(() => {
+    console.log('Moving to next question from:', currentQuestion);
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
+      setJustAnswered(false);
     }
   }, [currentQuestion, questions.length]);
 
   // Navigate to previous question
   const previousQuestion = useCallback(() => {
+    console.log('Moving to previous question from:', currentQuestion);
     if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1);
+      setJustAnswered(false);
     }
   }, [currentQuestion]);
+
+  // Jump to specific question
+  const jumpToQuestion = useCallback((questionIndex: number) => {
+    console.log('Jumping to question:', questionIndex);
+    setCurrentQuestion(questionIndex);
+    setJustAnswered(false);
+  }, []);
 
   // Submit test
   const submitTest = useCallback(async () => {
@@ -80,16 +94,24 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     submitTest();
   }, [submitTest]);
 
-  // Auto-advance when answer is selected (optional)
+  // Auto-advance ONLY when just answered (not when jumping)
   useEffect(() => {
-    if (answers[currentQuestion] !== null && currentQuestion < questions.length - 1) {
+    console.log('Auto-advance check:', {
+      justAnswered,
+      currentQuestion,
+      hasAnswer: answers[currentQuestion] !== null,
+      isLastQuestion: currentQuestion === questions.length - 1
+    });
+    
+    if (justAnswered && answers[currentQuestion] !== null && currentQuestion < questions.length - 1) {
+      console.log('Auto-advance triggered');
       const timer = setTimeout(() => {
         nextQuestion();
-      }, 1500); // 1.5 second delay
+      }, 300);
       
       return () => clearTimeout(timer);
     }
-  }, [answers, currentQuestion, nextQuestion, questions.length]);
+  }, [justAnswered, answers, currentQuestion, nextQuestion, questions.length]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -265,7 +287,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.15 }}
           className="mb-6"
         >
           <QuestionCard
@@ -302,7 +324,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
               {questions.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentQuestion(index)}
+                  onClick={() => jumpToQuestion(index)}
                   className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
                     index === currentQuestion
                       ? 'bg-primary-600 text-white'
@@ -317,6 +339,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
             </div>
           </div>
 
+          {/* Chỉ hiện button Submit ở câu cuối cùng */}
           {currentQuestion === questions.length - 1 ? (
             <motion.button
               onClick={submitTest}
@@ -342,30 +365,48 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
               )}
             </motion.button>
           ) : (
-            <motion.button
-              onClick={nextQuestion}
-              disabled={answers[currentQuestion] === null}
-              className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                answers[currentQuestion] === null
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
-              whileHover={answers[currentQuestion] !== null ? { scale: 1.02 } : {}}
-              whileTap={answers[currentQuestion] !== null ? { scale: 0.98 } : {}}
-            >
-              Tiếp theo
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </motion.button>
+            <div className="w-32"></div>
           )}
         </div>
         
         {/* Keyboard shortcuts hint */}
         <div className="mt-4 text-center text-xs text-gray-500">
-          💡 Phím tắt: 1-4 (chọn đáp án) • ← → (điều hướng) • Enter (tiếp theo)
+          💡 Phím tắt: 1-4 (chọn đáp án) • ← → (điều hướng) • Enter (hoàn thành ở câu cuối)
         </div>
       </div>
+
+      {/* Submit button center - backup nếu cần */}
+      {currentQuestion === questions.length - 1 && (
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-center mt-6">
+          <motion.button
+            onClick={submitTest}
+            disabled={isSubmitting || answers.some(a => a === null)}
+            className={`inline-flex items-center px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-200 ${
+              isSubmitting || answers.some(a => a === null)
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-lg'
+            }`}
+            whileHover={!isSubmitting && answers.every(a => a !== null) ? { scale: 1.02 } : {}}
+            whileTap={!isSubmitting && answers.every(a => a !== null) ? { scale: 0.98 } : {}}
+          >
+            {isSubmitting ? (
+              <>
+                <div className="loading-spinner mr-2"></div>
+                Đang xử lý...
+              </>
+            ) : (
+              <>
+                <span className="mr-2">🏁</span>
+                Hoàn thành Test
+              </>
+            )}
+          </motion.button>
+          
+          <p className="text-sm text-gray-500 mt-3">
+            💡 Phím tắt: 1-4 (chọn đáp án) • Enter (hoàn thành)
+          </p>
+        </div>
+      )}
     </div>
   );
 }
