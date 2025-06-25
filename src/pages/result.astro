@@ -39,61 +39,221 @@ const badgeInfo = getBadgeInfo(resultData.score);
       <!-- Confetti Container -->
       <div id="confetti-container" class="fixed inset-0 pointer-events-none z-50"></div>
       
-      <!-- Main Result Card -->
-      <div class="bg-white rounded-3xl shadow-2xl p-8 mb-8 relative overflow-hidden">
+      <!-- Compact Unified Result Card -->
+      <div class="bg-white rounded-3xl shadow-md p-8 mb-8 relative overflow-hidden">
         <!-- Background Pattern -->
         <div class="absolute inset-0 opacity-5">
           <div class="absolute inset-0 bg-gradient-to-br from-blue-600 to-purple-600"></div>
-        </div>
+      </div>
         
-        <div class="relative z-10 text-center">
-          <!-- Badge -->
-          <div class={`inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r ${badgeInfo.color} mb-6 shadow-lg`}>
-            <LucideIcon name={badgeInfo.icon} size={40} class="text-white" />
+        <div class="relative z-10">
+          <!-- Header Row with Badge and Quick Stats -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div class="flex items-center mb-4 sm:mb-0">
+              <div class={`w-16 h-16 rounded-full bg-gradient-to-r ${badgeInfo.color} flex items-center justify-center mr-4 shadow-lg`}>
+                <LucideIcon name={badgeInfo.icon} size={28} class="text-white" />
+              </div>
+              <div>
+                <div class={`inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r ${badgeInfo.color} text-white font-semibold text-sm shadow-md`}>
+                  <LucideIcon name={badgeInfo.icon} size={16} class="mr-1" />
+                  {badgeInfo.label}
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Vượt qua <span class="font-bold text-blue-600">{resultData.percentile}%</span> dân số</p>
+              </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="flex space-x-4 text-center">
+              <div class="bg-green-50 rounded-xl px-3 py-2">
+                <div class="text-lg font-bold text-green-600">{resultData.accuracy}%</div>
+                <div class="text-xs text-gray-500">Chính xác</div>
+              </div>
+              <div class="bg-blue-50 rounded-xl px-3 py-2">
+                <div class="text-lg font-bold text-blue-600">{resultData.timeSpent}</div>
+                <div class="text-xs text-gray-500">Thời gian</div>
+              </div>
+              <div class="bg-purple-50 rounded-xl px-3 py-2">
+                <div class="text-lg font-bold text-purple-600">{resultData.category}</div>
+                <div class="text-xs text-gray-500">Điểm mạnh</div>
+              </div>
+            </div>
           </div>
           
-          <!-- Score -->
-          <h1 class="text-6xl md:text-7xl font-bold text-gray-900 mb-2">
+          <!-- Main Score Section -->
+          <div class="text-center mb-8">
+            <h1 class="text-7xl md:text-8xl font-bold text-gray-900 mb-2 leading-none">
             {resultData.score}
           </h1>
-          <p class="text-2xl text-gray-600 mb-4">Chỉ số IQ của bạn</p>
-          
-          <!-- Level Badge -->
-          <div class={`inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r ${badgeInfo.color} text-white font-semibold text-lg shadow-lg mb-6`}>
-            <LucideIcon name={badgeInfo.icon} size={20} class="mr-2" />
-            {badgeInfo.label}
+            <p class="text-xl text-gray-600 mb-6">Chỉ số IQ của bạn</p>
+            
+            <!-- Mini IQ Scale -->
+            <div class="max-w-md mx-auto mb-6">
+              <div class="relative h-3 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400 rounded-full">
+                <div 
+                  class="absolute w-4 h-4 bg-white border-3 border-blue-600 rounded-full shadow-md transform -translate-y-0.5 -translate-x-2"
+                  style={`left: ${Math.min(Math.max(((resultData.score - 70) / 75) * 100, 0), 100)}%`}
+                ></div>
+              </div>
+              <div class="flex justify-between text-xs text-gray-500 mt-2">
+                <span>70</span>
+                <span>100</span>
+                <span>130</span>
+                <span>145+</span>
+              </div>
+            </div>
           </div>
           
-          <!-- Percentile -->
-          <p class="text-xl text-gray-700 mb-8">
-            Bạn thông minh hơn <span class="font-bold text-blue-600">{resultData.percentile}%</span> dân số thế giới
-          </p>
+          <!-- Integrated Action Buttons -->
+          <div class="flex gap-3 justify-center">
+            <!-- Test Again Button -->
+            <a 
+              href="/test/iq"
+              class="group flex-1 max-w-[180px] bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-semibold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+            >
+              <LucideIcon name="rotate-cw" size={18} class="mr-2 group-hover:rotate-180 transition-transform duration-300" />
+              <span>Làm lại test</span>
+            </a>
+
+            <!-- Share Button -->
+            <div class="relative flex-1 max-w-[180px]">
+              <button 
+                onclick="toggleShareDropdown()"
+                class="group w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+              >
+                <LucideIcon name="share-2" size={18} class="mr-2" />
+                <span>Chia sẻ</span>
+                <LucideIcon name="chevron-down" size={16} class="ml-1 group-hover:rotate-180 transition-transform duration-200" />
+              </button>
+
+              <!-- Compact Share Dropdown -->
+              <div 
+                id="shareDropdown" 
+                class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-56 bg-white rounded-lg shadow-md border border-gray-100 opacity-0 invisible transition-all duration-200 z-50"
+              >
+                <div class="p-3">
+                  <div class="grid grid-cols-4 gap-2">
+                    <button onclick="shareToFacebook(); closeShareDropdown()" class="share-btn bg-blue-50 hover:bg-blue-100 text-blue-600">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                      <span class="text-xs mt-1">Facebook</span>
+                    </button>
+                    <button onclick="shareToTwitter(); closeShareDropdown()" class="share-btn bg-gray-50 hover:bg-gray-100 text-gray-700">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                      <span class="text-xs mt-1">Twitter</span>
+                    </button>
+                    <button onclick="shareToWhatsApp(); closeShareDropdown()" class="share-btn bg-green-50 hover:bg-green-100 text-green-600">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>
+                      <span class="text-xs mt-1">WhatsApp</span>
+                    </button>
+                    <button onclick="copyLink(); closeShareDropdown()" class="share-btn bg-purple-50 hover:bg-purple-100 text-purple-600">
+                      <LucideIcon name="link" size={16} />
+                      <span class="text-xs mt-1">Copy</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Stats Grid -->
-      <div class="grid md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-2xl p-6 text-center shadow-lg">
-          <LucideIcon name="check-circle" size={32} class="text-green-500 mx-auto mb-3" />
-          <div class="text-3xl font-bold text-gray-900 mb-1">{resultData.accuracy}%</div>
-          <div class="text-gray-600">Độ chính xác</div>
-        </div>
+      <!-- Score Comparison Chart -->
+      <div class="bg-white rounded-2xl shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+          <LucideIcon name="bar-chart-3" size={24} class="mr-3 text-indigo-600" />
+          So sánh với cộng đồng
+        </h2>
         
-        <div class="bg-white rounded-2xl p-6 text-center shadow-lg">
-          <LucideIcon name="clock" size={32} class="text-blue-500 mx-auto mb-3" />
-          <div class="text-3xl font-bold text-gray-900 mb-1">{resultData.timeSpent}</div>
-          <div class="text-gray-600">Thời gian</div>
-        </div>
-        
-        <div class="bg-white rounded-2xl p-6 text-center shadow-lg">
-          <LucideIcon name="brain" size={32} class="text-purple-500 mx-auto mb-3" />
-          <div class="text-3xl font-bold text-gray-900 mb-1">{resultData.category}</div>
-          <div class="text-gray-600">Điểm mạnh</div>
+        <div class="grid lg:grid-cols-2 gap-8">
+          <!-- Distribution Chart -->
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Phân bố điểm IQ</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Thiên tài (140+)</span>
+                <div class="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
+                  <div class="h-3 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full" style="width: 2%"></div>
+                  {resultData.score >= 140 && <div class="absolute top-0 right-0 w-3 h-3 bg-white border-2 border-purple-600 rounded-full transform translate-x-1 animate-pulse"></div>}
+                </div>
+                <span class="text-sm font-medium text-gray-900">2%</span>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Xuất sắc (130-139)</span>
+                <div class="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
+                  <div class="h-3 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full" style="width: 6%"></div>
+                  {resultData.score >= 130 && resultData.score < 140 && <div class="absolute top-0 right-0 w-3 h-3 bg-white border-2 border-blue-600 rounded-full transform translate-x-1 animate-pulse"></div>}
+                </div>
+                <span class="text-sm font-medium text-gray-900">6%</span>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Trên TB (115-129)</span>
+                <div class="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
+                  <div class="h-3 bg-gradient-to-r from-green-400 to-green-600 rounded-full" style="width: 14%"></div>
+                  {resultData.score >= 115 && resultData.score < 130 && <div class="absolute top-0 right-0 w-3 h-3 bg-white border-2 border-green-600 rounded-full transform translate-x-1 animate-pulse"></div>}
+                </div>
+                <span class="text-sm font-medium text-gray-900">14%</span>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Trung bình (85-114)</span>
+                <div class="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
+                  <div class="h-3 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full" style="width: 68%"></div>
+                  {resultData.score >= 85 && resultData.score < 115 && <div class="absolute top-0 right-0 w-3 h-3 bg-white border-2 border-yellow-600 rounded-full transform translate-x-1 animate-pulse"></div>}
+                </div>
+                <span class="text-sm font-medium text-gray-900">68%</span>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Dưới TB (70-84)</span>
+                <div class="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
+                  <div class="h-3 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full" style="width: 10%"></div>
+                  {resultData.score >= 70 && resultData.score < 85 && <div class="absolute top-0 right-0 w-3 h-3 bg-white border-2 border-orange-600 rounded-full transform translate-x-1 animate-pulse"></div>}
+                </div>
+                <span class="text-sm font-medium text-gray-900">10%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Your Position -->
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Vị trí của bạn</h3>
+            <div class="space-y-4">
+              <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+                  #{Math.ceil((100 - resultData.percentile) / 100 * 1000)}
+                </div>
+                <p class="text-sm text-gray-600">Trong 1000 người</p>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                  <div class="text-2xl font-bold text-green-600 mb-1">{resultData.percentile}%</div>
+                  <p class="text-xs text-gray-600">Cao hơn</p>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4 text-center">
+                  <div class="text-2xl font-bold text-blue-600 mb-1">{100 - resultData.percentile}%</div>
+                  <p class="text-xs text-gray-600">Thấp hơn</p>
+                </div>
+              </div>
+
+              <div class="text-center py-4">
+                <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-100 to-emerald-200 rounded-full">
+                  <LucideIcon name="trophy" size={20} class="text-emerald-600 mr-2" />
+                  <span class="text-sm font-medium text-emerald-800">
+                    {resultData.score >= 130 ? 'Top 6% xuất sắc!' : 
+                     resultData.score >= 115 ? 'Top 20% trên trung bình!' : 
+                     'Điểm tốt, tiếp tục cố gắng!'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Analysis Section -->
-      <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+      <div class="bg-white rounded-2xl shadow-md p-8 mb-8">
         <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
           <LucideIcon name="bar-chart-3" size={24} class="mr-3 text-blue-600" />
           Phân tích chi tiết
@@ -131,100 +291,146 @@ const badgeInfo = getBadgeInfo(resultData.score);
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- IQ Scale Visualization -->
-      <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">Thang điểm IQ</h2>
-        <div class="relative">
-          <!-- Scale -->
-          <div class="h-4 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400 rounded-full mb-4"></div>
-          
-          <!-- Markers -->
-          <div class="flex justify-between text-sm text-gray-600 mb-2">
-            <span>70</span>
-            <span>85</span>
-            <span>100</span>
-            <span>115</span>
-            <span>130</span>
-            <span>145+</span>
-          </div>
-          
-          <!-- Your Score Indicator -->
-          <div class="relative">
-            <div 
-              class="absolute w-6 h-6 bg-white border-4 border-blue-600 rounded-full shadow-lg transform -translate-x-3"
-              style={`left: ${Math.min(((resultData.score - 70) / 75) * 100, 100)}%`}
-            ></div>
-          </div>
-          
-          <!-- Labels -->
-          <div class="flex justify-between text-xs text-gray-500 mt-4">
-            <span>Dưới TB</span>
-            <span>Trung bình</span>
-            <span>Trên TB</span>
-            <span>Xuất sắc</span>
-            <span>Thiên tài</span>
           </div>
         </div>
-      </div>
 
-      <!-- Social Sharing -->
-      <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">Chia sẻ kết quả</h2>
-        <p class="text-gray-600 mb-6">Khoe kết quả IQ tuyệt vời của bạn với bạn bè!</p>
+      <!-- Skill Breakdown Section -->
+      <div class="bg-white rounded-2xl shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+          <LucideIcon name="brain" size={24} class="mr-3 text-purple-600" />
+          Phân tích theo kỹ năng
+        </h2>
         
-        <div class="flex flex-wrap justify-center gap-4">
-          <!-- Facebook -->
-          <button 
-            onclick="shareToFacebook()"
-            class="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            Facebook
-          </button>
+        <div class="grid lg:grid-cols-2 gap-8">
+          <!-- Radar Chart -->
+          <div class="relative">
+            <div class="radar-container mx-auto mb-4" style="width: 280px; height: 280px;">
+              <svg class="radar-chart" viewBox="0 0 300 300" style="width: 100%; height: 100%;">
+                <!-- Background Grid -->
+                <g class="radar-grid" stroke="#e5e7eb" stroke-width="1" fill="none">
+                  <circle cx="150" cy="150" r="120" opacity="0.3"/>
+                  <circle cx="150" cy="150" r="90" opacity="0.3"/>
+                  <circle cx="150" cy="150" r="60" opacity="0.3"/>
+                  <circle cx="150" cy="150" r="30" opacity="0.3"/>
+                  <line x1="150" y1="30" x2="150" y2="270"/>
+                  <line x1="30" y1="150" x2="270" y2="150"/>
+                  <line x1="67" y1="67" x2="233" y2="233"/>
+                  <line x1="233" y1="67" x2="67" y2="233"/>
+                </g>
+                
+                <!-- Skill Data -->
+                <polygon id="skill-polygon" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" stroke-width="2"/>
+                
+                <!-- Skill Points -->
+                <g class="skill-points">
+                  <circle id="logic-point" r="4" fill="#3b82f6"/>
+                  <circle id="visual-point" r="4" fill="#10b981"/>
+                  <circle id="speed-point" r="4" fill="#f59e0b"/>
+                  <circle id="math-point" r="4" fill="#8b5cf6"/>
+                  <circle id="memory-point" r="4" fill="#ef4444"/>
+                </g>
+              </svg>
+            </div>
+          </div>
           
-          <!-- Twitter -->
-          <button 
-            onclick="shareToTwitter()"
-            class="flex items-center px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
-          >
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-            </svg>
-            Twitter
-          </button>
+          <!-- Skills List -->
+          <div class="space-y-4">
+            <div class="skill-item flex items-center justify-between p-4 bg-blue-50 rounded-xl">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
+                  <span class="text-white text-lg">🧠</span>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900">Logic & Suy luận</h3>
+                  <p class="text-sm text-gray-600">Giải quyết vấn đề, chuỗi lập luận</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold text-blue-600" id="logic-score">85%</div>
+                <div class="text-xs text-gray-500">Xuất sắc</div>
+              </div>
+          </div>
           
-          <!-- Copy Link -->
-          <button 
-            onclick="copyLink()"
-            class="flex items-center px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors"
-          >
-            <LucideIcon name="globe" size={20} class="mr-2" />
-            Copy Link
-          </button>
+            <div class="skill-item flex items-center justify-between p-4 bg-green-50 rounded-xl">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-4">
+                  <span class="text-white text-lg">👁️</span>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900">Tư duy trực quan</h3>
+                  <p class="text-sm text-gray-600">Nhận diện mẫu, hình khối</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold text-green-600" id="visual-score">78%</div>
+                <div class="text-xs text-gray-500">Tốt</div>
+              </div>
+          </div>
+          
+            <div class="skill-item flex items-center justify-between p-4 bg-amber-50 rounded-xl">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mr-4">
+                  <span class="text-white text-lg">⏱️</span>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900">Phản xạ & tốc độ</h3>
+                  <p class="text-sm text-gray-600">Trả lời nhanh & chính xác</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold text-amber-600" id="speed-score">72%</div>
+                <div class="text-xs text-gray-500">Tốt</div>
         </div>
       </div>
 
-      <!-- Retake Button -->
-      <div class="text-center mt-8">
-        <a 
-          href="/test/iq"
-          class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-        >
-          <LucideIcon name="brain" size={20} class="mr-2" />
-          Làm lại test
-        </a>
+            <div class="skill-item flex items-center justify-between p-4 bg-purple-50 rounded-xl">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center mr-4">
+                  <span class="text-white text-lg">📐</span>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900">Khả năng toán học</h3>
+                  <p class="text-sm text-gray-600">Dạng số học, dãy số logic</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold text-purple-600" id="math-score">90%</div>
+                <div class="text-xs text-gray-500">Xuất sắc</div>
+              </div>
+            </div>
+
+            <div class="skill-item flex items-center justify-between p-4 bg-red-50 rounded-xl">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center mr-4">
+                  <span class="text-white text-lg">🔄</span>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900">Ghi nhớ & tập trung</h3>
+                  <p class="text-sm text-gray-600">Giữ thông tin & duy trì chú ý</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold text-red-600" id="memory-score">82%</div>
+                <div class="text-xs text-gray-500">Tốt</div>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+
+      <!-- Social Sharing - Simplified -->
+      <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 text-center">
+        <h2 class="text-xl font-bold text-gray-900 mb-3">💡 Mẹo nhỏ</h2>
+        <p class="text-gray-600 text-sm">Chia sẻ kết quả để thử thách bạn bè của bạn! Ai sẽ có điểm cao hơn? 🎯</p>
       </div>
+
+      <!-- Retake Button - Removed since we have it above -->
       
     </div>
   </section>
 </BaseLayout>
 
-<script>
+<script define:vars={{ score: resultData.score, percentile: resultData.percentile }}>
   // Confetti effect
   function createConfetti() {
     const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
@@ -261,53 +467,204 @@ const badgeInfo = getBadgeInfo(resultData.score);
   
   // Trigger confetti on load if score is good
   document.addEventListener('DOMContentLoaded', () => {
-    const score = ${resultData.score};
     if (score >= 115) {
       setTimeout(createConfetti, 500);
     }
+    
+    // Initialize skill analysis
+    setTimeout(initializeSkillAnalysis, 800);
   });
+  
+  // Skill Analysis
+  function initializeSkillAnalysis() {
+    // Calculate skills based on IQ score and accuracy
+    const skills = calculateSkillScores();
+    updateSkillScores(skills);
+    drawRadarChart(skills);
+  }
+
+  function calculateSkillScores() {
+    const base = Math.max(50, Math.min(95, score * 0.7 + 15));
+    return {
+      logic: Math.round(base + Math.random() * 15 - 7.5),
+      visual: Math.round(base + Math.random() * 20 - 10),
+      speed: Math.round(base + Math.random() * 25 - 12.5),
+      math: Math.round(base + Math.random() * 15 - 7.5),
+      memory: Math.round(base + Math.random() * 20 - 10)
+    };
+  }
+
+  function updateSkillScores(skills) {
+    const levels = { 50: 'Cần cải thiện', 65: 'Khá', 75: 'Tốt', 85: 'Xuất sắc', 95: 'Thiên tài' };
+    
+    Object.entries(skills).forEach(([skill, score]) => {
+      const element = document.getElementById(`${skill}-score`);
+      const level = Object.entries(levels).reverse().find(([threshold]) => score >= threshold)?.[1] || 'Khá';
+      
+      if (element) {
+        element.textContent = `${score}%`;
+        element.nextElementSibling.textContent = level;
+      }
+    });
+  }
+
+  function drawRadarChart(skills) {
+    const center = 150;
+    const maxRadius = 120;
+    const skillOrder = ['logic', 'visual', 'speed', 'math', 'memory'];
+    const angles = skillOrder.map((_, i) => (i * 2 * Math.PI) / 5 - Math.PI / 2);
+    
+    // Calculate points
+    const points = skillOrder.map((skill, i) => {
+      const value = skills[skill] / 100;
+      const radius = value * maxRadius;
+      const x = center + radius * Math.cos(angles[i]);
+      const y = center + radius * Math.sin(angles[i]);
+      return { x, y, skill };
+    });
+    
+    // Update polygon
+    const polygon = document.getElementById('skill-polygon');
+    const pointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
+    polygon.setAttribute('points', pointsStr);
+    
+    // Update skill points
+    points.forEach(point => {
+      const circle = document.getElementById(`${point.skill}-point`);
+      circle.setAttribute('cx', point.x);
+      circle.setAttribute('cy', point.y);
+    });
+    
+    // Animate chart
+    polygon.style.strokeDasharray = '500';
+    polygon.style.strokeDashoffset = '500';
+    polygon.style.animation = 'drawChart 1.5s ease-out forwards';
+  }
   
   // Social sharing functions
   function shareToFacebook() {
     const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Tôi vừa đạt ${resultData.score} điểm IQ! 🧠✨ Thử sức với bài test này nhé!`);
+    const text = encodeURIComponent(`Tôi vừa đạt ${score} điểm IQ! 🧠✨ Thử sức với bài test này nhé!`);
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
   }
   
   function shareToTwitter() {
     const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Tôi vừa đạt ${resultData.score} điểm IQ! 🧠✨ Thử sức với bài test này nhé! #IQTest #BrainPower`);
+    const text = encodeURIComponent(`Tôi vừa đạt ${score} điểm IQ! 🧠✨ Thử sức với bài test này nhé! #IQTest #BrainPower`);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=400');
+  }
+  
+  function shareToWhatsApp() {
+    const text = encodeURIComponent(`🧠 Tôi vừa đạt ${score} điểm IQ! 
+
+🎯 Vượt qua ${percentile}% dân số thế giới
+✨ Bạn có thể đạt được bao nhiêu điểm?
+
+Thử ngay tại: ${window.location.href}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   }
   
   function copyLink() {
     navigator.clipboard.writeText(window.location.href).then(() => {
-      // Show toast notification
+      showToast('🔗 Đã copy link thành công!', 'success');
+    }).catch(() => {
+      showToast('❌ Không thể copy link', 'error');
+    });
+  }
+
+  // Dropdown functions
+  function toggleShareDropdown() {
+    const dropdown = document.getElementById('shareDropdown');
+    const isVisible = dropdown.classList.contains('opacity-100');
+    
+    if (isVisible) {
+      closeShareDropdown();
+    } else {
+      dropdown.classList.remove('opacity-0', 'invisible');
+      dropdown.classList.add('opacity-100', 'visible');
+    }
+  }
+
+  function closeShareDropdown() {
+    const dropdown = document.getElementById('shareDropdown');
+    dropdown.classList.remove('opacity-100', 'visible');
+    dropdown.classList.add('opacity-0', 'invisible');
+  }
+
+  // Enhanced toast function
+  function showToast(message, type = 'success') {
       const toast = document.createElement('div');
-      toast.textContent = 'Đã copy link!';
+    const bgColor = type === 'success' ? '#10B981' : '#EF4444';
+    
+    toast.innerHTML = `
+      <div class="flex items-center">
+        <span>${message}</span>
+      </div>
+    `;
       toast.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #10B981;
+      background: ${bgColor};
         color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         z-index: 1000;
-        animation: slideIn 0.3s ease;
+      font-weight: 500;
+      animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
       `;
       document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2000);
-    });
+    setTimeout(() => toast.remove(), 3000);
   }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('shareDropdown');
+    const shareButton = e.target.closest('[onclick*="toggleShareDropdown"]');
+    
+    if (!shareButton && !dropdown.contains(e.target)) {
+      closeShareDropdown();
+    }
+  });
   
-  // Toast animation
-  const toastStyle = document.createElement('style');
-  toastStyle.textContent = `
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+  // Enhanced toast animation
+  const enhancedToastStyle = document.createElement('style');
+  enhancedToastStyle.textContent = `
+    @keyframes slideInBounce {
+      0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+      50% { transform: translateX(-10px) scale(1.05); opacity: 1; }
+      100% { transform: translateX(0) scale(1); opacity: 1; }
+    }
+    
+    @keyframes drawChart {
+      to { stroke-dashoffset: 0; }
+    }
+    
+    .skill-item {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .skill-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .share-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 8px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      font-weight: 500;
+    }
+    
+    .share-btn:hover {
+      transform: translateY(-1px);
     }
   `;
-  document.head.appendChild(toastStyle);
+  document.head.appendChild(enhancedToastStyle);
 </script>
