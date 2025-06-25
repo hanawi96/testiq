@@ -11,261 +11,214 @@ const locale = getLocale('vi');
   keywords={locale.meta.keywords}
 >
   <!-- Hero Section -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-primary-50 via-white to-blue-50 pt-20 pb-32">
-    <!-- Background decoration -->
-    <div class="absolute inset-0 overflow-hidden">
-      <div class="absolute -top-40 -right-32 w-80 h-80 bg-primary-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
-      <div class="absolute -bottom-40 -left-32 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow" style="animation-delay: 1s;"></div>
-    </div>
-    
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center">
-        <!-- Badge -->
-        <div class="inline-flex items-center px-4 py-2 rounded-full bg-primary-100 text-primary-800 text-sm font-medium mb-8 animate-bounce-in">
-          <span class="mr-2">🧠</span>
-          Test IQ Chuẩn Quốc Tế
-        </div>
-        
-        <!-- Main heading -->
-        <h1 class="text-4xl md:text-6xl font-display font-bold text-gray-900 mb-6 animate-fade-in">
-          <span class="bg-gradient-to-r from-primary-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-            {locale.home.title}
-          </span>
-        </h1>
-        
-        <!-- Subtitle -->
-        <p class="text-xl md:text-2xl text-gray-600 font-medium mb-4 animate-slide-up">
-          {locale.home.subtitle}
-        </p>
-        
-        <!-- Description -->
-        <p class="text-lg text-gray-700 max-w-3xl mx-auto mb-12 leading-relaxed animate-slide-up" style="animation-delay: 0.2s;">
-          {locale.home.description}
-        </p>
-        
-        <!-- CTA Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-up" style="animation-delay: 0.4s;">
-          <a 
-            href="/about" 
-            class="group inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-blue-600 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
-          >
-            <span>{locale.home.cta}</span>
-            <svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-            </svg>
-          </a>
-          
-          <a 
-            href="/about" 
-            class="inline-flex items-center px-8 py-4 text-lg font-semibold text-primary-600 bg-white border-2 border-primary-200 rounded-xl hover:bg-primary-50 hover:border-primary-300 transition-all duration-300"
-          >
-            Tìm hiểu thêm
-          </a>
-        </div>
-        
-        <!-- Trust indicators -->
-        <div class="mt-16 animate-fade-in" style="animation-delay: 0.6s;">
-          <p class="text-sm text-gray-500 mb-6">Được tin tưởng bởi hơn 500,000 người dùng</p>
-          <div class="flex justify-center items-center space-x-12 opacity-60">
-            <div class="text-2xl">⭐⭐⭐⭐⭐</div>
-            <div class="text-sm text-gray-600">4.9/5 đánh giá</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features Section -->
-  <section id="features" class="py-24 bg-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <!-- Section header -->
-      <div class="text-center mb-20">
-        <h2 class="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-4">
-          Tại sao chọn chúng tôi?
-        </h2>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-          Những tính năng vượt trội giúp bạn có trải nghiệm test IQ tốt nhất
-        </p>
-      </div>
+  <section class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       
-      <!-- Features grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div class="group p-8 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-primary-100">
-          <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🎯</div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-3">Chính xác cao</h3>
-          <p class="text-gray-600 leading-relaxed">Thuật toán đánh giá dựa trên tiêu chuẩn quốc tế</p>
-        </div>
-        
-        <div class="group p-8 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-primary-100">
-          <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">⚡</div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-3">Siêu nhanh</h3>
-          <p class="text-gray-600 leading-relaxed">Giao diện tối ưu, tải nhanh trên mọi thiết bị</p>
-        </div>
-        
-        <div class="group p-8 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-primary-100">
-          <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🆓</div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-3">Hoàn toàn miễn phí</h3>
-          <p class="text-gray-600 leading-relaxed">Không phí ẩn, không cần đăng ký</p>
-        </div>
-        
-        <div class="group p-8 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-primary-100">
-          <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📊</div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-3">Kết quả chi tiết</h3>
-          <p class="text-gray-600 leading-relaxed">Phân tích sâu với lời giải thích cho từng câu</p>
-        </div>
-        
-        <div class="group p-8 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-primary-100">
-          <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🌍</div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-3">Đa ngôn ngữ</h3>
-          <p class="text-gray-600 leading-relaxed">Hỗ trợ Tiếng Việt, English, Español</p>
-        </div>
-        
-        <div class="group p-8 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-primary-100">
-          <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">✨</div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-3">Giao diện hiện đại</h3>
-          <p class="text-gray-600 leading-relaxed">Thiết kế đẹp mắt, trải nghiệm mượt mà</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Stats Section -->
-  <section class="py-20 bg-gradient-to-r from-primary-600 to-blue-600">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- AI Badge -->
       <div class="text-center mb-12">
-        <h2 class="text-3xl font-display font-bold text-white mb-4">
-          Thống kê ấn tượng
-        </h2>
+        <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-blue-200 text-blue-700 text-sm font-medium shadow-sm">
+          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+          </svg>
+          Powered by Advanced AI
+        </div>
+      </div>
+
+      <!-- Main Title -->
+      <div class="text-center mb-16">
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
+          Test <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">IQ & EQ</span> Chính Xác Nhất Thế Giới
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+          Khám phá toàn diện trí tuệ IQ và trí tuệ cảm xúc EQ với công nghệ AI tiên tiến. Kết quả tức thì, phân tích khoa học.
+        </p>
+      </div>
+
+      <!-- Features Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div class="text-center p-6">
+          <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-gray-900 mb-1">Độ chính xác 99.7%</h3>
+        </div>
+        
+        <div class="text-center p-6">
+          <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-gray-900 mb-1">Kết quả tức thì</h3>
+        </div>
+        
+        <div class="text-center p-6">
+          <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl flex items-center justify-center">
+            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-gray-900 mb-1">Phân tích khoa học</h3>
+        </div>
+        
+        <div class="text-center p-6">
+          <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center">
+            <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-gray-900 mb-1">Chứng chỉ digital</h3>
+        </div>
+      </div>
+
+      <!-- Test Cards -->
+      <div class="grid md:grid-cols-2 gap-8 mb-16">
+        <!-- IQ Test Card -->
+        <div class="relative overflow-hidden rounded-3xl p-8 text-white text-center shadow-2xl transform hover:scale-105 transition-all duration-300">
+          <!-- Blue Gradient Background -->
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700"></div>
+          <div class="relative z-10">
+            <div class="w-20 h-20 mx-auto mb-6 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+              <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </div>
+            <h3 class="text-3xl font-bold mb-2">Test IQ</h3>
+            <p class="text-blue-100 text-lg mb-4">Cognitive Intelligence</p>
+            <div class="flex items-center justify-center text-blue-100">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              55 minutes • 10 questions
+            </div>
+            <a href="/test/iq" class="inline-block mt-6 px-8 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-colors">
+              Bắt đầu test
+            </a>
+          </div>
+        </div>
+
+        <!-- EQ Test Card -->
+        <div class="relative overflow-hidden rounded-3xl p-8 text-white text-center shadow-2xl transform hover:scale-105 transition-all duration-300">
+          <!-- Pink Gradient Background -->
+          <div class="absolute inset-0 bg-gradient-to-br from-pink-500 via-purple-600 to-purple-700"></div>
+          <div class="relative z-10">
+            <div class="w-20 h-20 mx-auto mb-6 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+              <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+            <h3 class="text-3xl font-bold mb-2">Test EQ</h3>
+            <p class="text-pink-100 text-lg mb-4">Emotional Intelligence</p>
+            <div class="flex items-center justify-center text-pink-100">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              30 minutes • 10 questions
+            </div>
+            <a href="/about" class="inline-block mt-6 px-8 py-3 bg-white text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition-colors">
+              Sắp ra mắt
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="grid grid-cols-3 gap-8 text-center">
+        <div>
+          <div class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">2.5M+</div>
+          <div class="text-gray-600 font-medium">Người dùng</div>
+        </div>
+        <div>
+          <div class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">99.7%</div>
+          <div class="text-gray-600 font-medium">Độ chính xác</div>
+        </div>
+        <div>
+          <div class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">150+</div>
+          <div class="text-gray-600 font-medium">Quốc gia</div>
+        </div>
       </div>
       
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
-        <div class="text-center">
-          <div class="text-4xl md:text-5xl font-bold text-white mb-2">500K+</div>
-          <div class="text-primary-100 font-medium">Tests đã thực hiện</div>
-        </div>
-        
-        <div class="text-center">
-          <div class="text-4xl md:text-5xl font-bold text-white mb-2">110</div>
-          <div class="text-primary-100 font-medium">Điểm trung bình</div>
-        </div>
-        
-        <div class="text-center">
-          <div class="text-4xl md:text-5xl font-bold text-white mb-2">50+</div>
-          <div class="text-primary-100 font-medium">Quốc gia sử dụng</div>
-        </div>
-        
-        <div class="text-center">
-          <div class="text-4xl md:text-5xl font-bold text-white mb-2">98%</div>
-          <div class="text-primary-100 font-medium">Hài lòng</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA Section -->
-  <section class="py-24 bg-gray-50">
-    <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-      <div class="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
-        <div class="text-6xl mb-6">🎯</div>
-        <h2 class="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-6">
-          Sẵn sàng khám phá tiềm năng của bạn?
-        </h2>
-        <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Chỉ cần 55 phút để có được phân tích chi tiết về chỉ số thông minh và khả năng tư duy của bạn.
-        </p>
-        
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a 
-            href="/about" 
-            class="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-blue-600 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
-          >
-            <span class="mr-2">🚀</span>
-            Bắt Đầu Test Ngay
-          </a>
-          
-          <a 
-            href="/about" 
-            class="inline-flex items-center px-8 py-4 text-lg font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors duration-300"
-          >
-            <span class="mr-2">📖</span>
-            Tìm hiểu thêm
-          </a>
-        </div>
-        
-        <!-- Features highlight -->
-        <div class="mt-12 flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-          <div class="flex items-center">
-            <span class="mr-2">✅</span>
-            Miễn phí hoàn toàn
-          </div>
-          <div class="flex items-center">
-            <span class="mr-2">⚡</span>
-            Kết quả ngay lập tức
-          </div>
-          <div class="flex items-center">
-            <span class="mr-2">🔒</span>
-            Bảo mật tuyệt đối
-          </div>
-          <div class="flex items-center">
-            <span class="mr-2">🌍</span>
-            Chuẩn quốc tế
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 </BaseLayout>
 
 <style>
-  /* Additional animations */
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+  /* Smooth animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+  
+  /* Gradient text animation */
+  .bg-gradient-to-r {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+  
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* Card hover effects */
+  .transform:hover {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .grid-cols-4 {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 </style>
 
 <script>
-  // Add smooth scrolling for anchor links
-  document.addEventListener('DOMContentLoaded', function() {
-    const links = document.querySelectorAll('a[href^="#"]');
-    
-    links.forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const targetId = this.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
-        
-        if (targetElement) {
-          targetElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      });
-    });
-  });
-  
-  // Add intersection observer for animations
+  // Add scroll animations
   const observerOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -50px 0px'
   };
   
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
+    entries.forEach((entry, index) => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('animate-fade-in');
+        setTimeout(() => {
+          entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
+        }, index * 100);
+        observer.unobserve(entry.target);
       }
     });
   }, observerOptions);
   
   // Observe elements for animations
-  document.querySelectorAll('.grid > div, section').forEach(el => {
-    observer.observe(el);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.grid > div, .text-center > div').forEach(el => {
+      observer.observe(el);
+    });
   });
 </script>
