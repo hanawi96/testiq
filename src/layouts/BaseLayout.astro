@@ -266,7 +266,7 @@ const locale = getLocale(lang as any);
                   <polyline points="7.5,8 12,11.5 16.5,8"/>
                 </svg>
               </div>
-              <span class="font-bold text-xl text-gray-900 font-display">IQ & EQ Test Pro</span>
+              <span class="font-bold text-xl text-gray-900 font-display">IQZY.IO</span>
             </a>
           </div>
           
@@ -286,6 +286,10 @@ const locale = getLocale(lang as any);
             </a>
             <a href="/blog" class="text-gray-700 hover:text-blue-600 font-medium transition-colors relative group">
               Blog
+              <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="/blog" class="text-gray-700 hover:text-blue-600 font-medium transition-colors relative group">
+              Aubout
               <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
             </a>
           </nav>
@@ -325,7 +329,7 @@ const locale = getLocale(lang as any);
               </button>
               
               <!-- Language Dropdown -->
-              <div id="language-dropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 opacity-0 invisible transform scale-95 transition-all duration-200 z-50">
+              <div id="language-dropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 opacity-0 invisible transform scale-95 transition-all duration-200 z-[70]">
                 <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
                   <span class="text-lg">🇻🇳</span>
                   <div class="flex flex-col">
@@ -376,7 +380,7 @@ const locale = getLocale(lang as any);
       </div>
       
       <!-- Mobile Menu -->
-      <div id="mobile-menu" class="lg:hidden fixed inset-x-0 top-16 bg-white border-b border-gray-200 shadow-lg transform -translate-y-full opacity-0 transition-all duration-300 ease-out">
+      <div id="mobile-menu" class="lg:hidden fixed inset-x-0 top-16 z-[60] bg-white border-b border-gray-200 shadow-lg transform -translate-y-full opacity-0 transition-all duration-300 ease-out pointer-events-none">
         <div class="px-4 py-6 space-y-4">
           <a href="/" class="block py-3 px-4 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
             Home
@@ -389,6 +393,9 @@ const locale = getLocale(lang as any);
           </a>
           <a href="/blog" class="block py-3 px-4 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
             Blog
+          </a>
+          <a href="/blog" class="block py-3 px-4 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+            Aubout
           </a>
           <div class="pt-4 border-t border-gray-200">
             <a href="#" id="mobile-login-btn" class="flex items-center justify-center space-x-2 w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium">
@@ -574,15 +581,24 @@ const locale = getLocale(lang as any);
     <!-- Analytics and Header Functionality -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        // Language dropdown functionality
+        console.log('🚀 Header functionality initialized');
+
+        // PRIORITY 1: LANGUAGE DROPDOWN (bind first)
         const langBtn = document.getElementById('language-btn');
         const langDropdown = document.getElementById('language-dropdown');
         
         if (langBtn && langDropdown) {
+          console.log('✅ Language elements found');
+          
+          // Use capture phase for highest priority
           langBtn.addEventListener('click', function(e) {
+            console.log('🌐 Language button clicked');
+            
             e.preventDefault();
             e.stopPropagation();
-            const isVisible = !langDropdown.classList.contains('opacity-0');
+            e.stopImmediatePropagation();
+            
+            const isVisible = langDropdown.classList.contains('opacity-100');
             
             if (isVisible) {
               langDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
@@ -591,7 +607,7 @@ const locale = getLocale(lang as any);
               langDropdown.classList.remove('opacity-0', 'invisible', 'scale-95');
               langDropdown.classList.add('opacity-100', 'visible', 'scale-100');
             }
-          });
+          }, true); // USE CAPTURE PHASE for priority
           
           // Close dropdown when clicking outside
           document.addEventListener('click', function(e) {
@@ -600,50 +616,66 @@ const locale = getLocale(lang as any);
               langDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
             }
           });
+
+          // Language selection
+          const languageOptions = langDropdown.querySelectorAll('a');
+          languageOptions.forEach(option => {
+            option.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              const langName = this.querySelector('.text-sm').textContent;
+              const langCode = langName === 'Tiếng Việt' ? 'VN' : 
+                              langName === 'English' ? 'US' : 
+                              langName === 'Español' ? 'ES' : 'VN';
+              
+              const langBtnText = langBtn.querySelector('.hidden.sm\\:inline');
+              if (langBtnText) langBtnText.textContent = langCode;
+              
+              langDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
+              langDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
+            });
+          });
+        } else {
+          console.error('❌ Language elements NOT found');
         }
 
-        // Dark mode toggle functionality
+        // PRIORITY 2: DARK MODE TOGGLE (bind second)
         const themeToggle = document.getElementById('theme-toggle');
         const lightIcon = document.getElementById('theme-icon-light');
         const darkIcon = document.getElementById('theme-icon-dark');
         
         if (themeToggle && lightIcon && darkIcon) {
-          // Check for saved theme preference or default to light mode
+          console.log('✅ Theme elements found');
+          
           const savedTheme = localStorage.getItem('theme') || 'light';
           const isDark = savedTheme === 'dark';
           
           // Apply initial theme
-          if (isDark) {
-            document.documentElement.classList.add('dark');
-            lightIcon.classList.add('hidden');
-            darkIcon.classList.remove('hidden');
-          } else {
-            document.documentElement.classList.remove('dark');
-            lightIcon.classList.remove('hidden');
-            darkIcon.classList.add('hidden');
-          }
+          document.documentElement.classList.toggle('dark', isDark);
+          lightIcon.classList.toggle('hidden', isDark);
+          darkIcon.classList.toggle('hidden', !isDark);
           
-          // Theme toggle click handler
-          themeToggle.addEventListener('click', function() {
+          // Use capture phase for highest priority
+          themeToggle.addEventListener('click', function(e) {
+            console.log('🌙 Theme button clicked');
+            
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
             const currentIsDark = document.documentElement.classList.contains('dark');
             
-            if (currentIsDark) {
-              // Switch to light mode
-              document.documentElement.classList.remove('dark');
-              lightIcon.classList.remove('hidden');
-              darkIcon.classList.add('hidden');
-              localStorage.setItem('theme', 'light');
-            } else {
-              // Switch to dark mode
-              document.documentElement.classList.add('dark');
-              lightIcon.classList.add('hidden');
-              darkIcon.classList.remove('hidden');
-              localStorage.setItem('theme', 'dark');
-            }
-          });
+            document.documentElement.classList.toggle('dark', !currentIsDark);
+            lightIcon.classList.toggle('hidden', !currentIsDark);
+            darkIcon.classList.toggle('hidden', currentIsDark);
+            localStorage.setItem('theme', currentIsDark ? 'light' : 'dark');
+          }, true); // USE CAPTURE PHASE for priority
+        } else {
+          console.error('❌ Theme elements NOT found');
         }
 
-        // Mobile menu functionality
+        // PRIORITY 3: MOBILE MENU FUNCTIONALITY
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const mobileMenu = document.getElementById('mobile-menu');
         const menuIcon = document.getElementById('menu-icon');
@@ -652,45 +684,48 @@ const locale = getLocale(lang as any);
         if (mobileMenuBtn && mobileMenu && menuIcon && closeIcon) {
           let isMenuOpen = false;
           
-          mobileMenuBtn.addEventListener('click', function() {
+          mobileMenuBtn.addEventListener('click', function(e) {
+            console.log('📱 Mobile menu toggle');
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
             isMenuOpen = !isMenuOpen;
             
             if (isMenuOpen) {
-              // Show mobile menu
-              mobileMenu.classList.remove('-translate-y-full', 'opacity-0');
-              mobileMenu.classList.add('translate-y-0', 'opacity-100');
+              mobileMenu.classList.remove('-translate-y-full', 'opacity-0', 'pointer-events-none');
+              mobileMenu.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
               menuIcon.classList.add('hidden');
               closeIcon.classList.remove('hidden');
-              document.body.style.overflow = 'hidden'; // Prevent scroll
+              document.body.style.overflow = 'hidden';
             } else {
-              // Hide mobile menu
-              mobileMenu.classList.remove('translate-y-0', 'opacity-100');
-              mobileMenu.classList.add('-translate-y-full', 'opacity-0');
+              mobileMenu.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+              mobileMenu.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
               menuIcon.classList.remove('hidden');
               closeIcon.classList.add('hidden');
-              document.body.style.overflow = ''; // Restore scroll
+              document.body.style.overflow = '';
             }
           });
           
-          // Close mobile menu when clicking on menu links
-          const mobileMenuLinks = mobileMenu.querySelectorAll('a');
-          mobileMenuLinks.forEach(link => {
+          // Close when clicking nav links (not login button)
+          const navLinks = mobileMenu.querySelectorAll('a:not(#mobile-login-btn)');
+          navLinks.forEach(link => {
             link.addEventListener('click', function() {
               isMenuOpen = false;
-              mobileMenu.classList.remove('translate-y-0', 'opacity-100');
-              mobileMenu.classList.add('-translate-y-full', 'opacity-0');
+              mobileMenu.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+              mobileMenu.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
               menuIcon.classList.remove('hidden');
               closeIcon.classList.add('hidden');
               document.body.style.overflow = '';
             });
           });
           
-          // Close mobile menu on window resize (if going to desktop)
+          // Close on resize
           window.addEventListener('resize', function() {
             if (window.innerWidth >= 1024 && isMenuOpen) {
               isMenuOpen = false;
-              mobileMenu.classList.remove('translate-y-0', 'opacity-100');
-              mobileMenu.classList.add('-translate-y-full', 'opacity-0');
+              mobileMenu.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+              mobileMenu.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
               menuIcon.classList.remove('hidden');
               closeIcon.classList.add('hidden');
               document.body.style.overflow = '';
@@ -698,75 +733,7 @@ const locale = getLocale(lang as any);
           });
         }
 
-        // Active navigation highlighting
-        const currentPath = window.location.pathname;
-        const navLinks = document.querySelectorAll('nav a, #mobile-menu a');
-        
-        navLinks.forEach(link => {
-          const href = link.getAttribute('href');
-          if (href === currentPath || (currentPath === '/' && href === '/')) {
-            link.classList.add('text-blue-600');
-            link.classList.remove('text-gray-700');
-            
-            // Add active underline for desktop nav
-            const underline = link.querySelector('span');
-            if (underline) {
-              underline.classList.add('w-full');
-              underline.classList.remove('w-0');
-            }
-          }
-        });
-
-        // Smooth header background on scroll
-        let lastScrollY = window.scrollY;
-        const header = document.querySelector('header');
-        
-        if (header) {
-          window.addEventListener('scroll', function() {
-            const currentScrollY = window.scrollY;
-            
-            if (currentScrollY > 20) {
-              header.classList.add('bg-white/98', 'shadow-md');
-              header.classList.remove('bg-white/95');
-            } else {
-              header.classList.add('bg-white/95');
-              header.classList.remove('bg-white/98', 'shadow-md');
-            }
-            
-            lastScrollY = currentScrollY;
-          });
-        }
-
-        // Language selection functionality
-        const languageOptions = document.querySelectorAll('#language-dropdown a');
-        languageOptions.forEach(option => {
-          option.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Get selected language data
-            const flag = this.querySelector('span').textContent;
-            const langName = this.querySelector('.text-sm').textContent;
-            
-            // Update button display
-            const langBtnText = document.querySelector('#language-btn .hidden.sm\\:inline');
-            if (langBtnText && langName) {
-              // Extract language code (VN, US, ES)
-              const langCode = langName === 'Tiếng Việt' ? 'VN' : 
-                              langName === 'English' ? 'US' : 
-                              langName === 'Español' ? 'ES' : 'VN';
-              langBtnText.textContent = langCode;
-            }
-            
-            // Close dropdown
-            langDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
-            langDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
-            
-            // Here you would typically handle the language change
-            console.log('Language changed to:', langName);
-          });
-        });
-
-        // Login Modal functionality
+        // PRIORITY 4: LOGIN MODAL (bind last)
         const modal = document.getElementById('login-modal');
         const loginBtn = document.getElementById('login-btn');
         const mobileLoginBtn = document.getElementById('mobile-login-btn');
@@ -774,6 +741,7 @@ const locale = getLocale(lang as any);
         const modalBackdrop = document.getElementById('modal-backdrop');
         
         const showModal = () => {
+          console.log('🔐 Login modal opened');
           modal.classList.remove('hidden');
           document.body.style.overflow = 'hidden';
         };
@@ -783,17 +751,26 @@ const locale = getLocale(lang as any);
           document.body.style.overflow = '';
         };
         
-        // Event listeners
-        [loginBtn, mobileLoginBtn].forEach(btn => {
-          btn?.addEventListener('click', (e) => {
+        // Only attach to actual login buttons
+        if (loginBtn) {
+          loginBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             showModal();
           });
-        });
+        }
         
-        [closeModal, modalBackdrop].forEach(el => {
-          el?.addEventListener('click', hideModal);
-        });
+        if (mobileLoginBtn) {
+          mobileLoginBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showModal();
+          });
+        }
+        
+        // Close modal handlers
+        if (closeModal) closeModal.addEventListener('click', hideModal);
+        if (modalBackdrop) modalBackdrop.addEventListener('click', hideModal);
         
         // Close on Escape key
         document.addEventListener('keydown', (e) => {
@@ -801,22 +778,64 @@ const locale = getLocale(lang as any);
             hideModal();
           }
         });
+
+        // 5. NAVIGATION HIGHLIGHTING
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a, #mobile-menu a:not(#mobile-login-btn)');
         
-        // Password visibility toggle
+        navLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (href === currentPath || (currentPath === '/' && href === '/')) {
+            link.classList.add('text-blue-600');
+            link.classList.remove('text-gray-700');
+            
+            const underline = link.querySelector('span');
+            if (underline) {
+              underline.classList.add('w-full');
+              underline.classList.remove('w-0');
+            }
+          }
+        });
+
+        // 6. OPTIMIZED SCROLL HANDLER
+        let ticking = false;
+        const header = document.querySelector('header');
+        
+        if (header) {
+          const updateHeader = () => {
+            const scrollY = window.scrollY;
+            header.classList.toggle('bg-white/98', scrollY > 20);
+            header.classList.toggle('shadow-md', scrollY > 20);
+            header.classList.toggle('bg-white/95', scrollY <= 20);
+            ticking = false;
+          };
+
+          window.addEventListener('scroll', () => {
+            if (!ticking) {
+              requestAnimationFrame(updateHeader);
+              ticking = true;
+            }
+          });
+        }
+
+        // 7. PASSWORD VISIBILITY TOGGLE
         document.addEventListener('click', (e) => {
-          if (e.target.closest('.relative button[type="button"]')) {
-            const toggle = e.target.closest('button');
+          const toggle = e.target.closest('#login-modal .relative button[type="button"]');
+          if (toggle) {
             const input = toggle.parentElement.querySelector('input');
             const isPassword = input.type === 'password';
             input.type = isPassword ? 'text' : 'password';
+            
             toggle.innerHTML = isPassword ? 
-              `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>` :
-              `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>' :
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
           }
         });
+
+        console.log('🛡️ All event listeners bound');
       });
       
-      // Performance optimization: Preload critical resources
+      // Performance optimization
       const criticalLinks = ['/test/iq', '/test/eq', '/blog'];
       criticalLinks.forEach(link => {
         const preloadLink = document.createElement('link');
@@ -825,7 +844,7 @@ const locale = getLocale(lang as any);
         document.head.appendChild(preloadLink);
       });
       
-      console.log('🧠 IQ Test Pro - Challenging minds worldwide!');
+      console.log('🧠 IQ Test Pro - Ready!');
     </script>
   </body>
 </html>
