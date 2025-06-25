@@ -155,14 +155,35 @@ const locale = getLocale(lang as any);
           </div>
           
           <!-- Language Selector -->
-          <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
-              <span class="text-2xl">🇻🇳</span>
-              <select class="text-sm bg-transparent border-0 focus:outline-none focus:ring-0 font-medium text-gray-700">
-                <option value="vi">Tiếng Việt</option>
-                <option value="en">English</option>
-                <option value="es">Español</option>
-              </select>
+          <div class="relative">
+            <button id="language-btn" class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
+              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-3a9 9 0 01-9-9 9 9 0 019-9v3m-3 9a9 9 0 01-9-9"/>
+              </svg>
+              <span class="text-sm font-medium text-gray-700">VN</span>
+              <span class="text-sm text-gray-600">Tiếng Việt</span>
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            
+            <!-- Dropdown -->
+            <div id="language-dropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 opacity-0 invisible transform scale-95 transition-all duration-200 z-50">
+              <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+                <span class="text-lg">🇻🇳</span>
+                <span class="text-sm font-medium text-gray-900">VN</span>
+                <span class="text-sm text-gray-600">Tiếng Việt</span>
+              </a>
+              <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+                <span class="text-lg">🇺🇸</span>
+                <span class="text-sm font-medium text-gray-900">US</span>
+                <span class="text-sm text-gray-600">English</span>
+              </a>
+              <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+                <span class="text-lg">🇪🇸</span>
+                <span class="text-sm font-medium text-gray-900">ES</span>
+                <span class="text-sm text-gray-600">Español</span>
+              </a>
             </div>
           </div>
         </div>
@@ -228,6 +249,35 @@ const locale = getLocale(lang as any);
     
     <!-- Analytics (placeholder) -->
     <script>
+      // Language dropdown functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const langBtn = document.getElementById('language-btn');
+        const langDropdown = document.getElementById('language-dropdown');
+        
+        if (langBtn && langDropdown) {
+          langBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isVisible = langDropdown.classList.contains('opacity-100');
+            
+            if (isVisible) {
+              langDropdown.classList.remove('opacity-100', 'visible');
+              langDropdown.classList.add('opacity-0', 'invisible');
+            } else {
+              langDropdown.classList.remove('opacity-0', 'invisible');
+              langDropdown.classList.add('opacity-100', 'visible');
+            }
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', function(e) {
+            if (!langBtn.contains(e.target) && !langDropdown.contains(e.target)) {
+              langDropdown.classList.remove('opacity-100', 'visible');
+              langDropdown.classList.add('opacity-0', 'invisible');
+            }
+          });
+        }
+      });
+      
       // Add your analytics code here
       console.log('IQ Test Pro - Ready to challenge minds! 🧠');
     </script>

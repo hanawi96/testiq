@@ -76,13 +76,14 @@ const locale = getLocale('vi');
       <!-- Test Cards -->
       <div class="grid md:grid-cols-2 gap-8 mb-16">
         <!-- IQ Test Card -->
-        <div class="relative overflow-hidden rounded-3xl p-8 text-white text-center shadow-2xl transform hover:scale-105 transition-all duration-300">
+        <div class="relative overflow-hidden rounded-3xl p-8 text-white text-center shadow-2xl hover:shadow-3xl transition-shadow duration-300">
           <!-- Blue Gradient Background -->
           <div class="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700"></div>
           <div class="relative z-10">
             <div class="w-20 h-20 mx-auto mb-6 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-              <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              <!-- Brain Icon -->
+              <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A3,3 0 0,1 15,5V7A3,3 0 0,1 18,10V12A3,3 0 0,1 15,15V17A3,3 0 0,1 12,20A3,3 0 0,1 9,17V15A3,3 0 0,1 6,12V10A3,3 0 0,1 9,7V5A3,3 0 0,1 12,2M10,5A1,1 0 0,0 9,6V8H11V5H10M13,5V8H15V6A1,1 0 0,0 14,5H13M8,10V12A1,1 0 0,0 9,13H11V10H8M13,10V13H15A1,1 0 0,0 16,12V10H13M9,15V17A1,1 0 0,0 10,18H11V15H9M13,15V18H14A1,1 0 0,0 15,17V15H13Z"/>
               </svg>
             </div>
             <h3 class="text-3xl font-bold mb-2">Test IQ</h3>
@@ -100,7 +101,7 @@ const locale = getLocale('vi');
         </div>
 
         <!-- EQ Test Card -->
-        <div class="relative overflow-hidden rounded-3xl p-8 text-white text-center shadow-2xl transform hover:scale-105 transition-all duration-300">
+        <div class="relative overflow-hidden rounded-3xl p-8 text-white text-center shadow-2xl hover:shadow-3xl transition-shadow duration-300">
           <!-- Pink Gradient Background -->
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500 via-purple-600 to-purple-700"></div>
           <div class="relative z-10">
@@ -145,80 +146,10 @@ const locale = getLocale('vi');
 </BaseLayout>
 
 <style>
-  /* Smooth animations */
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  @keyframes pulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-  }
-  
-  /* Gradient text animation */
-  .bg-gradient-to-r {
-    background-size: 200% 200%;
-    animation: gradient 3s ease infinite;
-  }
-  
-  @keyframes gradient {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-  
-  /* Card hover effects */
-  .transform:hover {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  }
-  
-  /* Responsive adjustments */
+  /* Optimized minimal styles for better performance */
   @media (max-width: 768px) {
     .grid-cols-4 {
       grid-template-columns: repeat(2, 1fr);
     }
   }
 </style>
-
-<script>
-  // Add scroll animations
-  const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-  };
-  
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, index) => {
-      if (entry.isIntersecting) {
-        setTimeout(() => {
-          entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
-        }, index * 100);
-        observer.unobserve(entry.target);
-      }
-    });
-  }, observerOptions);
-  
-  // Observe elements for animations
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.grid > div, .text-center > div').forEach(el => {
-      observer.observe(el);
-    });
-  });
-</script>
