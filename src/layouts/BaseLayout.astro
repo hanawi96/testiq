@@ -130,63 +130,392 @@ const locale = getLocale(lang as any);
           scroll-behavior: smooth;
         }
       }
+
+      /* Dark mode styles */
+      .dark {
+        color-scheme: dark;
+      }
+      
+      .dark body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f1629 100%);
+        color: #e2e8f0;
+      }
+      
+      .dark header {
+        background: rgba(15, 23, 42, 0.95) !important;
+        border-color: rgba(51, 65, 85, 0.3) !important;
+      }
+      
+      .dark #mobile-menu {
+        background: rgba(15, 23, 42, 0.98) !important;
+        border-color: rgba(51, 65, 85, 0.3) !important;
+      }
+      
+      .dark #language-dropdown {
+        background: rgba(15, 23, 42, 0.98) !important;
+        border-color: rgba(51, 65, 85, 0.3) !important;
+      }
+      
+      .dark .text-gray-900 {
+        color: #f1f5f9 !important;
+      }
+      
+      .dark .text-gray-700 {
+        color: #cbd5e1 !important;
+      }
+      
+      .dark .text-gray-600 {
+        color: #94a3b8 !important;
+      }
+      
+      .dark .text-gray-500 {
+        color: #64748b !important;
+      }
+      
+      .dark .text-gray-400 {
+        color: #475569 !important;
+      }
+      
+      .dark .bg-gray-50 {
+        background-color: rgba(51, 65, 85, 0.5) !important;
+      }
+      
+      .dark .bg-gray-100 {
+        background-color: rgba(51, 65, 85, 0.7) !important;
+      }
+      
+      .dark .hover\:bg-gray-50:hover {
+        background-color: rgba(51, 65, 85, 0.5) !important;
+      }
+      
+      .dark .hover\:bg-gray-100:hover {
+        background-color: rgba(51, 65, 85, 0.7) !important;
+      }
+      
+      .dark .border-gray-200 {
+        border-color: rgba(51, 65, 85, 0.3) !important;
+      }
+      
+      .dark .bg-white {
+        background-color: rgba(15, 23, 42, 0.9) !important;
+      }
+      
+      .dark .bg-blue-50 {
+        background-color: rgba(30, 58, 138, 0.1) !important;
+      }
+      
+      .dark .hover\:bg-blue-50:hover {
+        background-color: rgba(30, 58, 138, 0.2) !important;
+      }
+      
+      /* Smooth transitions for theme switching */
+      * {
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      }
+
+      /* Login Modal Styles */
+      #login-modal {
+        animation: fadeIn 0.1s ease-out;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      /* Form focus styles */
+      #login-modal input:focus {
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+      }
+      
+      /* Social button hover effects */
+      #login-modal button[type="button"]:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+      
+      .dark #login-modal button[type="button"]:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      
+      /* Responsive modal */
+      @media (max-width: 640px) {
+        #login-modal .max-w-lg {
+          max-width: calc(100vw - 2rem);
+        }
+      }
     </style>
   </head>
   
-  <body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 pt-16">
+  <body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
     <!-- Skip to main content for accessibility -->
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md z-50">
       Chuyển đến nội dung chính
     </a>
     
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/50">
+    <!-- Modern Header Navigation -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center">
             <a href="/" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <LucideIcon name="brain" size={24} class="text-white" />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                  <polyline points="7.5,12 12,15.5 16.5,12"/>
+                  <polyline points="7.5,8 12,11.5 16.5,8"/>
+                </svg>
               </div>
-              <span class="font-bold text-xl text-gray-900">IQ & EQ Test Pro</span>
+              <span class="font-bold text-xl text-gray-900 font-display">IQ & EQ Test Pro</span>
             </a>
           </div>
           
-          <!-- Language Selector -->
-          <div class="relative">
-            <button id="language-btn" class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
-              <LucideIcon name="globe" size={16} class="text-gray-600" />
-              <span class="text-sm font-medium text-gray-700">VN</span>
-              <span class="text-sm text-gray-600">Tiếng Việt</span>
-              <LucideIcon name="chevron-down" size={16} class="text-gray-400" />
+          <!-- Desktop Navigation -->
+          <nav class="hidden lg:flex items-center space-x-8">
+            <a href="/" class="text-gray-700 hover:text-blue-600 font-medium transition-colors relative group">
+              Home
+              <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="/test/iq" class="text-gray-700 hover:text-blue-600 font-medium transition-colors relative group">
+              IQ Test
+              <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="/test/eq" class="text-gray-700 hover:text-blue-600 font-medium transition-colors relative group">
+              EQ Test
+              <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="/blog" class="text-gray-700 hover:text-blue-600 font-medium transition-colors relative group">
+              Blog
+              <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+          </nav>
+          
+          <!-- Right side controls -->
+          <div class="flex items-center space-x-4">
+            <!-- Dark Mode Toggle -->
+            <button id="theme-toggle" class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors" title="Toggle Dark Mode">
+              <svg id="theme-icon-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+              <svg id="theme-icon-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600 hidden">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
             </button>
             
-            <!-- Dropdown -->
-            <div id="language-dropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 opacity-0 invisible transform scale-95 transition-all duration-200 z-50">
-              <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
-                <span class="text-lg">🇻🇳</span>
-                <span class="text-sm font-medium text-gray-900">VN</span>
-                <span class="text-sm text-gray-600">Tiếng Việt</span>
-              </a>
-              <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
-                <span class="text-lg">🇺🇸</span>
-                <span class="text-sm font-medium text-gray-900">US</span>
-                <span class="text-sm text-gray-600">English</span>
-              </a>
-              <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
-                <span class="text-lg">🇪🇸</span>
-                <span class="text-sm font-medium text-gray-900">ES</span>
-                <span class="text-sm text-gray-600">Español</span>
-              </a>
+            <!-- Language Selector -->
+            <div class="relative">
+              <button id="language-btn" class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                <span class="hidden sm:inline text-sm font-medium text-gray-700">VN</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                  <polyline points="6,9 12,15 18,9"/>
+                </svg>
+              </button>
+              
+              <!-- Language Dropdown -->
+              <div id="language-dropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 opacity-0 invisible transform scale-95 transition-all duration-200 z-50">
+                <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+                  <span class="text-lg">🇻🇳</span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900">Tiếng Việt</span>
+                    <span class="text-xs text-gray-500">Vietnamese</span>
+                  </div>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+                  <span class="text-lg">🇺🇸</span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900">English</span>
+                    <span class="text-xs text-gray-500">United States</span>
+                  </div>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+                  <span class="text-lg">🇪🇸</span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900">Español</span>
+                    <span class="text-xs text-gray-500">Spanish</span>
+                  </div>
+                </a>
+              </div>
             </div>
+            
+            <!-- Login Button -->
+            <a href="#" id="login-btn" class="hidden sm:flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 hover:scale-[1.02] font-medium">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span>Đăng nhập</span>
+            </a>
+            
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+              <svg id="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+              <svg id="close-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600 hidden">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
-    </nav>
+      
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="lg:hidden fixed inset-x-0 top-16 bg-white border-b border-gray-200 shadow-lg transform -translate-y-full opacity-0 transition-all duration-300 ease-out">
+        <div class="px-4 py-6 space-y-4">
+          <a href="/" class="block py-3 px-4 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+            Home
+          </a>
+          <a href="/test/iq" class="block py-3 px-4 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+            IQ Test
+          </a>
+          <a href="/test/eq" class="block py-3 px-4 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+            EQ Test
+          </a>
+          <a href="/blog" class="block py-3 px-4 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+            Blog
+          </a>
+          <div class="pt-4 border-t border-gray-200">
+            <a href="#" id="mobile-login-btn" class="flex items-center justify-center space-x-2 w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span>Đăng nhập</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
     
-    <!-- Main content -->
-    <main id="main-content">
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 z-[100] hidden">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-backdrop"></div>
+      
+      <!-- Modal Content -->
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg sm:max-w-xl">
+          <!-- Close Button -->
+          <button id="close-modal" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          
+          <!-- Modal Header -->
+          <div class="text-center pt-8 pb-6 px-8">
+            <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white font-display">Đăng nhập</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Chào mừng bạn quay trở lại!</p>
+          </div>
+          
+          <!-- Form -->
+          <form class="px-8 pb-8 space-y-6">
+            <!-- Email -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+              <input type="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="your@email.com">
+            </div>
+            
+            <!-- Password -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mật khẩu</label>
+              <div class="relative">
+                <input type="password" required class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="••••••••">
+                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Confirm Password -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nhập lại mật khẩu</label>
+              <input type="password" required class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="••••••••">
+            </div>
+            
+            <!-- Submit Button -->
+            <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-500/25 transition-all transform hover:scale-[1.02]">
+              Đăng nhập
+            </button>
+            
+            <!-- Divider -->
+            <div class="relative my-6">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-200 dark:border-gray-600"></div>
+              </div>
+              <div class="relative flex justify-center text-sm">
+                <span class="px-4 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">Hoặc đăng nhập bằng</span>
+              </div>
+            </div>
+            
+            <!-- Social Login Buttons -->
+            <div class="space-y-3">
+              <!-- Google -->
+              <button type="button" class="w-full flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+                <svg width="20" height="20" viewBox="0 0 24 24" class="mr-3">
+                  <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Đăng nhập bằng Google
+              </button>
+              
+              <!-- Facebook -->
+              <button type="button" class="w-full flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+                <svg width="20" height="20" viewBox="0 0 24 24" class="mr-3">
+                  <path fill="#1877f2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                Đăng nhập bằng Facebook
+              </button>
+              
+              <!-- Apple -->
+              <button type="button" class="w-full flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+                <svg width="20" height="20" viewBox="0 0 24 24" class="mr-3">
+                  <path fill="currentColor" d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                </svg>
+                Đăng nhập bằng Apple
+              </button>
+            </div>
+            
+            <!-- Footer -->
+            <p class="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
+              Chưa có tài khoản? 
+              <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">Đăng ký ngay</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Main content with proper top padding -->
+    <main id="main-content" class="pt-16">
       <slot />
     </main>
     
@@ -242,39 +571,261 @@ const locale = getLocale(lang as any);
       </div>
     </footer>
     
-    <!-- Analytics (placeholder) -->
+    <!-- Analytics and Header Functionality -->
     <script>
-      // Language dropdown functionality
       document.addEventListener('DOMContentLoaded', function() {
+        // Language dropdown functionality
         const langBtn = document.getElementById('language-btn');
         const langDropdown = document.getElementById('language-dropdown');
         
         if (langBtn && langDropdown) {
           langBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            const isVisible = langDropdown.classList.contains('opacity-100');
+            e.stopPropagation();
+            const isVisible = !langDropdown.classList.contains('opacity-0');
             
             if (isVisible) {
-              langDropdown.classList.remove('opacity-100', 'visible');
-              langDropdown.classList.add('opacity-0', 'invisible');
+              langDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
+              langDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
             } else {
-              langDropdown.classList.remove('opacity-0', 'invisible');
-              langDropdown.classList.add('opacity-100', 'visible');
+              langDropdown.classList.remove('opacity-0', 'invisible', 'scale-95');
+              langDropdown.classList.add('opacity-100', 'visible', 'scale-100');
             }
           });
           
           // Close dropdown when clicking outside
           document.addEventListener('click', function(e) {
             if (!langBtn.contains(e.target) && !langDropdown.contains(e.target)) {
-              langDropdown.classList.remove('opacity-100', 'visible');
-              langDropdown.classList.add('opacity-0', 'invisible');
+              langDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
+              langDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
             }
           });
         }
+
+        // Dark mode toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const lightIcon = document.getElementById('theme-icon-light');
+        const darkIcon = document.getElementById('theme-icon-dark');
+        
+        if (themeToggle && lightIcon && darkIcon) {
+          // Check for saved theme preference or default to light mode
+          const savedTheme = localStorage.getItem('theme') || 'light';
+          const isDark = savedTheme === 'dark';
+          
+          // Apply initial theme
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            lightIcon.classList.add('hidden');
+            darkIcon.classList.remove('hidden');
+          } else {
+            document.documentElement.classList.remove('dark');
+            lightIcon.classList.remove('hidden');
+            darkIcon.classList.add('hidden');
+          }
+          
+          // Theme toggle click handler
+          themeToggle.addEventListener('click', function() {
+            const currentIsDark = document.documentElement.classList.contains('dark');
+            
+            if (currentIsDark) {
+              // Switch to light mode
+              document.documentElement.classList.remove('dark');
+              lightIcon.classList.remove('hidden');
+              darkIcon.classList.add('hidden');
+              localStorage.setItem('theme', 'light');
+            } else {
+              // Switch to dark mode
+              document.documentElement.classList.add('dark');
+              lightIcon.classList.add('hidden');
+              darkIcon.classList.remove('hidden');
+              localStorage.setItem('theme', 'dark');
+            }
+          });
+        }
+
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+        const closeIcon = document.getElementById('close-icon');
+        
+        if (mobileMenuBtn && mobileMenu && menuIcon && closeIcon) {
+          let isMenuOpen = false;
+          
+          mobileMenuBtn.addEventListener('click', function() {
+            isMenuOpen = !isMenuOpen;
+            
+            if (isMenuOpen) {
+              // Show mobile menu
+              mobileMenu.classList.remove('-translate-y-full', 'opacity-0');
+              mobileMenu.classList.add('translate-y-0', 'opacity-100');
+              menuIcon.classList.add('hidden');
+              closeIcon.classList.remove('hidden');
+              document.body.style.overflow = 'hidden'; // Prevent scroll
+            } else {
+              // Hide mobile menu
+              mobileMenu.classList.remove('translate-y-0', 'opacity-100');
+              mobileMenu.classList.add('-translate-y-full', 'opacity-0');
+              menuIcon.classList.remove('hidden');
+              closeIcon.classList.add('hidden');
+              document.body.style.overflow = ''; // Restore scroll
+            }
+          });
+          
+          // Close mobile menu when clicking on menu links
+          const mobileMenuLinks = mobileMenu.querySelectorAll('a');
+          mobileMenuLinks.forEach(link => {
+            link.addEventListener('click', function() {
+              isMenuOpen = false;
+              mobileMenu.classList.remove('translate-y-0', 'opacity-100');
+              mobileMenu.classList.add('-translate-y-full', 'opacity-0');
+              menuIcon.classList.remove('hidden');
+              closeIcon.classList.add('hidden');
+              document.body.style.overflow = '';
+            });
+          });
+          
+          // Close mobile menu on window resize (if going to desktop)
+          window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024 && isMenuOpen) {
+              isMenuOpen = false;
+              mobileMenu.classList.remove('translate-y-0', 'opacity-100');
+              mobileMenu.classList.add('-translate-y-full', 'opacity-0');
+              menuIcon.classList.remove('hidden');
+              closeIcon.classList.add('hidden');
+              document.body.style.overflow = '';
+            }
+          });
+        }
+
+        // Active navigation highlighting
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a, #mobile-menu a');
+        
+        navLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (href === currentPath || (currentPath === '/' && href === '/')) {
+            link.classList.add('text-blue-600');
+            link.classList.remove('text-gray-700');
+            
+            // Add active underline for desktop nav
+            const underline = link.querySelector('span');
+            if (underline) {
+              underline.classList.add('w-full');
+              underline.classList.remove('w-0');
+            }
+          }
+        });
+
+        // Smooth header background on scroll
+        let lastScrollY = window.scrollY;
+        const header = document.querySelector('header');
+        
+        if (header) {
+          window.addEventListener('scroll', function() {
+            const currentScrollY = window.scrollY;
+            
+            if (currentScrollY > 20) {
+              header.classList.add('bg-white/98', 'shadow-md');
+              header.classList.remove('bg-white/95');
+            } else {
+              header.classList.add('bg-white/95');
+              header.classList.remove('bg-white/98', 'shadow-md');
+            }
+            
+            lastScrollY = currentScrollY;
+          });
+        }
+
+        // Language selection functionality
+        const languageOptions = document.querySelectorAll('#language-dropdown a');
+        languageOptions.forEach(option => {
+          option.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Get selected language data
+            const flag = this.querySelector('span').textContent;
+            const langName = this.querySelector('.text-sm').textContent;
+            
+            // Update button display
+            const langBtnText = document.querySelector('#language-btn .hidden.sm\\:inline');
+            if (langBtnText && langName) {
+              // Extract language code (VN, US, ES)
+              const langCode = langName === 'Tiếng Việt' ? 'VN' : 
+                              langName === 'English' ? 'US' : 
+                              langName === 'Español' ? 'ES' : 'VN';
+              langBtnText.textContent = langCode;
+            }
+            
+            // Close dropdown
+            langDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
+            langDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
+            
+            // Here you would typically handle the language change
+            console.log('Language changed to:', langName);
+          });
+        });
+
+        // Login Modal functionality
+        const modal = document.getElementById('login-modal');
+        const loginBtn = document.getElementById('login-btn');
+        const mobileLoginBtn = document.getElementById('mobile-login-btn');
+        const closeModal = document.getElementById('close-modal');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        
+        const showModal = () => {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        };
+        
+        const hideModal = () => {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        };
+        
+        // Event listeners
+        [loginBtn, mobileLoginBtn].forEach(btn => {
+          btn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showModal();
+          });
+        });
+        
+        [closeModal, modalBackdrop].forEach(el => {
+          el?.addEventListener('click', hideModal);
+        });
+        
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            hideModal();
+          }
+        });
+        
+        // Password visibility toggle
+        document.addEventListener('click', (e) => {
+          if (e.target.closest('.relative button[type="button"]')) {
+            const toggle = e.target.closest('button');
+            const input = toggle.parentElement.querySelector('input');
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            toggle.innerHTML = isPassword ? 
+              `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>` :
+              `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+          }
+        });
       });
       
-      // Add your analytics code here
-      console.log('IQ Test Pro - Ready to challenge minds! 🧠');
+      // Performance optimization: Preload critical resources
+      const criticalLinks = ['/test/iq', '/test/eq', '/blog'];
+      criticalLinks.forEach(link => {
+        const preloadLink = document.createElement('link');
+        preloadLink.rel = 'prefetch';
+        preloadLink.href = link;
+        document.head.appendChild(preloadLink);
+      });
+      
+      console.log('🧠 IQ Test Pro - Challenging minds worldwide!');
     </script>
   </body>
 </html>
