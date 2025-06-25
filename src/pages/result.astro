@@ -18,6 +18,12 @@ const resultData = {
   badge: 'genius'
 };
 
+// Get user info from URL params (for personalization)
+const url = new URL(Astro.request.url);
+const userName = url.searchParams.get('name') || '';
+const userAge = url.searchParams.get('age') || '';
+const userLocation = url.searchParams.get('location') || '';
+
 // Calculate badge type based on score
 const getBadgeInfo = (score: number) => {
   if (score >= 140) return { type: 'genius', label: 'Thiên tài', color: 'from-purple-500 to-pink-500', icon: 'star' };
@@ -39,14 +45,163 @@ const badgeInfo = getBadgeInfo(resultData.score);
       <!-- Confetti Container -->
       <div id="confetti-container" class="fixed inset-0 pointer-events-none z-50"></div>
       
+      <!-- User Info Popup -->
+      <div id="userInfoPopup" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 invisible transition-all duration-300">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300">
+          <!-- Header -->
+          <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LucideIcon name="user-check" size={32} class="text-white" />
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">🎉 Chúc mừng!</h2>
+            <p class="text-gray-600">Để hoàn thành bài test và xem kết quả chi tiết, vui lòng cung cấp thông tin:</p>
+          </div>
+
+          <!-- Form -->
+          <form id="userInfoForm" class="space-y-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  <LucideIcon name="user" size={16} class="inline mr-2" />
+                  Họ và tên
+                </label>
+                <input 
+                  type="text" 
+                  id="userName" 
+                  name="name" 
+                  required
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Nhập họ và tên của bạn"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  <LucideIcon name="calendar" size={16} class="inline mr-2" />
+                  Tuổi
+                </label>
+                <input 
+                  type="number" 
+                  id="userAge" 
+                  name="age" 
+                  min="10" 
+                  max="100" 
+                  required
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Nhập tuổi của bạn"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  <LucideIcon name="map-pin" size={16} class="inline mr-2" />
+                  Địa chỉ
+                </label>
+                <input 
+                  type="text" 
+                  id="userLocation" 
+                  name="location" 
+                  required
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Thành phố, quốc gia"
+                />
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              id="submitBtn"
+              class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center space-x-2"
+            >
+              <span id="submitText">Hoàn thành</span>
+              <LucideIcon name="arrow-right" size={20} id="submitIcon" />
+              <!-- Loading Spinner (hidden by default) -->
+              <div id="loadingSpinner" class="hidden">
+                <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            </button>
+          </form>
+
+          <!-- Privacy Note -->
+          <p class="text-xs text-gray-500 text-center mt-4">
+            🔒 Thông tin của bạn được bảo mật và chỉ dùng để cá nhân hóa kết quả
+          </p>
+        </div>
+      </div>
+      
       <!-- Compact Unified Result Card -->
       <div class="bg-white rounded-3xl shadow-md p-8 mb-8 relative overflow-hidden">
         <!-- Background Pattern -->
         <div class="absolute inset-0 opacity-5">
           <div class="absolute inset-0 bg-gradient-to-br from-blue-600 to-purple-600"></div>
-      </div>
+        </div>
         
         <div class="relative z-10">
+          <!-- Personalized Header (if user info available) -->
+          {userName && (
+            <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 via-purple-50 to-indigo-50 rounded-3xl border border-blue-100 shadow-lg">
+              <div class="flex flex-col sm:flex-row items-center justify-between">
+                <div class="flex items-center space-x-4 mb-4 sm:mb-0">
+                  <div class="relative">
+                    <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                      <LucideIcon name="user" size={24} class="text-white" />
+                    </div>
+                    <div class="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <LucideIcon name="check" size={14} class="text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-1">Xin chào, {userName}! 👋</h3>
+                    <div class="flex items-center space-x-4 text-sm text-gray-600">
+                      <div class="flex items-center">
+                        <LucideIcon name="calendar" size={16} class="mr-1 text-blue-500" />
+                        <span>{userAge} tuổi</span>
+                      </div>
+                      <div class="flex items-center">
+                        <LucideIcon name="map-pin" size={16} class="mr-1 text-purple-500" />
+                        <span>{userLocation}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Welcome Message -->
+                <div class="text-center sm:text-right">
+                  <div class="inline-flex items-center px-4 py-2 bg-white rounded-xl shadow-md">
+                    <LucideIcon name="sparkles" size={18} class="mr-2 text-yellow-500" />
+                    <span class="text-sm font-semibold text-gray-700">Kết quả cá nhân hóa</span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-2">Được tạo riêng cho bạn</p>
+                </div>
+              </div>
+              
+              <!-- Achievement Banner -->
+              <div class="mt-4 p-4 bg-white rounded-2xl shadow-sm">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                      <LucideIcon name="trophy" size={20} class="text-white" />
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-gray-900">Hoàn thành xuất sắc!</h4>
+                      <p class="text-sm text-gray-600">Bạn đã vượt qua thử thách IQ với kết quả ấn tượng</p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                      #{Math.ceil((100 - resultData.percentile) / 100 * 1000)}
+                    </div>
+                    <p class="text-xs text-gray-500">Top thế giới</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <!-- Header Row with Badge and Quick Stats -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div class="flex items-center mb-4 sm:mb-0">
@@ -82,8 +237,8 @@ const badgeInfo = getBadgeInfo(resultData.score);
           <!-- Main Score Section -->
           <div class="text-center mb-8">
             <h1 class="text-7xl md:text-8xl font-bold text-gray-900 mb-2 leading-none">
-            {resultData.score}
-          </h1>
+              {resultData.score}
+            </h1>
             <p class="text-xl text-gray-600 mb-6">Chỉ số IQ của bạn</p>
             
             <!-- Mini IQ Scale -->
@@ -103,26 +258,44 @@ const badgeInfo = getBadgeInfo(resultData.score);
             </div>
           </div>
           
-          <!-- Integrated Action Buttons -->
-          <div class="flex gap-3 justify-center">
+          <!-- Enhanced Action Buttons Grid -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <!-- Test Again Button -->
             <a 
               href="/test/iq"
-              class="group flex-1 max-w-[180px] bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-semibold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+              class="group bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
             >
               <LucideIcon name="rotate-cw" size={18} class="mr-2 group-hover:rotate-180 transition-transform duration-300" />
-              <span>Làm lại test</span>
+              <span class="text-sm">Làm lại IQ</span>
+            </a>
+
+            <!-- New EQ Test Button -->
+            <a 
+              href="/test/eq"
+              class="group bg-gradient-to-r from-pink-600 to-rose-700 hover:from-pink-500 hover:to-rose-600 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+            >
+              <LucideIcon name="heart" size={18} class="mr-2 group-hover:scale-110 transition-transform duration-300" />
+              <span class="text-sm">Test EQ</span>
+            </a>
+
+            <!-- New Leaderboard Button -->
+            <a 
+              href="/leaderboard"
+              class="group bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+            >
+              <LucideIcon name="trophy" size={18} class="mr-2 group-hover:bounce transition-transform duration-300" />
+              <span class="text-sm">Bảng xếp hạng</span>
             </a>
 
             <!-- Share Button -->
-            <div class="relative flex-1 max-w-[180px]">
+            <div class="relative">
               <button 
                 onclick="toggleShareDropdown()"
-                class="group w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
+                class="group w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
               >
                 <LucideIcon name="share-2" size={18} class="mr-2" />
-                <span>Chia sẻ</span>
-                <LucideIcon name="chevron-down" size={16} class="ml-1 group-hover:rotate-180 transition-transform duration-200" />
+                <span class="text-sm">Chia sẻ</span>
+                <LucideIcon name="chevron-down" size={14} class="ml-1 group-hover:rotate-180 transition-transform duration-200" />
               </button>
 
               <!-- Compact Share Dropdown -->
@@ -203,7 +376,7 @@ const badgeInfo = getBadgeInfo(resultData.score);
                 </div>
                 <span class="text-sm font-medium text-gray-900">68%</span>
               </div>
-              
+
               <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-600">Dưới TB (70-84)</span>
                 <div class="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
@@ -214,7 +387,7 @@ const badgeInfo = getBadgeInfo(resultData.score);
               </div>
             </div>
           </div>
-
+          
           <!-- Your Position -->
           <div>
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Vị trí của bạn</h3>
@@ -251,7 +424,7 @@ const badgeInfo = getBadgeInfo(resultData.score);
           </div>
         </div>
       </div>
-
+          
       <!-- Analysis Section -->
       <div class="bg-white rounded-2xl shadow-md p-8 mb-8">
         <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
@@ -291,8 +464,8 @@ const badgeInfo = getBadgeInfo(resultData.score);
               ))}
             </div>
           </div>
-          </div>
         </div>
+      </div>
 
       <!-- Skill Breakdown Section -->
       <div class="bg-white rounded-2xl shadow-md p-8 mb-8">
@@ -349,8 +522,8 @@ const badgeInfo = getBadgeInfo(resultData.score);
                 <div class="text-2xl font-bold text-blue-600" id="logic-score">85%</div>
                 <div class="text-xs text-gray-500">Xuất sắc</div>
               </div>
-          </div>
-          
+            </div>
+            
             <div class="skill-item flex items-center justify-between p-4 bg-green-50 rounded-xl">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-4">
@@ -365,8 +538,8 @@ const badgeInfo = getBadgeInfo(resultData.score);
                 <div class="text-2xl font-bold text-green-600" id="visual-score">78%</div>
                 <div class="text-xs text-gray-500">Tốt</div>
               </div>
-          </div>
-          
+            </div>
+            
             <div class="skill-item flex items-center justify-between p-4 bg-amber-50 rounded-xl">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mr-4">
@@ -380,8 +553,8 @@ const badgeInfo = getBadgeInfo(resultData.score);
               <div class="text-right">
                 <div class="text-2xl font-bold text-amber-600" id="speed-score">72%</div>
                 <div class="text-xs text-gray-500">Tốt</div>
-        </div>
-      </div>
+              </div>
+            </div>
 
             <div class="skill-item flex items-center justify-between p-4 bg-purple-50 rounded-xl">
               <div class="flex items-center">
@@ -415,8 +588,8 @@ const badgeInfo = getBadgeInfo(resultData.score);
               </div>
             </div>
           </div>
-          </div>
         </div>
+      </div>
 
       <!-- Social Sharing - Simplified -->
       <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 text-center">
@@ -424,13 +597,98 @@ const badgeInfo = getBadgeInfo(resultData.score);
         <p class="text-gray-600 text-sm">Chia sẻ kết quả để thử thách bạn bè của bạn! Ai sẽ có điểm cao hơn? 🎯</p>
       </div>
 
-      <!-- Retake Button - Removed since we have it above -->
       
     </div>
   </section>
 </BaseLayout>
 
 <script define:vars={{ score: resultData.score, percentile: resultData.percentile }}>
+  // Check if we need to show the popup (coming from test completion)
+  const showPopup = new URLSearchParams(window.location.search).get('showPopup') === 'true';
+  const hasUserInfo = new URLSearchParams(window.location.search).get('name');
+
+  // Show popup if needed
+  if (showPopup && !hasUserInfo) {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        showUserInfoPopup();
+      }, 1000);
+    });
+  }
+
+  // Popup Functions
+  function showUserInfoPopup() {
+    const popup = document.getElementById('userInfoPopup');
+    popup.classList.remove('opacity-0', 'invisible');
+    popup.querySelector('.bg-white').classList.remove('scale-95');
+    popup.querySelector('.bg-white').classList.add('scale-100');
+  }
+
+  function hideUserInfoPopup() {
+    const popup = document.getElementById('userInfoPopup');
+    popup.classList.add('opacity-0', 'invisible');
+    popup.querySelector('.bg-white').classList.add('scale-95');
+    popup.querySelector('.bg-white').classList.remove('scale-100');
+  }
+
+  // Form Submission
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('userInfoForm');
+    if (form) {
+      form.addEventListener('submit', handleFormSubmit);
+    }
+  });
+
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitIcon = document.getElementById('submitIcon');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    
+    const formData = new FormData(e.target);
+    const userData = {
+      name: formData.get('name'),
+      age: formData.get('age'),
+      location: formData.get('location')
+    };
+
+    // Validate form
+    if (!userData.name || !userData.age || !userData.location) {
+      showToast('❌ Vui lòng điền đầy đủ thông tin', 'error');
+      return;
+    }
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitText.classList.add('hidden');
+    submitIcon.classList.add('hidden');
+    loadingSpinner.classList.remove('hidden');
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Store user data in localStorage
+      localStorage.setItem('userInfo', JSON.stringify(userData));
+      
+      // Redirect to result page with user info
+      const currentUrl = new URL(window.location);
+      currentUrl.searchParams.set('name', userData.name);
+      currentUrl.searchParams.set('age', userData.age);
+      currentUrl.searchParams.set('location', userData.location);
+      currentUrl.searchParams.delete('showPopup');
+      
+      // Show success message
+      showToast('✅ Thông tin đã được lưu thành công!', 'success');
+      
+      // Hide popup and redirect
+      setTimeout(() => {
+        window.location.href = currentUrl.toString();
+      }, 1000);
+      
+    }, 2000); // 2 second delay to show loading
+  }
+
   // Confetti effect
   function createConfetti() {
     const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
@@ -467,7 +725,7 @@ const badgeInfo = getBadgeInfo(resultData.score);
   
   // Trigger confetti on load if score is good
   document.addEventListener('DOMContentLoaded', () => {
-    if (score >= 115) {
+    if (score >= 115 && !showPopup) {
       setTimeout(createConfetti, 500);
     }
     
@@ -593,7 +851,7 @@ Thử ngay tại: ${window.location.href}`);
 
   // Enhanced toast function
   function showToast(message, type = 'success') {
-      const toast = document.createElement('div');
+    const toast = document.createElement('div');
     const bgColor = type === 'success' ? '#10B981' : '#EF4444';
     
     toast.innerHTML = `
@@ -601,20 +859,20 @@ Thử ngay tại: ${window.location.href}`);
         <span>${message}</span>
       </div>
     `;
-      toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
       background: ${bgColor};
-        color: white;
+      color: white;
       padding: 16px 24px;
       border-radius: 12px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        z-index: 1000;
+      z-index: 1000;
       font-weight: 500;
       animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      `;
-      document.body.appendChild(toast);
+    `;
+    document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   }
 
@@ -627,8 +885,22 @@ Thử ngay tại: ${window.location.href}`);
       closeShareDropdown();
     }
   });
+
+  // Close popup when clicking outside (optional)
+  document.addEventListener('click', (e) => {
+    const popup = document.getElementById('userInfoPopup');
+    const popupContent = popup.querySelector('.bg-white');
+    
+    if (popup && !popup.classList.contains('invisible') && !popupContent.contains(e.target)) {
+      // Only close if clicking on the backdrop, not the content
+      if (e.target === popup) {
+        // Don't auto-close the popup to ensure user fills info
+        // hideUserInfoPopup();
+      }
+    }
+  });
   
-  // Enhanced toast animation
+  // Enhanced styles
   const enhancedToastStyle = document.createElement('style');
   enhancedToastStyle.textContent = `
     @keyframes slideInBounce {
@@ -664,6 +936,52 @@ Thử ngay tại: ${window.location.href}`);
     
     .share-btn:hover {
       transform: translateY(-1px);
+    }
+
+    /* Popup Animation */
+    #userInfoPopup .bg-white {
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Form Input Focus Effects */
+    #userInfoForm input:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Button Hover Effects */
+    .grid a:hover, .grid button:hover {
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    /* Loading Spinner */
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Bounce animation for trophy icon */
+    @keyframes bounce {
+      0%, 20%, 53%, 80%, 100% {
+        transform: translate3d(0,0,0);
+      }
+      40%, 43% {
+        transform: translate3d(0,-8px,0);
+      }
+      70% {
+        transform: translate3d(0,-4px,0);
+      }
+      90% {
+        transform: translate3d(0,-2px,0);
+      }
+    }
+
+    .group:hover .group-hover\\:bounce {
+      animation: bounce 1s;
     }
   `;
   document.head.appendChild(enhancedToastStyle);

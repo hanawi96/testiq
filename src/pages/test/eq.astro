@@ -1,0 +1,157 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getLocale } from '../../utils/i18n';
+import LucideIcon from '../../components/LucideIcon.astro';
+
+const locale = getLocale('vi');
+---
+
+<BaseLayout
+  title={`Test EQ - Trắc nghiệm chỉ số cảm xúc - ${locale.meta.site_name}`}
+  description="Đánh giá chỉ số cảm xúc (EQ) của bạn với bài test khoa học. Khám phá khả năng hiểu và quản lý cảm xúc."
+>
+  <section class="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Header -->
+      <div class="text-center mb-12">
+        <div class="w-24 h-24 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+          <LucideIcon name="heart" size={40} class="text-white" />
+        </div>
+        
+        <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
+          Test <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">EQ</span>
+        </h1>
+        
+        <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          Đánh giá chỉ số cảm xúc (Emotional Quotient) của bạn - khả năng hiểu và quản lý cảm xúc bản thân cũng như người khác
+        </p>
+
+        <!-- EQ Info Cards -->
+        <div class="grid md:grid-cols-3 gap-6 mb-12">
+          <div class="bg-white rounded-2xl p-6 shadow-md">
+            <div class="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <LucideIcon name="brain" size={24} class="text-pink-600" />
+            </div>
+            <h3 class="font-bold text-gray-900 mb-2">Tự nhận thức</h3>
+            <p class="text-sm text-gray-600">Hiểu biết về cảm xúc và phản ứng của bản thân</p>
+          </div>
+          
+          <div class="bg-white rounded-2xl p-6 shadow-md">
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <LucideIcon name="users" size={24} class="text-purple-600" />
+            </div>
+            <h3 class="font-bold text-gray-900 mb-2">Kỹ năng xã hội</h3>
+            <p class="text-sm text-gray-600">Khả năng giao tiếp và xây dựng mối quan hệ</p>
+          </div>
+          
+          <div class="bg-white rounded-2xl p-6 shadow-md">
+            <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <LucideIcon name="zap" size={24} class="text-indigo-600" />
+            </div>
+            <h3 class="font-bold text-gray-900 mb-2">Tự điều chỉnh</h3>
+            <p class="text-sm text-gray-600">Kiểm soát và điều chỉnh cảm xúc hiệu quả</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Test Info Card -->
+      <div class="bg-white rounded-3xl shadow-lg p-8 mb-8">
+        <div class="grid lg:grid-cols-2 gap-8 items-center">
+          <div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Bài test EQ chuẩn quốc tế</h2>
+            <div class="space-y-4">
+              <div class="flex items-center">
+                <LucideIcon name="clock" size={20} class="text-pink-600 mr-3" />
+                <span class="text-gray-700">Thời gian: <strong>25-30 phút</strong></span>
+              </div>
+              <div class="flex items-center">
+                <LucideIcon name="help-circle" size={20} class="text-purple-600 mr-3" />
+                <span class="text-gray-700">Số câu hỏi: <strong>60 câu</strong></span>
+              </div>
+              <div class="flex items-center">
+                <LucideIcon name="award" size={20} class="text-indigo-600 mr-3" />
+                <span class="text-gray-700">Kết quả: <strong>Phân tích chi tiết</strong></span>
+              </div>
+              <div class="flex items-center">
+                <LucideIcon name="shield-check" size={20} class="text-green-600 mr-3" />
+                <span class="text-gray-700">Độ chính xác: <strong>95%</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <div class="bg-gradient-to-r from-pink-100 to-purple-100 rounded-2xl p-8">
+              <div class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600 mb-2">
+                EQ
+              </div>
+              <p class="text-gray-600 text-sm">Emotional Quotient</p>
+              <p class="text-xs text-gray-500 mt-2">Chỉ số cảm xúc</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Test Button -->
+      <div class="text-center">
+        <button 
+          onclick="startEQTest()"
+          class="group bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-bold text-xl px-12 py-6 rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 flex items-center mx-auto"
+        >
+          <LucideIcon name="play" size={28} class="mr-4" />
+          <span>Bắt đầu Test EQ</span>
+          <LucideIcon name="arrow-right" size={24} class="ml-4 group-hover:translate-x-2 transition-transform duration-300" />
+        </button>
+        
+        <p class="text-sm text-gray-500 mt-4">
+          🔒 Miễn phí 100% • Không cần đăng ký
+        </p>
+
+        <!-- Back to Results Button -->
+        <div class="mt-8">
+          <a 
+            href="/result" 
+            class="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <LucideIcon name="arrow-left" size={20} class="mr-2" />
+            Quay lại kết quả IQ
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  function startEQTest() {
+    // Show loading state
+    const button = event.target.closest('button');
+    button.innerHTML = `
+      <svg class="animate-spin h-7 w-7 text-white mr-4" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Đang chuẩn bị...</span>
+    `;
+    
+    button.disabled = true;
+    
+    // Simulate loading and redirect to coming soon or actual test
+    setTimeout(() => {
+      alert('🚧 Test EQ đang được phát triển!\n\nChúng tôi sẽ sớm ra mắt bài test EQ hoàn chỉnh. Hãy theo dõi để không bỏ lỡ!');
+      
+      // Reset button
+      button.innerHTML = `
+        <svg class="w-7 h-7 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <polygon points="5,3 19,12 5,21"></polygon>
+        </svg>
+        <span>Bắt đầu Test EQ</span>
+        <svg class="w-6 h-6 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      `;
+      button.disabled = false;
+    }, 2000);
+  }
+</script> 

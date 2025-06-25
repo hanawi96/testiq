@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getLocale } from '../../utils/i18n';
+import LucideIcon from '../../components/LucideIcon.astro';
 
 const locale = getLocale('vi');
 
@@ -106,6 +107,97 @@ const testData = {
         <!-- React component will be mounted here -->
       </div>
       
+      <!-- User Info Popup -->
+      <div id="userInfoPopup" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 invisible transition-all duration-300">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300">
+          <!-- Header -->
+          <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LucideIcon name="user-check" size={32} class="text-white" />
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">🎉 Chúc mừng!</h2>
+            <p class="text-gray-600">Bạn đã hoàn thành bài test! Để xem kết quả chi tiết, vui lòng cung cấp thông tin:</p>
+          </div>
+
+          <!-- Form -->
+          <form id="userInfoForm" class="space-y-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  <LucideIcon name="user" size={16} class="inline mr-2" />
+                  Họ và tên
+                </label>
+                <input 
+                  type="text" 
+                  id="userName" 
+                  name="name" 
+                  required
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Nhập họ và tên của bạn"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  <LucideIcon name="calendar" size={16} class="inline mr-2" />
+                  Tuổi
+                </label>
+                <input 
+                  type="number" 
+                  id="userAge" 
+                  name="age" 
+                  min="10" 
+                  max="100" 
+                  required
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Nhập tuổi của bạn"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  <LucideIcon name="map-pin" size={16} class="inline mr-2" />
+                  Địa chỉ
+                </label>
+                <input 
+                  type="text" 
+                  id="userLocation" 
+                  name="location" 
+                  required
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Thành phố, quốc gia"
+                />
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              id="submitBtn"
+              class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center space-x-2"
+            >
+              <span id="submitText">Xem kết quả</span>
+              <!-- Plain SVG instead of LucideIcon -->
+              <svg id="submitIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+              </svg>
+              <!-- Loading Spinner (hidden by default) -->
+              <div id="loadingSpinner" class="hidden">
+                <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            </button>
+          </form>
+
+          <!-- Privacy Note -->
+          <p class="text-xs text-gray-500 text-center mt-4">
+            🔒 Thông tin của bạn được bảo mật và chỉ dùng để cá nhân hóa kết quả
+          </p>
+        </div>
+      </div>
+      
       <!-- Enhanced Loading State -->
       <div id="loading-state" class="fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center z-50">
         <div class="text-center">
@@ -167,6 +259,7 @@ const testData = {
   let answers = [];
   let startTime = Date.now();
   let timer;
+  let testResult = null;
 
   function createTestInterface() {
     const q = testData.questions[currentQuestion];
@@ -273,7 +366,7 @@ const testData = {
     const accuracy = Math.round((correct / testData.questions.length) * 100);
     const iqScore = Math.min(200, Math.max(50, 100 + (correct - 5) * 10 + (accuracy > 80 ? 10 : 0)));
     
-    const result = {
+    testResult = {
       score: correct,
       iq: iqScore,
       percentile: Math.min(99, Math.max(1, Math.round((iqScore - 50) * 0.66))),
@@ -281,12 +374,107 @@ const testData = {
       accuracy: accuracy
     };
     
-    sessionStorage.setItem('iq-test-result', JSON.stringify(result));
-    window.location.href = '/result';
+    // Store result for later use
+    sessionStorage.setItem('iq-test-result', JSON.stringify(testResult));
+    
+    // Show user info popup instead of redirecting immediately
+    showUserInfoPopup();
+  }
+
+  // Popup Functions
+  function showUserInfoPopup() {
+    const popup = document.getElementById('userInfoPopup');
+    popup.classList.remove('opacity-0', 'invisible');
+    popup.querySelector('.bg-white').classList.remove('scale-95');
+    popup.querySelector('.bg-white').classList.add('scale-100');
+    
+    // Setup form and focus first input
+    setTimeout(() => {
+      const form = document.getElementById('userInfoForm');
+      if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+        form.querySelector('input[name="name"]')?.focus();
+      }
+    }, 100);
+  }
+
+  function hideUserInfoPopup() {
+    const popup = document.getElementById('userInfoPopup');
+    popup.classList.add('opacity-0', 'invisible');
+    popup.querySelector('.bg-white').classList.add('scale-95');
+    popup.querySelector('.bg-white').classList.remove('scale-100');
+  }
+
+  // Form Submission
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitIcon = document.getElementById('submitIcon');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    
+    const formData = new FormData(e.target);
+    const userData = {
+      name: formData.get('name'),
+      age: formData.get('age'),
+      location: formData.get('location')
+    };
+
+    // Validate form
+    if (!userData.name || !userData.age || !userData.location) {
+      showToast('❌ Vui lòng điền đầy đủ thông tin', 'error');
+      return;
+    }
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitText.textContent = 'Đang phân tích kết quả...';
+    if (submitIcon) submitIcon.classList.add('hidden');
+    if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+    
+    // Process and redirect after 2 seconds
+    setTimeout(() => {
+      localStorage.setItem('userInfo', JSON.stringify(userData));
+      
+      const resultUrl = new URL('/result', window.location.origin);
+      resultUrl.searchParams.set('name', userData.name);
+      resultUrl.searchParams.set('age', userData.age);
+      resultUrl.searchParams.set('location', userData.location);
+      
+      window.location.href = resultUrl.toString();
+    }, 2000);
+  }
+
+  // Enhanced toast function
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? '#10B981' : '#EF4444';
+    
+    toast.innerHTML = `
+      <div class="flex items-center">
+        <span>${message}</span>
+      </div>
+    `;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${bgColor};
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      z-index: 1000;
+      font-weight: 500;
+      animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
   }
 
   function startTest() {
-      document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('loading-state').style.display = 'none';
     document.getElementById('iq-test-container').style.display = 'block';
     
     startTime = Date.now();
@@ -298,7 +486,7 @@ const testData = {
   window.selectAnswer = selectAnswer;
   window.previousQuestion = previousQuestion;
 
-  // Start test
+  // Start test and setup form
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(startTest, 1000);
   });
@@ -423,5 +611,33 @@ const testData = {
     100% {
       background-position: 100% 50%;
     }
+  }
+
+  /* Toast animation */
+  @keyframes slideInBounce {
+    0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+    50% { transform: translateX(-10px) scale(1.05); opacity: 1; }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+  }
+
+  /* Popup Animation */
+  #userInfoPopup .bg-white {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Form Input Focus Effects */
+  #userInfoForm input:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1);
+  }
+
+  /* Loading Spinner */
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 </style>

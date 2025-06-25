@@ -1,0 +1,276 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getLocale } from '../utils/i18n';
+import LucideIcon from '../components/LucideIcon.astro';
+
+const locale = getLocale('vi');
+
+// Sample leaderboard data
+const leaderboard = [
+  { rank: 1, name: "Nguyễn Minh Tuấn", score: 148, location: "Hà Nội", date: "2024-01-15", badge: "genius" },
+  { rank: 2, name: "Trần Thị Mai", score: 145, location: "TP. HCM", date: "2024-01-14", badge: "genius" },
+  { rank: 3, name: "Lê Hoàng Nam", score: 142, location: "Đà Nẵng", date: "2024-01-13", badge: "genius" },
+  { rank: 4, name: "Phạm Thu Hằng", score: 138, location: "Hải Phòng", date: "2024-01-12", badge: "superior" },
+  { rank: 5, name: "Võ Minh Khôi", score: 135, location: "Cần Thơ", date: "2024-01-11", badge: "superior" },
+  { rank: 6, name: "Đặng Thúy Vi", score: 133, location: "Nha Trang", date: "2024-01-10", badge: "superior" },
+  { rank: 7, name: "Hoàng Quốc Bảo", score: 131, location: "Huế", date: "2024-01-09", badge: "superior" },
+  { rank: 8, name: "Ngô Lan Anh", score: 128, location: "Vũng Tàu", date: "2024-01-08", badge: "above" },
+  { rank: 9, name: "Bùi Văn Hùng", score: 126, location: "Quy Nhon", date: "2024-01-07", badge: "above" },
+  { rank: 10, name: "Lý Thị Hoa", score: 124, location: "Vinh", date: "2024-01-06", badge: "above" }
+];
+
+const getBadgeInfo = (badge: string) => {
+  switch(badge) {
+    case 'genius': return { label: 'Thiên tài', color: 'from-purple-500 to-pink-500', icon: 'star' };
+    case 'superior': return { label: 'Xuất sắc', color: 'from-blue-500 to-cyan-500', icon: 'award' };
+    case 'above': return { label: 'Trên TB', color: 'from-green-500 to-emerald-500', icon: 'zap' };
+    default: return { label: 'Tốt', color: 'from-orange-500 to-red-500', icon: 'check-circle' };
+  }
+};
+---
+
+<BaseLayout
+  title={`Bảng xếp hạng IQ - ${locale.meta.site_name}`}
+  description="Xem bảng xếp hạng những người có điểm IQ cao nhất. So sánh kết quả của bạn với cộng đồng."
+>
+  <section class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Header -->
+      <div class="text-center mb-12">
+        <div class="w-24 h-24 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+          <LucideIcon name="trophy" size={40} class="text-white" />
+        </div>
+        
+        <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
+          Bảng <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">xếp hạng</span>
+        </h1>
+        
+        <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          Top những người có điểm IQ cao nhất trong cộng đồng
+        </p>
+
+        <!-- Stats Cards -->
+        <div class="grid md:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white rounded-xl p-4 shadow-md">
+            <div class="text-2xl font-bold text-blue-600">12,847</div>
+            <div class="text-sm text-gray-600">Người tham gia</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 shadow-md">
+            <div class="text-2xl font-bold text-purple-600">148</div>
+            <div class="text-sm text-gray-600">Điểm cao nhất</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 shadow-md">
+            <div class="text-2xl font-bold text-green-600">108</div>
+            <div class="text-sm text-gray-600">Điểm trung bình</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 shadow-md">
+            <div class="text-2xl font-bold text-orange-600">2.3%</div>
+            <div class="text-sm text-gray-600">Thiên tài (140+)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top 3 Podium -->
+      <div class="bg-white rounded-3xl shadow-lg p-8 mb-8">
+        <h2 class="text-2xl font-bold text-center text-gray-900 mb-8">🏆 Top 3 xuất sắc nhất</h2>
+        
+        <div class="flex flex-col md:flex-row items-end justify-center gap-6 mb-8">
+          <!-- 2nd Place -->
+          <div class="text-center order-1 md:order-1">
+            <div class="w-20 h-20 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <span class="text-white font-bold text-xl">2</span>
+            </div>
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 min-h-[200px] flex flex-col justify-between">
+              <div>
+                <h3 class="font-bold text-lg text-gray-900">{leaderboard[1].name}</h3>
+                <p class="text-sm text-gray-600 mb-2">{leaderboard[1].location}</p>
+                <div class="text-3xl font-bold text-gray-700 mb-2">{leaderboard[1].score}</div>
+                <div class="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold">
+                  <LucideIcon name="star" size={12} class="mr-1" />
+                  Thiên tài
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1st Place (Taller) -->
+          <div class="text-center order-2 md:order-2">
+            <div class="w-24 h-24 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl animate-pulse">
+              <LucideIcon name="crown" size={32} class="text-white" />
+            </div>
+            <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8 min-h-[240px] flex flex-col justify-between border-2 border-yellow-200">
+              <div>
+                <h3 class="font-bold text-xl text-gray-900">{leaderboard[0].name}</h3>
+                <p class="text-sm text-gray-600 mb-3">{leaderboard[0].location}</p>
+                <div class="text-4xl font-bold text-yellow-600 mb-3">{leaderboard[0].score}</div>
+                <div class="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-sm font-bold">
+                  <LucideIcon name="trophy" size={16} class="mr-2" />
+                  Vô địch
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3rd Place -->
+          <div class="text-center order-3 md:order-3">
+            <div class="w-20 h-20 bg-gradient-to-r from-amber-600 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <span class="text-white font-bold text-xl">3</span>
+            </div>
+            <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 min-h-[200px] flex flex-col justify-between">
+              <div>
+                <h3 class="font-bold text-lg text-gray-900">{leaderboard[2].name}</h3>
+                <p class="text-sm text-gray-600 mb-2">{leaderboard[2].location}</p>
+                <div class="text-3xl font-bold text-amber-600 mb-2">{leaderboard[2].score}</div>
+                <div class="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold">
+                  <LucideIcon name="star" size={12} class="mr-1" />
+                  Thiên tài
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full Leaderboard -->
+      <div class="bg-white rounded-3xl shadow-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+          <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+            <LucideIcon name="list" size={24} class="mr-3 text-blue-600" />
+            Bảng xếp hạng hoàn chỉnh
+          </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạng</th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thí sinh</th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm IQ</th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thành tích</th>
+                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày test</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {leaderboard.map((person, index) => {
+                const badgeInfo = getBadgeInfo(person.badge);
+                return (
+                  <tr class={`hover:bg-gray-50 transition-colors ${person.rank <= 3 ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}`}>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center">
+                        {person.rank <= 3 ? (
+                          <div class={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white mr-3 ${
+                            person.rank === 1 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                            person.rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                            'bg-gradient-to-r from-amber-600 to-orange-600'
+                          }`}>
+                            {person.rank === 1 ? <LucideIcon name="crown" size={16} /> : person.rank}
+                          </div>
+                        ) : (
+                          <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-semibold text-gray-600 mr-3">
+                            {person.rank}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
+                          <span class="text-white font-semibold text-sm">{person.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900">{person.name}</div>
+                          <div class="text-sm text-gray-500 flex items-center">
+                            <LucideIcon name="map-pin" size={14} class="mr-1" />
+                            {person.location}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-2xl font-bold text-gray-900">{person.score}</div>
+                      <div class="text-xs text-gray-500">điểm</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${badgeInfo.color}`}>
+                        <LucideIcon name={badgeInfo.icon} size={12} class="mr-1" />
+                        {badgeInfo.label}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(person.date).toLocaleDateString('vi-VN')}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Load More Button -->
+        <div class="p-6 text-center border-t border-gray-200">
+          <button class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105">
+            Xem thêm
+          </button>
+        </div>
+      </div>
+
+      <!-- Call to Action -->
+      <div class="text-center mt-12">
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-3xl p-8 border border-blue-100">
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">🎯 Thử thách bản thân!</h3>
+          <p class="text-gray-600 mb-6">Bạn có thể lọt top không? Làm bài test IQ ngay để xem vị trí của mình!</p>
+          
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a 
+              href="/test/iq" 
+              class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center"
+            >
+              <LucideIcon name="brain" size={20} class="mr-3" />
+              Làm Test IQ
+            </a>
+            
+            <a 
+              href="/result" 
+              class="bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center justify-center"
+            >
+              <LucideIcon name="arrow-left" size={20} class="mr-3" />
+              Quay lại kết quả
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // Add some interactive effects
+  document.addEventListener('DOMContentLoaded', () => {
+    // Animate numbers
+    const animateNumbers = () => {
+      const numbers = document.querySelectorAll('.text-2xl.font-bold');
+      numbers.forEach(number => {
+        if (number.textContent && !isNaN(parseInt(number.textContent))) {
+          const final = parseInt(number.textContent);
+          let current = 0;
+          const increment = final / 20;
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= final) {
+              number.textContent = final.toString();
+              clearInterval(timer);
+            } else {
+              number.textContent = Math.floor(current).toString();
+            }
+          }, 50);
+        }
+      });
+    };
+
+    // Trigger animation after a small delay
+    setTimeout(animateNumbers, 500);
+  });
+</script> 
