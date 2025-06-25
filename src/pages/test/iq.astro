@@ -10,7 +10,7 @@ const testData = {
   meta: {
     title: "Test IQ Chuẩn Quốc Tế",
     description: "Đánh giá chỉ số thông minh với 10 câu hỏi khoa học",
-    timeLimit: 3300,
+    timeLimit: 1500, // 25 minutes = 1500 seconds
     totalQuestions: 10
   },
   questions: [
@@ -295,7 +295,7 @@ const testData = {
                 <svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                 </svg>
-                <span class="font-mono text-lg font-bold text-gray-800" id="time-left">55:00</span>
+                <span class="font-mono text-lg font-bold text-gray-800" id="time-left">25:00</span>
               </div>
             </div>
             
@@ -337,25 +337,28 @@ const testData = {
 
             <!-- Options Grid -->
             <div class="space-y-4 max-w-3xl mx-auto">
-              ${q.options.map((option, i) => `
+              ${q.options.map((option, i) => {
+                const isSelected = answers[currentQuestion] === i;
+                return `
                 <button onclick="selectAnswer(${i})" 
-                        class="option-btn group w-full p-6 text-left border-2 border-gray-200 rounded-2xl hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
+                        class="option-btn group w-full p-6 text-left border-2 ${isSelected ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-purple-50' : 'border-gray-200'} rounded-2xl hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
                         data-option="${i}">
                   <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-gray-100 group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 rounded-xl flex items-center justify-center transition-all duration-300">
-                      <span class="text-lg font-bold text-gray-600 group-hover:text-white transition-colors duration-300">
+                    <div class="w-12 h-12 ${isSelected ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gray-100'} group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-600 rounded-xl flex items-center justify-center transition-all duration-300">
+                      <span class="text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-600'} group-hover:text-white transition-colors duration-300">
                         ${String.fromCharCode(65 + i)}
                       </span>
                     </div>
                     <span class="text-lg text-gray-800 group-hover:text-gray-900 transition-colors duration-300 flex-1">
                       ${option}
                     </span>
-                    <div class="w-6 h-6 border-2 border-gray-300 group-hover:border-blue-500 rounded-full transition-all duration-300 relative">
-                      <div class="w-full h-full bg-blue-500 rounded-full transform scale-0 group-hover:scale-75 transition-transform duration-300"></div>
+                    <div class="w-6 h-6 border-2 ${isSelected ? 'border-blue-500' : 'border-gray-300'} group-hover:border-blue-500 rounded-full transition-all duration-300 relative">
+                      <div class="w-full h-full ${isSelected ? 'bg-blue-500 scale-100' : 'bg-blue-500 scale-0'} group-hover:scale-75 rounded-full transition-transform duration-300"></div>
                     </div>
                   </div>
                 </button>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
             
             <!-- Navigation -->
@@ -396,60 +399,31 @@ const testData = {
   }
 
   function selectAnswer(optionIndex) {
-    const selectedBtn = document.querySelector(`[data-option="${optionIndex}"]`);
-    
-    // Reset all buttons first
-    document.querySelectorAll('.option-btn').forEach(btn => {
-      btn.style.transform = '';
-      btn.style.background = '';
-      btn.style.borderColor = '';
-    });
-    
-    // Enhanced animation sequence
-    selectedBtn.style.transform = 'scale(0.96)';
-    selectedBtn.style.borderColor = '#3b82f6';
-    selectedBtn.style.background = 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)';
-    selectedBtn.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.25)';
-    
-    // Animate selection elements
-    const optionLetter = selectedBtn.querySelector('div > span');
-    const radioButton = selectedBtn.querySelector('.w-6.h-6 > div');
-    
-    if (optionLetter) {
-      optionLetter.style.background = 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
-      optionLetter.style.webkitBackgroundClip = 'text';
-      optionLetter.style.webkitTextFillColor = 'transparent';
-      optionLetter.style.fontWeight = '700';
-    }
-    
-    if (radioButton) {
-      radioButton.style.transform = 'scale(1)';
-      radioButton.style.background = 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
-    }
-    
-    // Add success effect
-    addSuccessEffect(selectedBtn);
-    
-    // Store answer
+    // Store answer immediately
     answers[currentQuestion] = optionIndex;
     
-    // Preload next question for smooth transition
-    preloadNextQuestion();
+    // Save to localStorage for persistence
+    localStorage.setItem('iq-test-answers', JSON.stringify(answers));
     
-    // Smooth transition to next question
+    // Quick visual feedback
+    const selectedBtn = document.querySelector(`[data-option="${optionIndex}"]`);
+    selectedBtn.style.transform = 'scale(0.95)';
+    
+    // Refresh interface to show selection
     setTimeout(() => {
-      selectedBtn.style.transform = 'scale(1.02)';
-      setTimeout(() => {
-        selectedBtn.style.transform = 'scale(1)';
-        
-        if (currentQuestion < testData.questions.length - 1) {
+      selectedBtn.style.transform = 'scale(1)';
+      createTestInterface(); // This will show the selected state
+      
+      // Auto-advance only if it's a new selection
+      if (currentQuestion < testData.questions.length - 1) {
+        setTimeout(() => {
           currentQuestion++;
           createTestInterface();
-        } else {
-          finishTest();
-        }
-      }, 150);
-    }, 350);
+        }, 800);
+      } else {
+        setTimeout(finishTest, 800);
+      }
+    }, 200);
   }
 
   function previousQuestion() {
@@ -473,14 +447,25 @@ const testData = {
     const minutes = Math.floor(remaining / 60);
     const seconds = remaining % 60;
     
-    document.getElementById('time-left').textContent = 
-      `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const timeDisplay = document.getElementById('time-left');
+    if (timeDisplay) {
+      timeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Warning color when < 5 minutes
+      if (remaining < 300) {
+        timeDisplay.parentElement.classList.add('text-red-500');
+        timeDisplay.parentElement.classList.remove('text-gray-800');
+      }
+    }
     
     if (remaining <= 0) finishTest();
   }
 
   function finishTest() {
     clearInterval(timer);
+    
+    // Clear saved answers
+    localStorage.removeItem('iq-test-answers');
     
     const correct = answers.filter((answer, index) => 
       answer === testData.questions[index].correct
@@ -497,10 +482,7 @@ const testData = {
       accuracy: accuracy
     };
     
-    // Store result for later use
     sessionStorage.setItem('iq-test-result', JSON.stringify(testResult));
-    
-    // Show user info popup instead of redirecting immediately
     showUserInfoPopup();
   }
 
@@ -599,6 +581,16 @@ const testData = {
   function startTest() {
     document.getElementById('loading-state').style.display = 'none';
     document.getElementById('iq-test-container').style.display = 'block';
+    
+    // Load saved answers from localStorage
+    const savedAnswers = localStorage.getItem('iq-test-answers');
+    if (savedAnswers) {
+      try {
+        answers = JSON.parse(savedAnswers);
+      } catch (e) {
+        answers = [];
+      }
+    }
     
     startTime = Date.now();
     timer = setInterval(updateTimer, 1000);
