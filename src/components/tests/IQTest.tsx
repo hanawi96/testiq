@@ -137,7 +137,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   if (!isActive && startTime === null) {
     return (
-      <div className="max-w-4xl mx-auto text-center">
+      <div className="max-w-4xl mx-auto text-center py-20">
         <motion.div
           className="bg-white rounded-3xl shadow-xl p-12 border border-gray-100"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -222,7 +222,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-20">
       <Confetti trigger={showConfetti} duration={3000} />
       
       {/* Header with timer and progress */}

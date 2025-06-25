@@ -136,10 +136,11 @@ export interface Question {
   export function saveTestResult(result: TestResult): void {
     try {
       const results = getTestHistory();
-      results.push({
+      const resultWithTimestamp = {
         ...result,
         timestamp: Date.now()
-      });
+      };
+      results.push(resultWithTimestamp);
       localStorage.setItem('iq-test-history', JSON.stringify(results));
     } catch (error) {
       console.warn('Cannot save test result:', error);

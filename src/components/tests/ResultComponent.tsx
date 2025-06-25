@@ -114,8 +114,8 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
       }
     });
 
-    const strengths = [];
-    const improvements = [];
+    const strengths: string[] = [];
+    const improvements: string[] = [];
 
     Object.entries(typePerformance).forEach(([type, performance]) => {
       const percentage = (performance.correct / performance.total) * 100;

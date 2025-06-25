@@ -1,22 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import confetti from 'canvas-confetti';
 import Timer from './Timer';
 import ProgressBar from './ProgressBar';
 import QuestionCard from './QuestionCard';
-import confetti from 'canvas-confetti';
-
-interface Question {
-  id: number;
-  type: string;
-  question: string;
-  options: Array<{
-    id: string;
-    text: string;
-  }>;
-  correct: string;
-  explanation: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  points: number;
-}
 
 interface QuizData {
   meta: {
@@ -24,9 +10,17 @@ interface QuizData {
     description: string;
     timeLimit: number;
     totalQuestions: number;
-    difficulty: string;
   };
-  questions: Question[];
+  questions: Array<{
+    id: number;
+    type: string;
+    question: string;
+    options: string[];
+    correct: number;
+    explanation: string;
+    points: number;
+    difficulty: string;
+  }>;
 }
 
 interface QuizComponentProps {
@@ -36,50 +30,20 @@ interface QuizComponentProps {
 
 export default function QuizComponent({ quizData, onComplete }: QuizComponentProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<number, number>>({});
   const [timeStarted] = useState(Date.now());
-  const [showWarning, setShowWarning] = useState(false);
-  const [isFinishing, setIsFinishing] = useState(false);
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
 
-  const handleAnswer = (questionId: number, answerId: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answerId
-    }));
+  const handleAnswer = (questionId: number, answerIndex: number) => {
+    setAnswers(prev => ({ ...prev, [questionId]: answerIndex }));
   };
 
-  const handleNext = () => {
-    if (currentQuestion < quizData.questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(prev => prev - 1);
-    }
-  };
-
-  const handleFinish = () => {
-    if (isFinishing) return;
-    
-    const confirmFinish = window.confirm("Bạn có chắc muốn hoàn thành test không?");
-    if (!confirmFinish) return;
-
-    setIsFinishing(true);
-    calculateResults();
+  const handleTimeWarning = () => {
+    setShowTimeWarning(true);
   };
 
   const handleTimeUp = () => {
-    if (isFinishing) return;
-    setIsFinishing(true);
-    alert("Hết thời gian!");
     calculateResults();
-  };
-
-  const handleTimeWarning = (timeLeft: number) => {
-    setShowWarning(true);
-    setTimeout(() => setShowWarning(false), 3000);
   };
 
   const calculateResults = () => {
@@ -165,20 +129,19 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
 
   const currentQ = quizData.questions[currentQuestion];
   const answeredCount = Object.keys(answers).length;
-  const progress = (currentQuestion + 1) / quizData.questions.length * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             {/* Progress Info */}
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900 dark:text-white mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                 Test IQ - Câu hỏi {currentQuestion + 1} / {quizData.questions.length}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600">
                 Đã trả lời: {answeredCount} / {quizData.questions.length} câu
               </p>
             </div>
@@ -188,8 +151,7 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
               <Timer
                 initialTime={quizData.meta.timeLimit}
                 onTimeUp={handleTimeUp}
-                onWarning={handleTimeWarning}
-                warningTime={300}
+                isActive={true}
               />
             </div>
           </div>
@@ -199,21 +161,16 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
             <ProgressBar 
               current={currentQuestion + 1} 
               total={quizData.questions.length}
-              answeredCount={answeredCount}
             />
           </div>
         </div>
 
         {/* Time Warning */}
-        {showWarning && (
-          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg animate-pulse">
+        {showTimeWarning && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <span className="text-yellow-800 dark:text-yellow-200 font-medium">
-                Còn 5 phút! Hãy kiểm tra lại các câu trả lời của bạn.
-              </span>
+              <span className="text-yellow-600 mr-2">⚠️</span>
+              <span className="text-yellow-800 font-medium">Chỉ còn 5 phút! Hãy tập trung hoàn thành bài test.</span>
             </div>
           </div>
         )}
@@ -221,81 +178,72 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
         {/* Question Card */}
         <div className="mb-8">
           <QuestionCard
-            question={currentQ}
-            selectedAnswer={answers[currentQ.id]}
+            question={{
+              id: currentQ.id,
+              type: currentQ.type as any,
+              difficulty: currentQ.difficulty as any,
+              question: currentQ.question,
+              options: currentQ.options,
+              correct: currentQ.correct,
+              explanation: currentQ.explanation
+            }}
+            selectedAnswer={answers[currentQ.id] || null}
             onAnswerSelect={(answerId) => handleAnswer(currentQ.id, answerId)}
-            questionNumber={currentQuestion + 1}
           />
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <button
-            onClick={handlePrevious}
+            onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
             disabled={currentQuestion === 0}
-            className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+              currentQuestion === 0
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-            </svg>
-            Câu trước
+            ← Quay lại
           </button>
 
-          <div className="flex items-center space-x-4">
-            {/* Question Navigation Dots */}
-            <div className="hidden md:flex items-center space-x-2">
-              {quizData.questions.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentQuestion(index)}
-                  className={`w-8 h-8 rounded-full text-xs font-medium transition-all ${
-                    index === currentQuestion
-                      ? 'bg-blue-500 text-white'
-                      : answers[quizData.questions[index].id]
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </div>
-
-            {currentQuestion === quizData.questions.length - 1 ? (
+          <div className="flex items-center space-x-2">
+            {quizData.questions.map((_, index) => (
               <button
-                onClick={handleFinish}
-                disabled={isFinishing}
-                className="flex items-center px-6 py-3 text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                key={index}
+                onClick={() => setCurrentQuestion(index)}
+                className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
+                  index === currentQuestion
+                    ? 'bg-blue-600 text-white'
+                    : answers[quizData.questions[index].id] !== undefined
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
               >
-                {isFinishing ? (
-                  <>
-                    <svg className="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    Hoàn thành
-                    <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </>
-                )}
+                {index + 1}
               </button>
-            ) : (
-              <button
-                onClick={handleNext}
-                className="flex items-center px-6 py-3 text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
-              >
-                Câu tiếp theo
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
+            ))}
           </div>
+
+          {currentQuestion === quizData.questions.length - 1 ? (
+            <button
+              onClick={calculateResults}
+              disabled={Object.keys(answers).length !== quizData.questions.length}
+              className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                Object.keys(answers).length !== quizData.questions.length
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-lg'
+              }`}
+            >
+              🏁 Hoàn thành
+            </button>
+          ) : (
+            <button
+              onClick={() => setCurrentQuestion(Math.min(quizData.questions.length - 1, currentQuestion + 1))}
+              className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200"
+            >
+              Tiếp theo →
+            </button>
+          )}
         </div>
       </div>
     </div>
