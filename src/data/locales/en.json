@@ -1,0 +1,159 @@
+{
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "test": "Take Test",
+      "language": "Language"
+    },
+    "home": {
+      "title": "Free IQ Test - Measure Your Intelligence",
+      "subtitle": "Discover your intellectual potential with our internationally standardized IQ test",
+      "description": "The leading IQ test website with accurate algorithms, modern interface and detailed results. Completely free!",
+      "cta": "Start IQ Test",
+      "features": {
+        "title": "Why choose us?",
+        "accurate": {
+          "title": "🎯 High Accuracy",
+          "description": "Assessment algorithm based on international standards"
+        },
+        "fast": {
+          "title": "⚡ Super Fast",
+          "description": "Optimized interface, fast loading on all devices"
+        },
+        "free": {
+          "title": "🆓 Completely Free",
+          "description": "No hidden fees, no registration required"
+        },
+        "detailed": {
+          "title": "📊 Detailed Results",
+          "description": "In-depth analysis with explanations for each question"
+        },
+        "multilingual": {
+          "title": "🌍 Multilingual",
+          "description": "Supports Vietnamese, English, Español"
+        },
+        "modern": {
+          "title": "✨ Modern Interface",
+          "description": "Beautiful design, smooth experience"
+        }
+      },
+      "stats": {
+        "tests_taken": "Tests taken",
+        "avg_score": "Average score",
+        "countries": "Countries served",
+        "satisfaction": "Satisfaction"
+      }
+    },
+    "about": {
+      "title": "About IQ Test - Intelligence Assessment",
+      "intro": "IQ (Intelligence Quotient) is a measure of human intellectual ability, developed to assess cognitive abilities such as logic, mathematics, language and spatial reasoning.",
+      "what_is_iq": {
+        "title": "What is IQ?",
+        "content": "IQ (Intelligence Quotient) is an index used to measure human intelligence. The average IQ score of the population is 100, with a standard deviation of 15. This means that about 68% of the population has an IQ of 85-115, and only about 2% has an IQ above 130."
+      },
+      "how_it_works": {
+        "title": "How does the test work?",
+        "content": "Our test consists of 10 questions designed to assess different cognitive abilities: logical thinking, pattern recognition, mathematical reasoning, and spatial ability. Each question has different difficulty levels and is scored according to international standards."
+      },
+      "test_structure": {
+        "title": "Test structure",
+        "questions": "10 questions",
+        "time": "55 minutes",
+        "types": "5 different question types",
+        "scoring": "Score range 0-200"
+      },
+      "question_types": {
+        "title": "Question types",
+        "logical": {
+          "title": "Logical Thinking",
+          "description": "Assesses reasoning and problem-solving abilities"
+        },
+        "pattern": {
+          "title": "Pattern Recognition",
+          "description": "Tests ability to identify patterns in sequences or shapes"
+        },
+        "mathematical": {
+          "title": "Mathematical Reasoning",
+          "description": "Evaluates calculation skills and numerical reasoning"
+        },
+        "spatial": {
+          "title": "Spatial Thinking",
+          "description": "Tests ability to visualize and rotate 3D objects"
+        },
+        "verbal": {
+          "title": "Verbal Reasoning",
+          "description": "Assesses vocabulary knowledge and language relationships"
+        }
+      },
+      "iq_ranges": {
+        "title": "IQ Classifications",
+        "genius": "Genius (160+)",
+        "very_superior": "Very Superior (130-159)",
+        "superior": "Superior (115-129)",
+        "average": "Average (85-114)",
+        "below_average": "Below Average (70-84)",
+        "low": "Low (<70)"
+      },
+      "accuracy": {
+        "title": "Accuracy",
+        "content": "Our test is designed based on modern psychological research and has been validated with thousands of participants. However, this is only a preliminary assessment tool and cannot replace professional IQ tests."
+      },
+      "cta": "Start IQ Test Now"
+    },
+    "test": {
+      "title": "IQ Test - Question {current} / {total}",
+      "timer": "Time remaining",
+      "question": "Question",
+      "next": "Next",
+      "previous": "Previous",
+      "finish": "Finish",
+      "confirm_finish": "Are you sure you want to finish the test?",
+      "time_warning": "5 minutes left!",
+      "time_up": "Time's up!",
+      "progress": "Progress"
+    },
+    "result": {
+      "title": "Your IQ Test Results",
+      "score": "Your IQ Score",
+      "percentile": "Higher than {percent}% of population",
+      "classification": "Classification",
+      "time_taken": "Time taken",
+      "correct_answers": "Correct answers",
+      "analysis": {
+        "title": "Detailed Analysis",
+        "strengths": "Strengths",
+        "improvements": "Areas for improvement",
+        "breakdown": "Analysis by question type"
+      },
+      "share": {
+        "title": "Share your results",
+        "text": "I just scored {score} on an IQ test! Try it yourself:",
+        "facebook": "Share on Facebook",
+        "twitter": "Share on Twitter",
+        "linkedin": "Share on LinkedIn",
+        "copy": "Copy link"
+      },
+      "retake": "Retake test",
+      "home": "Go home"
+    },
+    "common": {
+      "loading": "Loading...",
+      "error": "An error occurred",
+      "retry": "Retry",
+      "close": "Close",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "yes": "Yes",
+      "no": "No",
+      "minutes": "minutes",
+      "seconds": "seconds",
+      "question": "question",
+      "point": "points",
+      "congratulations": "Congratulations!"
+    },
+    "meta": {
+      "site_name": "Free IQ Test",
+      "description": "The most accurate free IQ test with 10 internationally standardized questions. Assess your intelligence quotient now!",
+      "keywords": "iq test, intelligence test, iq assessment, free iq test, online iq test, intelligence quotient"
+    }
+  }

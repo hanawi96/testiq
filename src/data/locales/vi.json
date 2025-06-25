@@ -1,0 +1,159 @@
+{
+    "nav": {
+      "home": "Trang chủ",
+      "about": "Giới thiệu",
+      "test": "Làm test",
+      "language": "Ngôn ngữ"
+    },
+    "home": {
+      "title": "Test IQ Miễn Phí - Đánh Giá Chỉ Số Thông Minh",
+      "subtitle": "Khám phá tiềm năng trí tuệ của bạn với bài test IQ chuẩn quốc tế",
+      "description": "Website test IQ hàng đầu với thuật toán chính xác, giao diện hiện đại và kết quả chi tiết. Hoàn toàn miễn phí!",
+      "cta": "Bắt đầu Test IQ",
+      "features": {
+        "title": "Tại sao chọn chúng tôi?",
+        "accurate": {
+          "title": "🎯 Chính xác cao",
+          "description": "Thuật toán đánh giá dựa trên tiêu chuẩn quốc tế"
+        },
+        "fast": {
+          "title": "⚡ Siêu nhanh",
+          "description": "Giao diện tối ưu, tải nhanh trên mọi thiết bị"
+        },
+        "free": {
+          "title": "🆓 Hoàn toàn miễn phí",
+          "description": "Không phí ẩn, không cần đăng ký"
+        },
+        "detailed": {
+          "title": "📊 Kết quả chi tiết",
+          "description": "Phân tích sâu với lời giải thích cho từng câu"
+        },
+        "multilingual": {
+          "title": "🌍 Đa ngôn ngữ",
+          "description": "Hỗ trợ Tiếng Việt, English, Español"
+        },
+        "modern": {
+          "title": "✨ Giao diện hiện đại",
+          "description": "Thiết kế đẹp mắt, trải nghiệm mượt mà"
+        }
+      },
+      "stats": {
+        "tests_taken": "Tests đã thực hiện",
+        "avg_score": "Điểm trung bình",
+        "countries": "Quốc gia sử dụng",
+        "satisfaction": "Hài lòng"
+      }
+    },
+    "about": {
+      "title": "Về Test IQ - Đánh Giá Chỉ Số Thông Minh",
+      "intro": "IQ (Intelligence Quotient) là thước đo khả năng trí tuệ của con người, được phát triển để đánh giá các khả năng nhận thức như logic, toán học, ngôn ngữ và không gian.",
+      "what_is_iq": {
+        "title": "IQ là gì?",
+        "content": "IQ (Intelligence Quotient) là một chỉ số được sử dụng để đo lường trí thông minh của con người. Điểm IQ trung bình của dân số là 100, với độ lệch chuẩn là 15. Điều này có nghĩa là khoảng 68% dân số có IQ từ 85-115, và chỉ khoảng 2% có IQ trên 130."
+      },
+      "how_it_works": {
+        "title": "Test hoạt động như thế nào?",
+        "content": "Bài test của chúng tôi bao gồm 10 câu hỏi được thiết kế để đánh giá các khả năng nhận thức khác nhau: tư duy logic, nhận dạng mẫu, suy luận toán học, và khả năng không gian. Mỗi câu hỏi có độ khó khác nhau và được chấm điểm theo tiêu chuẩn quốc tế."
+      },
+      "test_structure": {
+        "title": "Cấu trúc bài test",
+        "questions": "10 câu hỏi",
+        "time": "55 phút",
+        "types": "5 loại câu hỏi khác nhau",
+        "scoring": "Thang điểm 0-200"
+      },
+      "question_types": {
+        "title": "Các loại câu hỏi",
+        "logical": {
+          "title": "Tư duy Logic",
+          "description": "Đánh giá khả năng suy luận và giải quyết vấn đề"
+        },
+        "pattern": {
+          "title": "Nhận dạng Mẫu",
+          "description": "Kiểm tra khả năng nhận biết quy luật trong chuỗi số hoặc hình"
+        },
+        "mathematical": {
+          "title": "Suy luận Toán học",
+          "description": "Đánh giá kỹ năng tính toán và suy luận số học"
+        },
+        "spatial": {
+          "title": "Tư duy Không gian",
+          "description": "Kiểm tra khả năng hình dung và xoay phép đối tượng 3D"
+        },
+        "verbal": {
+          "title": "Suy luận Ngôn ngữ",
+          "description": "Đánh giá hiểu biết từ vựng và mối quan hệ ngôn ngữ"
+        }
+      },
+      "iq_ranges": {
+        "title": "Phân loại IQ",
+        "genius": "Thiên tài (160+)",
+        "very_superior": "Rất cao (130-159)",
+        "superior": "Cao (115-129)", 
+        "average": "Trung bình (85-114)",
+        "below_average": "Dưới trung bình (70-84)",
+        "low": "Thấp (<70)"
+      },
+      "accuracy": {
+        "title": "Độ chính xác",
+        "content": "Bài test của chúng tôi được thiết kế dựa trên các nghiên cứu tâm lý học hiện đại và đã được kiểm định với hàng nghìn người tham gia. Tuy nhiên, đây chỉ là một công cụ đánh giá sơ bộ và không thể thay thế cho các bài test IQ chuyên nghiệp."
+      },
+      "cta": "Bắt đầu Test IQ Ngay"
+    },
+    "test": {
+      "title": "Test IQ - Câu hỏi {current} / {total}",
+      "timer": "Thời gian còn lại",
+      "question": "Câu hỏi",
+      "next": "Câu tiếp theo",
+      "previous": "Câu trước",
+      "finish": "Hoàn thành",
+      "confirm_finish": "Bạn có chắc muốn hoàn thành test?",
+      "time_warning": "Còn 5 phút!",
+      "time_up": "Hết thời gian!",
+      "progress": "Tiến độ"
+    },
+    "result": {
+      "title": "Kết quả Test IQ của bạn",
+      "score": "Điểm IQ của bạn",
+      "percentile": "Cao hơn {percent}% dân số",
+      "classification": "Phân loại",
+      "time_taken": "Thời gian làm bài",
+      "correct_answers": "Số câu đúng",
+      "analysis": {
+        "title": "Phân tích chi tiết",
+        "strengths": "Điểm mạnh",
+        "improvements": "Cần cải thiện",
+        "breakdown": "Phân tích theo loại câu hỏi"
+      },
+      "share": {
+        "title": "Chia sẻ kết quả",
+        "text": "Tôi vừa đạt {score} điểm IQ! Bạn thử test xem sao nhé:",
+        "facebook": "Chia sẻ Facebook",
+        "twitter": "Chia sẻ Twitter",
+        "linkedin": "Chia sẻ LinkedIn",
+        "copy": "Sao chép link"
+      },
+      "retake": "Làm lại test",
+      "home": "Về trang chủ"
+    },
+    "common": {
+      "loading": "Đang tải...",
+      "error": "Có lỗi xảy ra",
+      "retry": "Thử lại",
+      "close": "Đóng",
+      "confirm": "Xác nhận",
+      "cancel": "Hủy",
+      "yes": "Có",
+      "no": "Không",
+      "minutes": "phút",
+      "seconds": "giây",
+      "question": "câu hỏi",
+      "point": "điểm",
+      "congratulations": "Chúc mừng!"
+    },
+    "meta": {
+      "site_name": "Test IQ Miễn Phí",
+      "description": "Test IQ miễn phí chính xác nhất với 10 câu hỏi chuẩn quốc tế. Đánh giá chỉ số thông minh của bạn ngay bây giờ!",
+      "keywords": "test iq, iq test, chỉ số thông minh, đánh giá iq, test iq miễn phí, iq online"
+    }
+  }

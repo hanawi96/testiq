@@ -1,0 +1,459 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getLocale } from '../utils/i18n';
+
+const locale = getLocale('vi');
+---
+
+<BaseLayout
+  title={`${locale.result.title} - ${locale.meta.site_name}`}
+  description={locale.meta.description}
+>
+  <!-- Results Container -->
+  <section class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Loading State -->
+      <div id="loading-state" class="text-center py-20">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600">Đang phân tích kết quả...</p>
+      </div>
+      
+      <!-- No Result State -->
+      <div id="no-result-state" class="hidden text-center py-20">
+        <div class="text-6xl mb-6">😅</div>
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Không tìm thấy kết quả</h2>
+        <p class="text-lg text-gray-600 mb-8">Bạn chưa hoàn thành bài test hoặc kết quả đã hết hạn.</p>
+        <a href="/test/iq" class="inline-flex items-center px-8 py-4 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors">
+          <span class="mr-2">🧠</span>
+          Làm Test Ngay
+        </a>
+      </div>
+      
+      <!-- Results Content -->
+      <div id="results-content" class="hidden">
+        
+        <!-- Header -->
+        <div class="text-center mb-12">
+          <div class="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-4">
+            <span class="mr-2">🎉</span>
+            Test Hoàn Thành
+          </div>
+          
+          <h1 class="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-4">
+            {locale.result.title}
+          </h1>
+          
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            {locale.result.subtitle}
+          </p>
+        </div>
+
+        <!-- Main IQ Score -->
+        <div class="bg-gradient-to-br from-primary-500 to-blue-600 rounded-3xl p-8 mb-8 text-white text-center shadow-xl">
+          <div class="text-6xl mb-4">🧠</div>
+          <h2 class="text-2xl font-semibold mb-2">{locale.result.your_iq}</h2>
+          <div id="iq-score" class="text-7xl font-bold mb-4">--</div>
+          <div id="classification" class="text-xl font-medium mb-2">--</div>
+          <div id="percentile" class="text-lg opacity-90">--</div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white p-6 rounded-2xl shadow-lg text-center">
+            <div class="text-3xl font-bold text-green-600" id="correct-count">--</div>
+            <div class="text-sm text-gray-600">Câu đúng</div>
+          </div>
+          
+          <div class="bg-white p-6 rounded-2xl shadow-lg text-center">
+            <div class="text-3xl font-bold text-blue-600" id="accuracy">--</div>
+            <div class="text-sm text-gray-600">Độ chính xác</div>
+          </div>
+          
+          <div class="bg-white p-6 rounded-2xl shadow-lg text-center">
+            <div class="text-3xl font-bold text-purple-600" id="time-spent">--</div>
+            <div class="text-sm text-gray-600">Thời gian</div>
+          </div>
+          
+          <div class="bg-white p-6 rounded-2xl shadow-lg text-center">
+            <div class="text-3xl font-bold text-orange-600" id="percentile-rank">--</div>
+            <div class="text-sm text-gray-600">Xếp hạng</div>
+          </div>
+        </div>
+
+        <!-- Category Analysis -->
+        <div class="bg-white rounded-3xl shadow-xl p-8 mb-8">
+          <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">
+            {locale.result.analysis.title}
+          </h3>
+          <p class="text-gray-600 text-center mb-8">
+            {locale.result.analysis.subtitle}
+          </p>
+          
+          <div id="category-analysis" class="space-y-6">
+            <!-- Dynamic content will be inserted here -->
+          </div>
+        </div>
+
+        <!-- Detailed Interpretation -->
+        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-3xl p-8 mb-8">
+          <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">
+            Phân Tích Chi Tiết
+          </h3>
+          
+          <div id="detailed-interpretation" class="prose prose-lg max-w-none">
+            <!-- Dynamic content will be inserted here -->
+          </div>
+        </div>
+
+        <!-- Share Section -->
+        <div class="bg-white rounded-3xl shadow-xl p-8 mb-8">
+          <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">
+            {locale.result.share.title}
+          </h3>
+          
+          <div class="text-center mb-6">
+            <p class="text-gray-600 mb-4">Chia sẻ thành tích của bạn với bạn bè!</p>
+            <div id="share-text" class="text-lg font-medium text-primary-600 bg-primary-50 p-4 rounded-xl mb-4">
+              <!-- Dynamic share text -->
+            </div>
+          </div>
+          
+          <div class="flex flex-wrap justify-center gap-4">
+            <button id="share-facebook" class="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+              <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              Facebook
+            </button>
+            
+            <button id="share-twitter" class="flex items-center px-6 py-3 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors">
+              <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+              </svg>
+              Twitter
+            </button>
+            
+            <button id="copy-result" class="flex items-center px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              Sao chép
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center space-y-4">
+          <div class="space-x-4">
+            <a href="/test/iq" class="inline-flex items-center px-8 py-4 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors">
+              <span class="mr-2">🔄</span>
+              {locale.result.retry}
+            </a>
+            
+            <button id="download-result" class="inline-flex items-center px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">
+              <span class="mr-2">📥</span>
+              Tải báo cáo PDF
+            </button>
+          </div>
+          
+          <div>
+            <a href="/" class="text-gray-600 hover:text-primary-600 transition-colors">
+              ← Về trang chủ
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // IQ Classification mappings
+  const classifications = {
+    genius: { label: 'Thiên tài', color: 'text-purple-600', description: 'Khả năng tư duy vượt trội, sáng tạo cao' },
+    very_superior: { label: 'Rất xuất sắc', color: 'text-indigo-600', description: 'Học tập nhanh, giải quyết vấn đề tuyệt vời' },
+    superior: { label: 'Xuất sắc', color: 'text-blue-600', description: 'Thành công cao trong học tập và công việc' },
+    high_average: { label: 'Trên trung bình', color: 'text-green-600', description: 'Khả năng học tập và làm việc tốt' },
+    average: { label: 'Trung bình', color: 'text-yellow-600', description: 'Khả năng học tập và làm việc bình thường' },
+    low_average: { label: 'Dưới trung bình', color: 'text-orange-600', description: 'Cần nỗ lực thêm trong học tập' },
+    borderline: { label: 'Giới hạn', color: 'text-red-600', description: 'Cần hỗ trợ trong học tập và công việc' },
+    low: { label: 'Thấp', color: 'text-red-700', description: 'Cần hỗ trợ đặc biệt' }
+  };
+
+  const categoryLabels = {
+    logic: { name: 'Tư duy logic', icon: '🧩', description: 'Khả năng suy luận và giải quyết vấn đề' },
+    math: { name: 'Toán học', icon: '🔢', description: 'Kỹ năng tính toán và nhận dạng mẫu số học' },
+    verbal: { name: 'Ngôn ngữ', icon: '📝', description: 'Hiểu biết từ vựng và mối quan hệ ngôn ngữ' },
+    spatial: { name: 'Không gian', icon: '📐', description: 'Khả năng hình dung và xử lý thông tin 3D' },
+    pattern: { name: 'Nhận dạng mẫu', icon: '🔍', description: 'Khả năng nhận biết quy luật và mẫu hình' }
+  };
+
+  function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  function getScoreColor(score) {
+    if (score >= 80) return 'text-green-600 bg-green-50';
+    if (score >= 60) return 'text-blue-600 bg-blue-50';
+    if (score >= 40) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
+  }
+
+  function generateDetailedInterpretation(result) {
+    const classification = classifications[result.classification];
+    const strengthAreas = Object.entries(result.categoryScores)
+      .filter(([_, score]) => score >= 80)
+      .map(([category, _]) => categoryLabels[category]?.name)
+      .filter(Boolean);
+    
+    const improvementAreas = Object.entries(result.categoryScores)
+      .filter(([_, score]) => score < 60)
+      .map(([category, _]) => categoryLabels[category]?.name)
+      .filter(Boolean);
+
+    return `
+      <div class="space-y-6">
+        <div class="text-center p-6 bg-white rounded-2xl border border-indigo-200">
+          <h4 class="text-xl font-semibold text-gray-900 mb-3">Đánh giá tổng quan</h4>
+          <p class="text-gray-700 leading-relaxed">
+            Với điểm IQ <strong>${result.iq}</strong>, bạn thuộc nhóm <strong class="${classification.color}">${classification.label}</strong>. 
+            ${classification.description}. Kết quả này cho thấy bạn có khả năng vượt qua <strong>${result.percentile}%</strong> dân số.
+          </p>
+        </div>
+        
+        ${strengthAreas.length > 0 ? `
+        <div class="p-6 bg-green-50 rounded-2xl border border-green-200">
+          <h4 class="text-lg font-semibold text-green-800 mb-3">💪 Điểm mạnh của bạn</h4>
+          <p class="text-green-700">
+            Bạn thể hiện xuất sắc trong các lĩnh vực: <strong>${strengthAreas.join(', ')}</strong>. 
+            Đây là những thế mạnh tự nhiên mà bạn có thể phát triển thêm để đạt được thành công cao hơn.
+          </p>
+        </div>
+        ` : ''}
+        
+        ${improvementAreas.length > 0 ? `
+        <div class="p-6 bg-blue-50 rounded-2xl border border-blue-200">
+          <h4 class="text-lg font-semibold text-blue-800 mb-3">🎯 Cơ hội phát triển</h4>
+          <p class="text-blue-700">
+            Bạn có thể cải thiện thêm ở: <strong>${improvementAreas.join(', ')}</strong>. 
+            Với luyện tập đều đặn, những kỹ năng này sẽ được nâng cao đáng kể.
+          </p>
+        </div>
+        ` : ''}
+        
+        <div class="p-6 bg-purple-50 rounded-2xl border border-purple-200">
+          <h4 class="text-lg font-semibold text-purple-800 mb-3">🎓 Khuyến nghị phát triển</h4>
+          <ul class="text-purple-700 space-y-2">
+            <li>• Thường xuyên đọc sách và giải các bài toán logic</li>
+            <li>• Tham gia các hoạt động trí tuệ như cờ vua, sudoku</li>
+            <li>• Học ngôn ngữ mới để kích thích não bộ</li>
+            <li>• Thực hành thiền định để cải thiện khả năng tập trung</li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCategoryAnalysis(categoryScores) {
+    return Object.entries(categoryScores).map(([category, score]) => {
+      const categoryInfo = categoryLabels[category];
+      if (!categoryInfo) return '';
+      
+      const colorClass = getScoreColor(score);
+      
+      return `
+        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
+          <div class="text-3xl">${categoryInfo.icon}</div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-1">
+              <h4 class="font-semibold text-gray-900">${categoryInfo.name}</h4>
+              <span class="font-bold ${colorClass.split(' ')[0]}">${score}%</span>
+            </div>
+            <p class="text-sm text-gray-600 mb-2">${categoryInfo.description}</p>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="h-2 rounded-full transition-all duration-1000 ${colorClass.split(' ')[1]}" 
+                   style="width: ${score}%; background: linear-gradient(90deg, ${colorClass.includes('green') ? '#10B981, #34D399' : colorClass.includes('blue') ? '#3B82F6, #60A5FA' : colorClass.includes('yellow') ? '#F59E0B, #FBBF24' : '#EF4444, #F87171'})">
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function displayResults() {
+    try {
+      // Get result from sessionStorage
+      const resultData = sessionStorage.getItem('iq-test-result');
+      
+      if (!resultData) {
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('no-result-state').style.display = 'block';
+        return;
+      }
+
+      const result = JSON.parse(resultData);
+      const classification = classifications[result.classification];
+
+      // Hide loading, show results
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('results-content').style.display = 'block';
+
+      // Animate IQ score reveal
+      let currentScore = 0;
+      const targetScore = result.iq;
+      const scoreElement = document.getElementById('iq-score');
+      
+      const scoreAnimation = setInterval(() => {
+        currentScore += 2;
+        scoreElement.textContent = currentScore;
+        
+        if (currentScore >= targetScore) {
+          clearInterval(scoreAnimation);
+          scoreElement.textContent = targetScore;
+          
+          // Trigger confetti
+          if (typeof confetti !== 'undefined') {
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+          }
+        }
+      }, 50);
+
+      // Fill in other data
+      document.getElementById('classification').textContent = classification.label;
+      document.getElementById('percentile').textContent = `Vượt qua ${result.percentile}% dân số`;
+      
+      document.getElementById('correct-count').textContent = `${result.detailed.correct}/${result.answers.length}`;
+      document.getElementById('accuracy').textContent = `${result.detailed.accuracy}%`;
+      document.getElementById('time-spent').textContent = formatTime(result.timeSpent);
+      document.getElementById('percentile-rank').textContent = `Top ${100 - result.percentile}%`;
+
+      // Category analysis
+      document.getElementById('category-analysis').innerHTML = renderCategoryAnalysis(result.categoryScores);
+
+      // Detailed interpretation
+      document.getElementById('detailed-interpretation').innerHTML = generateDetailedInterpretation(result);
+
+      // Share text
+      const shareText = `Tôi vừa hoàn thành bài test IQ với kết quả ${result.iq} điểm (${classification.label})! 🧠✨`;
+      document.getElementById('share-text').textContent = shareText;
+
+      // Set up sharing buttons
+      setupSharingButtons(shareText, result);
+
+    } catch (error) {
+      console.error('Error displaying results:', error);
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('no-result-state').style.display = 'block';
+    }
+  }
+
+  function setupSharingButtons(shareText, result) {
+    const currentUrl = window.location.origin;
+    
+    document.getElementById('share-facebook').addEventListener('click', () => {
+      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}&quote=${encodeURIComponent(shareText)}`;
+      window.open(url, '_blank', 'width=600,height=400');
+    });
+
+    document.getElementById('share-twitter').addEventListener('click', () => {
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`;
+      window.open(url, '_blank', 'width=600,height=400');
+    });
+
+    document.getElementById('copy-result').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n\nThử test IQ của bạn tại: ${currentUrl}`);
+        
+        // Show success feedback
+        const button = document.getElementById('copy-result');
+        const originalText = button.innerHTML;
+        button.innerHTML = `
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Đã sao chép!
+        `;
+        button.className = button.className.replace('bg-gray-600 hover:bg-gray-700', 'bg-green-600 hover:bg-green-700');
+        
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.className = button.className.replace('bg-green-600 hover:bg-green-700', 'bg-gray-600 hover:bg-gray-700');
+        }, 2000);
+        
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        alert('Không thể sao chép. Vui lòng copy thủ công.');
+      }
+    });
+
+    document.getElementById('download-result').addEventListener('click', () => {
+      // Simple implementation - could be enhanced with proper PDF generation
+      const resultSummary = `
+IQ Test Result
+==============
+Score: ${result.iq}
+Classification: ${classifications[result.classification].label}
+Accuracy: ${result.detailed.accuracy}%
+Time: ${formatTime(result.timeSpent)}
+
+Category Breakdown:
+${Object.entries(result.categoryScores).map(([cat, score]) => 
+  `${categoryLabels[cat]?.name || cat}: ${score}%`
+).join('\n')}
+
+Generated at: ${new Date().toLocaleString('vi-VN')}
+      `;
+      
+      const blob = new Blob([resultSummary], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `iq-test-result-${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // Load and display results when page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    // Add some delay for better UX
+    setTimeout(displayResults, 1000);
+  });
+</script>
+
+<style>
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Smooth animations for score reveal */
+  #iq-score {
+    transition: all 0.3s ease;
+  }
+  
+  /* Category bars animation */
+  .category-bar {
+    transition: width 1s ease-out;
+  }
+</style>

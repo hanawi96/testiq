@@ -1,0 +1,159 @@
+{
+    "nav": {
+      "home": "Inicio",
+      "about": "Acerca de",
+      "test": "Hacer Test",
+      "language": "Idioma"
+    },
+    "home": {
+      "title": "Test de CI Gratis - Mide tu Inteligencia",
+      "subtitle": "Descubre tu potencial intelectual con nuestro test de CI estandarizado internacionalmente",
+      "description": "El sitio web líder de test de CI con algoritmos precisos, interfaz moderna y resultados detallados. ¡Completamente gratis!",
+      "cta": "Comenzar Test de CI",
+      "features": {
+        "title": "¿Por qué elegirnos?",
+        "accurate": {
+          "title": "🎯 Alta Precisión",
+          "description": "Algoritmo de evaluación basado en estándares internacionales"
+        },
+        "fast": {
+          "title": "⚡ Súper Rápido",
+          "description": "Interfaz optimizada, carga rápida en todos los dispositivos"
+        },
+        "free": {
+          "title": "🆓 Completamente Gratis",
+          "description": "Sin tarifas ocultas, sin registro requerido"
+        },
+        "detailed": {
+          "title": "📊 Resultados Detallados",
+          "description": "Análisis profundo con explicaciones para cada pregunta"
+        },
+        "multilingual": {
+          "title": "🌍 Multiidioma",
+          "description": "Soporte para Vietnamita, Inglés, Español"
+        },
+        "modern": {
+          "title": "✨ Interfaz Moderna",
+          "description": "Diseño hermoso, experiencia fluida"
+        }
+      },
+      "stats": {
+        "tests_taken": "Tests realizados",
+        "avg_score": "Puntuación promedio",
+        "countries": "Países atendidos",
+        "satisfaction": "Satisfacción"
+      }
+    },
+    "about": {
+      "title": "Acerca del Test de CI - Evaluación de Inteligencia",
+      "intro": "El CI (Cociente Intelectual) es una medida de la capacidad intelectual humana, desarrollada para evaluar habilidades cognitivas como lógica, matemáticas, lenguaje y razonamiento espacial.",
+      "what_is_iq": {
+        "title": "¿Qué es el CI?",
+        "content": "El CI (Cociente Intelectual) es un índice utilizado para medir la inteligencia humana. La puntuación promedio de CI de la población es 100, con una desviación estándar de 15. Esto significa que aproximadamente el 68% de la población tiene un CI de 85-115, y solo alrededor del 2% tiene un CI superior a 130."
+      },
+      "how_it_works": {
+        "title": "¿Cómo funciona el test?",
+        "content": "Nuestro test consiste en 10 preguntas diseñadas para evaluar diferentes habilidades cognitivas: pensamiento lógico, reconocimiento de patrones, razonamiento matemático y habilidad espacial. Cada pregunta tiene diferentes niveles de dificultad y se puntúa según estándares internacionales."
+      },
+      "test_structure": {
+        "title": "Estructura del test",
+        "questions": "10 preguntas",
+        "time": "55 minutos",
+        "types": "5 tipos diferentes de preguntas",
+        "scoring": "Rango de puntuación 0-200"
+      },
+      "question_types": {
+        "title": "Tipos de preguntas",
+        "logical": {
+          "title": "Pensamiento Lógico",
+          "description": "Evalúa las habilidades de razonamiento y resolución de problemas"
+        },
+        "pattern": {
+          "title": "Reconocimiento de Patrones",
+          "description": "Prueba la capacidad de identificar patrones en secuencias o formas"
+        },
+        "mathematical": {
+          "title": "Razonamiento Matemático",
+          "description": "Evalúa las habilidades de cálculo y razonamiento numérico"
+        },
+        "spatial": {
+          "title": "Pensamiento Espacial",
+          "description": "Prueba la capacidad de visualizar y rotar objetos 3D"
+        },
+        "verbal": {
+          "title": "Razonamiento Verbal",
+          "description": "Evalúa el conocimiento del vocabulario y las relaciones del lenguaje"
+        }
+      },
+      "iq_ranges": {
+        "title": "Clasificaciones de CI",
+        "genius": "Genio (160+)",
+        "very_superior": "Muy Superior (130-159)",
+        "superior": "Superior (115-129)",
+        "average": "Promedio (85-114)",
+        "below_average": "Bajo Promedio (70-84)",
+        "low": "Bajo (<70)"
+      },
+      "accuracy": {
+        "title": "Precisión",
+        "content": "Nuestro test está diseñado basado en investigación psicológica moderna y ha sido validado con miles de participantes. Sin embargo, esta es solo una herramienta de evaluación preliminar y no puede reemplazar las pruebas profesionales de CI."
+      },
+      "cta": "Comenzar Test de CI Ahora"
+    },
+    "test": {
+      "title": "Test de CI - Pregunta {current} / {total}",
+      "timer": "Tiempo restante",
+      "question": "Pregunta",
+      "next": "Siguiente",
+      "previous": "Anterior",
+      "finish": "Finalizar",
+      "confirm_finish": "¿Estás seguro de que quieres finalizar el test?",
+      "time_warning": "¡5 minutos restantes!",
+      "time_up": "¡Se acabó el tiempo!",
+      "progress": "Progreso"
+    },
+    "result": {
+      "title": "Tus Resultados del Test de CI",
+      "score": "Tu Puntuación de CI",
+      "percentile": "Más alto que el {percent}% de la población",
+      "classification": "Clasificación",
+      "time_taken": "Tiempo tomado",
+      "correct_answers": "Respuestas correctas",
+      "analysis": {
+        "title": "Análisis Detallado",
+        "strengths": "Fortalezas",
+        "improvements": "Áreas de mejora",
+        "breakdown": "Análisis por tipo de pregunta"
+      },
+      "share": {
+        "title": "Comparte tus resultados",
+        "text": "¡Acabo de obtener {score} en un test de CI! Pruébalo tú mismo:",
+        "facebook": "Compartir en Facebook",
+        "twitter": "Compartir en Twitter",
+        "linkedin": "Compartir en LinkedIn",
+        "copy": "Copiar enlace"
+      },
+      "retake": "Repetir test",
+      "home": "Ir al inicio"
+    },
+    "common": {
+      "loading": "Cargando...",
+      "error": "Ocurrió un error",
+      "retry": "Reintentar",
+      "close": "Cerrar",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "yes": "Sí",
+      "no": "No",
+      "minutes": "minutos",
+      "seconds": "segundos",
+      "question": "pregunta",
+      "point": "puntos",
+      "congratulations": "¡Felicitaciones!"
+    },
+    "meta": {
+      "site_name": "Test de CI Gratis",
+      "description": "El test de CI gratuito más preciso con 10 preguntas estandarizadas internacionalmente. ¡Evalúa tu cociente intelectual ahora!",
+      "keywords": "test de ci, test de inteligencia, evaluación de ci, test de ci gratis, test de ci online, cociente intelectual"
+    }
+  }

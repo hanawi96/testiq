@@ -1,0 +1,245 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getLocale } from '../utils/i18n';
+
+const locale = getLocale('vi');
+---
+
+<BaseLayout
+  title={`${locale.about.title} - ${locale.meta.site_name}`}
+  description={locale.about.intro}
+>
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-br from-primary-50 via-white to-blue-50 pt-20 pb-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="text-center mb-20">
+        <!-- Badge -->
+        <div class="inline-flex items-center px-4 py-2 rounded-full bg-primary-100 text-primary-800 text-sm font-medium mb-8">
+          <span class="mr-2">📚</span>
+          Hướng dẫn & Thông tin
+        </div>
+        
+        <!-- Main heading -->
+        <h1 class="text-4xl md:text-6xl font-display font-bold text-gray-900 mb-6">
+          {locale.about.title}
+        </h1>
+        
+        <!-- Subtitle -->
+        <p class="text-xl md:text-2xl text-gray-600 font-medium mb-4">
+          {locale.about.intro}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <section class="py-20 bg-white">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- What is IQ Section -->
+      <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <div class="text-5xl mb-6 text-center">🧠</div>
+        <h2 class="text-2xl font-display font-bold text-gray-900 mb-4 text-center">
+          {locale.about.what_is_iq.title}
+        </h2>
+        <p class="text-gray-700 leading-relaxed text-center">
+          {locale.about.what_is_iq.content}
+        </p>
+      </div>
+
+      <!-- How it works -->
+      <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <div class="text-5xl mb-6 text-center">⚙️</div>
+        <h2 class="text-2xl font-display font-bold text-gray-900 mb-4 text-center">
+          {locale.about.how_it_works.title}
+        </h2>
+        <p class="text-gray-700 leading-relaxed text-center">
+          {locale.about.how_it_works.content}
+        </p>
+      </div>
+
+      <!-- IQ Ranges Section -->
+      <div class="mb-16">
+        <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+          <div class="text-5xl mb-6 text-center">📊</div>
+          <h2 class="text-2xl font-display font-bold text-gray-900 mb-4 text-center">
+            {locale.about.iq_ranges.title}
+          </h2>
+          <p class="text-gray-700 leading-relaxed text-center mb-8">
+            Phân loại IQ theo tiêu chuẩn quốc tế giúp bạn hiểu rõ vị trí của mình so với dân số chung.
+          </p>
+          
+          <!-- IQ Ranges -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+              <span class="font-medium text-purple-800">{locale.about.iq_ranges.genius}</span>
+              <span class="text-sm text-gray-500">2% dân số</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <span class="font-medium text-blue-800">{locale.about.iq_ranges.very_superior}</span>
+              <span class="text-sm text-gray-500">7% dân số</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <span class="font-medium text-green-800">{locale.about.iq_ranges.superior}</span>
+              <span class="text-sm text-gray-500">16% dân số</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border-2 border-gray-200">
+              <span class="font-medium text-gray-800">{locale.about.iq_ranges.average}</span>
+              <span class="text-sm text-gray-500">50% dân số</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <span class="font-medium text-yellow-800">{locale.about.iq_ranges.below_average}</span>
+              <span class="text-sm text-gray-500">16% dân số</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+              <span class="font-medium text-red-800">{locale.about.iq_ranges.low}</span>
+              <span class="text-sm text-gray-500">2% dân số</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scientific backing -->
+      <div class="mb-16">
+        <div class="p-8 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100">
+          <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">
+              🔬
+            </div>
+            <h2 class="text-2xl font-display font-bold text-gray-900 mb-4">
+              Cơ sở khoa học
+            </h2>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h3 class="font-semibold text-gray-800 mb-3">Phương pháp đánh giá</h3>
+              <ul class="space-y-2 text-gray-700">
+                <li class="flex items-start">
+                  <span class="text-indigo-500 mr-2">•</span>
+                  Dựa trên thang đo Wechsler Intelligence Scale
+                </li>
+                <li class="flex items-start">
+                  <span class="text-indigo-500 mr-2">•</span>
+                  Tích hợp Raven's Progressive Matrices
+                </li>
+                <li class="flex items-start">
+                  <span class="text-indigo-500 mr-2">•</span>
+                  Thuật toán AI để cá nhân hóa kết quả
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 class="font-semibold text-gray-800 mb-3">Đảm bảo chất lượng</h3>
+              <ul class="space-y-2 text-gray-700">
+                <li class="flex items-start">
+                  <span class="text-indigo-500 mr-2">•</span>
+                  Kiểm định bởi chuyên gia tâm lý học
+                </li>
+                <li class="flex items-start">
+                  <span class="text-indigo-500 mr-2">•</span>
+                  Hiệu chuẩn trên nhiều nhóm dân số
+                </li>
+                <li class="flex items-start">
+                  <span class="text-indigo-500 mr-2">•</span>
+                  Cập nhật liên tục dựa trên phản hồi
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20 bg-gradient-to-r from-primary-600 to-blue-600">
+    <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+      <div class="text-6xl mb-6">🎓</div>
+      
+      <h2 class="text-3xl md:text-4xl font-display font-bold text-white mb-6">
+        Đã hiểu rõ về IQ? Bắt đầu test ngay!
+      </h2>
+      
+      <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+        Áp dụng kiến thức khoa học để đánh giá chính xác chỉ số thông minh của bạn trong 55 phút.
+      </p>
+      
+      <a 
+        href="/test/iq" 
+        class="inline-flex items-center px-8 py-4 text-lg font-semibold text-primary-600 bg-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+      >
+        <span class="mr-2">🚀</span>
+        {locale.about.cta}
+      </a>
+      
+      <div class="mt-8 flex flex-wrap justify-center gap-6 text-blue-100">
+        <div class="flex items-center">
+          <span class="mr-2">✅</span>
+          10 câu hỏi được chọn lọc
+        </div>
+        <div class="flex items-center">
+          <span class="mr-2">⏱️</span>
+          55 phút hoàn thành
+        </div>
+        <div class="flex items-center">
+          <span class="mr-2">📊</span>
+          Phân tích chi tiết
+        </div>
+        <div class="flex items-center">
+          <span class="mr-2">🆓</span>
+          Hoàn toàn miễn phí
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Smooth animations */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<script>
+  // Add scroll animations
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('animate-fade-in-up');
+        }, index * 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+  
+  // Observe all sections
+  document.querySelectorAll('section > div > div').forEach(el => {
+    observer.observe(el);
+  });
+</script>

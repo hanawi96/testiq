@@ -1,0 +1,252 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+  keywords?: string;
+  ogImage?: string;
+  lang?: string;
+  canonicalURL?: string;
+}
+
+const {
+  title = 'Test IQ Miễn Phí - Kiểm Tra Chỉ Số Thông Minh',
+  description = 'Thử thách trí tuệ với bài test IQ chuẩn quốc tế. 10 câu hỏi, 55 phút, kết quả chi tiết và phân tích chuyên sâu.',
+  keywords = 'test iq, kiểm tra thông minh, trí tuệ, iq test việt nam',
+  ogImage = '/og-image.jpg',
+  lang = 'vi',
+  canonicalURL = Astro.url.href
+} = Astro.props;
+
+// Load language-specific data
+import { getLocale } from '../utils/i18n';
+const locale = getLocale(lang as any);
+---
+
+<!DOCTYPE html>
+<html lang={lang} class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="author" content="IQ Test Pro" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonicalURL} />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="IQ Test Pro" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    
+    <!-- JSON-LD Schema -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "IQ Test Pro",
+        "description": "Professional IQ testing platform with scientific accuracy",
+        "url": "https://your-domain.com",
+        "applicationCategory": "Educational",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "creator": {
+          "@type": "Organization",
+          "name": "IQ Test Pro"
+        }
+      }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Performance optimizations -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    
+    <!-- Theme color -->
+    <meta name="theme-color" content="#3B82F6" />
+    <meta name="msapplication-TileColor" content="#3B82F6" />
+    
+    <style>
+      /* Critical CSS - Above the fold */
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .font-display {
+        font-family: 'Lexend', system-ui, -apple-system, sans-serif;
+      }
+      
+      /* Loading animation */
+      .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(59, 130, 246, 0.3);
+        border-radius: 50%;
+        border-top-color: #3B82F6;
+        animation: spin 1s ease-in-out infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Smooth scrolling fallback */
+      @media (prefers-reduced-motion: no-preference) {
+        html {
+          scroll-behavior: smooth;
+        }
+      }
+    </style>
+  </head>
+  
+  <body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md z-50">
+      Chuyển đến nội dung chính
+    </a>
+    
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200/50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <!-- Logo -->
+          <div class="flex items-center space-x-2">
+            <a href="/" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+              <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-sm">IQ</span>
+              </div>
+              <span class="font-display font-semibold text-xl text-gray-900">Test Pro</span>
+            </a>
+          </div>
+          
+          <!-- Navigation links -->
+          <div class="hidden md:flex items-center space-x-8">
+            <a href="/" class="text-gray-700 hover:text-primary-600 transition-colors font-medium">
+              {locale.nav.home}
+            </a>
+            <a href="/about" class="text-gray-700 hover:text-primary-600 transition-colors font-medium">
+              {locale.nav.about}
+            </a>
+            <a href="/test/iq" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
+              {locale.nav.test}
+            </a>
+          </div>
+          
+          <!-- Language selector -->
+          <div class="flex items-center space-x-4">
+            <select class="text-sm bg-transparent border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500">
+              <option value="vi">🇻🇳 Tiếng Việt</option>
+              <option value="en">🇺🇸 English</option>
+              <option value="es">🇪🇸 Español</option>
+            </select>
+          </div>
+          
+          <!-- Mobile menu button -->
+          <div class="md:hidden">
+            <button type="button" class="text-gray-700 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 p-2">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+    
+    <!-- Main content -->
+    <main id="main-content">
+      <slot />
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <!-- Brand -->
+          <div class="col-span-1 md:col-span-2">
+            <div class="flex items-center space-x-2 mb-4">
+              <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-sm">IQ</span>
+              </div>
+              <span class="font-display font-semibold text-xl">Test Pro</span>
+            </div>
+            <p class="text-gray-400 mb-4 max-w-md">
+              Nền tảng test IQ hàng đầu với độ chính xác cao và phân tích chuyên sâu. 
+              Khám phá tiềm năng trí tuệ của bạn ngay hôm nay.
+            </p>
+            <div class="flex space-x-4">
+              <!-- Social links -->
+              <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+          
+          <!-- Links -->
+          <div>
+            <h3 class="font-semibold mb-4">Liên kết</h3>
+            <ul class="space-y-2 text-gray-400">
+              <li><a href="/" class="hover:text-white transition-colors">Trang chủ</a></li>
+              <li><a href="/about" class="hover:text-white transition-colors">Giới thiệu</a></li>
+              <li><a href="/test/iq" class="hover:text-white transition-colors">Làm test</a></li>
+            </ul>
+          </div>
+          
+          <!-- Legal -->
+          <div>
+            <h3 class="font-semibold mb-4">Pháp lý</h3>
+            <ul class="space-y-2 text-gray-400">
+              <li><a href="/privacy" class="hover:text-white transition-colors">Chính sách bảo mật</a></li>
+              <li><a href="/terms" class="hover:text-white transition-colors">Điều khoản sử dụng</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+          <p>&copy; 2024 IQ Test Pro. Tất cả quyền được bảo lưu.</p>
+        </div>
+      </div>
+    </footer>
+    
+    <!-- Analytics (placeholder) -->
+    <script>
+      // Add your analytics code here
+      console.log('IQ Test Pro - Ready to challenge minds! 🧠');
+    </script>
+  </body>
+</html>

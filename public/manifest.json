@@ -1,0 +1,92 @@
+{
+    "name": "IQ Test Pro - Test Chỉ Số Thông Minh",
+    "short_name": "IQ Test Pro",
+    "description": "Thử thách trí tuệ với bài test IQ chuẩn quốc tế. 10 câu hỏi, 55 phút, kết quả chi tiết.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#3B82F6",
+    "orientation": "portrait-primary",
+    "scope": "/",
+    "lang": "vi",
+    "dir": "ltr",
+    "categories": ["education", "productivity", "utilities"],
+    "icons": [
+      {
+        "src": "/icons/icon-72x72.png",
+        "sizes": "72x72",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icons/icon-96x96.png",
+        "sizes": "96x96",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icons/icon-128x128.png",
+        "sizes": "128x128",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icons/icon-144x144.png",
+        "sizes": "144x144",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icons/icon-152x152.png",
+        "sizes": "152x152",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icons/icon-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icons/icon-384x384.png",
+        "sizes": "384x384",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icons/icon-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable any"
+      }
+    ],
+    "shortcuts": [
+      {
+        "name": "Làm Test IQ",
+        "short_name": "Test IQ",
+        "description": "Bắt đầu test IQ ngay lập tức",
+        "url": "/test/iq",
+        "icons": [
+          {
+            "src": "/icons/test-shortcut.png",
+            "sizes": "96x96"
+          }
+        ]
+      },
+      {
+        "name": "Xem Kết Quả",
+        "short_name": "Kết Quả",
+        "description": "Xem kết quả test gần nhất",
+        "url": "/result",
+        "icons": [
+          {
+            "src": "/icons/result-shortcut.png",
+            "sizes": "96x96"
+          }
+        ]
+      }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+  }

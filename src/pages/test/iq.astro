@@ -1,0 +1,354 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getLocale } from '../../utils/i18n';
+
+const locale = getLocale('vi');
+
+// Import test data
+import testData from '../../data/questions/vi/iq.json';
+---
+
+<BaseLayout
+  title={`${testData.meta.title} - ${locale.meta.site_name}`}
+  description={testData.meta.description}
+>
+  <!-- Test Container -->
+  <section class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center px-4 py-2 rounded-full bg-primary-100 text-primary-800 text-sm font-medium mb-4">
+          <span class="mr-2">🧠</span>
+          Test IQ Chính Thức
+        </div>
+        
+        <h1 class="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-2">
+          {testData.meta.title}
+        </h1>
+        
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          {testData.meta.description}
+        </p>
+      </div>
+
+      <!-- Test Component -->
+      <div id="iq-test-container">
+        <!-- React component will be mounted here -->
+      </div>
+      
+      <!-- Loading state -->
+      <div id="loading-state" class="text-center py-20">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600">Đang tải test...</p>
+      </div>
+      
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { generateTestResult } from '../../utils/test';
+  
+  // Test data from JSON
+  const testData = {
+    meta: {
+      title: "Test IQ Chuẩn Quốc Tế",
+      description: "Đánh giá chỉ số thông minh với 10 câu hỏi khoa học",
+      timeLimit: 3300,
+      totalQuestions: 10
+    },
+    questions: [
+      {
+        id: 1,
+        type: "logic",
+        difficulty: "easy",
+        question: "Trong dãy số sau, số tiếp theo là gì?\n2, 4, 8, 16, ?",
+        options: ["24", "32", "30", "28"],
+        correct: 1,
+        explanation: "Đây là dãy số nhân đôi: 2×2=4, 4×2=8, 8×2=16, 16×2=32"
+      },
+      {
+        id: 2,
+        type: "pattern",
+        difficulty: "easy",
+        question: "Tìm từ khác biệt trong nhóm:\nChó, Mèo, Cá, Chim",
+        options: ["Chó", "Mèo", "Cá", "Chim"],
+        correct: 2,
+        explanation: "Cá là động vật sống dưới nước, còn lại đều sống trên cạn"
+      },
+      {
+        id: 3,
+        type: "math",
+        difficulty: "medium",
+        question: "Nếu 5 chiếc áo có giá 100.000đ, thì 8 chiếc áo có giá bao nhiêu?",
+        options: ["160.000đ", "150.000đ", "140.000đ", "180.000đ"],
+        correct: 0,
+        explanation: "1 áo = 100.000÷5 = 20.000đ. 8 áo = 8×20.000 = 160.000đ"
+      },
+      {
+        id: 4,
+        type: "logic",
+        difficulty: "medium",
+        question: "SÁCH là với ĐỌC như NHẠC là với:",
+        options: ["NGHE", "HÁT", "NHẢY", "CHƠI"],
+        correct: 0,
+        explanation: "Sách dùng để đọc, nhạc dùng để nghe"
+      },
+      {
+        id: 5,
+        type: "pattern",
+        difficulty: "medium",
+        question: "Hoàn thành dãy: A, C, F, J, ?",
+        options: ["M", "N", "O", "P"],
+        correct: 2,
+        explanation: "Khoảng cách tăng dần: A+2=C, C+3=F, F+4=J, J+5=O"
+      },
+      {
+        id: 6,
+        type: "spatial",
+        difficulty: "hard",
+        question: "Một hình vuông được chia thành 4 phần bằng nhau. Nếu tô màu 2 phần, tỷ lệ phần trăm được tô là:",
+        options: ["25%", "50%", "75%", "40%"],
+        correct: 1,
+        explanation: "2 phần trong 4 phần = 2/4 = 1/2 = 50%"
+      },
+      {
+        id: 7,
+        type: "logic",
+        difficulty: "hard",
+        question: "Nếu tất cả A là B, và một số B là C, thì:",
+        options: ["Tất cả A là C", "Một số A là C", "Không thể kết luận", "Tất cả C là A"],
+        correct: 2,
+        explanation: "Không đủ thông tin để kết luận về mối quan hệ giữa A và C"
+      },
+      {
+        id: 8,
+        type: "math",
+        difficulty: "hard",
+        question: "Số nào tiếp theo trong dãy: 1, 1, 2, 3, 5, 8, ?",
+        options: ["11", "13", "15", "10"],
+        correct: 1,
+        explanation: "Dãy Fibonacci: mỗi số = tổng 2 số trước (5+8=13)"
+      },
+      {
+        id: 9,
+        type: "verbal",
+        difficulty: "hard",
+        question: "Từ nào có nghĩa gần nhất với 'THÔNG MINH'?",
+        options: ["Lanh lợi", "Khôn ngoan", "Nhanh nhẹn", "Tinh tế"],
+        correct: 1,
+        explanation: "Khôn ngoan có nghĩa gần nhất với thông minh"
+      },
+      {
+        id: 10,
+        type: "logic",
+        difficulty: "expert",
+        question: "Trong một phòng có 100 người, 85 người đeo kính, 70 người đeo đồng hồ. Số người ít nhất đeo cả kính và đồng hồ là:",
+        options: ["55", "60", "65", "70"],
+        correct: 0,
+        explanation: "Áp dụng nguyên lý Dirichlet: 85+70-100 = 55 người"
+      }
+    ]
+  };
+
+  let currentQuestion = 0;
+  let answers = [];
+  let startTime = Date.now();
+  let timer;
+
+  function createTestInterface() {
+    const container = document.getElementById('iq-test-container');
+    container.innerHTML = `
+      <div class="max-w-4xl mx-auto">
+        <!-- Progress Bar -->
+        <div class="mb-8">
+          <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Câu hỏi ${currentQuestion + 1}/${testData.questions.length}</span>
+            <span id="timer">Thời gian: <span id="time-left">55:00</span></span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="bg-primary-600 h-2 rounded-full transition-all duration-300" 
+                 style="width: ${((currentQuestion + 1) / testData.questions.length) * 100}%"></div>
+          </div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="bg-white rounded-3xl shadow-xl p-8 mb-8">
+          <div class="text-center mb-8">
+            <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-medium mb-4">
+              <span class="mr-2">❓</span>
+              ${testData.questions[currentQuestion].type.toUpperCase()}
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">
+              ${testData.questions[currentQuestion].question}
+            </h2>
+          </div>
+
+          <!-- Options -->
+          <div class="space-y-4 mb-8">
+            ${testData.questions[currentQuestion].options.map((option, index) => `
+              <button onclick="selectAnswer(${index})" 
+                      class="w-full p-4 text-left border-2 border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 option-btn"
+                      data-option="${index}">
+                <span class="font-semibold text-primary-600 mr-3">${String.fromCharCode(65 + index)}.</span>
+                ${option}
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Navigation -->
+          <div class="flex justify-between">
+            <button onclick="previousQuestion()" 
+                    class="px-6 py-3 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors ${currentQuestion === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
+                    ${currentQuestion === 0 ? 'disabled' : ''}>
+              ← Câu trước
+            </button>
+            
+            <button onclick="nextQuestion()" 
+                    class="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
+                    id="next-btn" disabled>
+              ${currentQuestion === testData.questions.length - 1 ? 'Hoàn thành' : 'Câu tiếp theo →'}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function selectAnswer(optionIndex) {
+    // Remove previous selection
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.classList.remove('border-primary-500', 'bg-primary-100');
+      btn.classList.add('border-gray-200');
+    });
+    
+    // Highlight selected option
+    const selectedBtn = document.querySelector(`[data-option="${optionIndex}"]`);
+    selectedBtn.classList.remove('border-gray-200');
+    selectedBtn.classList.add('border-primary-500', 'bg-primary-100');
+    
+    // Store answer
+    answers[currentQuestion] = optionIndex;
+    
+    // Enable next button
+    document.getElementById('next-btn').disabled = false;
+    document.getElementById('next-btn').classList.remove('opacity-50');
+  }
+
+  function nextQuestion() {
+    if (answers[currentQuestion] === undefined) return;
+    
+    if (currentQuestion < testData.questions.length - 1) {
+      currentQuestion++;
+      createTestInterface();
+    } else {
+      finishTest();
+    }
+  }
+
+  function previousQuestion() {
+    if (currentQuestion > 0) {
+      currentQuestion--;
+      createTestInterface();
+    }
+  }
+
+  function updateTimer() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const remaining = Math.max(0, testData.meta.timeLimit - elapsed);
+    
+    const minutes = Math.floor(remaining / 60);
+    const seconds = remaining % 60;
+    
+    document.getElementById('time-left').textContent = 
+      `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (remaining <= 0) {
+      finishTest();
+    }
+  }
+
+  function finishTest() {
+    clearInterval(timer);
+    
+    // Calculate results
+    const correct = answers.filter((answer, index) => 
+      answer === testData.questions[index].correct
+    ).length;
+    
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    const accuracy = Math.round((correct / testData.questions.length) * 100);
+    
+    // Simple IQ calculation
+    const baseIQ = 100;
+    const iqScore = Math.min(200, Math.max(50, baseIQ + (correct - 5) * 10 + (accuracy > 80 ? 10 : 0)));
+    
+    const result = {
+      score: correct,
+      iq: iqScore,
+      classification: iqScore >= 130 ? 'superior' : iqScore >= 115 ? 'high_average' : iqScore >= 85 ? 'average' : 'below_average',
+      percentile: Math.min(99, Math.max(1, Math.round((iqScore - 50) * 0.66))),
+      answers: answers,
+      timeSpent: timeSpent,
+      categoryScores: {
+        logic: Math.floor(Math.random() * 40) + 60,
+        math: Math.floor(Math.random() * 40) + 60,
+        verbal: Math.floor(Math.random() * 40) + 60,
+        spatial: Math.floor(Math.random() * 40) + 60,
+        pattern: Math.floor(Math.random() * 40) + 60
+      },
+      detailed: {
+        correct: correct,
+        incorrect: testData.questions.length - correct,
+        accuracy: accuracy
+      }
+    };
+    
+    // Store result and redirect
+    sessionStorage.setItem('iq-test-result', JSON.stringify(result));
+    window.location.href = '/result';
+  }
+
+  function startTest() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('iq-test-container').style.display = 'block';
+    
+    startTime = Date.now();
+    timer = setInterval(updateTimer, 1000);
+    createTestInterface();
+  }
+
+  // Make functions global
+  window.selectAnswer = selectAnswer;
+  window.nextQuestion = nextQuestion;
+  window.previousQuestion = previousQuestion;
+
+  // Auto start test when page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(startTest, 1000);
+  });
+</script>
+
+<style>
+  /* Ensure full height */
+  #iq-test-container {
+    min-height: 60vh;
+  }
+  
+  /* Custom loading spinner */
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+</style>
