@@ -18,6 +18,12 @@ export interface Question {
     questions: Question[];
   }
   
+  export interface UserInfo {
+    name: string;
+    age: string;
+    location: string;
+  }
+  
   export interface TestResult {
     score: number;
     iq: number;
@@ -31,6 +37,7 @@ export interface Question {
       incorrect: number;
       accuracy: number;
     };
+    userInfo?: UserInfo;
   }
   
   export function calculateIQ(score: number, totalQuestions: number): number {
@@ -133,7 +140,8 @@ export interface Question {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
   
-  export function saveTestResult(result: TestResult): void {
+  export async function saveTestResult(result: TestResult): Promise<void> {
+    // Save to localStorage as backup
     try {
       const results = getTestHistory();
       const resultWithTimestamp = {
@@ -143,7 +151,42 @@ export interface Question {
       results.push(resultWithTimestamp);
       localStorage.setItem('iq-test-history', JSON.stringify(results));
     } catch (error) {
-      console.warn('Cannot save test result:', error);
+      console.warn('Cannot save test result to localStorage:', error);
+    }
+
+    // Save to Supabase if user info is provided
+    if (result.userInfo) {
+      try {
+        // Dynamic import to avoid build issues
+        const { saveAnonymousPlayer } = await import('../../backend');
+        
+        const playerData = {
+          name: result.userInfo.name,
+          age: parseInt(result.userInfo.age) || 0,
+          location: result.userInfo.location,
+          test_result: {
+            score: result.score,
+            iq: result.iq,
+            classification: result.classification,
+            percentile: result.percentile,
+            answers: result.answers,
+            categoryScores: result.categoryScores,
+            detailed: result.detailed
+          },
+          test_score: result.iq,
+          test_duration: result.timeSpent
+        };
+
+        const saveResult = await saveAnonymousPlayer(playerData);
+        
+        if (saveResult.success) {
+          console.log('✅ Test result saved to Supabase successfully');
+        } else {
+          console.error('❌ Failed to save to Supabase:', saveResult.error);
+        }
+      } catch (error) {
+        console.error('❌ Error saving to Supabase:', error);
+      }
     }
   }
   

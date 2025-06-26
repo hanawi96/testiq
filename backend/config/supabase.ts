@@ -32,4 +32,5 @@ export const TABLES = {
   PROFILES: 'user_profiles',
   TEST_RESULTS: 'test_results',
   QUESTIONS: 'questions',
+  ANONYMOUS_PLAYERS: 'anonymous_players',
 } as const; 

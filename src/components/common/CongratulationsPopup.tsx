@@ -9,7 +9,7 @@ interface UserInfo {
 
 interface CongratulationsPopupProps {
   isOpen: boolean;
-  onComplete: (userInfo: UserInfo) => void;
+  onComplete: (userInfo: UserInfo) => Promise<void>;
   onConfettiTrigger?: () => void;
 }
 
@@ -32,14 +32,14 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
     }
   }, [isOpen, hasTriggeredConfetti, onConfettiTrigger]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isFormValid || isAnalyzing) return;
     
     setIsAnalyzing(true);
     
-    // Analyze results for 1.5 seconds
-    setTimeout(() => {
-      onComplete(userInfo);
+    // Analyze results for 1.5 seconds then call onComplete
+    setTimeout(async () => {
+      await onComplete(userInfo);
     }, 1500);
   };
 

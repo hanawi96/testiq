@@ -121,7 +121,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   }, [fireMultipleBursts]);
 
   // Handle popup completion
-  const handlePopupComplete = useCallback((userInfo: UserInfo) => {
+  const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {
     const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
     const filledAnswers = answers.map(answer => answer ?? -1);
     
@@ -133,8 +133,8 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       userInfo
     };
     
-    // Save to local storage
-    saveTestResult(resultWithUserInfo);
+    // Save to Supabase and localStorage
+    await saveTestResult(resultWithUserInfo);
     
     onComplete(resultWithUserInfo);
   }, [answers, questions, startTime, onComplete]);
