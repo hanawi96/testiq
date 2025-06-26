@@ -594,8 +594,10 @@ export default function ArticleEditor() {
                 
                 {formData.categories.length > 0 && (
                   <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                     className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -684,8 +686,10 @@ export default function ArticleEditor() {
                   
                   {formData.tags.length > 0 && (
                     <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
                       className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100"
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -706,7 +710,7 @@ export default function ArticleEditor() {
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ delay: index * 0.05 }}
+                            transition={{ duration: 0.15, delay: index * 0.02 }}
                             className="inline-flex items-center px-3 py-2 bg-white border border-emerald-200 text-emerald-800 text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 group"
                           >
                             <span className="text-emerald-600 mr-1">#</span>
