@@ -1,11 +1,9 @@
 ---
 // Admin dashboard page
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminLayout from '../../layouts/AdminLayout.astro';
 import AdminDashboard from '../../components/admin/AdminDashboard.tsx';
 ---
 
-<BaseLayout title="Admin Dashboard">
-  <main>
-    <AdminDashboard client:load />
-  </main>
-</BaseLayout> 
+<AdminLayout title="Admin Dashboard">
+  <AdminDashboard client:load />
+</AdminLayout> 

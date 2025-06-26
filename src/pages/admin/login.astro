@@ -1,11 +1,18 @@
 ---
 // Admin login page using Astro Islands
-import BaseLayout from '../../layouts/BaseLayout.astro';
 import AdminLogin from '../../components/admin/AdminLogin.tsx';
 ---
 
-<BaseLayout title="Admin Login">
-  <main class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-    <AdminLogin client:load />
-  </main>
-</BaseLayout> 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body>
+  <AdminLogin client:load />
+</body>
+</html> 
