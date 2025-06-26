@@ -336,17 +336,26 @@ export default function ArticleEditor() {
 
           {/* Right Sidebar */}
           <div className="w-full lg:w-80 space-y-4 sm:space-y-6">
-            {/* Publish Settings - Order 1 */}
+            {/* Combined Settings Box */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200"
+              className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Trạng thái</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Chế độ</span>
-                  <div className="flex items-center">
+              {/* Trạng thái */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  ⚙️ Cài đặt bài viết
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Chế độ</span>
+                      <p className="text-xs text-gray-500">
+                        {formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
+                      </p>
+                    </div>
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -360,14 +369,14 @@ export default function ArticleEditor() {
                       />
                     </button>
                   </div>
-                </div>
-                <div className="text-sm text-gray-500">
-                  {formData.is_public ? '🌐 Công khai' : '🔒 Riêng tư'}
-                </div>
-                
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Bài nổi bật</span>
-                  <div className="flex items-center">
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Bài nổi bật</span>
+                      <p className="text-xs text-gray-500">
+                        {formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường'}
+                      </p>
+                    </div>
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -381,13 +390,7 @@ export default function ArticleEditor() {
                       />
                     </button>
                   </div>
-                </div>
-                <div className="text-sm text-gray-500">
-                  {formData.is_featured ? '⭐ Featured' : '📝 Thường'}
-                </div>
 
-                {/* Date Fields */}
-                <div className="pt-3 border-t border-gray-100 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       📅 Ngày xuất bản
@@ -401,40 +404,39 @@ export default function ArticleEditor() {
                   </div>
                 </div>
               </div>
-            </motion.div>
 
-            {/* Categories - Order 2 */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Danh mục</h3>
-              <div className="space-y-2 sm:space-y-3">
-                {DEMO_CATEGORIES.map(cat => (
-                  <div key={cat.id} className="group">
-                    <label className="flex items-center p-2 sm:p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all duration-200">
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          checked={formData.categories.includes(cat.id)}
-                          onChange={() => handleCategoryToggle(cat.id)}
-                          className="sr-only"
-                        />
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${
-                          formData.categories.includes(cat.id)
-                            ? 'bg-blue-600 border-blue-600'
-                            : 'border-gray-300 group-hover:border-blue-400'
-                        }`}>
-                          {formData.categories.includes(cat.id) && (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
+              {/* Divider */}
+              <div className="border-t border-gray-100 my-6"></div>
+
+              {/* Danh mục */}
+              <div className="mb-6">
+                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                  🏷️ Danh mục
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {DEMO_CATEGORIES.map(cat => (
+                    <label
+                      key={cat.id}
+                      className="flex items-center p-2 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all duration-200 group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.categories.includes(cat.id)}
+                        onChange={() => handleCategoryToggle(cat.id)}
+                        className="sr-only"
+                      />
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 mr-2 ${
+                        formData.categories.includes(cat.id)
+                          ? 'bg-blue-600 border-blue-600'
+                          : 'border-gray-300 group-hover:border-blue-400'
+                      }`}>
+                        {formData.categories.includes(cat.id) && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
                       </div>
-                      <span className={`ml-3 text-sm font-medium transition-colors duration-200 ${
+                      <span className={`text-sm font-medium transition-colors duration-200 ${
                         formData.categories.includes(cat.id) 
                           ? 'text-blue-900' 
                           : 'text-gray-700 group-hover:text-blue-800'
@@ -442,107 +444,138 @@ export default function ArticleEditor() {
                         {cat.name}
                       </span>
                     </label>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Selected Categories Summary */}
-              {formData.categories.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500">Đã chọn:</span>
-                    <span className="text-xs text-blue-600 font-medium">
-                      {formData.categories.length} danh mục
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {formData.categories.map(catId => {
-                      const category = DEMO_CATEGORIES.find(cat => cat.id === catId);
-                      return category ? (
-                        <span
-                          key={catId}
-                          className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
-                        >
-                          {category.name}
-                          <button
-                            onClick={() => handleCategoryToggle(catId)}
-                            className="ml-1 text-blue-600 hover:text-blue-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ) : null;
-                    })}
-                  </div>
+                  ))}
                 </div>
-              )}
-            </motion.div>
-
-            {/* Tags - Order 3 */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleAddTag}
-                placeholder="Nhập tag và nhấn Enter"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              <div className="flex flex-wrap gap-2 mt-3">
-                {formData.tags.map(tag => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
-                  >
-                    {tag}
-                    <button
-                      onClick={() => removeTag(tag)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Featured Image - Order 4 */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Ảnh đại diện</h3>
-              <div className="space-y-3">
-                <input
-                  type="url"
-                  value={formData.featured_image}
-                  onChange={(e) => setFormData(prev => ({ ...prev, featured_image: e.target.value }))}
-                  placeholder="URL ảnh hoặc upload..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                <button className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm">
-                  📁 Upload ảnh
-                </button>
-                {formData.featured_image && (
-                  <div className="mt-3">
-                    <img
-                      src={formData.featured_image}
-                      alt="Preview"
-                      className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                
+                {formData.categories.length > 0 && (
+                  <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-blue-700">Đã chọn</span>
+                      <span className="text-xs text-blue-600 font-medium">
+                        {formData.categories.length} danh mục
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {formData.categories.map(catId => {
+                        const category = DEMO_CATEGORIES.find(cat => cat.id === catId);
+                        return category ? (
+                          <span
+                            key={catId}
+                            className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
+                          >
+                            {category.name}
+                            <button
+                              onClick={() => handleCategoryToggle(catId)}
+                              className="ml-1 text-blue-600 hover:text-blue-800"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
                   </div>
                 )}
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-100 my-6"></div>
+
+              {/* Tags */}
+              <div className="mb-6">
+                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                  🏪 Tags
+                </h4>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleAddTag}
+                    placeholder="Nhập tag..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      if (tagInput.trim()) {
+                        const newTag = tagInput.trim().toLowerCase();
+                        if (!formData.tags.includes(newTag)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            tags: [...prev.tags, newTag]
+                          }));
+                        }
+                        setTagInput('');
+                      }
+                    }}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Thêm
+                  </button>
+                </div>
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {formData.tags.map(tag => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-md"
+                      >
+                        {tag}
+                        <button
+                          onClick={() => removeTag(tag)}
+                          className="ml-1 text-gray-600 hover:text-gray-800"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-100 my-6"></div>
+
+              {/* Ảnh đại diện */}
+              <div>
+                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                  🖼️ Ảnh đại diện
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={formData.featured_image}
+                      onChange={(e) => setFormData(prev => ({ ...prev, featured_image: e.target.value }))}
+                      placeholder="Nhập URL ảnh..."
+                      className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                    <button className="px-2 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm flex items-center gap-1 shrink-0">
+                      📁
+                    </button>
+                  </div>
+                  {formData.featured_image && (
+                    <div className="relative bg-gray-50 rounded-lg p-2 border border-gray-200">
+                      <img
+                        src={formData.featured_image}
+                        alt="Preview"
+                        className="w-full h-20 object-cover rounded-md"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <button
+                        onClick={() => setFormData(prev => ({ ...prev, featured_image: '' }))}
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors shadow-sm"
+                      >
+                        ×
+                      </button>
+                      <div className="mt-2 text-xs text-gray-500 truncate">
+                        {formData.featured_image}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
