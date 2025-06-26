@@ -4,6 +4,8 @@ import Timer from './Timer';
 import ProgressBar from './ProgressBar';
 import QuestionCard from './QuestionCard';
 import Confetti, { useConfetti } from '../common/Confetti';
+import CongratulationsPopup, { type UserInfo } from '../common/CongratulationsPopup';
+import TimeUpPopup from '../common/TimeUpPopup';
 import type { Question, TestResult } from '../../utils/test';
 import { generateTestResult, saveTestResult } from '../../utils/test';
 
@@ -21,8 +23,28 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [justAnswered, setJustAnswered] = useState(false);
+  const [showCongratulationsPopup, setShowCongratulationsPopup] = useState(false);
+  const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
   
   const { fireMultipleBursts } = useConfetti();
+
+  // Smart navigation: find next unanswered question
+  const findNextUnanswered = useCallback((fromIndex: number = 0): number => {
+    // First, search from fromIndex to end
+    for (let i = fromIndex; i < answers.length; i++) {
+      if (answers[i] === null) return i;
+    }
+    // If not found and fromIndex > 0, search from beginning
+    if (fromIndex > 0) {
+      for (let i = 0; i < fromIndex; i++) {
+        if (answers[i] === null) return i;
+      }
+    }
+    return -1; // All answered
+  }, [answers]);
+
+  // Check if all questions are answered
+  const allAnswered = answers.every(a => a !== null);
 
   // Start the test
   const startTest = useCallback(() => {
@@ -30,27 +52,39 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setStartTime(Date.now());
   }, []);
 
+  // Reset test state
+  const resetTest = useCallback(() => {
+    setCurrentQuestion(0);
+    setAnswers(new Array(questions.length).fill(null));
+    setIsActive(false);
+    setStartTime(null);
+    setShowConfetti(false);
+    setIsSubmitting(false);
+    setJustAnswered(false);
+    setShowCongratulationsPopup(false);
+    setShowTimeUpPopup(false);
+  }, [questions.length]);
+
   // Handle answer selection
   const handleAnswerSelect = useCallback((answerIndex: number) => {
-    console.log('Answer selected:', answerIndex, 'for question:', currentQuestion);
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
     setJustAnswered(true);
   }, [answers, currentQuestion]);
 
-  // Navigate to next question
+  // Navigate to next question (smart navigation)
   const nextQuestion = useCallback(() => {
-    console.log('Moving to next question from:', currentQuestion);
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
+    const nextUnanswered = findNextUnanswered(currentQuestion + 1);
+    console.log('nextQuestion: currentQuestion =', currentQuestion, ', nextUnanswered =', nextUnanswered);
+    if (nextUnanswered !== -1) {
+      setCurrentQuestion(nextUnanswered);
       setJustAnswered(false);
     }
-  }, [currentQuestion, questions.length]);
+  }, [currentQuestion, findNextUnanswered]);
 
   // Navigate to previous question
   const previousQuestion = useCallback(() => {
-    console.log('Moving to previous question from:', currentQuestion);
     if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1);
       setJustAnswered(false);
@@ -59,64 +93,83 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Jump to specific question
   const jumpToQuestion = useCallback((questionIndex: number) => {
-    console.log('Jumping to question:', questionIndex);
     setCurrentQuestion(questionIndex);
     setJustAnswered(false);
   }, []);
 
-  // Submit test
+  // Submit test - shows congratulations popup
   const submitTest = useCallback(async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || !allAnswered) return;
     
+    console.log('submitTest: starting submission process');
     setIsSubmitting(true);
     setIsActive(false);
     
+    // Show congratulations popup after brief delay
+    setTimeout(() => {
+      console.log('submitTest: showing congratulations popup');
+      setShowCongratulationsPopup(true);
+      setIsSubmitting(false);
+    }, 500);
+  }, [isSubmitting, allAnswered]);
+
+  // Handle confetti trigger when popup opens
+  const handleConfettiTrigger = useCallback(() => {
+    console.log('handleConfettiTrigger: firing confetti');
+    setShowConfetti(true);
+    fireMultipleBursts('celebration');
+  }, [fireMultipleBursts]);
+
+  // Handle popup completion
+  const handlePopupComplete = useCallback((userInfo: UserInfo) => {
     const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
     const filledAnswers = answers.map(answer => answer ?? -1);
     
     const result = generateTestResult(questions, filledAnswers, timeSpent);
     
+    // Add user info to result
+    const resultWithUserInfo = {
+      ...result,
+      userInfo
+    };
+    
     // Save to local storage
-    saveTestResult(result);
+    saveTestResult(resultWithUserInfo);
     
-    // Show celebration effect
-    setShowConfetti(true);
-    fireMultipleBursts('celebration');
-    
-    // Navigate to results after animation
-    setTimeout(() => {
-      onComplete(result);
-    }, 2000);
-  }, [answers, questions, startTime, onComplete, isSubmitting, fireMultipleBursts]);
+    onComplete(resultWithUserInfo);
+  }, [answers, questions, startTime, onComplete]);
 
-  // Handle time up
+  // Handle time up - shows time up popup
   const handleTimeUp = useCallback(() => {
-    submitTest();
-  }, [submitTest]);
+    setIsActive(false);
+    setShowTimeUpPopup(true);
+  }, []);
 
-  // Auto-advance ONLY when just answered (not when jumping)
+  // Handle retry from time up popup
+  const handleRetry = useCallback(() => {
+    resetTest();
+  }, [resetTest]);
+
+  // Smart auto-advance logic
   useEffect(() => {
-    console.log('Auto-advance check:', {
-      justAnswered,
-      currentQuestion,
-      hasAnswer: answers[currentQuestion] !== null,
-      isLastQuestion: currentQuestion === questions.length - 1
-    });
-    
-    if (justAnswered && answers[currentQuestion] !== null && currentQuestion < questions.length - 1) {
-      console.log('Auto-advance triggered');
+    if (justAnswered && answers[currentQuestion] !== null) {
       const timer = setTimeout(() => {
-        nextQuestion();
-      }, 300);
+        const nextUnanswered = findNextUnanswered(currentQuestion + 1);
+        console.log('auto-advance: currentQuestion =', currentQuestion, ', nextUnanswered =', nextUnanswered, ', answers =', answers.map((a, i) => `${i}:${a}`));
+        if (nextUnanswered !== -1) {
+          setCurrentQuestion(nextUnanswered);
+          setJustAnswered(false);
+        }
+      }, 100);
       
       return () => clearTimeout(timer);
     }
-  }, [justAnswered, answers, currentQuestion, nextQuestion, questions.length]);
+  }, [justAnswered, answers, currentQuestion, findNextUnanswered]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!isActive) return;
+      if (!isActive || showCongratulationsPopup || showTimeUpPopup) return;
       
       switch (e.key) {
         case '1':
@@ -140,7 +193,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           break;
         case 'Enter':
           e.preventDefault();
-          if (currentQuestion === questions.length - 1 && answers.every(a => a !== null)) {
+          if (allAnswered) {
             submitTest();
           } else if (answers[currentQuestion] !== null) {
             nextQuestion();
@@ -151,7 +204,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isActive, currentQuestion, answers, handleAnswerSelect, nextQuestion, previousQuestion, submitTest, questions]);
+  }, [isActive, currentQuestion, answers, handleAnswerSelect, nextQuestion, previousQuestion, submitTest, questions, showCongratulationsPopup, showTimeUpPopup, allAnswered]);
 
   // Progress calculation
   const answeredQuestions = answers.filter(a => a !== null).length;
@@ -162,66 +215,31 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       <div className="max-w-4xl mx-auto text-center py-20">
         <motion.div
           className="bg-white rounded-3xl shadow-xl p-12 border border-gray-100"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
         >
-          <div className="text-6xl mb-6">🧠</div>
-          <h2 className="text-3xl font-display font-bold text-gray-900 mb-6">
-            Sẵn sàng bắt đầu Test IQ?
-          </h2>
-          
-          <div className="space-y-4 text-left max-w-2xl mx-auto mb-8">
-            <h3 className="font-semibold text-lg text-gray-800 text-center mb-4">
-              📋 Hướng dẫn làm bài:
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-blue-50 rounded-xl">
-                <div className="flex items-center mb-2">
-                  <span className="text-blue-600 mr-2">📖</span>
-                  <span className="font-medium">Đọc kỹ câu hỏi</span>
-                </div>
-                <p className="text-sm text-gray-600">Đọc và hiểu rõ từng câu hỏi trước khi trả lời</p>
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4 font-display">
+              Test IQ Chuyên Nghiệp
+            </h1>
+            <p className="text-xl text-gray-600 mb-6">
+              Đánh giá trí tuệ với {questions.length} câu hỏi trong {Math.floor(timeLimit / 60)} phút
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-blue-50 p-6 rounded-2xl">
+                <div className="text-3xl mb-2">🧠</div>
+                <h3 className="font-semibold text-gray-900 mb-1">Tư duy logic</h3>
+                <p className="text-sm text-gray-600">Kiểm tra khả năng suy luận và phân tích</p>
               </div>
-              
-              <div className="p-4 bg-green-50 rounded-xl">
-                <div className="flex items-center mb-2">
-                  <span className="text-green-600 mr-2">🎯</span>
-                  <span className="font-medium">Chọn đáp án tốt nhất</span>
-                </div>
-                <p className="text-sm text-gray-600">Lựa chọn đáp án đúng nhất theo suy nghĩ của bạn</p>
+              <div className="bg-green-50 p-6 rounded-2xl">
+                <div className="text-3xl mb-2">⏱️</div>
+                <h3 className="font-semibold text-gray-900 mb-1">Tốc độ xử lý</h3>
+                <p className="text-sm text-gray-600">Đo lường khả năng phản xạ nhanh</p>
               </div>
-              
-              <div className="p-4 bg-yellow-50 rounded-xl">
-                <div className="flex items-center mb-2">
-                  <span className="text-yellow-600 mr-2">🚫</span>
-                  <span className="font-medium">Không tra cứu</span>
-                </div>
-                <p className="text-sm text-gray-600">Không sử dụng máy tính hoặc tài liệu tham khảo</p>
+              <div className="bg-purple-50 p-6 rounded-2xl">
+                <div className="text-3xl mb-2">📊</div>
+                <h3 className="font-semibold text-gray-900 mb-1">Phân tích chi tiết</h3>
+                <p className="text-sm text-gray-600">Báo cáo kết quả chuyên sâu</p>
               </div>
-              
-              <div className="p-4 bg-purple-50 rounded-xl">
-                <div className="flex items-center mb-2">
-                  <span className="text-purple-600 mr-2">🔇</span>
-                  <span className="font-medium">Môi trường yên tĩnh</span>
-                </div>
-                <p className="text-sm text-gray-600">Làm bài trong không gian tập trung tốt nhất</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-center space-x-8 mb-8 text-gray-600">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600">{questions.length}</div>
-              <div className="text-sm">Câu hỏi</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600">{Math.floor(timeLimit / 60)}</div>
-              <div className="text-sm">Phút</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600">5</div>
-              <div className="text-sm">Lĩnh vực</div>
             </div>
           </div>
           
@@ -246,6 +264,20 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   return (
     <div className="max-w-4xl mx-auto py-20">
       <Confetti trigger={showConfetti} duration={3000} />
+      
+      {/* Congratulations Popup */}
+      <CongratulationsPopup 
+        isOpen={showCongratulationsPopup}
+        onComplete={handlePopupComplete}
+        onConfettiTrigger={handleConfettiTrigger}
+      />
+      
+      {/* Time Up Popup */}
+      <TimeUpPopup 
+        isOpen={showTimeUpPopup}
+        onComplete={handlePopupComplete}
+        onRetry={handleRetry}
+      />
       
       {/* Header with timer and progress */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
@@ -287,7 +319,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.1 }}
           className="mb-6"
         >
           <QuestionCard
@@ -339,18 +371,18 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
             </div>
           </div>
 
-          {/* Chỉ hiện button Submit ở câu cuối cùng */}
-          {currentQuestion === questions.length - 1 ? (
+          {/* Smart Complete Button - Shows when all answered */}
+          {allAnswered ? (
             <motion.button
               onClick={submitTest}
-              disabled={isSubmitting || answers.some(a => a === null)}
+              disabled={isSubmitting}
               className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                isSubmitting || answers.some(a => a === null)
+                isSubmitting
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-lg'
               }`}
-              whileHover={!isSubmitting && answers.every(a => a !== null) ? { scale: 1.02 } : {}}
-              whileTap={!isSubmitting && answers.every(a => a !== null) ? { scale: 0.98 } : {}}
+              whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+              whileTap={!isSubmitting ? { scale: 0.98 } : {}}
             >
               {isSubmitting ? (
                 <>
@@ -365,29 +397,33 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
               )}
             </motion.button>
           ) : (
-            <div className="w-32"></div>
+            <div className="w-32 text-center">
+              <p className="text-xs text-orange-600 font-medium">
+                Còn {questions.length - answeredQuestions} câu
+              </p>
+            </div>
           )}
         </div>
         
         {/* Keyboard shortcuts hint */}
         <div className="mt-4 text-center text-xs text-gray-500">
-          💡 Phím tắt: 1-4 (chọn đáp án) • ← → (điều hướng) • Enter (hoàn thành ở câu cuối)
+          💡 Phím tắt: 1-4 (chọn đáp án) • ← → (điều hướng) • Enter (hoàn thành khi đủ câu)
         </div>
       </div>
 
-      {/* Submit button center - backup nếu cần */}
-      {currentQuestion === questions.length - 1 && (
+      {/* Submit button center - Shows when all answered */}
+      {allAnswered && (
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-center mt-6">
           <motion.button
             onClick={submitTest}
-            disabled={isSubmitting || answers.some(a => a === null)}
+            disabled={isSubmitting}
             className={`inline-flex items-center px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-200 ${
-              isSubmitting || answers.some(a => a === null)
+              isSubmitting
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-lg'
             }`}
-            whileHover={!isSubmitting && answers.every(a => a !== null) ? { scale: 1.02 } : {}}
-            whileTap={!isSubmitting && answers.every(a => a !== null) ? { scale: 0.98 } : {}}
+            whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+            whileTap={!isSubmitting ? { scale: 0.98 } : {}}
           >
             {isSubmitting ? (
               <>
@@ -403,7 +439,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           </motion.button>
           
           <p className="text-sm text-gray-500 mt-3">
-            💡 Phím tắt: 1-4 (chọn đáp án) • Enter (hoàn thành)
+            🎉 Tất cả câu hỏi đã được trả lời! Nhấn để xem kết quả.
           </p>
         </div>
       )}

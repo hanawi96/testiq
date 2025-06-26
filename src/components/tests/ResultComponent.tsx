@@ -196,11 +196,11 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   useEffect(() => {
     if (results.score >= 115) {
       setTimeout(() => {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
       }, 500);
     }
   }, [results.score]);
@@ -292,7 +292,7 @@ Thử ngay test IQ này!`);
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-purple-600"></div>
           </div>
-          
+
           <div className="relative z-10">
             {/* Header Row with Badge and Quick Stats */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -325,7 +325,7 @@ Thử ngay test IQ này!`);
                 </div>
               </div>
             </div>
-            
+
             {/* Main Score Section */}
             <div className="text-center mb-8">
               <motion.h1 
@@ -489,7 +489,7 @@ Thử ngay test IQ này!`);
                           transition={{ delay: 1.3 + index * 0.1 }}
                         />
                       )}
-                    </div>
+                </div>
                     <span className="text-sm font-medium text-gray-900">{item.width}%</span>
                   </motion.div>
                 ))}
@@ -531,7 +531,7 @@ Thử ngay test IQ này!`);
                        results.score >= 115 ? 'Top 20% trên trung bình!' : 
                        'Điểm tốt, tiếp tục cố gắng!'}
                     </span>
-                  </div>
+              </div>
                 </div>
               </div>
             </div>
@@ -547,15 +547,15 @@ Thử ngay test IQ này!`);
         >
           <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
             <span className="mr-3 text-blue-600">📊</span>
-            Phân tích chi tiết
+              Phân tích chi tiết
           </h2>
-          
+
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Strengths */}
-            <div>
+              {/* Strengths */}
+              <div>
               <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center">
                 <span className="mr-2">⚡</span>
-                Điểm mạnh
+                  Điểm mạnh
               </h3>
               <div className="space-y-3">
                 {strengths.length > 0 ? strengths.map((strength, index) => (
@@ -573,11 +573,11 @@ Thử ngay test IQ này!`);
                   <div className="flex items-center p-3 bg-green-50 rounded-lg">
                     <span className="text-green-500 mr-3">✅</span>
                     <span className="text-gray-700">Tư duy tổng hợp tốt</span>
-                  </div>
+              </div>
                 )}
               </div>
             </div>
-            
+
             {/* Improvements */}
             <div>
               <h3 className="text-lg font-semibold text-orange-600 mb-4 flex items-center">
@@ -600,11 +600,11 @@ Thử ngay test IQ này!`);
                   <div className="flex items-center p-3 bg-orange-50 rounded-lg">
                     <span className="text-orange-500 mr-3">🧠</span>
                     <span className="text-gray-700">Luyện tập thêm để nâng cao</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
+        </div>
         </motion.div>
 
         {/* Skill Breakdown Section */}
@@ -623,7 +623,7 @@ Thử ngay test IQ này!`);
             {/* Radar Chart */}
             <div className="relative">
               <RadarChart skills={skills} />
-            </div>
+          </div>
             
             {/* Skills List */}
             <div className="space-y-4">

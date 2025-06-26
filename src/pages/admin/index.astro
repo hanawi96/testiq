@@ -1,0 +1,26 @@
+---
+// Admin dashboard page
+import AdminDashboard from '../../components/admin/AdminDashboard.tsx';
+---
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - IQ Test</title>
+  <meta name="description" content="Bảng điều khiển quản trị viên">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React (required for Framer Motion) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+  <!-- Hydrate AdminDashboard component -->
+  <AdminDashboard client:load />
+</body>
+</html> 
