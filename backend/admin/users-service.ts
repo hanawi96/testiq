@@ -60,14 +60,7 @@ export class UsersService {
       console.log('UsersService: RPC parameters:', rpcParams);
       console.log('UsersService: Calling get_users_with_email RPC function...');
 
-      // Check if function exists first
-      const { data: functionExists } = await supabase
-        .from('pg_proc')
-        .select('proname')
-        .eq('proname', 'get_users_with_email')
-        .single();
 
-      console.log('UsersService: Function exists check:', !!functionExists);
 
       // Use RPC function to get users with email data
       const { data: usersData, error: rpcError } = await supabase.rpc('get_users_with_email', rpcParams);
