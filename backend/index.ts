@@ -4,6 +4,7 @@
 // Core services
 export { AuthService } from './auth/service';
 export { UsersService } from './admin/users-service';
+export { AdminService } from './admin/service';
 
 // Configuration
 export { supabase, supabaseConfig, TABLES } from './config/supabase';
@@ -14,6 +15,7 @@ export { saveAnonymousPlayer, checkAnonymousPlayersTable, createAnonymousPlayers
 
 // Export types
 export type { UserWithProfile, UsersListResponse, UsersFilters } from './admin/users-service';
+export type { AdminStats, AdminAction } from './types';
 
 // Additional exports
 export { quickSetupDatabase, createTestAdmin } from './utils/setup-database';

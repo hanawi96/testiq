@@ -1,26 +1,11 @@
 ---
 // Admin login page using Astro Islands
+import BaseLayout from '../../layouts/BaseLayout.astro';
 import AdminLogin from '../../components/admin/AdminLogin.tsx';
 ---
 
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login - IQ Test</title>
-  <meta name="description" content="Đăng nhập quản trị viên">
-  <meta name="robots" content="noindex, nofollow">
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- React (required for Framer Motion) -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-</head>
-<body>
-  <!-- Hydrate AdminLogin component -->
-  <AdminLogin client:load />
-</body>
-</html> 
+<BaseLayout title="Admin Login">
+  <main class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+    <AdminLogin client:load />
+  </main>
+</BaseLayout> 
