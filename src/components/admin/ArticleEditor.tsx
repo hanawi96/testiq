@@ -288,28 +288,63 @@ export default function ArticleEditor() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
+              className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300"
             >
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="Tiêu đề bài viết..."
-                className="w-full text-xl sm:text-2xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent"
-              />
-              
-              {/* URL Slug */}
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 shrink-0">🔗</span>
-                  <span className="text-xs text-gray-400 hidden sm:inline">yoursite.com/</span>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                      <span className="text-white text-sm font-bold">T</span>
+                    </div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Tiêu đề bài viết
+                    </label>
+                    {formData.title && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                        {formData.title.length}/100
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
-                    value={formData.slug}
-                    onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                    placeholder="url-slug"
-                    className="flex-1 text-xs font-mono text-gray-700 bg-transparent border-none outline-none placeholder-gray-400"
+                    value={formData.title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="Nhập tiêu đề hấp dẫn cho bài viết..."
+                    className="w-full text-xl sm:text-2xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent leading-tight"
+                    maxLength={100}
                   />
+                </div>
+                
+                {/* URL Slug */}
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 shrink-0">
+                      <span className="w-5 h-5 bg-gray-300 rounded flex items-center justify-center">
+                        🔗
+                      </span>
+                      <span className="hidden sm:inline font-mono">yoursite.com/</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                      placeholder="url-slug-seo-friendly"
+                      className="flex-1 text-sm font-mono text-gray-700 bg-transparent border-none outline-none placeholder-gray-400 focus:text-blue-600"
+                    />
+                    {formData.slug && (
+                      <button
+                        onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(formData.title) }))}
+                        className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors shrink-0"
+                        title="Tạo lại từ tiêu đề"
+                      >
+                        ↻
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                    <span>💡</span>
+                    URL thân thiện SEO được tự động tạo từ tiêu đề
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -319,36 +354,65 @@ export default function ArticleEditor() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
+              className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
             >
-              <div className="mb-4">
-
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <span className="text-white text-sm font-bold">✍️</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Nội dung bài viết</h3>
+                    <p className="text-xs text-gray-500">Viết nội dung chất lượng với trình soạn thảo WYSIWYG</p>
+                  </div>
+                  {formData.content && (
+                    <div className="ml-auto flex items-center gap-2 text-xs">
+                      <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                        {formData.content.split(' ').filter(word => word.length > 0).length} từ
+                      </span>
+                      <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded-full font-medium">
+                        ~{Math.ceil(formData.content.split(' ').filter(word => word.length > 0).length / 200)} phút đọc
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              {isClient ? (
-                <React.Suspense fallback={
-                  <div className="border border-gray-300 rounded-lg bg-gray-50 h-64 sm:min-h-[500px] flex items-center justify-center">
+              <div className="p-6">
+                {isClient ? (
+                  <React.Suspense fallback={
+                    <div className="border border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 h-64 sm:min-h-[500px] flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="relative">
+                          <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-4"></div>
+                          <div className="absolute inset-0 rounded-full border-4 border-emerald-100 animate-pulse"></div>
+                        </div>
+                        <p className="text-gray-600 text-sm font-medium">Đang khởi tạo trình soạn thảo...</p>
+                        <p className="text-gray-400 text-xs mt-1">Vui lòng chờ trong giây lát</p>
+                      </div>
+                    </div>
+                  }>
+                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                      <ToastEditor
+                        content={formData.content}
+                        onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                        placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
+                        height="750px"
+                      />
+                    </div>
+                  </React.Suspense>
+                ) : (
+                  <div className="border border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 h-64 sm:min-h-[500px] flex items-center justify-center">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                      <p className="text-gray-600 text-sm">Đang khởi tạo editor...</p>
+                      <div className="animate-pulse">
+                        <div className="h-8 w-8 bg-emerald-300 rounded-full mx-auto mb-4"></div>
+                        <div className="h-4 bg-gray-300 rounded w-48 mx-auto mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-32 mx-auto"></div>
+                      </div>
                     </div>
                   </div>
-                }>
-                  <ToastEditor
-                    content={formData.content}
-                    onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                    placeholder="Bắt đầu viết bài..."
-                    height="750px"
-                  />
-                </React.Suspense>
-              ) : (
-                <div className="border border-gray-300 rounded-lg bg-gray-50 h-64 sm:min-h-[500px] flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="animate-pulse h-6 w-6 sm:h-8 sm:w-8 bg-blue-300 rounded-full mx-auto mb-3"></div>
-                    <p className="text-gray-600 text-sm">Chuẩn bị editor...</p>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </motion.div>
 
             {/* Excerpt */}
@@ -356,18 +420,42 @@ export default function ArticleEditor() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
+              className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300"
             >
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tóm tắt
-              </label>
-              <textarea
-                value={formData.excerpt}
-                onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                placeholder="Tóm tắt ngắn gọn về bài viết..."
-                rows={3}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <span className="text-white text-sm font-bold">📝</span>
+                  </div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Tóm tắt bài viết
+                  </label>
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
+                    {formData.excerpt.length}/200
+                  </span>
+                </div>
+                
+                <div className="relative">
+                  <textarea
+                    value={formData.excerpt}
+                    onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
+                    placeholder="Viết tóm tắt ngắn gọn và hấp dẫn để thu hút độc giả..."
+                    rows={4}
+                    maxLength={200}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm leading-relaxed resize-none"
+                  />
+                  <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                    {200 - formData.excerpt.length} ký tự còn lại
+                  </div>
+                </div>
+                
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                  <div className="flex items-center gap-2 text-xs text-amber-700">
+                    <span>💡</span>
+                    <span>Tóm tắt tốt sẽ hiển thị trong kết quả tìm kiếm và mạng xã hội</span>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
 
@@ -377,7 +465,7 @@ export default function ArticleEditor() {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
+              className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300"
             >
               {/* Trạng thái */}
               <div className="mb-6">
@@ -447,14 +535,17 @@ export default function ArticleEditor() {
 
               {/* Danh mục */}
               <div className="mb-6">
-                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                <h4 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
                   🏷️ Danh mục
                 </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {DEMO_CATEGORIES.map(cat => (
-                    <label
+                <div className="grid grid-cols-2 gap-3">
+                  {DEMO_CATEGORIES.map((cat, index) => (
+                    <motion.label
                       key={cat.id}
-                      className="flex items-center p-2 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all duration-200 group"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="relative flex items-center p-3 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer transition-all duration-300 group overflow-hidden"
                     >
                       <input
                         type="checkbox"
@@ -462,56 +553,88 @@ export default function ArticleEditor() {
                         onChange={() => handleCategoryToggle(cat.id)}
                         className="sr-only"
                       />
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 mr-2 ${
-                        formData.categories.includes(cat.id)
-                          ? 'bg-blue-600 border-blue-600'
-                          : 'border-gray-300 group-hover:border-blue-400'
-                      }`}>
-                        {formData.categories.includes(cat.id) && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                      <span className={`text-sm font-medium transition-colors duration-200 ${
+                      
+                      {/* Animated background */}
+                      <div className={`absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 ${
                         formData.categories.includes(cat.id) 
-                          ? 'text-blue-900' 
-                          : 'text-gray-700 group-hover:text-blue-800'
-                      }`}>
-                        {cat.name}
-                      </span>
-                    </label>
+                          ? 'opacity-100 scale-100' 
+                          : 'opacity-0 scale-95'
+                      }`}></div>
+                      
+                      {/* Content */}
+                      <div className="relative z-10 flex items-center w-full">
+                        <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all duration-300 mr-3 ${
+                          formData.categories.includes(cat.id)
+                            ? 'border-white bg-white/20'
+                            : 'border-gray-300 group-hover:border-blue-400 bg-white'
+                        }`}>
+                          {formData.categories.includes(cat.id) && (
+                            <motion.svg 
+                              initial={{ scale: 0, rotate: -180 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              className="w-3 h-3 text-white" 
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </motion.svg>
+                          )}
+                        </div>
+                        <span className={`text-sm font-medium transition-colors duration-300 truncate ${
+                          formData.categories.includes(cat.id) 
+                            ? 'text-white' 
+                            : 'text-gray-700 group-hover:text-blue-800'
+                        }`}>
+                          {cat.name}
+                        </span>
+                      </div>
+                    </motion.label>
                   ))}
                 </div>
                 
                 {formData.categories.length > 0 && (
-                  <div className="mt-3 p-2 bg-blue-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-blue-700">Đã chọn</span>
-                      <span className="text-xs text-blue-600 font-medium">
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </span>
+                        Đã chọn
+                      </span>
+                      <span className="text-sm text-blue-700 bg-blue-200 px-3 py-1 rounded-full font-medium">
                         {formData.categories.length} danh mục
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-2">
                       {formData.categories.map(catId => {
                         const category = DEMO_CATEGORIES.find(cat => cat.id === catId);
                         return category ? (
-                          <span
+                          <motion.span
                             key={catId}
-                            className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="inline-flex items-center px-3 py-1 bg-white border border-blue-200 text-blue-800 text-sm rounded-lg shadow-sm hover:shadow-md transition-shadow"
                           >
                             {category.name}
                             <button
-                              onClick={() => handleCategoryToggle(catId)}
-                              className="ml-1 text-blue-600 hover:text-blue-800"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCategoryToggle(catId);
+                              }}
+                              className="ml-2 w-4 h-4 bg-blue-100 hover:bg-red-100 rounded-full flex items-center justify-center text-blue-600 hover:text-red-600 transition-colors"
                             >
                               ×
                             </button>
-                          </span>
+                          </motion.span>
                         ) : null;
                       })}
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
 
@@ -520,54 +643,86 @@ export default function ArticleEditor() {
 
               {/* Tags */}
               <div className="mb-6">
-                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                <h4 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
                   🏪 Tags
                 </h4>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleAddTag}
-                    placeholder="Nhập tag..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  />
-                  <button
-                    onClick={() => {
-                      if (tagInput.trim()) {
-                        const newTag = tagInput.trim().toLowerCase();
-                        if (!formData.tags.includes(newTag)) {
-                          setFormData(prev => ({
-                            ...prev,
-                            tags: [...prev.tags, newTag]
-                          }));
+                
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleAddTag}
+                        placeholder="Nhập tag và nhấn Enter..."
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm bg-white hover:border-emerald-300 transition-colors"
+                      />
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        🏪
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (tagInput.trim()) {
+                          const newTag = tagInput.trim().toLowerCase();
+                          if (!formData.tags.includes(newTag)) {
+                            setFormData(prev => ({
+                              ...prev,
+                              tags: [...prev.tags, newTag]
+                            }));
+                          }
+                          setTagInput('');
                         }
-                        setTagInput('');
-                      }
-                    }}
-                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    Thêm
-                  </button>
-                </div>
-                {formData.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {formData.tags.map(tag => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-md"
-                      >
-                        {tag}
-                        <button
-                          onClick={() => removeTag(tag)}
-                          className="ml-1 text-gray-600 hover:text-gray-800"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                      }}
+                      className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md flex items-center gap-2"
+                    >
+                      <span>+</span>
+                      <span className="hidden sm:inline">Thêm</span>
+                    </button>
                   </div>
-                )}
+                  
+                  {formData.tags.length > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-semibold text-emerald-900 flex items-center gap-2">
+                          <span className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">#</span>
+                          </span>
+                          Tags được thêm
+                        </span>
+                        <span className="text-sm text-emerald-700 bg-emerald-200 px-3 py-1 rounded-full font-medium">
+                          {formData.tags.length} tags
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.tags.map((tag, index) => (
+                          <motion.span
+                            key={tag}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="inline-flex items-center px-3 py-2 bg-white border border-emerald-200 text-emerald-800 text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-200 group"
+                          >
+                            <span className="text-emerald-600 mr-1">#</span>
+                            {tag}
+                            <button
+                              onClick={() => removeTag(tag)}
+                              className="ml-2 w-5 h-5 bg-emerald-100 hover:bg-red-100 rounded-full flex items-center justify-center text-emerald-600 hover:text-red-600 transition-colors group-hover:scale-110"
+                            >
+                              ×
+                            </button>
+                          </motion.span>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
               </div>
 
               {/* Divider */}
