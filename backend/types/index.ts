@@ -1,8 +1,17 @@
 // Backend Types
 export interface UserProfile {
   id: string;
-  email: string;
+  full_name: string;
+  email?: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  location?: string;
+  avatar_url?: string;
+  bio?: string;
   role: 'user' | 'admin';
+  is_verified?: boolean;
+  last_login?: string;
+  settings?: any;
   created_at: string;
   updated_at?: string;
 }

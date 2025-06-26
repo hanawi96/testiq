@@ -38,26 +38,96 @@ export class AuthService {
   static async signUp(credentials: SignUpCredentials): Promise<AuthResponse> {
     try {
       console.log('AuthService: Attempting sign up for:', credentials.email);
+      console.log('AuthService: Password length:', credentials.password?.length || 0);
 
       // Validate password confirmation
       if (credentials.password !== credentials.confirmPassword) {
+        console.error('AuthService: Password confirmation mismatch');
         return { user: null, error: { message: 'Mật khẩu xác nhận không khớp' } };
       }
 
+      console.log('AuthService: Password validation passed');
+      console.log('AuthService: Calling Supabase Auth signup...');
+      
       const { data, error } = await supabase.auth.signUp({
         email: credentials.email,
         password: credentials.password,
+        options: {
+          data: {
+            full_name: credentials.email.split('@')[0]
+          },
+          // Force email confirmation to be disabled
+          emailRedirectTo: undefined,
+          captchaToken: undefined
+        }
       });
+
+      console.log('AuthService: Supabase signup response received');
+      console.log('AuthService: Data:', !!data);
+      console.log('AuthService: Error:', !!error);
 
       if (error) {
         console.error('AuthService: Sign up error:', error);
+        console.error('AuthService: Error details:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        });
         return { user: null, error };
       }
 
-      console.log('AuthService: Sign up successful, user ID:', data.user?.id);
+      if (!data.user) {
+        console.error('AuthService: No user returned from sign up');
+        return { user: null, error: { message: 'Đăng ký thất bại - không có user data' } };
+      }
+
+      console.log('AuthService: Auth signup successful!');
+      console.log('AuthService: User ID:', data.user.id);
+      console.log('AuthService: User email:', data.user.email);
+      console.log('AuthService: Email confirmed:', data.user.email_confirmed_at ? 'Yes' : 'No');
+
+      // Create user profile using RPC function only (bypasses RLS completely)
+      console.log('AuthService: Creating user profile via RPC...');
+      console.log('AuthService: RPC parameters:', {
+        user_id: data.user.id,
+        user_email: credentials.email,
+        display_name: credentials.email.split('@')[0]
+      });
+      
+      try {
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_user_profile', {
+          user_id: data.user.id,
+          user_email: credentials.email,
+          display_name: credentials.email.split('@')[0]
+        });
+
+        console.log('AuthService: RPC call completed');
+        console.log('AuthService: RPC result:', rpcResult);
+        console.log('AuthService: RPC error:', !!rpcError);
+
+        if (rpcError) {
+          console.error('AuthService: RPC profile creation error:', rpcError);
+          console.error('AuthService: RPC error details:', {
+            message: rpcError.message,
+            code: rpcError.code,
+            details: rpcError.details,
+            hint: rpcError.hint
+          });
+          console.warn('AuthService: User registered but profile creation failed');
+        } else {
+          console.log('AuthService: Profile created successfully via RPC');
+          console.log('AuthService: RPC function returned:', rpcResult);
+        }
+      } catch (rpcErr) {
+        console.error('AuthService: RPC call failed with exception:', rpcErr);
+        console.warn('AuthService: User registered but profile creation failed');
+      }
+
+      console.log('AuthService: Sign up process completed successfully');
       return { user: data.user, error: null };
     } catch (err) {
       console.error('AuthService: Unexpected error during sign up:', err);
+      console.error('AuthService: Error stack:', err instanceof Error ? err.stack : 'No stack trace');
       return { user: null, error: err };
     }
   }
@@ -90,6 +160,20 @@ export class AuthService {
     try {
       console.log('AuthService: Getting current user');
       
+      // Check if there's a session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.log('AuthService: Session error:', sessionError.message);
+        return { user: null, error: null }; // Not an error, just no session
+      }
+      
+      if (!session) {
+        console.log('AuthService: No active session found');
+        return { user: null, error: null }; // Not an error, just not logged in
+      }
+      
+      console.log('AuthService: Session found, getting user details');
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
@@ -101,7 +185,7 @@ export class AuthService {
       return { user, error: null };
     } catch (err) {
       console.error('AuthService: Unexpected error getting user:', err);
-      return { user: null, error: err };
+      return { user: null, error: null }; // Don't propagate errors for auth checks
     }
   }
 

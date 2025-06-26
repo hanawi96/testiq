@@ -29,7 +29,7 @@ export const supabaseConfig = {
 
 // Database table names
 export const TABLES = {
-  PROFILES: 'profiles',
+  PROFILES: 'user_profiles',
   TEST_RESULTS: 'test_results',
   QUESTIONS: 'questions',
 } as const; 

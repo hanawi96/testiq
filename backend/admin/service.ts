@@ -149,7 +149,7 @@ export class AdminService {
   /**
    * Create initial admin user (for setup)
    */
-  static async createAdminUser(userId: string, email: string): Promise<{ success: boolean; error: any }> {
+  static async createAdminUser(userId: string, email: string, fullName?: string): Promise<{ success: boolean; error: any }> {
     try {
       console.log('AdminService: Creating admin user profile');
       
@@ -157,9 +157,11 @@ export class AdminService {
         .from(TABLES.PROFILES)
         .insert({
           id: userId,
-          email,
+          full_name: fullName || email.split('@')[0] + ' (Admin)',
           role: 'admin',
-          created_at: new Date().toISOString()
+          is_verified: true, // Admins are auto-verified
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -173,6 +175,77 @@ export class AdminService {
       return { success: true, error: null };
     } catch (err) {
       console.error('AdminService: Unexpected error creating admin:', err);
+      return { success: false, error: err };
+    }
+  }
+
+  /**
+   * Promote existing user to admin role
+   */
+  static async promoteUserToAdmin(userId: string): Promise<{ success: boolean; error: any }> {
+    try {
+      console.log('AdminService: Promoting user to admin:', userId);
+      
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .update({
+          role: 'admin',
+          is_verified: true, // Auto-verify when promoting to admin
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('AdminService: Error promoting user to admin:', error);
+        return { success: false, error };
+      }
+
+      if (!data) {
+        console.error('AdminService: User profile not found');
+        return { success: false, error: { message: 'User profile not found' } };
+      }
+
+      console.log('AdminService: User promoted to admin successfully');
+      return { success: true, error: null };
+    } catch (err) {
+      console.error('AdminService: Unexpected error promoting user:', err);
+      return { success: false, error: err };
+    }
+  }
+
+  /**
+   * Demote admin to regular user
+   */
+  static async demoteAdminToUser(userId: string): Promise<{ success: boolean; error: any }> {
+    try {
+      console.log('AdminService: Demoting admin to user:', userId);
+      
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .update({
+          role: 'user',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('AdminService: Error demoting admin to user:', error);
+        return { success: false, error };
+      }
+
+      if (!data) {
+        console.error('AdminService: Admin profile not found');
+        return { success: false, error: { message: 'Admin profile not found' } };
+      }
+
+      console.log('AdminService: Admin demoted to user successfully');
+      return { success: true, error: null };
+    } catch (err) {
+      console.error('AdminService: Unexpected error demoting admin:', err);
       return { success: false, error: err };
     }
   }

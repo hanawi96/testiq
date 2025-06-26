@@ -1,4 +1,4 @@
-import { supabase, supabaseConfig } from '../config/supabase';
+import { supabase, supabaseConfig, TABLES } from '../config/supabase';
 
 /**
  * Test Supabase connection and setup
@@ -20,14 +20,17 @@ export async function testSupabaseConnection() {
 
     console.log('✅ Supabase connection successful');
     
-    // Test 2: Check if profiles table and RPC functions exist
-    console.log('Testing profiles table access...');
+    // Test 2: Check if user_profiles table exists
+    console.log('Testing user_profiles table access...');
     try {
-      // Try to call our RPC function to test if it exists
-      const { data: rpcTest, error: rpcError } = await supabase.rpc('get_all_profiles');
+      // Simple count query to test table access
+      const { data: userProfiles, error: profileError } = await supabase
+        .from(TABLES.PROFILES)
+        .select('id', { count: 'exact' })
+        .limit(1);
       
-      if (rpcError) {
-        console.warn('⚠️ RPC functions not found. Database setup required.');
+      if (profileError) {
+        console.warn('⚠️ user_profiles table not found. Database setup required.');
         return { 
           success: true, 
           needsSetup: true, 
@@ -35,13 +38,13 @@ export async function testSupabaseConnection() {
         };
       }
 
-      console.log('✅ Database functions found');
-      console.log('👥 Existing profiles:', rpcTest?.length || 0);
+      console.log('✅ user_profiles table found');
+      console.log('👥 Table accessible');
 
       return { 
         success: true, 
         needsSetup: false, 
-        profilesCount: rpcTest?.length || 0 
+        message: 'Database ready'
       };
 
     } catch (tableErr) {
@@ -66,8 +69,11 @@ export async function checkDatabaseSetup() {
   try {
     console.log('🔍 Checking database setup...');
 
-    // Test RPC function instead of direct table access
-    const { data, error } = await supabase.rpc('get_all_profiles');
+    // Test user_profiles table access
+    const { data, error } = await supabase
+      .from(TABLES.PROFILES)
+      .select('id')
+      .limit(1);
 
     if (error) {
       console.log('Database setup check failed:', error.message);

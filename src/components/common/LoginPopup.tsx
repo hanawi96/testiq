@@ -7,11 +7,12 @@ import { AuthService } from '../../../backend';
 interface LoginPopupProps {
   isOpen: boolean;
   onClose: () => void;
+  onAuthSuccess?: () => void;
 }
 
 type AuthMode = 'login' | 'register';
 
-export default function LoginPopup({ isOpen, onClose }: LoginPopupProps) {
+export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopupProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,18 +22,38 @@ export default function LoginPopup({ isOpen, onClose }: LoginPopupProps) {
     setError('');
     
     try {
+      console.log('LoginPopup: Attempting login for:', data.email);
+      
       const { user, error: authError } = await AuthService.signIn(data);
       
-      if (authError || !user) {
-        setError(authError?.message || 'Đăng nhập thất bại');
+      if (authError) {
+        console.error('LoginPopup: Login error:', authError);
+        
+        // Handle specific error cases
+        if (authError.message?.includes('Email not confirmed')) {
+          setError('Email chưa được xác nhận. Vui lòng kiểm tra hộp thư và click vào link xác nhận, hoặc liên hệ admin để được hỗ trợ.');
+        } else if (authError.message?.includes('Invalid login credentials')) {
+          setError('Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.');
+        } else {
+          setError(authError.message || 'Đăng nhập thất bại');
+        }
         return;
       }
 
-      console.log('Login successful:', user);
+      if (!user) {
+        console.error('LoginPopup: No user returned from login');
+        setError('Đăng nhập thất bại - không có thông tin user');
+        return;
+      }
+
+      console.log('LoginPopup: Login successful for user:', user.id);
       onClose();
-      // Reload page to update auth state
-      window.location.reload();
+      // Call auth success callback to refresh auth state
+      if (onAuthSuccess) {
+        onAuthSuccess();
+      }
     } catch (err) {
+      console.error('LoginPopup: Unexpected login error:', err);
       setError('Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setIsLoading(false);
@@ -44,20 +65,43 @@ export default function LoginPopup({ isOpen, onClose }: LoginPopupProps) {
     setError('');
     
     try {
+      console.log('LoginPopup: Starting registration for:', data.email);
+      console.log('LoginPopup: Password length:', data.password.length);
+      console.log('LoginPopup: Passwords match:', data.password === data.confirmPassword);
+      
       const { user, error: authError } = await AuthService.signUp(data);
       
-      if (authError || !user) {
-        setError(authError?.message || 'Đăng ký thất bại');
+      if (authError) {
+        console.error('LoginPopup: Registration error:', authError);
+        console.error('LoginPopup: Error details:', {
+          message: authError.message,
+          status: authError.status,
+          statusText: authError.statusText
+        });
+        setError(authError.message || 'Đăng ký thất bại');
         return;
       }
 
-      console.log('Registration successful:', user);
+      if (!user) {
+        console.error('LoginPopup: No user returned from registration');
+        setError('Đăng ký thất bại - không có thông tin user');
+        return;
+      }
+
+      console.log('LoginPopup: Registration successful for user:', user.id);
+      console.log('LoginPopup: User email confirmed:', user.email_confirmed_at ? 'Yes' : 'No');
       setError('');
-      // Show success message and switch to login
-      alert('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.');
+      
+      // Show appropriate success message based on email confirmation status
+      if (user.email_confirmed_at) {
+        alert('Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.');
+      } else {
+        alert('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản trước khi đăng nhập. Nếu không nhận được email, liên hệ admin để được hỗ trợ.');
+      }
       setMode('login');
     } catch (err) {
-      setError('Có lỗi xảy ra, vui lòng thử lại');
+      console.error('LoginPopup: Unexpected registration error:', err);
+      setError('Có lỗi xảy ra khi đăng ký, vui lòng thử lại');
     } finally {
       setIsLoading(false);
     }

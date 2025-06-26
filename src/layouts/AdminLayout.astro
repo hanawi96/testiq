@@ -1,0 +1,99 @@
+---
+export interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "Admin Panel - IQ Test System" } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content={description} />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body class="bg-gray-50 min-h-screen">
+  
+  <!-- Admin Navigation -->
+  <nav class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <!-- Logo -->
+          <div class="flex-shrink-0">
+            <a href="/admin" class="flex items-center">
+              <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-sm">IQ</span>
+              </div>
+              <span class="ml-2 text-xl font-bold text-gray-900">Admin Panel</span>
+            </a>
+          </div>
+          
+          <!-- Main Navigation -->
+          <div class="hidden md:ml-10 md:flex md:space-x-8">
+            <a href="/admin" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+              Dashboard
+            </a>
+            <a href="/admin/users" class="border-blue-500 text-blue-600 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+              Users
+            </a>
+            <a href="/admin/tests" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+              Tests
+            </a>
+            <a href="/admin/settings" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+              Settings
+            </a>
+          </div>
+        </div>
+        
+        <!-- Right side -->
+        <div class="flex items-center space-x-4">
+          <!-- Profile dropdown -->
+          <div class="relative">
+            <button class="flex items-center space-x-3 text-sm bg-white rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <span class="text-white font-medium text-xs">A</span>
+              </div>
+              <span class="hidden md:block text-gray-700 font-medium">Admin</span>
+            </button>
+          </div>
+          
+          <!-- Logout -->
+          <a href="/admin/login" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+            Đăng xuất
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <slot />
+  </main>
+
+  <!-- Scripts -->
+  <script>
+    // Add active navigation state
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('nav a[href^="/admin"]');
+      
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === currentPath) {
+          link.classList.remove('border-transparent', 'text-gray-500');
+          link.classList.add('border-blue-500', 'text-blue-600');
+        } else {
+          link.classList.remove('border-blue-500', 'text-blue-600');
+          link.classList.add('border-transparent', 'text-gray-500');
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

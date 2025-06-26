@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginPopup from '../common/LoginPopup';
+import { AuthService } from '../../../backend';
 
 export default function Header() {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
@@ -8,6 +9,10 @@ export default function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState({ code: 'VI', name: 'Tiếng Việt', flag: '🇻🇳' });
+  
+  // Auth state
+  const [user, setUser] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const languages = [
     { code: 'VI', name: 'Tiếng Việt', flag: '🇻🇳' },
@@ -52,6 +57,40 @@ export default function Header() {
       document.body.style.overflow = '';
     };
   }, [showMobileMenu]);
+
+  // Check auth state on mount
+  useEffect(() => {
+    checkAuthState();
+  }, []);
+
+  const checkAuthState = async () => {
+    try {
+      console.log('Header: Checking auth state...');
+      const { user: currentUser, error } = await AuthService.getCurrentUser();
+      
+      if (error) {
+        console.log('Header: Auth check returned error (normal if not logged in):', error.message);
+      }
+      
+      setUser(currentUser);
+      console.log('Header: Auth state updated, user:', currentUser ? 'logged in' : 'not logged in');
+    } catch (err) {
+      console.log('Header: Auth check failed (normal if not logged in)');
+      setUser(null);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await AuthService.signOut();
+      setUser(null);
+      window.location.reload(); // Refresh to clear any cached data
+    } catch (err) {
+      console.error('Header: Logout error:', err);
+    }
+  };
 
   const toggleTheme = () => {
     const newTheme = !isDarkMode;
@@ -244,18 +283,39 @@ export default function Header() {
               </div>
 
               {/* Desktop Login Button */}
-              <motion.button 
-                onClick={() => setShowLoginPopup(true)}
-                className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-                <span>Đăng nhập</span>
-              </motion.button>
+              {isAuthLoading ? (
+                <div className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 rounded-lg">
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span>...</span>
+                </div>
+              ) : user ? (
+                <motion.button 
+                  onClick={handleLogout}
+                  className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-medium"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16,17 21,12 16,7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  <span>Đăng xuất</span>
+                </motion.button>
+              ) : (
+                <motion.button 
+                  onClick={() => setShowLoginPopup(true)}
+                  className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>Đăng nhập</span>
+                </motion.button>
+              )}
 
               {/* Mobile Menu Button */}
               <motion.button 
@@ -375,21 +435,45 @@ export default function Header() {
 
                 {/* Mobile Login Button */}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <motion.button
-                    onClick={() => {
-                      setShowLoginPopup(true);
-                      closeMobileMenu();
-                    }}
-                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    <span>Đăng nhập</span>
-                  </motion.button>
+                  {isAuthLoading ? (
+                    <div className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gray-200 dark:bg-gray-700 text-gray-500 rounded-lg">
+                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Đang tải...</span>
+                    </div>
+                  ) : user ? (
+                    <motion.button
+                      onClick={() => {
+                        handleLogout();
+                        closeMobileMenu();
+                      }}
+                      className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16,17 21,12 16,7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                      </svg>
+                      <span>Đăng xuất</span>
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      onClick={() => {
+                        setShowLoginPopup(true);
+                        closeMobileMenu();
+                      }}
+                      className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                      <span>Đăng nhập</span>
+                    </motion.button>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -417,6 +501,7 @@ export default function Header() {
       <LoginPopup 
         isOpen={showLoginPopup}
         onClose={() => setShowLoginPopup(false)}
+        onAuthSuccess={checkAuthState}
       />
     </>
   );

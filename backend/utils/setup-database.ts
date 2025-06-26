@@ -1,4 +1,5 @@
-import { supabase } from '../config/supabase';
+import { supabase, TABLES } from '../config/supabase';
+import { AdminService } from '../admin/service';
 
 // Type for setup results
 interface SetupResult {
@@ -9,18 +10,18 @@ interface SetupResult {
 
 /**
  * Quick database setup for development
- * Creates the profiles table and basic setup
+ * Creates the user_profiles table and basic setup
  */
 export async function quickSetupDatabase() {
   console.log('🚀 Starting quick database setup...');
 
   const setupSteps = [
     {
-      name: 'Create profiles table',
+      name: 'Check user_profiles table',
       execute: async () => {
         // Use direct SQL query instead of RPC
         const { data, error } = await supabase
-          .from('profiles')
+          .from(TABLES.PROFILES)
           .select('id')
           .limit(1);
         
@@ -89,35 +90,21 @@ export async function createTestAdmin(email: string = 'admin@test.com', password
       return { success: false, error: 'No user returned' };
     }
 
-    console.log('✅ Admin user created:', authData.user.id);
+    console.log('✅ Admin auth user created:', authData.user.id);
 
-    // 2. Wait a bit for the trigger to create profile
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 2. Create admin profile using AdminService
+    const { success: profileSuccess, error: profileError } = await AdminService.createAdminUser(
+      authData.user.id,
+      authData.user.email || email,
+      'Test Admin'
+    );
 
-    // 3. Update profile to admin role
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ role: 'admin' })
-      .eq('id', authData.user.id);
-
-    if (updateError) {
-      console.warn('⚠️ Could not update profile role:', updateError.message);
-      // Try to insert profile manually
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: authData.user.email || email,
-          role: 'admin'
-        });
-
-      if (insertError) {
-        console.error('❌ Could not insert profile:', insertError.message);
-        return { success: false, error: 'Could not create admin profile' };
-      }
+    if (!profileSuccess || profileError) {
+      console.error('❌ Could not create admin profile:', profileError);
+      return { success: false, error: 'Could not create admin profile' };
     }
 
-    console.log('✅ Admin role assigned');
+    console.log('✅ Admin profile created in user_profiles table');
 
     return {
       success: true,
