@@ -14,6 +14,18 @@ const DEMO_CATEGORIES = [
   { id: 6, name: 'Thể thao', slug: 'the-thao' }
 ];
 
+// Schema types for IQ test project
+const SCHEMA_TYPES = [
+  { value: 'Article', label: 'Article', description: 'Bài viết thông thường' },
+  { value: 'BlogPosting', label: 'Blog Post', description: 'Bài blog về IQ' },
+  { value: 'Quiz', label: 'Quiz', description: 'Bài test IQ/EQ' },
+  { value: 'EducationalOrganization', label: 'Educational', description: 'Tổ chức giáo dục' },
+  { value: 'Course', label: 'Course', description: 'Khóa học IQ' },
+  { value: 'Assessment', label: 'Assessment', description: 'Đánh giá năng lực' },
+  { value: 'WebPage', label: 'Web Page', description: 'Trang web thông thường' },
+  { value: 'FAQPage', label: 'FAQ Page', description: 'Trang câu hỏi thường gặp' }
+];
+
 export default function ArticleEditor() {
   const [formData, setFormData] = useState({
     title: '',
@@ -27,7 +39,11 @@ export default function ArticleEditor() {
     categories: [] as number[],
     tags: [] as string[],
     featured_image: '',
-    is_public: true
+    is_public: true,
+    is_featured: false,
+    schema_type: 'Article',
+    robots_noindex: false,
+    published_date: new Date().toISOString().slice(0, 16)
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -183,25 +199,43 @@ export default function ArticleEditor() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Tạo bài viết mới</h1>
-            <div className="flex items-center gap-3">
-              {saveStatus && <span className="text-sm text-gray-600">{saveStatus}</span>}
+      <div className="bg-gradient-to-br from-purple-600 via-purple-500 to-indigo-600 border-b border-purple-400/40 sticky top-0 z-10 backdrop-blur-sm shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-white to-purple-200 rounded-xl flex items-center justify-center shadow-lg border border-white/20 shrink-0">
+                <span className="text-purple-600 text-base sm:text-lg">✨</span>
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-white drop-shadow-sm truncate">
+                  Tạo bài viết mới
+                </h1>
+                <p className="text-xs sm:text-sm text-purple-100 hidden sm:block">Viết và xuất bản nội dung chất lượng</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {saveStatus && (
+                <span className="text-xs sm:text-sm text-purple-800 bg-white/90 px-2 sm:px-3 py-1 rounded-full font-medium shadow-sm hidden sm:inline">
+                  {saveStatus}
+                </span>
+              )}
               <button
                 onClick={() => handleSave('draft')}
                 disabled={isLoading}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                className="px-3 sm:px-5 py-2 sm:py-2.5 text-purple-600 bg-white/90 hover:bg-white border border-white/30 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-1 sm:gap-2 shadow-lg hover:shadow-white/25 font-medium text-xs sm:text-sm"
               >
-                Lưu nháp
+                <span className="text-xs sm:text-sm">💾</span>
+                <span className="hidden sm:inline">Lưu nháp</span>
+                <span className="sm:hidden">Lưu</span>
               </button>
               <button
                 onClick={() => handleSave('published')}
                 disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                className="px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-1 sm:gap-2 shadow-lg hover:shadow-amber-400/50 font-medium text-xs sm:text-sm"
               >
-                Xuất bản
+                <span className="text-xs sm:text-sm">🚀</span>
+                <span className="hidden sm:inline">Xuất bản</span>
+                <span className="sm:hidden">Đăng</span>
               </button>
             </div>
           </div>
@@ -209,42 +243,37 @@ export default function ArticleEditor() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto py-8">
-        <div className="flex gap-8">
-          {/* Left Column - 70% */}
-          <div className="flex-1 w-0 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Left Column - Content */}
+          <div className="flex-1 lg:w-0 space-y-4 sm:space-y-6">
             {/* Title */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl p-4 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
             >
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleTitleChange(e.target.value)}
                 placeholder="Tiêu đề bài viết..."
-                className="w-full text-2xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent"
+                className="w-full text-xl sm:text-2xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent"
               />
               
               {/* URL Slug */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🔗 URL Slug
-                </label>
-                <div className="flex items-center bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-                  <span className="text-sm text-gray-500 mr-2">yoursite.com/blog/</span>
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 shrink-0">🔗</span>
+                  <span className="text-xs text-gray-400 hidden sm:inline">yoursite.com/</span>
                   <input
                     type="text"
                     value={formData.slug}
                     onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                    placeholder="url-bai-viet"
-                    className="flex-1 bg-transparent border-none outline-none text-sm font-mono text-gray-900 placeholder-gray-400"
+                    placeholder="url-slug"
+                    className="flex-1 text-xs font-mono text-gray-700 bg-transparent border-none outline-none placeholder-gray-400"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  URL được tạo tự động từ tiêu đề, bạn có thể chỉnh sửa
-                </p>
               </div>
             </motion.div>
 
@@ -253,21 +282,18 @@ export default function ArticleEditor() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl p-4 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
             >
               <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Nội dung bài viết</h3>
-                <p className="text-sm text-gray-500">
-                  {seoAnalysis.wordCount} từ • {seoAnalysis.readingTime} phút đọc
-                </p>
+
               </div>
               
               {isClient ? (
                 <React.Suspense fallback={
-                  <div className="border border-gray-300 rounded-lg bg-gray-50 min-h-[500px] flex items-center justify-center">
+                  <div className="border border-gray-300 rounded-lg bg-gray-50 h-64 sm:min-h-[500px] flex items-center justify-center">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                      <p className="text-gray-600">Đang khởi tạo editor...</p>
+                      <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                      <p className="text-gray-600 text-sm">Đang khởi tạo editor...</p>
                     </div>
                   </div>
                 }>
@@ -275,14 +301,14 @@ export default function ArticleEditor() {
                     content={formData.content}
                     onChange={(content) => setFormData(prev => ({ ...prev, content }))}
                     placeholder="Bắt đầu viết bài..."
-                    height="500px"
+                    height="750px"
                   />
                 </React.Suspense>
               ) : (
-                <div className="border border-gray-300 rounded-lg bg-gray-50 min-h-[500px] flex items-center justify-center">
+                <div className="border border-gray-300 rounded-lg bg-gray-50 h-64 sm:min-h-[500px] flex items-center justify-center">
                   <div className="text-center">
-                    <div className="animate-pulse h-8 w-8 bg-blue-300 rounded-full mx-auto mb-3"></div>
-                    <p className="text-gray-600">Chuẩn bị editor...</p>
+                    <div className="animate-pulse h-6 w-6 sm:h-8 sm:w-8 bg-blue-300 rounded-full mx-auto mb-3"></div>
+                    <p className="text-gray-600 text-sm">Chuẩn bị editor...</p>
                   </div>
                 </div>
               )}
@@ -293,7 +319,7 @@ export default function ArticleEditor() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl p-4 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
             >
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tóm tắt
@@ -303,18 +329,18 @@ export default function ArticleEditor() {
                 onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
                 placeholder="Tóm tắt ngắn gọn về bài viết..."
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </motion.div>
           </div>
 
-          {/* Right Sidebar - 30% */}
-          <div className="w-80 space-y-6">
-            {/* Publish Settings */}
+          {/* Right Sidebar */}
+          <div className="w-full lg:w-80 space-y-4 sm:space-y-6">
+            {/* Publish Settings - Order 1 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-xl p-4 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Trạng thái</h3>
               <div className="space-y-4">
@@ -338,21 +364,57 @@ export default function ArticleEditor() {
                 <div className="text-sm text-gray-500">
                   {formData.is_public ? '🌐 Công khai' : '🔒 Riêng tư'}
                 </div>
+                
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Bài nổi bật</span>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        formData.is_featured ? 'bg-amber-500' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          formData.is_featured ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {formData.is_featured ? '⭐ Featured' : '📝 Thường'}
+                </div>
+
+                {/* Date Fields */}
+                <div className="pt-3 border-t border-gray-100 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📅 Ngày xuất bản
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.published_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, published_date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
             </motion.div>
 
-            {/* Categories */}
+            {/* Categories - Order 2 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl p-4 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Danh mục</h3>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {DEMO_CATEGORIES.map(cat => (
                   <div key={cat.id} className="group">
-                    <label className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all duration-200">
+                    <label className="flex items-center p-2 sm:p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all duration-200">
                       <div className="relative">
                         <input
                           type="checkbox"
@@ -416,12 +478,12 @@ export default function ArticleEditor() {
               )}
             </motion.div>
 
-            {/* Tags */}
+            {/* Tags - Order 3 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl p-4 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
               <input
@@ -450,12 +512,12 @@ export default function ArticleEditor() {
               </div>
             </motion.div>
 
-            {/* Featured Image */}
+            {/* Featured Image - Order 4 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl p-4 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Ảnh đại diện</h3>
               <div className="space-y-3">
@@ -491,38 +553,43 @@ export default function ArticleEditor() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-12"
+          className="mt-8 sm:mt-12"
         >
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-              <h2 className="text-xl font-bold text-white flex items-center">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 sm:px-6 py-3 sm:py-4">
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
                 🔍 Cài đặt SEO
               </h2>
-              <p className="text-blue-100 text-sm mt-1">
+              <p className="text-blue-100 text-xs sm:text-sm mt-1">
                 Tối ưu hóa bài viết cho công cụ tìm kiếm
               </p>
             </div>
             
-            <div className="p-6">
-              <div className="flex gap-8">
-                {/* SEO Form - 70% */}
-                <div className="flex-1 w-0 space-y-6">
-
-                                    {/* Google Preview */}
-                                    <div>
-
-                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                      <div className="text-xs text-green-700 mb-1">
+            <div className="p-4 sm:p-5">
+              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+                {/* SEO Form */}
+                <div className="flex-1 lg:w-0 space-y-4 sm:space-y-6">
+                  {/* Google Preview - First */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      🔍 Google Preview
+                    </label>
+                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+                      <div className="text-xs text-green-700 mb-1 break-all">
                         yoursite.com/blog/{formData.slug || 'article-slug'}
                       </div>
-                      <div className="text-blue-600 text-lg font-medium hover:underline cursor-pointer mb-1 leading-tight">
+                      <div className="text-blue-600 text-sm sm:text-lg font-medium hover:underline cursor-pointer mb-1 leading-tight">
                         {formData.meta_title || formData.title || 'Tiêu đề bài viết của bạn'}
                       </div>
-                      <div className="text-gray-700 text-sm leading-relaxed">
+                      <div className="text-gray-700 text-xs sm:text-sm leading-relaxed">
                         {formData.meta_description || formData.excerpt || 'Mô tả ngắn gọn về bài viết sẽ hiển thị ở đây...'}
                       </div>
                     </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Xem trước cách bài viết hiển thị trên Google
+                    </p>
                   </div>
+
                   {/* Focus Keyword */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -533,7 +600,7 @@ export default function ArticleEditor() {
                       value={formData.focus_keyword}
                       onChange={(e) => setFormData(prev => ({ ...prev, focus_keyword: e.target.value }))}
                       placeholder="Nhập từ khóa chính..."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Từ khóa mà bạn muốn bài viết này xếp hạng
@@ -551,7 +618,7 @@ export default function ArticleEditor() {
                       onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
                       placeholder="Tiêu đề hiển thị trên Google..."
                       maxLength={60}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                     <div className={`text-xs mt-1 ${
                       formData.meta_title.length >= 50 && formData.meta_title.length <= 60 ? 'text-green-600' :
@@ -571,8 +638,8 @@ export default function ArticleEditor() {
                       onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
                       placeholder="Mô tả ngắn gọn hiển thị trên Google..."
                       maxLength={160}
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                     <div className={`text-xs mt-1 ${
                       formData.meta_description.length >= 120 && formData.meta_description.length <= 160 ? 'text-green-600' :
@@ -581,31 +648,84 @@ export default function ArticleEditor() {
                       Tối ưu: 120-160 ký tự
                     </div>
                   </div>
-
-
                 </div>
 
-                {/* SEO Score Dashboard - 30% */}
-                <div className="w-80">
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6 border border-blue-200 sticky top-24">
+                {/* SEO Score Dashboard */}
+                <div className="w-full lg:w-80 space-y-4 sm:space-y-6">
+                  {/* Schema & SEO Settings */}
+                  <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                      ⚙️ Schema & SEO
+                    </h3>
+                    
+                    {/* Schema Type */}
+                    <div className="mb-4 sm:mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2 sm:mb-3">
+                        📋 Schema Type
+                      </label>
+                      <select
+                        value={formData.schema_type}
+                        onChange={(e) => setFormData(prev => ({ ...prev, schema_type: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      >
+                        {SCHEMA_TYPES.map(schema => (
+                          <option key={schema.value} value={schema.value}>
+                            {schema.label} - {schema.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Robots Meta */}
+                    <div className="pt-3 sm:pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            🤖 Robots Index
+                          </label>
+                          <p className="text-xs text-gray-500">
+                            {formData.robots_noindex ? 'Không cho phép index' : 'Cho phép index'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setFormData(prev => ({ ...prev, robots_noindex: !prev.robots_noindex }))}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 shrink-0 ${
+                            formData.robots_noindex ? 'bg-red-600' : 'bg-green-600'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              formData.robots_noindex ? 'translate-x-1' : 'translate-x-6'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      <div className="text-sm text-gray-500 mt-2">
+                        {formData.robots_noindex ? '🚫 noindex' : '✅ index'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SEO Score Dashboard */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-4 sm:p-6 border border-blue-200 lg:sticky lg:top-24">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                       📊 SEO Score
                     </h3>
                     
                     {/* Overall Score */}
-                    <div className="text-center mb-6">
-                      <div className={`text-4xl font-bold mb-2 ${
+                    <div className="text-center mb-4 sm:mb-6">
+                      <div className={`text-3xl sm:text-4xl font-bold mb-2 ${
                         seoAnalysis.score >= 80 ? 'text-green-600' :
                         seoAnalysis.score >= 60 ? 'text-yellow-600' : 'text-red-600'
                       }`}>
                         {seoAnalysis.score}
-                        <span className="text-lg text-gray-500">/100</span>
+                        <span className="text-base sm:text-lg text-gray-500">/100</span>
                       </div>
                       
                       {/* Progress bar */}
-                      <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+                      <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 mb-3">
                         <div 
-                          className={`h-3 rounded-full transition-all duration-500 ${
+                          className={`h-2 sm:h-3 rounded-full transition-all duration-500 ${
                             seoAnalysis.score >= 80 ? 'bg-green-500' :
                             seoAnalysis.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                           }`}
@@ -623,13 +743,13 @@ export default function ArticleEditor() {
                     </div>
 
                     {/* Quick Stats */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="text-center bg-white rounded-lg p-3">
-                        <div className="text-xl font-bold text-blue-600">{seoAnalysis.wordCount}</div>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+                      <div className="text-center bg-white rounded-lg p-2 sm:p-3">
+                        <div className="text-lg sm:text-xl font-bold text-blue-600">{seoAnalysis.wordCount}</div>
                         <div className="text-xs text-gray-500">Số từ</div>
                       </div>
-                      <div className="text-center bg-white rounded-lg p-3">
-                        <div className="text-xl font-bold text-green-600">{seoAnalysis.readingTime}</div>
+                      <div className="text-center bg-white rounded-lg p-2 sm:p-3">
+                        <div className="text-lg sm:text-xl font-bold text-green-600">{seoAnalysis.readingTime}</div>
                         <div className="text-xs text-gray-500">Phút đọc</div>
                       </div>
                     </div>
@@ -639,15 +759,15 @@ export default function ArticleEditor() {
                       <h4 className="font-medium text-gray-900 text-sm">Điểm kiểm tra:</h4>
                       {seoAnalysis.checks.map((check, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
+                          <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs shrink-0 ${
                             check.status === 'good' ? 'bg-green-500 text-white' :
                             check.status === 'warning' ? 'bg-yellow-500 text-white' :
                             'bg-red-500 text-white'
                           }`}>
                             {check.status === 'good' ? '✓' : check.status === 'warning' ? '!' : '✗'}
                           </div>
-                          <div className="flex-1">
-                            <div className="text-xs font-medium text-gray-900">{check.name}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-gray-900 truncate">{check.name}</div>
                           </div>
                         </div>
                       ))}
@@ -656,26 +776,26 @@ export default function ArticleEditor() {
                 </div>
               </div>
 
-              {/* SEO Tips */}
-              <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+              {/* SEO Tips - Full Width Below */}
+              <div className="mt-4 sm:mt-6 bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
                 <h4 className="font-medium text-blue-900 mb-2 flex items-center">
                   💡 Tips SEO
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-blue-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm text-blue-800">
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
+                    <span className="text-blue-600 shrink-0">•</span>
                     <span>Sử dụng từ khóa chính trong tiêu đề và nội dung</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
+                    <span className="text-blue-600 shrink-0">•</span>
                     <span>Meta description nên hấp dẫn và có call-to-action</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
+                    <span className="text-blue-600 shrink-0">•</span>
                     <span>URL slug ngắn gọn và chứa từ khóa</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-600">•</span>
+                    <span className="text-blue-600 shrink-0">•</span>
                     <span>Nội dung ít nhất 300 từ để tối ưu SEO</span>
                   </div>
                 </div>
