@@ -14,6 +14,42 @@ const DEMO_CATEGORIES = [
   { id: 6, name: 'Thể thao', slug: 'the-thao' }
 ];
 
+// Demo authors
+const DEMO_AUTHORS = [
+  { 
+    id: 1, 
+    name: 'Nguyễn Minh Tuấn', 
+    email: 'tuan@iqtest.com',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+    role: 'Editor',
+    specialty: 'Psychology & IQ Tests'
+  },
+  { 
+    id: 2, 
+    name: 'Trần Thị Hương', 
+    email: 'huong@iqtest.com',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+    role: 'Content Writer',
+    specialty: 'Educational Content'
+  },
+  { 
+    id: 3, 
+    name: 'Lê Văn Đức', 
+    email: 'duc@iqtest.com',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    role: 'Senior Writer',
+    specialty: 'Cognitive Assessment'
+  },
+  { 
+    id: 4, 
+    name: 'Phạm Thị Lan', 
+    email: 'lan@iqtest.com',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+    role: 'Research Writer',
+    specialty: 'Brain Training & Development'
+  }
+];
+
 // Schema types for IQ test project
 const SCHEMA_TYPES = [
   { value: 'Article', label: 'Article', description: 'Bài viết thông thường' },
@@ -43,7 +79,8 @@ export default function ArticleEditor() {
     is_featured: false,
     schema_type: 'Article',
     robots_noindex: false,
-    published_date: new Date().toISOString().slice(0, 16)
+    published_date: new Date().toISOString().slice(0, 16),
+    author_id: 1
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -575,6 +612,83 @@ export default function ArticleEditor() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-100 my-6"></div>
+
+              {/* Tác giả */}
+              <div>
+                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+                  👤 Tác giả
+                </h4>
+                
+                {/* Current Author Display */}
+                {(() => {
+                  const currentAuthor = DEMO_AUTHORS.find(author => author.id === formData.author_id);
+                  return currentAuthor ? (
+                    <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img
+                            src={currentAuthor.avatar}
+                            alt={currentAuthor.name}
+                            className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-200"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 text-sm truncate">
+                            {currentAuthor.name}
+                          </div>
+                          <div className="text-xs text-blue-600 font-medium">
+                            {currentAuthor.role}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {currentAuthor.specialty}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Author Selection Dropdown */}
+                <div className="relative">
+                  <select
+                    value={formData.author_id}
+                    onChange={(e) => setFormData(prev => ({ ...prev, author_id: parseInt(e.target.value) }))}
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none cursor-pointer hover:border-blue-300 transition-colors"
+                  >
+                    {DEMO_AUTHORS.map(author => (
+                      <option key={author.id} value={author.id}>
+                        {author.name} - {author.role}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    🔄
+                  </div>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Author Quick Stats */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="text-center bg-white rounded-lg p-2 border border-gray-100">
+                    <div className="text-sm font-bold text-blue-600">24</div>
+                    <div className="text-xs text-gray-500">Bài viết</div>
+                  </div>
+                  <div className="text-center bg-white rounded-lg p-2 border border-gray-100">
+                    <div className="text-sm font-bold text-green-600">4.8</div>
+                    <div className="text-xs text-gray-500">Đánh giá</div>
+                  </div>
                 </div>
               </div>
             </motion.div>
