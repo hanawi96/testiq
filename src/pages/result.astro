@@ -1,9 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getLocale } from '../utils/i18n';
+import ResultAnalysis from '../components/ResultAnalysis';
 import LucideIcon from '../components/LucideIcon.astro';
-
-const locale = getLocale('vi');
 
 // Sample result data - in real app this would come from URL params or API
 const resultData = {

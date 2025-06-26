@@ -1,13 +1,12 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getLocale } from '../../utils/i18n';
+import TestLayout from '../../layouts/TestLayout.astro';
 import IQTestWrapper from '../../components/IQTestWrapper';
 import { iqQuestions, testConfig } from '../../data/iqQuestions';
 
 const locale = getLocale('vi');
 ---
 
-<BaseLayout
+<TestLayout
   title={`${testConfig.title} - ${locale.meta.site_name}`}
   description={testConfig.description}
 >
@@ -16,4 +15,4 @@ const locale = getLocale('vi');
     timeLimit={testConfig.timeLimit}
     client:load
   />
-</BaseLayout>
+</TestLayout>

@@ -1,8 +1,33 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getLocale } from '../utils/i18n';
 
-const locale = getLocale('vi');
+const locale = {
+  about: {
+    title: 'Hướng dẫn & Thông tin',
+    intro: 'Hướng dẫn & Thông tin',
+    what_is_iq: {
+      title: 'What is IQ?',
+      content: 'IQ stands for Intelligence Quotient, a measure of a person\'s cognitive abilities relative to the average person of the same age. It is used to identify individuals with superior intellectual abilities, as well as those with lower cognitive abilities.'
+    },
+    how_it_works: {
+      title: 'How it works',
+      content: 'The IQ test is designed to measure various aspects of cognitive ability, including verbal reasoning, quantitative reasoning, and problem-solving skills. The test is typically administered by a trained psychologist or educational professional.'
+    },
+    iq_ranges: {
+      title: 'IQ Ranges',
+      genius: 'Genius',
+      very_superior: 'Very Superior',
+      superior: 'Superior',
+      average: 'Average',
+      below_average: 'Below Average',
+      low: 'Low'
+    },
+    cta: 'Start Test'
+  },
+  meta: {
+    site_name: 'IQ Test'
+  }
+};
 ---
 
 <BaseLayout
@@ -16,7 +41,7 @@ const locale = getLocale('vi');
         <!-- Badge -->
         <div class="inline-flex items-center px-4 py-2 rounded-full bg-primary-100 text-primary-800 text-sm font-medium mb-8">
           <span class="mr-2">📚</span>
-          Hướng dẫn & Thông tin
+          {locale.about.title}
         </div>
         
         <!-- Main heading -->

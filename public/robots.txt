@@ -1,10 +1,24 @@
 User-agent: *
 Allow: /
 
-# Sitemaps
-Sitemap: https://your-domain.com/sitemap.xml
+# Block admin areas
+Disallow: /admin/
+Disallow: /api/
 
-# Crawl-delay for better server performance
+# Block temporary pages
+Disallow: /temp/
+Disallow: /_astro/
+
+# Allow important pages
+Allow: /test
+Allow: /result
+Allow: /blog
+Allow: /about
+
+# Sitemap location
+Sitemap: https://iqtest.yourdomain.com/sitemap-index.xml
+
+# Crawl delay (optional)
 Crawl-delay: 1
 
 # Specific rules for search engines
@@ -15,11 +29,6 @@ Crawl-delay: 1
 User-agent: Bingbot
 Allow: /
 Crawl-delay: 2
-
-# Block access to admin or private areas (if any)
-Disallow: /admin/
-Disallow: /private/
-Disallow: /.well-known/
 
 # Allow access to all CSS, JS, and image files
 Allow: /assets/

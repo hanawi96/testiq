@@ -1,0 +1,92 @@
+---
+import { SEO } from "astro-seo";
+
+export interface Props {
+  title?: string;
+  description?: string;
+  keywords?: string;
+  image?: string;
+  url?: string;
+  type?: 'website' | 'article';
+  locale?: string;
+  siteName?: string;
+  author?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  noindex?: boolean;
+}
+
+const {
+  title = "Test IQ Miễn Phí - Kiểm Tra Chỉ Số Thông Minh",
+  description = "Thử thách trí tuệ với bài test IQ chuẩn quốc tế. 10 câu hỏi, 55 phút, kết quả chi tiết và phân tích chuyên sâu.",
+  keywords = "test iq, kiểm tra thông minh, trí tuệ, iq test việt nam",
+  image = "/og-image.jpg",
+  url = Astro.url.href,
+  type = "website",
+  locale = "vi_VN",
+  siteName = "IQ Test System",
+  author = "IQ Test Team",
+  publishedTime,
+  modifiedTime,
+  noindex = false
+} = Astro.props;
+
+const fullImageUrl = image.startsWith('http') ? image : `${new URL(image, Astro.url).href}`;
+---
+
+<SEO
+  title={title}
+  description={description}
+  canonical={url}
+  noindex={noindex}
+  openGraph={{
+    basic: {
+      title: title,
+      type: type,
+      image: fullImageUrl,
+      url: url
+    },
+    optional: {
+      description: description,
+      locale: locale,
+      siteName: siteName,
+    },
+    ...(type === 'article' && publishedTime && {
+      article: {
+        publishedTime: publishedTime,
+        modifiedTime: modifiedTime,
+        authors: [author],
+        section: "Education",
+        tags: keywords ? keywords.split(', ') : []
+      }
+    })
+  }}
+  twitter={{
+    card: "summary_large_image",
+    site: "@iqtestsystem",
+    creator: "@iqtestsystem",
+    title: title,
+    description: description,
+    image: fullImageUrl,
+    imageAlt: title
+  }}
+  extend={{
+    meta: [
+      { name: "keywords", content: keywords },
+      { name: "author", content: author },
+      { name: "robots", content: noindex ? "noindex,nofollow" : "index,follow" },
+      { name: "viewport", content: "width=device-width, initial-scale=1.0" },
+      { name: "format-detection", content: "telephone=no" },
+      { property: "og:locale", content: locale },
+      { name: "theme-color", content: "#3B82F6" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: siteName }
+    ],
+    link: [
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.json" }
+    ]
+  }}
+/> 

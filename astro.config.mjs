@@ -4,7 +4,7 @@ import sitemap from '@astrojs/sitemap';
 import react from '@astrojs/react';
 
 export default defineConfig({
-  site: 'https://your-domain.com', // Thay đổi domain của bạn
+  site: 'https://iqtest.yourdomain.com', // Thay đổi domain thực của bạn
   integrations: [
     tailwind(),
     sitemap({
@@ -15,6 +15,26 @@ export default defineConfig({
           en: 'en', 
           es: 'es'
         }
+      },
+      filter: (page) => !page.includes('/admin/'),
+      serialize: (item) => {
+        if (item.url.includes('/admin/')) return undefined;
+        
+        if (item.url === 'https://iqtest.yourdomain.com/') {
+          item.priority = 1.0;
+          item.changefreq = 'weekly';
+        } else if (item.url.includes('/test')) {
+          item.priority = 0.9;
+          item.changefreq = 'monthly';
+        } else if (item.url.includes('/blog')) {
+          item.priority = 0.8;
+          item.changefreq = 'weekly';
+        } else {
+          item.priority = 0.7;
+          item.changefreq = 'monthly';
+        }
+        
+        return item;
       }
     }),
     react()
@@ -31,7 +51,15 @@ export default defineConfig({
   },
   vite: {
     build: {
-      cssCodeSplit: false
+      cssCodeSplit: false,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            ui: ['framer-motion', '@toast-ui/react-editor']
+          }
+        }
+      }
     }
   }
 });

@@ -58,5 +58,5 @@ export interface AdminAction {
   description: string;
   icon: string;
   href: string;
-  category: 'management' | 'analytics' | 'system';
+  category: 'management' | 'analytics' | 'system' | 'content';
 } 

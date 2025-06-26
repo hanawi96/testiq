@@ -41,6 +41,14 @@ export class AdminService {
   static getQuickActions(): AdminAction[] {
     return [
       {
+        id: 'create-article',
+        title: 'Đăng bài viết',
+        description: 'Viết bài mới với editor SEO',
+        icon: '📝',
+        href: '/admin/articles/create',
+        category: 'content'
+      },
+      {
         id: 'manage-questions',
         title: 'Quản lý câu hỏi',
         description: 'Thêm, sửa, xóa câu hỏi test',

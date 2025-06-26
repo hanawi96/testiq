@@ -1,9 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getLocale } from '../utils/i18n';
 import LucideIcon from '../components/LucideIcon.astro';
-
-const locale = getLocale('vi');
 
 // Sample leaderboard data
 const leaderboard = [
@@ -30,7 +27,7 @@ const getBadgeInfo = (badge: string) => {
 ---
 
 <BaseLayout
-  title={`Bảng xếp hạng IQ - ${locale.meta.site_name}`}
+  title="Bảng xếp hạng IQ - Đặng Thúy Vi"
   description="Xem bảng xếp hạng những người có điểm IQ cao nhất. So sánh kết quả của bạn với cộng đồng."
 >
   <section class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-20">
