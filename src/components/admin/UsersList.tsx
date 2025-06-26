@@ -11,7 +11,8 @@ export default function UsersList() {
   const [filters, setFilters] = useState<UsersFilters>({
     role: 'all',
     search: '',
-    verified: undefined
+    verified: undefined,
+    user_type: undefined
   });
   const [searchInput, setSearchInput] = useState(''); // Separate search input for debouncing
   const [stats, setStats] = useState<any>(null);
@@ -193,16 +194,29 @@ export default function UsersList() {
   const handleRoleUpdate = async (userId: string, newRole: 'user' | 'admin' | 'mod') => {
     setActionLoading(`role-${userId}`);
     
+    // Optimistic update - update UI ngay lập tức
+    if (usersData) {
+      const updatedUsers = usersData.users.map(user => 
+        user.id === userId ? { ...user, role: newRole } : user
+      );
+      setUsersData({ ...usersData, users: updatedUsers });
+    }
+    
     try {
       const { success, error: updateError } = await UsersService.updateUserRole(userId, newRole);
       
       if (success) {
-        await fetchUsers(currentPage);
+        // Clear cache và fetch stats  
+        cache.current.clear();
         await fetchStats();
       } else {
+        // Revert về role cũ nếu fail
+        await fetchUsers(currentPage);
         setError('Không thể cập nhật role');
       }
     } catch (err) {
+      // Revert về role cũ nếu fail
+      await fetchUsers(currentPage);
       setError('Có lỗi xảy ra khi cập nhật role');
     } finally {
       setActionLoading('');
@@ -213,16 +227,29 @@ export default function UsersList() {
   const handleVerificationToggle = async (userId: string) => {
     setActionLoading(`verify-${userId}`);
     
+    // Optimistic update - update UI ngay lập tức
+    if (usersData) {
+      const updatedUsers = usersData.users.map(user => 
+        user.id === userId ? { ...user, is_verified: !user.is_verified } : user
+      );
+      setUsersData({ ...usersData, users: updatedUsers });
+    }
+    
     try {
       const { success, error: updateError } = await UsersService.toggleUserVerification(userId);
       
       if (success) {
-        await fetchUsers(currentPage);
+        // Clear cache và fetch stats
+        cache.current.clear();
         await fetchStats();
       } else {
+        // Revert về status cũ nếu fail
+        await fetchUsers(currentPage);
         setError('Không thể cập nhật verification');
       }
     } catch (err) {
+      // Revert về status cũ nếu fail
+      await fetchUsers(currentPage);
       setError('Có lỗi xảy ra khi cập nhật verification');
     } finally {
       setActionLoading('');
@@ -288,6 +315,19 @@ export default function UsersList() {
     return styles[role as keyof typeof styles] || styles.user;
   };
 
+  // Get user type badge
+  const getUserTypeBadge = (userType: 'registered' | 'anonymous' | undefined) => {
+    if (userType === 'anonymous') {
+      return 'bg-orange-100 text-orange-700 border-orange-200';
+    }
+    return 'bg-green-100 text-green-700 border-green-200';
+  };
+
+  // Check if user is anonymous
+  const isAnonymousUser = (user: UserWithProfile) => {
+    return user.user_type === 'anonymous';
+  };
+
   if (isLoading && !usersData) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -316,12 +356,16 @@ export default function UsersList() {
               <div className="text-xs text-gray-500">Tổng</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.verified}</div>
-              <div className="text-xs text-gray-500">Đã xác thực</div>
+              <div className="text-2xl font-bold text-green-600">{stats.registered}</div>
+              <div className="text-xs text-gray-500">Đã đăng ký</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-amber-600">{stats.unverified}</div>
-              <div className="text-xs text-gray-500">Chưa xác thực</div>
+              <div className="text-2xl font-bold text-orange-600">{stats.anonymous}</div>
+              <div className="text-xs text-gray-500">Ẩn danh</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{stats.verified}</div>
+              <div className="text-xs text-gray-500">Đã xác thực</div>
             </div>
           </div>
         )}
@@ -329,7 +373,7 @@ export default function UsersList() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
             <div className="relative">
@@ -337,7 +381,7 @@ export default function UsersList() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Tên hoặc email..."
+                placeholder="Tên, email, địa điểm..."
                 className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg outline-none focus:outline-none focus:ring-0 focus:border-gray-300"
                 style={{ textIndent: '6px' }}
               />
@@ -347,6 +391,19 @@ export default function UsersList() {
                 </svg>
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Loại người dùng</label>
+            <select
+              value={filters.user_type || 'all'}
+              onChange={(e) => handleFilterChange({ user_type: e.target.value === 'all' ? undefined : e.target.value as any })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none"
+            >
+              <option value="all">Tất cả</option>
+              <option value="registered">Đã đăng ký</option>
+              <option value="anonymous">Ẩn danh</option>
+            </select>
           </div>
 
           <div>
@@ -360,6 +417,7 @@ export default function UsersList() {
               <option value="admin">Admin</option>
               <option value="mod">Moderator</option>
               <option value="user">User</option>
+              <option value="anonymous">Người chơi chưa đăng ký</option>
             </select>
           </div>
 
@@ -446,59 +504,91 @@ export default function UsersList() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-12 mr-4">
-                          <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
-                            <span className="text-lg font-semibold text-primary-700">
+                          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+                            isAnonymousUser(user) ? 'bg-orange-100' : 'bg-primary-100'
+                          }`}>
+                            <span className={`text-lg font-semibold ${
+                              isAnonymousUser(user) ? 'text-orange-700' : 'text-primary-700'
+                            }`}>
                               {user.full_name.charAt(0).toUpperCase()}
                             </span>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getUserTypeBadge(user.user_type)}`}>
+                              {user.user_type === 'anonymous' ? 'Ẩn danh' : 'Đã đăng ký'}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {isAnonymousUser(user) ? 'Người chơi ẩn danh' : user.email}
+                          </div>
+                          {user.age && (
+                            <div className="text-xs text-gray-400">
+                              Tuổi: {user.age}{user.location && `, ${user.location}`}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
 
                     {/* Role */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleUpdate(user.id, e.target.value as any)}
-                        disabled={actionLoading === `role-${user.id}`}
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border outline-none ${getRoleBadge(user.role)} ${
-                          actionLoading === `role-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                        }`}
-                      >
-                        <option value="user">User</option>
-                        <option value="mod">Mod</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                      {isAnonymousUser(user) ? (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadge(user.role)}`}>
+                          User (Ẩn danh)
+                        </span>
+                      ) : (
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleRoleUpdate(user.id, e.target.value as any)}
+                          disabled={actionLoading === `role-${user.id}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border outline-none ${getRoleBadge(user.role)} ${
+                            actionLoading === `role-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
+                          style={{ transition: 'none' }}
+                        >
+                          <option value="user">User</option>
+                          <option value="mod">Mod</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      )}
                     </td>
 
                     {/* Status */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleVerificationToggle(user.id)}
-                        disabled={actionLoading === `verify-${user.id}`}
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium outline-none ${
-                          user.is_verified
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        } ${actionLoading === `verify-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
-                      >
-                        {actionLoading === `verify-${user.id}` ? (
-                          <div className="w-3 h-3 border border-current border-r-transparent rounded-full animate-spin mr-1"></div>
-                        ) : user.is_verified ? (
+                      {isAnonymousUser(user) ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                           <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                           </svg>
-                        ) : (
-                          <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        {user.is_verified ? 'Đã xác thực' : 'Chưa xác thực'}
-                      </button>
+                          Không áp dụng
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleVerificationToggle(user.id)}
+                          disabled={actionLoading === `verify-${user.id}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium outline-none ${
+                            user.is_verified
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          } ${actionLoading === `verify-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
+                        >
+                          {actionLoading === `verify-${user.id}` ? (
+                            <div className="w-3 h-3 border border-current border-r-transparent rounded-full animate-spin mr-1"></div>
+                          ) : user.is_verified ? (
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {user.is_verified ? 'Đã xác thực' : 'Chưa xác thực'}
+                        </button>
+                      )}
                     </td>
 
                     {/* Join Date */}
@@ -513,14 +603,20 @@ export default function UsersList() {
 
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button 
-                        onClick={(e) => handleDropdownToggle(user.id, e)}
-                        className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 outline-none"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
+                      {isAnonymousUser(user) ? (
+                        <div className="flex justify-end">
+                          <span className="text-xs text-gray-400 italic">Chỉ xem</span>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={(e) => handleDropdownToggle(user.id, e)}
+                          className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 outline-none"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                          </svg>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -12,6 +12,7 @@ export interface UserWithProfile {
   last_login: string | null;
   age?: number;
   location?: string;
+  user_type?: 'registered' | 'anonymous';
 }
 
 export interface UsersListResponse {
@@ -25,9 +26,10 @@ export interface UsersListResponse {
 }
 
 export interface UsersFilters {
-  role?: 'user' | 'admin' | 'mod' | 'all';
+  role?: 'user' | 'admin' | 'mod' | 'all' | 'anonymous';
   search?: string;
   verified?: boolean;
+  user_type?: 'registered' | 'anonymous';
 }
 
 /**
@@ -36,7 +38,7 @@ export interface UsersFilters {
 export class UsersService {
 
   /**
-   * Get paginated users list with filters
+   * Get paginated users list with filters (bao gồm cả anonymous players)
    */
   static async getUsers(
     page: number = 1,
@@ -44,113 +46,106 @@ export class UsersService {
     filters: UsersFilters = {}
   ): Promise<{ data: UsersListResponse | null; error: any }> {
     try {
-      console.log('UsersService: Fetching users', { page, limit, filters });
+      console.log('UsersService: Fetching users (registered + anonymous)', { page, limit, filters });
 
       const offset = (page - 1) * limit;
 
-      // Prepare RPC parameters with detailed logging
+      // Fetch registered users từ RPC function hiện tại
       const rpcParams = {
-        page_limit: limit,
-        page_offset: offset,
+        page_limit: Math.max(limit * 2, 10), // Lấy nhiều hơn để có đủ dữ liệu khi merge
+        page_offset: 0, // Reset offset vì sẽ handle pagination sau khi merge
         role_filter: filters.role === 'all' ? null : filters.role,
         search_term: filters.search || null,
         verified_filter: filters.verified
       };
 
-      console.log('UsersService: RPC parameters:', rpcParams);
       console.log('UsersService: Calling get_users_with_email RPC function...');
+      const [registeredResult, anonymousResult] = await Promise.all([
+        supabase.rpc('get_users_with_email', rpcParams),
+        supabase.from('anonymous_players').select('*').order('created_at', { ascending: false })
+      ]);
 
-
-
-      // Use RPC function to get users with email data
-      const { data: usersData, error: rpcError } = await supabase.rpc('get_users_with_email', rpcParams);
-
-      console.log('UsersService: RPC call completed');
-      console.log('UsersService: RPC returned data:', !!usersData);
-      console.log('UsersService: RPC returned error:', !!rpcError);
+      const { data: registeredUsers, error: rpcError } = registeredResult;
+      const { data: anonymousUsers, error: anonymousError } = anonymousResult;
 
       if (rpcError) {
-        console.error('UsersService: Error fetching users via RPC:', rpcError);
-        console.error('UsersService: RPC Error details:', {
-          code: rpcError.code,
-          message: rpcError.message,
-          details: rpcError.details,
-          hint: rpcError.hint
-        });
-
-        // Additional debug for type mismatch errors
-        if (rpcError.code === '42804') {
-          console.error('UsersService: TYPE MISMATCH ERROR DETECTED');
-          console.error('UsersService: This indicates column type mismatch in RPC function');
-          console.error('UsersService: Check if get_users_with_email_final_fix.sql was run correctly');
-          
-          // Try to get table schema info
-          try {
-            const { data: schemaInfo } = await supabase
-              .from('information_schema.columns')
-              .select('column_name, data_type')
-              .eq('table_name', 'user_profiles')
-              .eq('table_schema', 'public');
-            
-            console.log('UsersService: user_profiles table schema:', schemaInfo);
-          } catch (schemaErr) {
-            console.warn('UsersService: Could not fetch schema info:', schemaErr);
-          }
-        }
-
+        console.error('UsersService: Error fetching registered users:', rpcError);
         return { data: null, error: rpcError };
       }
 
-      if (!usersData || usersData.length === 0) {
-        console.log('UsersService: No users found');
-        return { 
-          data: { 
-            users: [], 
-            total: 0, 
-            page, 
-            limit, 
-            totalPages: 0, 
-            hasNext: false, 
-            hasPrev: false 
-          }, 
-          error: null 
-        };
+      if (anonymousError) {
+        console.error('UsersService: Error fetching anonymous users:', anonymousError);
+        return { data: null, error: anonymousError };
       }
 
-      console.log('UsersService: Processing', usersData.length, 'user records');
-      console.log('UsersService: Sample first record:', usersData[0]);
-      console.log('UsersService: Sample record keys:', Object.keys(usersData[0] || {}));
+      // Transform anonymous players thành UserWithProfile format
+      const transformedAnonymous: UserWithProfile[] = (anonymousUsers || []).map(player => ({
+        id: player.id,
+        email: `anonymous-${player.id.slice(0, 8)}@anonymous.local`, // Email placeholder
+        email_confirmed_at: null,
+        created_at: player.created_at,
+        last_sign_in_at: null,
+        full_name: player.name,
+        role: 'user' as const,
+        is_verified: false,
+        last_login: null,
+        age: player.age,
+        location: player.location,
+        user_type: 'anonymous' as const
+      }));
 
-      // Transform RPC result to UserWithProfile[]
-      const users: UserWithProfile[] = usersData.map((row: any, index: number) => {
-        try {
-          return {
-            id: row.id,
-            email: row.email,
-            email_confirmed_at: row.email_confirmed_at,
-            created_at: row.created_at,
-            last_sign_in_at: row.last_sign_in_at,
-            full_name: row.full_name,
-            role: row.role,
-            is_verified: row.is_verified,
-            last_login: row.last_login,
-            age: row.age,
-            location: row.location
-          };
-        } catch (transformErr) {
-          console.error(`UsersService: Error transforming row ${index}:`, transformErr);
-          console.error(`UsersService: Problematic row data:`, row);
-          throw transformErr;
+      // Transform registered users và thêm user_type
+      const transformedRegistered: UserWithProfile[] = (registeredUsers || []).map((user: any) => ({
+        ...user,
+        user_type: 'registered' as const
+      }));
+
+      // Merge cả 2 lists
+      let allUsers = [...transformedRegistered, ...transformedAnonymous];
+
+      // Apply search filter nếu có
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        allUsers = allUsers.filter(user => 
+          user.full_name.toLowerCase().includes(searchTerm) ||
+          user.email.toLowerCase().includes(searchTerm) ||
+          (user.location && user.location.toLowerCase().includes(searchTerm))
+        );
+      }
+
+      // Apply role filter nếu có
+      if (filters.role && filters.role !== 'all') {
+        if (filters.role === 'anonymous') {
+          allUsers = allUsers.filter(user => user.user_type === 'anonymous');
+        } else {
+          allUsers = allUsers.filter(user => user.role === filters.role && user.user_type === 'registered');
         }
-      });
+      }
 
-      // Get total count from first row (all rows have same total_count)
-      const total = usersData[0]?.total_count || 0;
-      const totalPages = Math.ceil(Number(total) / limit);
+      // Apply verified filter nếu có  
+      if (filters.verified !== undefined) {
+        allUsers = allUsers.filter(user => user.is_verified === filters.verified);
+      }
+
+      // Apply user type filter nếu có
+      if (filters.user_type) {
+        allUsers = allUsers.filter(user => user.user_type === filters.user_type);
+      }
+
+      // Sort by created_at desc
+      allUsers.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // Apply pagination
+      const total = allUsers.length;
+      const startIndex = offset;
+      const endIndex = startIndex + limit;
+      const paginatedUsers = allUsers.slice(startIndex, endIndex);
+
+      const totalPages = Math.ceil(total / limit);
 
       const result: UsersListResponse = {
-        users,
-        total: Number(total),
+        users: paginatedUsers,
+        total,
         page,
         limit,
         totalPages,
@@ -159,25 +154,18 @@ export class UsersService {
       };
 
       console.log('UsersService: Users fetched successfully:', {
-        count: users.length,
-        total: Number(total),
+        registered: transformedRegistered.length,
+        anonymous: transformedAnonymous.length,
+        total,
         page,
-        totalPages
+        totalPages,
+        returned: paginatedUsers.length
       });
 
       return { data: result, error: null };
 
     } catch (err) {
       console.error('UsersService: Unexpected error:', err);
-      console.error('UsersService: Error stack:', err instanceof Error ? err.stack : 'No stack trace');
-      
-      // Additional context for debugging
-      console.error('UsersService: Error occurred during users fetch with params:', {
-        page,
-        limit,
-        filters
-      });
-      
       return { data: null, error: err };
     }
   }
@@ -264,7 +252,7 @@ export class UsersService {
   }
 
   /**
-   * Get user statistics
+   * Get user statistics (bao gồm cả anonymous players)
    */
   static async getUserStats(): Promise<{ 
     data: { 
@@ -274,28 +262,45 @@ export class UsersService {
       users: number; 
       verified: number; 
       unverified: number;
+      registered: number;
+      anonymous: number;
     } | null; 
     error: any 
   }> {
     try {
-      console.log('UsersService: Fetching user statistics');
+      console.log('UsersService: Fetching user statistics (registered + anonymous)');
 
-      const { data, error } = await supabase
-        .from(TABLES.PROFILES)
-        .select('role, is_verified');
+      // Fetch both registered users and anonymous players
+      const [registeredResult, anonymousResult] = await Promise.all([
+        supabase.from(TABLES.PROFILES).select('role, is_verified'),
+        supabase.from('anonymous_players').select('id')
+      ]);
 
-      if (error) {
-        console.error('UsersService: Error fetching stats:', error);
-        return { data: null, error };
+      const { data: registeredData, error: registeredError } = registeredResult;
+      const { data: anonymousData, error: anonymousError } = anonymousResult;
+
+      if (registeredError) {
+        console.error('UsersService: Error fetching registered stats:', registeredError);
+        return { data: null, error: registeredError };
       }
 
+      if (anonymousError) {
+        console.error('UsersService: Error fetching anonymous stats:', anonymousError);
+        return { data: null, error: anonymousError };
+      }
+
+      const registeredCount = registeredData?.length || 0;
+      const anonymousCount = anonymousData?.length || 0;
+
       const stats = {
-        total: data.length,
-        admins: data.filter(u => u.role === 'admin').length,
-        mods: data.filter(u => u.role === 'mod').length,
-        users: data.filter(u => u.role === 'user').length,
-        verified: data.filter(u => u.is_verified).length,
-        unverified: data.filter(u => !u.is_verified).length
+        total: registeredCount + anonymousCount,
+        admins: registeredData?.filter(u => u.role === 'admin').length || 0,
+        mods: registeredData?.filter(u => u.role === 'mod').length || 0,
+        users: (registeredData?.filter(u => u.role === 'user').length || 0) + anonymousCount, // All anonymous are users
+        verified: registeredData?.filter(u => u.is_verified).length || 0,
+        unverified: (registeredData?.filter(u => !u.is_verified).length || 0) + anonymousCount, // All anonymous are unverified
+        registered: registeredCount,
+        anonymous: anonymousCount
       };
 
       console.log('UsersService: Stats fetched:', stats);
