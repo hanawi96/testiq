@@ -1,6 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import EQTestWrapper from '../../components/EQTestWrapper';
+import EQTestWrapper from '../../components/EQTestWrapper.tsx';
+
+// Simple locale function
+const getLocale = (lang: string) => ({
+  meta: {
+    site_name: 'IQ Test Pro'
+  }
+});
 
 const locale = getLocale('vi');
 ---

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserInfo {
@@ -17,11 +17,46 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', age: '', location: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const isFormValid = userInfo.name.trim() && userInfo.age.trim() && userInfo.location.trim();
 
+  // Load user profile when popup opens
+  useEffect(() => {
+    if (isOpen && !isLoadingProfile) {
+      loadUserProfile();
+    }
+  }, [isOpen]);
+
+  const loadUserProfile = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const { AuthService, getUserProfile } = await import('../../../backend');
+      
+      const { user } = await AuthService.getCurrentUser();
+      if (!user) return; // Anonymous user, no profile to load
+
+      console.log('🔄 Loading user profile for auto-fill...');
+      const result = await getUserProfile(user.id);
+      
+      if (result.success && result.data) {
+        const profile = result.data;
+        setUserInfo({
+          name: profile.full_name || '',
+          age: profile.age?.toString() || '',
+          location: profile.location || ''
+        });
+        console.log('✅ Profile loaded and auto-filled');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load user profile:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   // Trigger confetti when popup opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && !hasTriggeredConfetti && onConfettiTrigger) {
       console.log('CongratulationsPopup: triggering confetti on open');
       onConfettiTrigger();
@@ -36,6 +71,24 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
     if (!isFormValid || isAnalyzing) return;
     
     setIsAnalyzing(true);
+    
+    // Update user profile if authenticated
+    try {
+      const { AuthService, updateUserProfile } = await import('../../../backend');
+      const { user } = await AuthService.getCurrentUser();
+      
+      if (user) {
+        console.log('📝 Updating user profile...');
+        await updateUserProfile(user.id, {
+          full_name: userInfo.name,
+          age: parseInt(userInfo.age) || undefined,
+          location: userInfo.location
+        });
+        console.log('✅ User profile updated');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not update user profile:', error);
+    }
     
     // Analyze results for 1.5 seconds then call onComplete
     setTimeout(async () => {
@@ -69,68 +122,78 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
               <p className="text-gray-600">Bạn đã hoàn thành xuất sắc bài test IQ</p>
             </div>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Họ và tên *
-                </label>
-                <input
-                  type="text"
-                  value={userInfo.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  disabled={isAnalyzing}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="Nhập họ tên của bạn"
-                />
+            {isLoadingProfile ? (
+              <div className="flex items-center justify-center py-8">
+                <svg className="w-6 h-6 animate-spin text-primary-600" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
+                </svg>
+                <span className="ml-2 text-gray-600">Đang tải thông tin...</span>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tuổi *
-                </label>
-                <input
-                  type="number"
-                  value={userInfo.age}
-                  onChange={(e) => handleInputChange('age', e.target.value)}
-                  disabled={isAnalyzing}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="Nhập tuổi của bạn"
-                  min="1"
-                  max="120"
-                />
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Họ và tên *
+                  </label>
+                  <input
+                    type="text"
+                    value={userInfo.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    disabled={isAnalyzing}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                      isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                    placeholder="Nhập họ tên của bạn"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tuổi *
+                  </label>
+                  <input
+                    type="number"
+                    value={userInfo.age}
+                    onChange={(e) => handleInputChange('age', e.target.value)}
+                    disabled={isAnalyzing}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                      isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                    placeholder="Nhập tuổi của bạn"
+                    min="1"
+                    max="120"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nơi ở *
+                  </label>
+                  <input
+                    type="text"
+                    value={userInfo.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    disabled={isAnalyzing}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                      isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                    placeholder="Nhập nơi ở của bạn"
+                  />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nơi ở *
-                </label>
-                <input
-                  type="text"
-                  value={userInfo.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  disabled={isAnalyzing}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="Nhập nơi ở của bạn"
-                />
-              </div>
-            </div>
+            )}
             
             <motion.button
               onClick={handleSubmit}
-              disabled={!isFormValid || isAnalyzing}
+              disabled={!isFormValid || isAnalyzing || isLoadingProfile}
               className={`w-full mt-6 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                isFormValid && !isAnalyzing
+                isFormValid && !isAnalyzing && !isLoadingProfile
                   ? 'bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-lg'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
-              whileHover={isFormValid && !isAnalyzing ? { scale: 1.02 } : {}}
-              whileTap={isFormValid && !isAnalyzing ? { scale: 0.98 } : {}}
+              whileHover={isFormValid && !isAnalyzing && !isLoadingProfile ? { scale: 1.02 } : {}}
+              whileTap={isFormValid && !isAnalyzing && !isLoadingProfile ? { scale: 0.98 } : {}}
             >
               {isAnalyzing ? (
                 <div className="flex items-center justify-center">

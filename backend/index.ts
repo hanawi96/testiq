@@ -10,8 +10,8 @@ export { AdminService } from './admin/service';
 export { supabase, supabaseConfig, TABLES } from './config/supabase';
 export { testSupabaseConnection, checkDatabaseSetup } from './utils/test-connection';
 
-// New anonymous players service
-export { saveAnonymousPlayer, checkAnonymousPlayersTable, createAnonymousPlayersTable } from './utils/anonymous-players-service';
+// Test results service (unified approach)
+export { saveTestResult, convertAnonymousPlayerToTestResult } from './utils/user-test-results-service';
 
 // Export types
 export type { UserWithProfile, UsersListResponse, UsersFilters } from './admin/users-service';
@@ -19,4 +19,10 @@ export type { AdminStats, AdminAction } from './types';
 
 // Additional exports
 export { quickSetupDatabase, createTestAdmin } from './utils/setup-database';
-export * from './types'; 
+export * from './types';
+
+// Export new services
+export { getLeaderboard, getRecentTopPerformers } from './utils/leaderboard-service';
+export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-service';
+export { updateUserProfile, getUserProfile } from './utils/user-profile-service';
+export type { UserProfileData } from './utils/user-profile-service'; 

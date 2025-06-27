@@ -1,12 +1,19 @@
 ---
-import TestLayout from '../../layouts/TestLayout.astro';
-import IQTestWrapper from '../../components/IQTestWrapper';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import IQTestWrapper from '../../components/IQTestWrapper.tsx';
 import { iqQuestions, testConfig } from '../../data/iqQuestions';
+
+// Simple locale function
+const getLocale = (lang: string) => ({
+  meta: {
+    site_name: 'IQ Test Pro'
+  }
+});
 
 const locale = getLocale('vi');
 ---
 
-<TestLayout
+<BaseLayout
   title={`${testConfig.title} - ${locale.meta.site_name}`}
   description={testConfig.description}
 >
@@ -15,4 +22,4 @@ const locale = getLocale('vi');
     timeLimit={testConfig.timeLimit}
     client:load
   />
-</TestLayout>
+</BaseLayout>

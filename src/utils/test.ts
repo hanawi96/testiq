@@ -154,17 +154,51 @@ export interface Question {
       console.warn('Cannot save test result to localStorage:', error);
     }
 
-    // Save to Supabase if user info is provided
-    if (result.userInfo) {
-      try {
-        // Dynamic import to avoid build issues
-        const { saveAnonymousPlayer } = await import('../../backend');
+    // Save to Supabase
+    try {
+      // Dynamic import to avoid build issues
+      const { saveTestResult: saveToSupabase, AuthService } = await import('../../backend');
+      
+      // Check if user is authenticated
+      const { user } = await AuthService.getCurrentUser();
+      
+      let testData;
+      
+      if (user) {
+        // Authenticated user - save with user_id
+        console.log('💾 Saving test result for authenticated user:', user.id);
+        testData = {
+          user_id: user.id,
+          test_type: 'iq',
+          score: result.iq, // Use IQ score as the main score
+          accuracy: result.detailed.accuracy,
+          duration_seconds: result.timeSpent,
+          test_data: {
+            score: result.score,
+            iq: result.iq,
+            classification: result.classification,
+            percentile: result.percentile,
+            answers: result.answers,
+            categoryScores: result.categoryScores,
+            detailed: result.detailed
+          }
+          // guest_* fields are null for authenticated users
+        };
+      } else {
+        // Anonymous user - save with guest info if provided
+        if (!result.userInfo) {
+          console.log('⚠️ No user info provided for anonymous test, skipping Supabase save');
+          return;
+        }
         
-        const playerData = {
-          name: result.userInfo.name,
-          age: parseInt(result.userInfo.age) || 0,
-          location: result.userInfo.location,
-          test_result: {
+        console.log('💾 Saving test result for anonymous user');
+        testData = {
+          user_id: null, // Anonymous user
+          test_type: 'iq',
+          score: result.iq, // Use IQ score as the main score
+          accuracy: result.detailed.accuracy,
+          duration_seconds: result.timeSpent,
+          test_data: {
             score: result.score,
             iq: result.iq,
             classification: result.classification,
@@ -173,20 +207,21 @@ export interface Question {
             categoryScores: result.categoryScores,
             detailed: result.detailed
           },
-          test_score: result.iq,
-          test_duration: result.timeSpent
+          guest_name: result.userInfo.name,
+          guest_age: parseInt(result.userInfo.age) || null,
+          guest_location: result.userInfo.location
         };
-
-        const saveResult = await saveAnonymousPlayer(playerData);
-        
-        if (saveResult.success) {
-          console.log('✅ Test result saved to Supabase successfully');
-        } else {
-          console.error('❌ Failed to save to Supabase:', saveResult.error);
-        }
-      } catch (error) {
-        console.error('❌ Error saving to Supabase:', error);
       }
+
+      const saveResult = await saveToSupabase(testData);
+      
+      if (saveResult.success) {
+        console.log('✅ Test result saved to Supabase successfully');
+      } else {
+        console.error('❌ Failed to save to Supabase:', saveResult.error);
+      }
+    } catch (error) {
+      console.error('❌ Error saving to Supabase:', error);
     }
   }
   

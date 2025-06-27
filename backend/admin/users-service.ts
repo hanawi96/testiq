@@ -62,11 +62,17 @@ export class UsersService {
       console.log('UsersService: Calling get_users_with_email RPC function...');
       const [registeredResult, anonymousResult] = await Promise.all([
         supabase.rpc('get_users_with_email', rpcParams),
-        supabase.from('anonymous_players').select('*').order('created_at', { ascending: false })
+        // Query anonymous users from user_test_results where user_id is NULL
+        supabase
+          .from('user_test_results')
+          .select('id, guest_name, guest_age, guest_location, tested_at')
+          .is('user_id', null)
+          .not('guest_name', 'is', null)
+          .order('tested_at', { ascending: false })
       ]);
 
       const { data: registeredUsers, error: rpcError } = registeredResult;
-      const { data: anonymousUsers, error: anonymousError } = anonymousResult;
+      const { data: anonymousTestResults, error: anonymousError } = anonymousResult;
 
       if (rpcError) {
         console.error('UsersService: Error fetching registered users:', rpcError);
@@ -78,19 +84,34 @@ export class UsersService {
         return { data: null, error: anonymousError };
       }
 
-      // Transform anonymous players thành UserWithProfile format
-      const transformedAnonymous: UserWithProfile[] = (anonymousUsers || []).map(player => ({
-        id: player.id,
-        email: `anonymous-${player.id.slice(0, 8)}@anonymous.local`, // Email placeholder
+      // Group anonymous test results by guest info to get unique users
+      const uniqueAnonymousUsers = new Map();
+      (anonymousTestResults || []).forEach(result => {
+        const key = `${result.guest_name}-${result.guest_age}-${result.guest_location}`;
+        if (!uniqueAnonymousUsers.has(key)) {
+          uniqueAnonymousUsers.set(key, {
+            id: result.id,
+            name: result.guest_name,
+            age: result.guest_age,
+            location: result.guest_location,
+            created_at: result.tested_at
+          });
+        }
+      });
+
+      // Transform anonymous users thành UserWithProfile format
+      const transformedAnonymous: UserWithProfile[] = Array.from(uniqueAnonymousUsers.values()).map(user => ({
+        id: user.id,
+        email: `anonymous-${user.id.slice(0, 8)}@anonymous.local`, // Email placeholder
         email_confirmed_at: null,
-        created_at: player.created_at,
+        created_at: user.created_at,
         last_sign_in_at: null,
-        full_name: player.name,
+        full_name: user.name,
         role: 'user' as const,
         is_verified: false,
         last_login: null,
-        age: player.age,
-        location: player.location,
+        age: user.age,
+        location: user.location,
         user_type: 'anonymous' as const
       }));
 
@@ -270,14 +291,19 @@ export class UsersService {
     try {
       console.log('UsersService: Fetching user statistics (registered + anonymous)');
 
-      // Fetch both registered users and anonymous players
+      // Fetch both registered users and anonymous test results
       const [registeredResult, anonymousResult] = await Promise.all([
         supabase.from(TABLES.PROFILES).select('role, is_verified'),
-        supabase.from('anonymous_players').select('id')
+        // Count unique anonymous users from user_test_results
+        supabase
+          .from('user_test_results')
+          .select('guest_name, guest_age, guest_location')
+          .is('user_id', null)
+          .not('guest_name', 'is', null)
       ]);
 
       const { data: registeredData, error: registeredError } = registeredResult;
-      const { data: anonymousData, error: anonymousError } = anonymousResult;
+      const { data: anonymousTestResults, error: anonymousError } = anonymousResult;
 
       if (registeredError) {
         console.error('UsersService: Error fetching registered stats:', registeredError);
@@ -290,7 +316,14 @@ export class UsersService {
       }
 
       const registeredCount = registeredData?.length || 0;
-      const anonymousCount = anonymousData?.length || 0;
+      
+      // Count unique anonymous users
+      const uniqueAnonymousUsers = new Set();
+      (anonymousTestResults || []).forEach(result => {
+        const key = `${result.guest_name}-${result.guest_age}-${result.guest_location}`;
+        uniqueAnonymousUsers.add(key);
+      });
+      const anonymousCount = uniqueAnonymousUsers.size;
 
       const stats = {
         total: registeredCount + anonymousCount,
