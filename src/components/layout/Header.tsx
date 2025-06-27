@@ -7,6 +7,7 @@ export default function Header() {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState({ code: 'VI', name: 'Tiếng Việt', flag: '🇻🇳' });
   
@@ -63,6 +64,20 @@ export default function Header() {
     checkAuthState();
   }, []);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.user-dropdown') && !target.closest('.language-dropdown')) {
+        setShowUserDropdown(false);
+        setShowLanguageDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const checkAuthState = async () => {
     try {
       console.log('Header: Checking auth state...');
@@ -86,6 +101,7 @@ export default function Header() {
     try {
       await AuthService.signOut();
       setUser(null);
+      setShowUserDropdown(false);
       window.location.reload(); // Refresh to clear any cached data
     } catch (err) {
       console.error('Header: Logout error:', err);
@@ -111,6 +127,52 @@ export default function Header() {
   const closeMobileMenu = () => {
     setShowMobileMenu(false);
   };
+
+  // Extract username from email
+  const getUsername = (email: string) => {
+    return email.split('@')[0];
+  };
+
+  // User dropdown menu items
+  const userMenuItems = [
+    {
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+      label: 'Thông tin cá nhân',
+      href: '/profile'
+    },
+    {
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      label: 'Lịch sử test IQ',
+      href: '/history'
+    },
+    {
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      label: 'Nâng cấp tài khoản',
+      href: '/upgrade',
+      highlight: true
+    },
+    {
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      label: 'Hỗ trợ',
+      href: '/support'
+    }
+  ];
 
   return (
     <>
@@ -282,26 +344,110 @@ export default function Header() {
                 </AnimatePresence>
               </div>
 
-              {/* Desktop Login Button */}
+              {/* Auth Buttons */}
               {isAuthLoading ? (
                 <div className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 rounded-lg">
                   <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                   <span>...</span>
                 </div>
               ) : user ? (
-                <motion.button 
-                  onClick={handleLogout}
-                  className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-medium"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16,17 21,12 16,7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                  <span>Đăng xuất</span>
-                </motion.button>
+                <div className="hidden lg:flex items-center relative user-dropdown">
+                  <motion.button
+                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                    className="flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50 transition-all duration-300 font-medium"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                      {user.email ? getUsername(user.email).charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <span className="text-sm font-medium">
+                      {user.email ? getUsername(user.email) : 'User'}
+                    </span>
+                    <motion.svg 
+                      className="w-4 h-4" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                      animate={{ rotate: showUserDropdown ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </motion.svg>
+                  </motion.button>
+
+                  {/* User Dropdown */}
+                  <AnimatePresence>
+                    {showUserDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+                      >
+                        {/* User Info Header */}
+                        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-b border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                              {user.email ? getUsername(user.email).charAt(0).toUpperCase() : 'U'}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                                {user.email ? getUsername(user.email) : 'User'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Menu Items */}
+                        <div className="py-2">
+                          {userMenuItems.map((item, index) => (
+                            <motion.a
+                              key={item.label}
+                              href={item.href}
+                              className={`flex items-center px-4 py-3 text-sm transition-all duration-200 ${
+                                item.highlight 
+                                  ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20' 
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                              }`}
+                              whileHover={{ x: 4 }}
+                              onClick={() => setShowUserDropdown(false)}
+                            >
+                              <span className={`mr-3 ${item.highlight ? 'text-amber-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                                {item.icon}
+                              </span>
+                              {item.label}
+                              {item.highlight && (
+                                <span className="ml-auto text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full">
+                                  Pro
+                                </span>
+                              )}
+                            </motion.a>
+                          ))}
+                          
+                          {/* Separator */}
+                          <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
+                          
+                          {/* Logout Button */}
+                          <motion.button
+                            onClick={handleLogout}
+                            className="flex items-center w-full px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+                            whileHover={{ x: 4 }}
+                          >
+                            <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Đăng xuất
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               ) : (
                 <motion.button 
                   onClick={() => setShowLoginPopup(true)}
@@ -441,22 +587,66 @@ export default function Header() {
                       <span>Đang tải...</span>
                     </div>
                   ) : user ? (
-                    <motion.button
-                      onClick={() => {
-                        handleLogout();
-                        closeMobileMenu();
-                      }}
-                      className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-medium"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16,17 21,12 16,7"/>
-                        <line x1="21" y1="12" x2="9" y2="12"/>
-                      </svg>
-                      <span>Đăng xuất</span>
-                    </motion.button>
+                    <div className="space-y-3">
+                      {/* User Info */}
+                      <div className="flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {user.email ? getUsername(user.email).charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                            {user.email ? getUsername(user.email) : 'User'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Mobile Menu Items */}
+                      <div className="space-y-1">
+                        {userMenuItems.map((item) => (
+                          <motion.a
+                            key={item.label}
+                            href={item.href}
+                            className={`flex items-center px-4 py-3 rounded-lg text-sm transition-all duration-200 ${
+                              item.highlight 
+                                ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' 
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                            onClick={closeMobileMenu}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <span className={`mr-3 ${item.highlight ? 'text-amber-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                              {item.icon}
+                            </span>
+                            {item.label}
+                            {item.highlight && (
+                              <span className="ml-auto text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full">
+                                Pro
+                              </span>
+                            )}
+                          </motion.a>
+                        ))}
+                        
+                        {/* Mobile Logout Button */}
+                        <motion.button
+                          onClick={() => {
+                            handleLogout();
+                            closeMobileMenu();
+                          }}
+                          className="w-full flex items-center px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Đăng xuất
+                        </motion.button>
+                      </div>
+                    </div>
                   ) : (
                     <motion.button
                       onClick={() => {
@@ -483,7 +673,7 @@ export default function Header() {
 
       {/* Backdrop for dropdowns */}
       <AnimatePresence>
-        {(showLanguageDropdown || showMobileMenu) && (
+        {(showLanguageDropdown || showMobileMenu || showUserDropdown) && (
           <motion.div
             className="fixed inset-0 z-40"
             initial={{ opacity: 0 }}
@@ -492,6 +682,7 @@ export default function Header() {
             onClick={() => {
               setShowLanguageDropdown(false);
               setShowMobileMenu(false);
+              setShowUserDropdown(false);
             }}
           />
         )}
