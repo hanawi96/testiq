@@ -273,80 +273,49 @@ export interface Question {
     }
   }
 
-  // Get real user test history from both localStorage and Supabase
+  // Get real user test history - Smart source selection
   export async function getUserRealTestHistory(): Promise<TestResult[]> {
-    const allResults: TestResult[] = [];
-    
     try {
-      // Get from Supabase first (more comprehensive)
       const { AuthService, getUserTestResults } = await import('../../backend');
       const { user } = await AuthService.getCurrentUser();
       
       if (user) {
-        console.log('📊 Fetching test history from Supabase for user:', user.id);
+        // Authenticated user → Database only
+        console.log('🔐 Authenticated user → Fetching from Database');
         const supabaseResults = await getUserTestResults({ 
           user_id: user.id, 
           test_type: 'iq',
-          limit: 100 // Increase limit to get more data
+          limit: 100
         });
         
         if (supabaseResults.success && supabaseResults.data) {
-          console.log('📊 Found', supabaseResults.data.length, 'test results in Supabase');
-          
-          // Convert Supabase format to TestResult format
-          const convertedResults = supabaseResults.data.map((item: any) => ({
+          const results = supabaseResults.data.map((item: any) => ({
             score: item.test_data?.score || 0,
-            iq: item.score, // Main score is IQ in Supabase
+            iq: item.score,
             classification: item.test_data?.classification || 'average',
             percentile: item.test_data?.percentile || 50,
             answers: item.test_data?.answers || [],
             timeSpent: item.duration_seconds || 0,
+            duration_seconds: item.duration_seconds || 0,
             categoryScores: item.test_data?.categoryScores || {},
             detailed: item.test_data?.detailed || { correct: 0, incorrect: 0, accuracy: 0 },
             timestamp: new Date(item.tested_at).getTime()
           }));
           
-          allResults.push(...convertedResults);
+          console.log('✅ Database:', results.length, 'tests loaded');
+          return results.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         }
+        return [];
       } else {
-        console.log('📊 No authenticated user, checking localStorage only');
+        // Anonymous user → LocalStorage only
+        console.log('👤 Anonymous user → Fetching from LocalStorage');
+        const localResults = getTestHistory();
+        console.log('✅ LocalStorage:', localResults.length, 'tests loaded');
+        return localResults.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
       }
-      
-      // Get from localStorage and merge (avoiding duplicates)
-      const localResults = getTestHistory();
-      if (localResults.length > 0) {
-        console.log('📊 Found', localResults.length, 'test results in localStorage');
-        
-        // Create a Set of existing timestamps to avoid duplicates
-        const existingTimestamps = new Set(allResults.map(r => r.timestamp));
-        
-        // Add only new results from localStorage
-        const newLocalResults = localResults.filter(r => 
-          !r.timestamp || !existingTimestamps.has(r.timestamp)
-        );
-        
-        allResults.push(...newLocalResults);
-        console.log('📊 Added', newLocalResults.length, 'new results from localStorage');
-      }
-      
-      // Sort by timestamp (newest first) and ensure no duplicates
-      const uniqueResults = allResults
-        .filter((result, index, self) => {
-          // If no timestamp, keep it
-          if (!result.timestamp) return true;
-          // Otherwise, keep only the first occurrence of each timestamp
-          return index === self.findIndex(r => r.timestamp === result.timestamp);
-        })
-        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      
-      console.log(`📊 Final result: ${uniqueResults.length} total test results in history`);
-      return uniqueResults;
       
     } catch (error) {
-      console.warn('⚠️ Error loading test history:', error);
-      // Fallback to localStorage only
-      const fallbackResults = getTestHistory().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      console.log(`📊 Fallback: ${fallbackResults.length} results from localStorage only`);
-      return fallbackResults;
+      console.warn('⚠️ Error loading test history, fallback to localStorage');
+      return getTestHistory().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     }
   }

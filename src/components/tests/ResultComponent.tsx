@@ -57,13 +57,17 @@ interface TestHistoryItem {
   isCurrent?: boolean;
 }
 
+// Smart time converter - handles Database vs LocalStorage formats
+const getTimeInMinutes = (testData: any): number => {
+  // Database: duration_seconds | LocalStorage: timeSpent
+  const seconds = testData?.duration_seconds || testData?.timeSpent || 0;
+  return seconds > 0 ? Math.round(seconds / 60) : 0;
+};
+
 // Convert real test history to timeline format
-const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultData): TestHistoryItem[] => {
-  console.log('🔄 Converting history to timeline. Input:', realHistory.length, 'items');
-  
+// realHistory: Database data (authenticated) OR LocalStorage data (anonymous) 
+const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultData, limit?: number): TestHistoryItem[] => {
   if (!realHistory || realHistory.length === 0) {
-    // No history - this is first test
-    console.log('✅ First time user - showing welcome message');
     return [{
       id: Date.now(),
       date: new Date().toLocaleDateString('vi-VN'),
@@ -76,21 +80,19 @@ const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultD
     }];
   }
 
-  // Smart duplicate filtering - only remove if exact same score and very recent time
-  const filteredHistory = realHistory.filter(test => {
-    if (!test.timestamp) return true;
-    const timeDiff = Math.abs(Date.now() - new Date(test.timestamp).getTime());
-    const sameScore = test.iq === currentResult.score;
-    // Only filter if same score AND within 2 minutes (just completed)
-    return !(sameScore && timeDiff < 2 * 60 * 1000);
-  });
-
-  console.log('📊 After filtering:', filteredHistory.length, 'items');
+  // Filter duplicates + apply limit
+  const filteredHistory = realHistory
+    .filter(test => {
+      if (!test.timestamp) return true;
+      const timeDiff = Math.abs(Date.now() - new Date(test.timestamp).getTime());
+      return !(test.iq === currentResult.score && timeDiff < 2 * 60 * 1000);
+    })
+    .slice(0, limit ? limit - 1 : undefined); // -1 for current test
 
   const timeline: TestHistoryItem[] = [];
   
-  // Current test (always first)
-  const currentTest = {
+  // Current test
+  timeline.push({
     id: Date.now(),
     date: new Date().toLocaleDateString('vi-VN'),
     score: currentResult.score,
@@ -99,24 +101,22 @@ const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultD
     improvement: filteredHistory.length > 0 ? currentResult.score - filteredHistory[0].iq : 0,
     isFirst: false,
     isCurrent: true
-  };
-  timeline.push(currentTest);
+  });
 
-  // Add all history tests (no arbitrary limit)
+  // History tests
   filteredHistory.forEach((test, index) => {
     timeline.push({
       id: test.timestamp || (Date.now() - (index + 1) * 1000),
       date: test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
       score: test.iq,
       percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
-      timeTaken: Math.round((test.timeSpent || 0) / 60),
+      timeTaken: getTimeInMinutes(test),
       improvement: index < filteredHistory.length - 1 ? test.iq - filteredHistory[index + 1].iq : 0,
       isFirst: index === filteredHistory.length - 1,
       isCurrent: false
     });
   });
 
-  console.log('✅ Timeline created:', timeline.length, 'items (1 current + ' + filteredHistory.length + ' history)');
   return timeline;
 };
 
@@ -231,13 +231,8 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   }, []);
   
   // Convert real history to timeline format
-  const testHistory = convertRealHistoryToTimeline(realTestHistory, results);
-  
-  // Debug log timeline
-  useEffect(() => {
-    console.log('📊 Timeline generated:', testHistory.length, 'items');
-    console.log('📊 Timeline data:', testHistory);
-  }, [testHistory]);
+  const testHistory = convertRealHistoryToTimeline(realTestHistory, results, 10); // Show 10 recent
+  const allTestHistory = convertRealHistoryToTimeline(realTestHistory, results); // All for modal
   
   useEffect(() => {
     const timer = setTimeout(() => setAnimationComplete(true), 1000);
@@ -254,7 +249,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         )}
         {!isLoadingHistory && testHistory.length > 1 && (
           <span className="ml-2 text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-            {testHistory.length} bài test
+            {realTestHistory.length > 9 ? `${testHistory.length}/${realTestHistory.length + 1}` : testHistory.length} bài test
           </span>
         )}
       </h3>
@@ -371,14 +366,17 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
             </motion.div>
           ))}
           
-          {/* Show "View All" if there are many tests */}
-          {testHistory.length > 5 && (
+          {/* Show "View All" if there are more than 10 tests */}
+          {realTestHistory.length > 9 && (
             <div className="mt-4 text-center">
+              <div className="text-xs text-gray-500 mb-2">
+                Hiển thị 10 bài test gần nhất • Còn {realTestHistory.length - 9} bài test nữa
+              </div>
               <button 
                 onClick={() => setShowAllTestsModal(true)}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
               >
-                Xem chi tiết tất cả {testHistory.length} bài test
+                Xem tất cả {realTestHistory.length + 1} bài test
               </button>
             </div>
           )}
@@ -688,8 +686,8 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   };
 
   const AllTestsModal = () => {
-    // Use processed timeline data for consistency
-    const allTests = testHistory.map((test, index) => ({
+    // Use all test history data for modal
+    const allTests = allTestHistory.map((test, index) => ({
       ...test,
       accuracy: test.isCurrent ? Math.round(results.completionRate * 100) : 
                 Math.round(70 + (test.score - 70) * 0.8) // Estimate accuracy from score
@@ -820,7 +818,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                       <div className="text-xs text-gray-500">Chính xác</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-orange-600">{test.timeTaken}m</div>
+                      <div className="text-lg font-semibold text-orange-600">
+                        {test.timeTaken > 0 ? `${test.timeTaken}m` : '—'}
+                      </div>
                       <div className="text-xs text-gray-500">Thời gian</div>
                     </div>
                     <div className="text-center">
