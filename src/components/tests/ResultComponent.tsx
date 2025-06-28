@@ -457,39 +457,68 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     </div>
   );
 
-  const PersonalProfile = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <div className="flex items-center space-x-4">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-          {results.score}
-        </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900">Kết quả của bạn</h3>
-          <p className="text-sm text-gray-600">{new Date().toLocaleDateString('vi-VN')}</p>
-          <div className="flex items-center space-x-4 mt-2">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
-              {iqLevel.icon} {iqLevel.level}
-            </span>
-            <span className="text-xs text-gray-500">Vượt {results.percentile}% dân số</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // Get user info for personalization
+  const [userInfo, setUserInfo] = useState<{name: string, age: string, location: string} | null>(null);
+  
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        // Try to get anonymous user info from localStorage first
+        const { getAnonymousUserInfo } = await import('../../utils/test');
+        const anonymousInfo = getAnonymousUserInfo();
+        if (anonymousInfo) {
+          setUserInfo(anonymousInfo);
+        } else {
+          // Fallback to basic info
+          setUserInfo({ name: 'Bạn', age: '', location: '' });
+        }
+      } catch (error) {
+        console.warn('Could not load user info:', error);
+        setUserInfo({ name: 'Bạn', age: '', location: '' });
+      }
+    };
+    
+    loadUserInfo();
+  }, []);
 
-  const HeroSection = () => (
+    const HeroSection = () => (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10"></div>
       <div className="relative z-10">
+        {/* Personalized greeting */}
+        {userInfo && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-4"
+          >
+            <h1 className="text-xl font-bold text-gray-800 mb-1">
+              🎉 Chúc mừng {userInfo.name}!
+            </h1>
+            {userInfo.age && userInfo.location && (
+              <p className="text-sm text-gray-600">
+                {userInfo.age} tuổi • {userInfo.location}
+              </p>
+            )}
+          </motion.div>
+        )}
+
         <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.8, type: "spring" }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.8, type: "spring" }}
           className="text-7xl font-bold text-gray-900 mb-4"
-              >
-                {results.score}
+        >
+          {results.score}
         </motion.div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Chỉ số IQ của bạn</h1>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Chỉ số IQ của bạn</h2>
+        <div className="flex items-center justify-center space-x-4 mb-4">
+          <span className={`px-3 py-1 rounded-full text-sm font-medium bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
+            {iqLevel.icon} {iqLevel.level}
+          </span>
+          <span className="text-sm text-gray-600">Vượt {results.percentile}% dân số</span>
+        </div>
         <p className="text-gray-600 mb-6">
           Bạn thông minh hơn <span className="font-bold text-blue-600">{results.percentile}%</span> dân số thế giới
         </p>
@@ -878,12 +907,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="space-y-8">
-          {/* Personal Profile */}
-          <PersonalProfile />
-          
           {/* Hero Section */}
           <HeroSection />
           
