@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProfileComponent from '../components/ProfileComponent.tsx';
+---
+
+<BaseLayout 
+  title="Profile - Astro IQ Test"
+  description="Xem thông tin profile và lịch sử bài test IQ của bạn"
+>
+  <ProfileComponent client:load />
+</BaseLayout> 

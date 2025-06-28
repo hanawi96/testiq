@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SEO from '../components/SEO.astro';
+import TestHistoryComponent from '../components/TestHistoryComponent.tsx';
+---
+
+<BaseLayout>
+  <SEO 
+    title="Lịch sử Test IQ - Theo dõi tiến bộ trí tuệ"
+    description="Xem lại tất cả các bài test IQ đã làm, theo dõi điểm số và sự tiến bộ qua thời gian. Phân tích chi tiết kết quả và xu hướng phát triển trí tuệ."
+    canonical={Astro.url.href}
+    slot="head"
+  />
+  
+  <TestHistoryComponent client:load />
+</BaseLayout> 

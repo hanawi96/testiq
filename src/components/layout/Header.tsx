@@ -133,6 +133,33 @@ export default function Header() {
     return email.split('@')[0];
   };
 
+  // Get anonymous user info
+  const getAnonymousUserInfo = () => {
+    try {
+      const userInfo = localStorage.getItem('anonymous-user-info');
+      return userInfo ? JSON.parse(userInfo) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Generate avatar colors (same as ProfileComponent)
+  const generateAvatarColor = (name: string): string => {
+    const colors = [
+      'from-blue-500 to-indigo-600',
+      'from-green-500 to-emerald-600', 
+      'from-purple-500 to-violet-600',
+      'from-pink-500 to-rose-600',
+      'from-orange-500 to-red-600',
+      'from-teal-500 to-cyan-600',
+      'from-yellow-500 to-amber-600',
+      'from-gray-500 to-slate-600'
+    ];
+    
+    const nameHash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[nameHash % colors.length];
+  };
+
   // User dropdown menu items
   const userMenuItems = [
     {
@@ -144,7 +171,15 @@ export default function Header() {
       label: 'Thông tin cá nhân',
       href: '/profile'
     },
-
+    {
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      label: 'Lịch sử test IQ',
+      href: '/test-history'
+    },
     {
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -342,7 +377,7 @@ export default function Header() {
                   <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                   <span>...</span>
                 </div>
-              ) : user ? (
+              ) : user || getAnonymousUserInfo() ? (
                 <div className="hidden lg:flex items-center relative user-dropdown">
                   <motion.button
                     onClick={() => setShowUserDropdown(!showUserDropdown)}
@@ -350,12 +385,23 @@ export default function Header() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                      {user.email ? getUsername(user.email).charAt(0).toUpperCase() : 'U'}
-                    </div>
-                    <span className="text-sm font-medium">
-                      {user.email ? getUsername(user.email) : 'User'}
-                    </span>
+                    {(() => {
+                      const anonymousUser = getAnonymousUserInfo();
+                      const displayName = user?.email ? getUsername(user.email) : (anonymousUser?.name || 'Người dùng');
+                      const avatarLetter = displayName.charAt(0).toUpperCase();
+                      const avatarColor = generateAvatarColor(displayName);
+                      
+                      return (
+                        <>
+                          <div className={`w-8 h-8 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
+                            {avatarLetter}
+                          </div>
+                          <span className="text-sm font-medium">
+                            {displayName}
+                          </span>
+                        </>
+                      );
+                    })()}
                     <motion.svg 
                       className="w-4 h-4" 
                       fill="none" 
@@ -381,17 +427,28 @@ export default function Header() {
                         {/* User Info Header */}
                         <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-b border-gray-200 dark:border-gray-700">
                           <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                              {user.email ? getUsername(user.email).charAt(0).toUpperCase() : 'U'}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                                {user.email ? getUsername(user.email) : 'User'}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {user.email}
-                              </p>
-                            </div>
+                            {(() => {
+                              const anonymousUser = getAnonymousUserInfo();
+                              const displayName = user?.email ? getUsername(user.email) : (anonymousUser?.name || 'Người dùng');
+                              const avatarLetter = displayName.charAt(0).toUpperCase();
+                              const avatarColor = generateAvatarColor(displayName);
+                              
+                              return (
+                                <>
+                                  <div className={`w-10 h-10 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold`}>
+                                    {avatarLetter}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                                      {displayName}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {user?.email || (anonymousUser ? `${anonymousUser.age} tuổi, ${anonymousUser.location}` : 'Người dùng ẩn danh')}
+                                    </p>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -424,16 +481,26 @@ export default function Header() {
                           {/* Separator */}
                           <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
                           
-                          {/* Logout Button */}
+                          {/* Logout/Clear Data Button */}
                           <motion.button
-                            onClick={handleLogout}
+                            onClick={() => {
+                              if (user) {
+                                handleLogout();
+                              } else {
+                                // Clear anonymous user data
+                                localStorage.removeItem('anonymous-user-info');
+                                localStorage.removeItem('iq-test-history');
+                                setShowUserDropdown(false);
+                                window.location.reload();
+                              }
+                            }}
                             className="flex items-center w-full px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
                             whileHover={{ x: 4 }}
                           >
                             <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
-                            Đăng xuất
+                            {user ? 'Đăng xuất' : 'Xóa dữ liệu'}
                           </motion.button>
                         </div>
                       </motion.div>

@@ -216,51 +216,49 @@ const getIQLevel = (score: number) => {
 
 export default function ResultComponent({ results, onRetake, onHome }: ResultComponentProps) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [animationComplete, setAnimationComplete] = useState(false);
   const [realTestHistory, setRealTestHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showAllTestsModal, setShowAllTestsModal] = useState(false);
+  const [userInfo, setUserInfo] = useState<{name: string, age: string, location: string}>({ 
+    name: 'Bạn', age: '', location: '' 
+  });
   
   const skills = getSkillAnalysis(results);
   const careers = getCareerSuggestions(results.score);
   const iqLevel = getIQLevel(results.score);
   
-  // Load real test history on mount
+  // Single useEffect for all data loading
   useEffect(() => {
-    const loadTestHistory = async () => {
+    const loadAllData = async () => {
       try {
-        const { getUserRealTestHistory } = await import('../../utils/test');
-        const history = await getUserRealTestHistory();
-        setRealTestHistory(history);
-        console.log('📊 Loaded real test history:', history.length, 'tests');
+        // Load user info and test history in parallel
+        const [testUtils] = await Promise.all([
+          import('../../utils/test')
+        ]);
         
-        // Debug each test's time data
-        history.forEach((test, index) => {
-          console.log(`📊 Test ${index + 1} time data:`, {
-            iq: test.iq,
-            timeSpent: test.timeSpent,
-            timestamp: test.timestamp
-          });
-        });
+        const [history, anonymousInfo] = await Promise.all([
+          testUtils.getUserRealTestHistory(),
+          Promise.resolve(testUtils.getAnonymousUserInfo())
+        ]);
+        
+        setRealTestHistory(history);
+        if (anonymousInfo) {
+          setUserInfo(anonymousInfo);
+        }
       } catch (error) {
-        console.warn('⚠️ Error loading test history:', error);
+        console.warn('⚠️ Error loading data:', error);
         setRealTestHistory([]);
       } finally {
         setIsLoadingHistory(false);
       }
     };
     
-    loadTestHistory();
+    loadAllData();
   }, []);
   
   // Convert real history to timeline format
-  const testHistory = convertRealHistoryToTimeline(realTestHistory, results, 10); // Show 10 recent
-  const allTestHistory = convertRealHistoryToTimeline(realTestHistory, results); // All for modal
-  
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimationComplete(true), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+  const testHistory = convertRealHistoryToTimeline(realTestHistory, results, 10);
+  const allTestHistory = convertRealHistoryToTimeline(realTestHistory, results);
 
   const TestHistory = () => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -377,9 +375,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                       {test.timeTaken > 0 ? formatTimeDisplay(test.timeTaken) : 
                        test.isCurrent ? formatTimeDisplay(results.timeTaken) : 
                        '—'}
-                    </div>
-                    <div className="text-xs text-gray-500">Thời gian</div>
-                  </div>
+                </div>
+                  <div className="text-xs text-gray-500">Thời gian</div>
+                </div>
                 </div>
                 
                 {test.improvement > 0 && (
@@ -450,9 +448,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
               <span className="text-gray-600">
                 Tốc độ cải thiện: {Math.round((testHistory[0].score - testHistory[testHistory.length - 1].score) / (testHistory.length - 1))} điểm/test
               </span>
+              </div>
             </div>
-          </div>
-          
+
           {/* Mini chart visual */}
           <div className="mt-4 flex items-end space-x-1 h-8">
             {testHistory.map((test, index) => {
@@ -482,28 +480,8 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     </div>
   );
 
-  // Get user info for personalization
-  const [userInfo, setUserInfo] = useState<{name: string, age: string, location: string} | null>(null);
-  
+  // Add debug helpers to global window for testing
   useEffect(() => {
-    const loadUserInfo = async () => {
-      try {
-        // Try to get anonymous user info from localStorage first
-        const { getAnonymousUserInfo } = await import('../../utils/test');
-        const anonymousInfo = getAnonymousUserInfo();
-        if (anonymousInfo) {
-          setUserInfo(anonymousInfo);
-        } else {
-          // Fallback to basic info
-          setUserInfo({ name: 'Bạn', age: '', location: '' });
-        }
-      } catch (error) {
-        console.warn('Could not load user info:', error);
-        setUserInfo({ name: 'Bạn', age: '', location: '' });
-      }
-    };
-    
-    // Add debug helpers to global window for testing
     (window as any).clearTestData = () => {
       localStorage.removeItem('iq-test-history');
       localStorage.removeItem('current-test-result');
@@ -516,7 +494,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         const history = JSON.parse(localStorage.getItem('iq-test-history') || '[]');
         const fixed = history.map((test: any) => ({
           ...test,
-          timeSpent: test.timeSpent < 60 ? Math.random() * 600 + 300 : test.timeSpent // 5-15 minutes
+          timeSpent: test.timeSpent < 60 ? Math.random() * 600 + 300 : test.timeSpent
         }));
         localStorage.setItem('iq-test-history', JSON.stringify(fixed));
         console.log('🔧 Fixed', fixed.length, 'test times! Please refresh page.');
@@ -524,61 +502,43 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         console.error('Failed to fix test times:', error);
       }
     };
-    
-    loadUserInfo();
   }, []);
 
     const HeroSection = () => (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10"></div>
       <div className="relative z-10">
-        {/* Personalized greeting */}
-        {userInfo && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-4"
-          >
-            <h1 className="text-xl font-bold text-gray-800 mb-1">
-              🎉 Chúc mừng {userInfo.name}!
-            </h1>
-            {userInfo.age && userInfo.location && (
-              <p className="text-sm text-gray-600">
-                {userInfo.age} tuổi • {userInfo.location}
-              </p>
-            )}
-          </motion.div>
-        )}
+        {/* Personalized greeting - Always render to prevent flicker */}
+        <div className="mb-4">
+          <h1 className="text-xl font-bold text-gray-800 mb-1">
+            🎉 Chúc mừng {userInfo.name}!
+          </h1>
+          {(userInfo.age || userInfo.location) && (
+            <p className="text-sm text-gray-600">
+              {userInfo.age && `${userInfo.age} tuổi`}{userInfo.age && userInfo.location && ' • '}{userInfo.location}
+            </p>
+          )}
+        </div>
 
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.8, type: "spring" }}
-          className="text-7xl font-bold text-gray-900 mb-4"
-        >
+        <div className="text-7xl font-bold text-gray-900 mb-4">
           {results.score}
-        </motion.div>
+        </div>
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Chỉ số IQ của bạn</h2>
         <div className="flex items-center justify-center space-x-4 mb-4">
           <span className={`px-3 py-1 rounded-full text-sm font-medium bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
             {iqLevel.icon} {iqLevel.level}
           </span>
-          <span className="text-sm text-gray-600">Vượt {results.percentile}% dân số</span>
         </div>
         <p className="text-gray-600 mb-6">
           Bạn thông minh hơn <span className="font-bold text-blue-600">{results.percentile}%</span> dân số thế giới
         </p>
         
         {/* IQ Scale */}
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto mb-8">
           <div className="relative h-3 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 to-blue-400 rounded-full">
-                  <motion.div 
-              className="absolute w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-lg transform -translate-y-0.5 -translate-x-2"
+            <div 
+              className="absolute w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-lg transform -translate-y-0.5 -translate-x-2 transition-all duration-500"
               style={{ left: `${Math.min(Math.max(((results.score - 70) / 80) * 100, 0), 100)}%` }}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-              transition={{ delay: 0.5 }}
                   />
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-2">
@@ -586,10 +546,56 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                   <span>100</span>
                   <span>130</span>
             <span>150+</span>
-                </div>
               </div>
             </div>
-                        </div>
+            
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+          <button
+                onClick={onRetake}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Test lại</span>
+          </button>
+
+          <button
+                onClick={() => window.location.href = '/leaderboard'}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span>Bảng xếp hạng</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const shareData = {
+                title: `Tôi đạt ${results.score} điểm IQ!`,
+                text: `Vừa hoàn thành bài IQ Test và đạt ${results.score} điểm, vượt ${results.percentile}% dân số! 🧠`,
+                url: window.location.href
+              };
+              
+              if (navigator.share) {
+                navigator.share(shareData);
+              } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Đã copy link kết quả!');
+              }
+            }}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            </svg>
+            <span>Chia sẻ</span>
+          </button>
+              </div>
+            </div>
+          </div>
   );
 
   const QuickStats = () => (
@@ -713,27 +719,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     </div>
   );
 
-  const ActionButtons = () => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {[
-        { label: 'Làm lại', icon: '🔄', color: 'gray', onClick: onRetake },
-        { label: 'Trang chủ', icon: '🏠', color: 'blue', onClick: onHome },
-        { label: 'Test EQ', icon: '❤️', color: 'pink', onClick: () => window.location.href = '/test/eq' },
-        { label: 'Chia sẻ', icon: '📤', color: 'green', onClick: () => navigator.share?.({ title: `IQ ${results.score}`, text: `Tôi đạt ${results.score} điểm IQ!` }) || navigator.clipboard.writeText(window.location.href) }
-      ].map((btn, index) => (
-        <motion.button
-          key={index}
-          onClick={btn.onClick}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`p-3 rounded-xl font-medium text-white bg-${btn.color}-500 hover:bg-${btn.color}-600 transition-colors flex items-center justify-center space-x-2`}
-        >
-          <span>{btn.icon}</span>
-          <span className="text-sm">{btn.label}</span>
-        </motion.button>
-      ))}
-    </div>
-  );
+
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -977,8 +963,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         </motion.div>
           </AnimatePresence>
           
-          {/* Action Buttons */}
-          <ActionButtons />
+
           
           {/* All Tests Modal */}
           <AnimatePresence>
