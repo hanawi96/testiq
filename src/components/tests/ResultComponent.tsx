@@ -60,78 +60,63 @@ interface TestHistoryItem {
 // Convert real test history to timeline format
 const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultData): TestHistoryItem[] => {
   console.log('🔄 Converting history to timeline. Input:', realHistory.length, 'items');
-  console.log('📊 Sample history item:', realHistory[0]);
   
-  // Current test data from ResultData
-  const currentTest = {
-    id: Date.now(), // Unique ID
-    date: new Date().toLocaleDateString('vi-VN'),
-    score: currentResult.score,
-    percentile: currentResult.percentile,
-    timeTaken: Math.round(currentResult.timeTaken / 60), // Convert seconds to minutes
-    improvement: 0, // Will calculate below
-    isFirst: false,
-    isCurrent: true
-  };
-
   if (!realHistory || realHistory.length === 0) {
     // No history - this is first test
     console.log('✅ First time user - showing welcome message');
     return [{
-      ...currentTest,
+      id: Date.now(),
+      date: new Date().toLocaleDateString('vi-VN'),
+      score: currentResult.score,
+      percentile: currentResult.percentile,
+      timeTaken: Math.round(currentResult.timeTaken / 60),
+      improvement: 0,
       isFirst: true,
-      improvement: 0
+      isCurrent: true
     }];
   }
 
-  // Filter out current test if it already exists in history (avoid duplicate)
-  // Use a more relaxed filter - only filter if very recent (last 5 minutes)
+  // Smart duplicate filtering - only remove if exact same score and very recent time
   const filteredHistory = realHistory.filter(test => {
-    if (!test.timestamp) return true; // Keep tests without timestamp
-    const testTime = new Date(test.timestamp).getTime();
-    const currentTime = Date.now();
-    const timeDiff = Math.abs(currentTime - testTime);
-    return timeDiff > 5 * 60 * 1000; // More than 5 minutes difference
+    if (!test.timestamp) return true;
+    const timeDiff = Math.abs(Date.now() - new Date(test.timestamp).getTime());
+    const sameScore = test.iq === currentResult.score;
+    // Only filter if same score AND within 2 minutes (just completed)
+    return !(sameScore && timeDiff < 2 * 60 * 1000);
   });
 
-  console.log('📊 Filtered history:', filteredHistory.length, 'items (removed recent duplicates)');
+  console.log('📊 After filtering:', filteredHistory.length, 'items');
 
-  // Create timeline: current test + historical tests (show up to 10 most recent)
   const timeline: TestHistoryItem[] = [];
   
-  // Add current test first (newest)
-  if (filteredHistory.length > 0) {
-    currentTest.improvement = currentResult.score - filteredHistory[0].iq;
-  }
+  // Current test (always first)
+  const currentTest = {
+    id: Date.now(),
+    date: new Date().toLocaleDateString('vi-VN'),
+    score: currentResult.score,
+    percentile: currentResult.percentile,
+    timeTaken: Math.round(currentResult.timeTaken / 60),
+    improvement: filteredHistory.length > 0 ? currentResult.score - filteredHistory[0].iq : 0,
+    isFirst: false,
+    isCurrent: true
+  };
   timeline.push(currentTest);
 
-  // Add historical tests (limit to 9 more for performance)
-  const historyToShow = filteredHistory.slice(0, 9);
-  historyToShow.forEach((test, index) => {
-    const date = test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
-    const timeTakenMinutes = Math.round((test.timeSpent || 0) / 60);
-    
-    // Calculate improvement from previous test
-    let improvement = 0;
-    if (index < historyToShow.length - 1) {
-      improvement = test.iq - historyToShow[index + 1].iq;
-    }
-    
+  // Add all history tests (no arbitrary limit)
+  filteredHistory.forEach((test, index) => {
     timeline.push({
       id: test.timestamp || (Date.now() - (index + 1) * 1000),
-      date,
+      date: test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
       score: test.iq,
       percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
-      timeTaken: timeTakenMinutes,
-      improvement,
-      isFirst: index === historyToShow.length - 1, // Last in shown array (oldest shown)
+      timeTaken: Math.round((test.timeSpent || 0) / 60),
+      improvement: index < filteredHistory.length - 1 ? test.iq - filteredHistory[index + 1].iq : 0,
+      isFirst: index === filteredHistory.length - 1,
       isCurrent: false
     });
   });
 
-  console.log('✅ Timeline created:', timeline.length, 'items total');
-  console.log('📊 Total history available:', realHistory.length, 'items');
-  
+  console.log('✅ Timeline created:', timeline.length, 'items (1 current + ' + filteredHistory.length + ' history)');
   return timeline;
 };
 
@@ -267,9 +252,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         {isLoadingHistory && (
           <div className="ml-2 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         )}
-        {!isLoadingHistory && realTestHistory.length > 0 && (
+        {!isLoadingHistory && testHistory.length > 1 && (
           <span className="ml-2 text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-            {realTestHistory.length + 1} bài test
+            {testHistory.length} bài test
           </span>
         )}
       </h3>
@@ -311,7 +296,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
           <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-purple-200 via-green-200 to-blue-200"></div>
           
           {testHistory.map((test, index) => (
-            <motion.div
+        <motion.div 
               key={test.id}
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -329,8 +314,8 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                 {test.isCurrent && (
                   <div className="absolute inset-0 rounded-full bg-purple-500 animate-ping opacity-75"></div>
                 )}
-              </div>
-              
+          </div>
+
               {/* Content */}
               <div className={`flex-1 p-4 rounded-xl border transition-all hover:shadow-md ${
                 test.isCurrent 
@@ -366,15 +351,15 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                     </div>
                     <div className="text-xs text-gray-500">
                       {test.isFirst ? 'Baseline' : 'Tiến bộ'}
-                    </div>
-                  </div>
-                  
+                </div>
+              </div>
+              
                   <div className="text-center">
                     <div className="text-lg font-semibold text-blue-600">
                       {test.timeTaken > 0 ? `${test.timeTaken}m` : '—'}
-                    </div>
-                    <div className="text-xs text-gray-500">Thời gian</div>
-                  </div>
+                </div>
+                  <div className="text-xs text-gray-500">Thời gian</div>
+                </div>
                 </div>
                 
                 {test.improvement > 0 && (
@@ -386,17 +371,14 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
             </motion.div>
           ))}
           
-          {/* Show "View All" if there are more tests */}
-          {realTestHistory.length > 9 && (
+          {/* Show "View All" if there are many tests */}
+          {testHistory.length > 5 && (
             <div className="mt-4 text-center">
-              <div className="text-sm text-gray-500 mb-2">
-                Hiển thị 10 bài test gần nhất. Còn {realTestHistory.length - 9} bài test nữa.
-              </div>
               <button 
                 onClick={() => setShowAllTestsModal(true)}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
               >
-                Xem tất cả {realTestHistory.length + 1} bài test
+                Xem chi tiết tất cả {testHistory.length} bài test
               </button>
             </div>
           )}
@@ -463,7 +445,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                     test.isCurrent ? 'bg-purple-500' : 'bg-blue-400'
                   }`}
                   style={{ height: `${height}px` }}
-                  title={`Test ${index + 1}: ${test.score} điểm`}
+                  title={`${test.isFirst ? 'Lần đầu' : test.isCurrent ? 'Hiện tại' : 'Lần trước'}: ${test.score} điểm`}
                 />
               );
             })}
@@ -502,12 +484,12 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
       <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10"></div>
       <div className="relative z-10">
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.8, type: "spring" }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.8, type: "spring" }}
           className="text-7xl font-bold text-gray-900 mb-4"
-        >
-          {results.score}
+              >
+                {results.score}
         </motion.div>
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Chỉ số IQ của bạn</h1>
         <p className="text-gray-600 mb-6">
@@ -517,27 +499,27 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         {/* IQ Scale */}
         <div className="max-w-md mx-auto">
           <div className="relative h-3 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 to-blue-400 rounded-full">
-            <motion.div 
+                  <motion.div 
               className="absolute w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-lg transform -translate-y-0.5 -translate-x-2"
               style={{ left: `${Math.min(Math.max(((results.score - 70) / 80) * 100, 0), 100)}%` }}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
               transition={{ delay: 0.5 }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-2">
-            <span>70</span>
-            <span>100</span>
-            <span>130</span>
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <span>70</span>
+                  <span>100</span>
+                  <span>130</span>
             <span>150+</span>
-          </div>
-        </div>
-      </div>
-    </div>
+                </div>
+              </div>
+            </div>
+                        </div>
   );
 
   const QuickStats = () => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
       {[
         { label: 'Chính xác', value: `${Math.round(results.completionRate * 100)}%`, color: 'green', icon: '🎯' },
         { label: 'Thời gian', value: formatTime(results.timeTaken), color: 'blue', icon: '⏱️' },
@@ -568,10 +550,10 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
       
       <div className="grid md:grid-cols-2 gap-6">
         {skills.map((skill, index) => (
-          <motion.div 
-            key={index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+                  <motion.div 
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
             className="flex items-center space-x-4 p-3 rounded-xl hover:bg-gray-50 transition-colors"
           >
@@ -585,18 +567,18 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
               </div>
               <p className="text-xs text-gray-600 mb-2">{skill.description}</p>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <motion.div 
+                      <motion.div 
                   className={`bg-${skill.color}-500 h-2 rounded-full`}
-                  initial={{ width: 0 }}
+                        initial={{ width: 0 }}
                   animate={{ width: `${skill.score}%` }}
                   transition={{ delay: 0.5 + index * 0.1, duration: 0.8 }}
                 />
               </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
   );
 
   const CareerSuggestions = () => (
@@ -606,9 +588,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         Nghề nghiệp phù hợp
       </h3>
       
-      <div className="space-y-4">
+              <div className="space-y-4">
         {careers.map((career, index) => (
-          <motion.div 
+                <motion.div 
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -625,8 +607,8 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
             <div className="text-right">
               <div className="text-lg font-bold text-green-600">{career.match}%</div>
               <div className="text-xs text-gray-500">Phù hợp</div>
-            </div>
-          </motion.div>
+          </div>
+        </motion.div>
         ))}
       </div>
     </div>
@@ -706,37 +688,19 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   };
 
   const AllTestsModal = () => {
-    const allTests = [
-      // Current test first
-      {
-        id: Date.now(),
-        date: new Date().toLocaleDateString('vi-VN'),
-        score: results.score,
-        percentile: results.percentile,
-        timeTaken: Math.round(results.timeTaken / 60),
-        accuracy: Math.round(results.completionRate * 100),
-        improvement: realTestHistory.length > 0 ? results.score - realTestHistory[0].iq : 0,
-        isCurrent: true
-      },
-      // Historical tests
-      ...realTestHistory.map((test, index) => ({
-        id: test.timestamp || Date.now() - index,
-        date: test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : 'N/A',
-        score: test.iq,
-        percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
-        timeTaken: Math.round((test.timeSpent || 0) / 60),
-        accuracy: test.detailed?.accuracy || 0,
-        improvement: index < realTestHistory.length - 1 ? test.iq - realTestHistory[index + 1].iq : 0,
-        isCurrent: false
-      }))
-    ];
+    // Use processed timeline data for consistency
+    const allTests = testHistory.map((test, index) => ({
+      ...test,
+      accuracy: test.isCurrent ? Math.round(results.completionRate * 100) : 
+                Math.round(70 + (test.score - 70) * 0.8) // Estimate accuracy from score
+    }));
 
     const stats = {
       total: allTests.length,
       avgScore: Math.round(allTests.reduce((sum, test) => sum + test.score, 0) / allTests.length),
       maxScore: Math.max(...allTests.map(test => test.score)),
       minScore: Math.min(...allTests.map(test => test.score)),
-      totalImprovement: allTests[0].score - allTests[allTests.length - 1].score
+      totalImprovement: allTests.length > 1 ? allTests[0].score - allTests[allTests.length - 1].score : 0
     };
 
     // Close modal on Escape key
@@ -756,7 +720,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         onClick={(e) => e.target === e.currentTarget && setShowAllTestsModal(false)}
       >
-        <motion.div
+                  <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
@@ -791,7 +755,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
               <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold">+{stats.totalImprovement}</div>
                 <div className="text-sm text-blue-100">Tiến bộ</div>
-              </div>
+                  </div>
               <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold">{stats.total}</div>
                 <div className="text-sm text-blue-100">Tổng test</div>
@@ -803,10 +767,10 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
           <div className="p-6 overflow-y-auto max-h-[60vh]">
             <div className="space-y-3">
               {allTests.map((test, index) => (
-                <motion.div
+        <motion.div 
                   key={test.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${
                     test.isCurrent 
@@ -823,7 +787,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900">
-                          {test.isCurrent ? 'Hôm nay (Mới nhất)' : `Test #${stats.total - index}`}
+                          {test.isCurrent ? 'Hôm nay (Mới nhất)' : 
+                           test.isFirst ? 'Lần đầu tiên' : 
+                           `Test #${stats.total - index}`}
                         </h4>
                         <p className="text-sm text-gray-500">{test.date}</p>
                       </div>
@@ -914,7 +880,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Personal Profile */}
           <PersonalProfile />
           
@@ -926,15 +892,16 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
           
           {/* Tab Content */}
           <AnimatePresence mode="wait">
-            <motion.div
+        <motion.div 
               key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-            >
+              className="space-y-8"
+        >
               {renderTabContent()}
-            </motion.div>
+        </motion.div>
           </AnimatePresence>
           
           {/* Action Buttons */}

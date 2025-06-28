@@ -114,7 +114,7 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
         console.log('🚀 Redirecting to shareable result page...');
         window.location.href = resultUrl.toString();
       }
-    }, 1500);
+    }, 500);
   };
 
   const handleInputChange = (field: keyof UserInfo, value: string) => {
