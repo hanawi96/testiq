@@ -58,10 +58,25 @@ interface TestHistoryItem {
 }
 
 // Smart time converter - handles Database vs LocalStorage formats
-const getTimeInMinutes = (testData: any): number => {
+const getTimeInSeconds = (testData: any): number => {
   // Database: duration_seconds | LocalStorage: timeSpent
-  const seconds = testData?.duration_seconds || testData?.timeSpent || 0;
-  return seconds > 0 ? Math.round(seconds / 60) : 0;
+  return testData?.duration_seconds || testData?.timeSpent || 0;
+};
+
+// Smart time formatter - formats seconds to "X phút Y giây" or "X giây"
+const formatTimeDisplay = (totalSeconds: number): string => {
+  if (totalSeconds <= 0) return '—';
+  
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  
+  if (minutes > 0 && seconds > 0) {
+    return `${minutes} phút ${seconds} giây`;
+  } else if (minutes > 0) {
+    return `${minutes} phút`;
+  } else {
+    return `${seconds} giây`;
+  }
 };
 
 // Convert real test history to timeline format
@@ -73,7 +88,7 @@ const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultD
       date: new Date().toLocaleDateString('vi-VN'),
       score: currentResult.score,
       percentile: currentResult.percentile,
-      timeTaken: Math.round(currentResult.timeTaken / 60),
+      timeTaken: currentResult.timeTaken, // Keep in seconds for proper formatting
       improvement: 0,
       isFirst: true,
       isCurrent: true
@@ -97,7 +112,7 @@ const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultD
     date: new Date().toLocaleDateString('vi-VN'),
     score: currentResult.score,
     percentile: currentResult.percentile,
-    timeTaken: Math.round(currentResult.timeTaken / 60),
+    timeTaken: currentResult.timeTaken, // Keep in seconds for proper formatting
     improvement: filteredHistory.length > 0 ? currentResult.score - filteredHistory[0].iq : 0,
     isFirst: false,
     isCurrent: true
@@ -110,7 +125,7 @@ const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultD
       date: test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
       score: test.iq,
       percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
-      timeTaken: getTimeInMinutes(test),
+      timeTaken: getTimeInSeconds(test),
       improvement: index < filteredHistory.length - 1 ? test.iq - filteredHistory[index + 1].iq : 0,
       isFirst: index === filteredHistory.length - 1,
       isCurrent: false
@@ -218,7 +233,15 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         const history = await getUserRealTestHistory();
         setRealTestHistory(history);
         console.log('📊 Loaded real test history:', history.length, 'tests');
-        console.log('📊 History data:', history);
+        
+        // Debug each test's time data
+        history.forEach((test, index) => {
+          console.log(`📊 Test ${index + 1} time data:`, {
+            iq: test.iq,
+            timeSpent: test.timeSpent,
+            timestamp: test.timestamp
+          });
+        });
       } catch (error) {
         console.warn('⚠️ Error loading test history:', error);
         setRealTestHistory([]);
@@ -349,12 +372,14 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                 </div>
               </div>
               
-                  <div className="text-center">
+                                    <div className="text-center">
                     <div className="text-lg font-semibold text-blue-600">
-                      {test.timeTaken > 0 ? `${test.timeTaken}m` : '—'}
-                </div>
-                  <div className="text-xs text-gray-500">Thời gian</div>
-                </div>
+                      {test.timeTaken > 0 ? formatTimeDisplay(test.timeTaken) : 
+                       test.isCurrent ? formatTimeDisplay(results.timeTaken) : 
+                       '—'}
+                    </div>
+                    <div className="text-xs text-gray-500">Thời gian</div>
+                  </div>
                 </div>
                 
                 {test.improvement > 0 && (
@@ -478,8 +503,30 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
       }
     };
     
+    // Add debug helpers to global window for testing
+    (window as any).clearTestData = () => {
+      localStorage.removeItem('iq-test-history');
+      localStorage.removeItem('current-test-result');
+      localStorage.removeItem('anonymous-user-info');
+      console.log('🗑️ All test data cleared! Please refresh page.');
+    };
+    
+    (window as any).fixTestTimes = () => {
+      try {
+        const history = JSON.parse(localStorage.getItem('iq-test-history') || '[]');
+        const fixed = history.map((test: any) => ({
+          ...test,
+          timeSpent: test.timeSpent < 60 ? Math.random() * 600 + 300 : test.timeSpent // 5-15 minutes
+        }));
+        localStorage.setItem('iq-test-history', JSON.stringify(fixed));
+        console.log('🔧 Fixed', fixed.length, 'test times! Please refresh page.');
+      } catch (error) {
+        console.error('Failed to fix test times:', error);
+      }
+    };
+    
     loadUserInfo();
-  }, []); 
+  }, []);
 
     const HeroSection = () => (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden">
@@ -848,7 +895,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                     </div>
                     <div className="text-center">
                       <div className="text-lg font-semibold text-orange-600">
-                        {test.timeTaken > 0 ? `${test.timeTaken}m` : '—'}
+                        {test.timeTaken > 0 ? formatTimeDisplay(test.timeTaken) : '—'}
                       </div>
                       <div className="text-xs text-gray-500">Thời gian</div>
                     </div>

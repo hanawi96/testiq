@@ -234,7 +234,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     
     console.log('submitTest: starting submission process');
     setIsSubmitting(true);
-    setIsActive(false);
+    // DON'T setIsActive(false) here - keep timer running until popup completes
     
     // Clear saved state when submitting
     clearTestState();
@@ -256,8 +256,14 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Handle popup completion
   const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {
+    // Stop timer now
+    setIsActive(false);
+    
+    // Calculate total time spent
     const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
     const filledAnswers = answers.map(answer => answer ?? -1);
+    
+    console.log('⏱️ Test completed - timeSpent:', timeSpent, 'seconds');
     
     const result = generateTestResult(questions, filledAnswers, timeSpent);
     

@@ -154,7 +154,14 @@ export interface Question {
       
       // Save current result for redirect to result page
       localStorage.setItem('current-test-result', JSON.stringify(resultWithTimestamp));
-      console.log('💾 Test result saved to history and localStorage');
+      
+      // Debug logging
+      console.log('💾 Test result saved to localStorage:', {
+        iq: result.iq,
+        timeSpent: result.timeSpent,
+        timeInMinutes: Math.round(result.timeSpent / 60),
+        userInfo: result.userInfo ? 'Present' : 'Missing'
+      });
     } catch (error) {
       console.warn('Cannot save test result to localStorage:', error);
     }
@@ -310,6 +317,16 @@ export interface Question {
         // Anonymous user → LocalStorage only
         console.log('👤 Anonymous user → Fetching from LocalStorage');
         const localResults = getTestHistory();
+        
+        // Debug time data
+        if (localResults.length > 0) {
+          console.log('⏱️ Sample localStorage test:', {
+            iq: localResults[0].iq,
+            timeSpent: localResults[0].timeSpent,
+            timeInMinutes: Math.round(localResults[0].timeSpent / 60)
+          });
+        }
+        
         console.log('✅ LocalStorage:', localResults.length, 'tests loaded');
         return localResults.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
       }
