@@ -38,6 +38,7 @@ export interface Question {
       accuracy: number;
     };
     userInfo?: UserInfo;
+    timestamp?: number;
   }
   
   export function calculateIQ(score: number, totalQuestions: number): number {
@@ -150,6 +151,10 @@ export interface Question {
       };
       results.push(resultWithTimestamp);
       localStorage.setItem('iq-test-history', JSON.stringify(results));
+      
+      // Save current result for redirect to result page
+      localStorage.setItem('current-test-result', JSON.stringify(resultWithTimestamp));
+      console.log('💾 Test result saved to history and localStorage');
     } catch (error) {
       console.warn('Cannot save test result to localStorage:', error);
     }
@@ -232,5 +237,116 @@ export interface Question {
     } catch (error) {
       console.warn('Cannot load test history:', error);
       return [];
+    }
+  }
+
+  // Anonymous user localStorage management
+  export function saveAnonymousUserInfo(userInfo: UserInfo): void {
+    try {
+      localStorage.setItem('anonymous-user-info', JSON.stringify(userInfo));
+      console.log('💾 Anonymous user info saved to localStorage');
+    } catch (error) {
+      console.warn('⚠️ Cannot save anonymous user info:', error);
+    }
+  }
+
+  export function getAnonymousUserInfo(): UserInfo | null {
+    try {
+      const saved = localStorage.getItem('anonymous-user-info');
+      if (saved) {
+        const userInfo = JSON.parse(saved);
+        console.log('📱 Retrieved anonymous user info from localStorage');
+        return userInfo;
+      }
+    } catch (error) {
+      console.warn('⚠️ Cannot load anonymous user info:', error);
+    }
+    return null;
+  }
+
+  export function clearAnonymousUserInfo(): void {
+    try {
+      localStorage.removeItem('anonymous-user-info');
+      console.log('🗑️ Anonymous user info cleared from localStorage');
+    } catch (error) {
+      console.warn('⚠️ Cannot clear anonymous user info:', error);
+    }
+  }
+
+  // Get real user test history from both localStorage and Supabase
+  export async function getUserRealTestHistory(): Promise<TestResult[]> {
+    const allResults: TestResult[] = [];
+    
+    try {
+      // Get from Supabase first (more comprehensive)
+      const { AuthService, getUserTestResults } = await import('../../backend');
+      const { user } = await AuthService.getCurrentUser();
+      
+      if (user) {
+        console.log('📊 Fetching test history from Supabase for user:', user.id);
+        const supabaseResults = await getUserTestResults({ 
+          user_id: user.id, 
+          test_type: 'iq',
+          limit: 100 // Increase limit to get more data
+        });
+        
+        if (supabaseResults.success && supabaseResults.data) {
+          console.log('📊 Found', supabaseResults.data.length, 'test results in Supabase');
+          
+          // Convert Supabase format to TestResult format
+          const convertedResults = supabaseResults.data.map((item: any) => ({
+            score: item.test_data?.score || 0,
+            iq: item.score, // Main score is IQ in Supabase
+            classification: item.test_data?.classification || 'average',
+            percentile: item.test_data?.percentile || 50,
+            answers: item.test_data?.answers || [],
+            timeSpent: item.duration_seconds || 0,
+            categoryScores: item.test_data?.categoryScores || {},
+            detailed: item.test_data?.detailed || { correct: 0, incorrect: 0, accuracy: 0 },
+            timestamp: new Date(item.tested_at).getTime()
+          }));
+          
+          allResults.push(...convertedResults);
+        }
+      } else {
+        console.log('📊 No authenticated user, checking localStorage only');
+      }
+      
+      // Get from localStorage and merge (avoiding duplicates)
+      const localResults = getTestHistory();
+      if (localResults.length > 0) {
+        console.log('📊 Found', localResults.length, 'test results in localStorage');
+        
+        // Create a Set of existing timestamps to avoid duplicates
+        const existingTimestamps = new Set(allResults.map(r => r.timestamp));
+        
+        // Add only new results from localStorage
+        const newLocalResults = localResults.filter(r => 
+          !r.timestamp || !existingTimestamps.has(r.timestamp)
+        );
+        
+        allResults.push(...newLocalResults);
+        console.log('📊 Added', newLocalResults.length, 'new results from localStorage');
+      }
+      
+      // Sort by timestamp (newest first) and ensure no duplicates
+      const uniqueResults = allResults
+        .filter((result, index, self) => {
+          // If no timestamp, keep it
+          if (!result.timestamp) return true;
+          // Otherwise, keep only the first occurrence of each timestamp
+          return index === self.findIndex(r => r.timestamp === result.timestamp);
+        })
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      
+      console.log(`📊 Final result: ${uniqueResults.length} total test results in history`);
+      return uniqueResults;
+      
+    } catch (error) {
+      console.warn('⚠️ Error loading test history:', error);
+      // Fallback to localStorage only
+      const fallbackResults = getTestHistory().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      console.log(`📊 Fallback: ${fallbackResults.length} results from localStorage only`);
+      return fallbackResults;
     }
   }

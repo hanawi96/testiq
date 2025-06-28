@@ -6,8 +6,10 @@ import QuestionCard from './QuestionCard';
 import Confetti, { useConfetti } from '../common/Confetti';
 import CongratulationsPopup, { type UserInfo } from '../common/CongratulationsPopup';
 import TimeUpPopup from '../common/TimeUpPopup';
+import TestProgressPopup from '../common/TestProgressPopup';
 import type { Question, TestResult } from '../../utils/test';
 import { generateTestResult, saveTestResult } from '../../utils/test';
+import { saveTestState, loadTestState, clearTestState, hasInProgressTest, calculateRemainingTime } from '../../utils/test-state';
 
 interface IQTestProps {
   questions: Question[];
@@ -20,13 +22,62 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
   const [isActive, setIsActive] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [timeElapsed, setTimeElapsed] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [justAnswered, setJustAnswered] = useState(false);
   const [showCongratulationsPopup, setShowCongratulationsPopup] = useState(false);
   const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
+  const [showProgressPopup, setShowProgressPopup] = useState(false);
+  const [savedProgress, setSavedProgress] = useState<number>(0);
+  const [savedTimeRemaining, setSavedTimeRemaining] = useState<number>(0);
+  
+  // Pre-loaded user info state
+  const [preloadedUserInfo, setPreloadedUserInfo] = useState<UserInfo | null>(null);
   
   const { fireMultipleBursts } = useConfetti();
+
+  // Pre-load user profile on component mount for instant popup display
+  useEffect(() => {
+    const preloadUserProfile = async () => {
+      try {
+        const { AuthService, getUserProfile } = await import('../../../backend');
+        const { user } = await AuthService.getCurrentUser();
+        
+        if (user) {
+          // Authenticated user - load from profile
+          console.log('🚀 Pre-loading user profile for authenticated user...');
+          const result = await getUserProfile(user.id);
+          
+          if (result.success && result.data) {
+            const profile = result.data;
+            setPreloadedUserInfo({
+              name: profile.full_name || '',
+              age: profile.age?.toString() || '',
+              location: profile.location || ''
+            });
+            console.log('✅ User profile pre-loaded successfully');
+          }
+        } else {
+          // Anonymous user - load from localStorage
+          console.log('📱 Pre-loading anonymous user info from localStorage...');
+          const { getAnonymousUserInfo } = await import('../../utils/test');
+          const savedInfo = getAnonymousUserInfo();
+          
+          if (savedInfo) {
+            setPreloadedUserInfo(savedInfo);
+            console.log('✅ Anonymous user info pre-loaded successfully');
+          } else {
+            console.log('📝 No saved anonymous user info found');
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not pre-load user info:', error);
+      }
+    };
+
+    preloadUserProfile();
+  }, []);
 
   // Smart navigation: find next unanswered question
   const findNextUnanswered = useCallback((fromIndex: number = 0): number => {
@@ -46,8 +97,48 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   // Check if all questions are answered
   const allAnswered = answers.every(a => a !== null);
 
-  // Start the test
+  // Don't check on mount, only when user clicks start button
+
+  // Save state periodically when test is active
+  useEffect(() => {
+    if (!isActive || !startTime) return;
+
+    const saveInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setTimeElapsed(elapsed);
+      
+      saveTestState({
+        currentQuestion,
+        answers,
+        timeElapsed: elapsed,
+        startTime,
+        totalTime: timeLimit
+      });
+    }, 2000); // Save every 2 seconds
+
+    return () => clearInterval(saveInterval);
+  }, [isActive, startTime, currentQuestion, answers, timeLimit]);
+
+  // Start the test - check for saved progress first
   const startTest = useCallback(() => {
+    console.log('🚀 User clicked start test button');
+    
+    // Check for saved progress when user clicks start
+    if (hasInProgressTest()) {
+      const savedState = loadTestState();
+      console.log('💾 Found saved state:', savedState);
+      if (savedState) {
+        setSavedProgress(savedState.currentQuestion + 1);
+        const remainingTime = Math.max(0, savedState.totalTime - savedState.timeElapsed);
+        setSavedTimeRemaining(remainingTime);
+        setShowProgressPopup(true);
+        console.log('✅ Showing progress popup for question', savedState.currentQuestion + 1);
+        return; // Don't start test yet, wait for user choice
+      }
+    }
+    
+    // No saved progress, start fresh
+    console.log('🆕 Starting fresh test');
     setIsActive(true);
     setStartTime(Date.now());
   }, []);
@@ -58,12 +149,39 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setAnswers(new Array(questions.length).fill(null));
     setIsActive(false);
     setStartTime(null);
+    setTimeElapsed(0);
     setShowConfetti(false);
     setIsSubmitting(false);
     setJustAnswered(false);
     setShowCongratulationsPopup(false);
     setShowTimeUpPopup(false);
+    setShowProgressPopup(false);
+    setSavedProgress(0);
+    setSavedTimeRemaining(0);
   }, [questions.length]);
+
+  // Continue test from saved state
+  const continueTest = useCallback(() => {
+    const savedState = loadTestState();
+    if (!savedState) return;
+
+    setCurrentQuestion(savedState.currentQuestion);
+    setAnswers(savedState.answers);
+    setTimeElapsed(savedState.timeElapsed);
+    setStartTime(Date.now() - (savedState.timeElapsed * 1000));
+    setIsActive(true);
+    setShowProgressPopup(false);
+  }, []);
+
+  // Restart test (clear saved state and start fresh)
+  const restartTest = useCallback(() => {
+    clearTestState();
+    setShowProgressPopup(false);
+    resetTest();
+    // Start fresh test immediately
+    setIsActive(true);
+    setStartTime(Date.now());
+  }, [resetTest]);
 
   // Handle answer selection
   const handleAnswerSelect = useCallback((answerIndex: number) => {
@@ -71,7 +189,20 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
     setJustAnswered(true);
-  }, [answers, currentQuestion]);
+    
+    // Save state immediately when answer is selected (if test is active)
+    if (isActive && startTime) {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      saveTestState({
+        currentQuestion,
+        answers: newAnswers,
+        timeElapsed: elapsed,
+        startTime,
+        totalTime: timeLimit
+      });
+      console.log('💾 Saved state after answer selection');
+    }
+  }, [answers, currentQuestion, isActive, startTime, timeLimit]);
 
   // Navigate to next question (smart navigation)
   const nextQuestion = useCallback(() => {
@@ -104,6 +235,9 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     console.log('submitTest: starting submission process');
     setIsSubmitting(true);
     setIsActive(false);
+    
+    // Clear saved state when submitting
+    clearTestState();
     
     // Show congratulations popup after brief delay
     setTimeout(() => {
@@ -142,13 +276,9 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   // Handle time up - shows time up popup
   const handleTimeUp = useCallback(() => {
     setIsActive(false);
+    clearTestState(); // Clear saved state when time is up
     setShowTimeUpPopup(true);
   }, []);
-
-  // Handle retry from time up popup
-  const handleRetry = useCallback(() => {
-    resetTest();
-  }, [resetTest]);
 
   // Smart auto-advance logic
   useEffect(() => {
@@ -210,12 +340,25 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const answeredQuestions = answers.filter(a => a !== null).length;
   const progress = (answeredQuestions / questions.length) * 100;
 
+
+
   if (!isActive && startTime === null) {
     return (
-      <div className="max-w-4xl mx-auto text-center py-20">
-        <motion.div
-          className="bg-white rounded-3xl shadow-xl p-12 border border-gray-100"
-        >
+      <>
+        {/* Test Progress Popup - shows on start screen */}
+        <TestProgressPopup 
+          isOpen={showProgressPopup}
+          questionNumber={savedProgress}
+          totalQuestions={questions.length}
+          timeRemaining={savedTimeRemaining}
+          onContinue={continueTest}
+          onRestart={restartTest}
+        />
+        
+        <div className="max-w-4xl mx-auto text-center py-20">
+          <motion.div
+            className="bg-white rounded-3xl shadow-xl p-12 border border-gray-100"
+          >
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-4 font-display">
               Test IQ Chuyên Nghiệp
@@ -257,7 +400,8 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
             💡 Mẹo: Sử dụng phím số 1-4 để chọn đáp án nhanh chóng
           </p>
         </motion.div>
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -270,14 +414,26 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         isOpen={showCongratulationsPopup}
         onComplete={handlePopupComplete}
         onConfettiTrigger={handleConfettiTrigger}
+        preloadedUserInfo={preloadedUserInfo}
       />
       
       {/* Time Up Popup */}
       <TimeUpPopup 
         isOpen={showTimeUpPopup}
         onComplete={handlePopupComplete}
-        onRetry={handleRetry}
+        preloadedUserInfo={preloadedUserInfo}
       />
+      
+      {/* Test Progress Popup */}
+      <TestProgressPopup 
+        isOpen={showProgressPopup}
+        questionNumber={savedProgress}
+        totalQuestions={questions.length}
+        timeRemaining={savedTimeRemaining}
+        onContinue={continueTest}
+        onRestart={restartTest}
+      />
+
       
       {/* Header with timer and progress */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
@@ -295,6 +451,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
               initialTime={timeLimit}
               onTimeUp={handleTimeUp}
               isActive={isActive}
+              timeElapsed={timeElapsed}
             />
           </div>
         </div>

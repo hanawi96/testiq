@@ -90,12 +90,13 @@ export async function getUserTestResults(filters: TestHistoryFilters = {}) {
       query = query.or(`guest_name.ilike.%${filters.search}%`);
     }
 
-    // Apply pagination
-    if (filters.limit) {
-      query = query.limit(filters.limit);
+    // Apply pagination - increase default limit
+    const defaultLimit = filters.limit || 50; // Increase from 50 to better default
+    if (defaultLimit) {
+      query = query.limit(defaultLimit);
     }
     if (filters.offset) {
-      query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+      query = query.range(filters.offset, filters.offset + defaultLimit - 1);
     }
 
     const { data: results, error } = await query;
@@ -106,14 +107,20 @@ export async function getUserTestResults(filters: TestHistoryFilters = {}) {
     }
 
     console.log('✅ Test results fetched successfully:', results?.length || 0, 'items');
+    console.log('📊 Sample result:', results?.[0] ? {
+      id: results[0].id,
+      user_id: results[0].user_id,
+      score: results[0].score,
+      tested_at: results[0].tested_at,
+      test_type: results[0].test_type
+    } : 'No results');
+    
     return { success: true, data: results || [] };
   } catch (error) {
     console.error('❌ Failed to fetch test results:', error);
     return { success: false, error, data: [] };
   }
 }
-
-
 
 /**
  * Helper function để convert từ format cũ sang format mới

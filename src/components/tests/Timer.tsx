@@ -5,10 +5,11 @@ interface TimerProps {
   initialTime: number; // in seconds
   onTimeUp: () => void;
   isActive: boolean;
+  timeElapsed?: number; // optional: time already elapsed in seconds
 }
 
-export default function Timer({ initialTime, onTimeUp, isActive }: TimerProps) {
-  const [timeLeft, setTimeLeft] = useState(initialTime);
+export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0 }: TimerProps) {
+  const [timeLeft, setTimeLeft] = useState(initialTime - timeElapsed);
 
   useEffect(() => {
     if (!isActive) return;

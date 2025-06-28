@@ -10,60 +10,55 @@ interface UserInfo {
 interface TimeUpPopupProps {
   isOpen: boolean;
   onComplete: (userInfo: UserInfo) => void;
+  preloadedUserInfo?: UserInfo | null;
 }
 
-export default function TimeUpPopup({ isOpen, onComplete }: TimeUpPopupProps) {
+export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: TimeUpPopupProps) {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', age: '', location: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const isFormValid = userInfo.name.trim() && userInfo.age.trim() && userInfo.location.trim();
 
-  // Load user profile when popup opens
+  // Initialize with preloaded data when popup opens
   useEffect(() => {
-    if (isOpen && !isLoadingProfile) {
-      loadUserProfile();
-    }
-  }, [isOpen]);
+    const loadSavedUserInfo = async () => {
+      if (isOpen) {
+        // Try preloaded info first (for authenticated users)
+        if (preloadedUserInfo) {
+          setUserInfo(preloadedUserInfo);
+          console.log('✅ Using pre-loaded user info for authenticated user');
+          return;
+        }
 
-  const loadUserProfile = async () => {
-    try {
-      setIsLoadingProfile(true);
-      const { AuthService, getUserProfile } = await import('../../../backend');
-      
-      const { user } = await AuthService.getCurrentUser();
-      if (!user) return; // Anonymous user, no profile to load
-
-      console.log('🔄 Loading user profile for auto-fill...');
-      const result = await getUserProfile(user.id);
-      
-      if (result.success && result.data) {
-        const profile = result.data;
-        setUserInfo({
-          name: profile.full_name || '',
-          age: profile.age?.toString() || '',
-          location: profile.location || ''
-        });
-        console.log('✅ Profile loaded and auto-filled');
+        // For anonymous users, load from localStorage
+        try {
+          const { getAnonymousUserInfo } = await import('../../utils/test');
+          const savedInfo = getAnonymousUserInfo();
+          if (savedInfo) {
+            setUserInfo(savedInfo);
+            console.log('✅ Loaded saved anonymous user info from localStorage');
+          }
+        } catch (error) {
+          console.warn('⚠️ Error loading anonymous user info:', error);
+        }
       }
-    } catch (error) {
-      console.warn('⚠️ Could not load user profile:', error);
-    } finally {
-      setIsLoadingProfile(false);
-    }
-  };
+    };
+
+    loadSavedUserInfo();
+  }, [isOpen, preloadedUserInfo]);
 
   const handleSubmit = async () => {
     if (!isFormValid || isSubmitting) return;
     
     setIsSubmitting(true);
 
-    // Update user profile if authenticated
+    // Save anonymous user info to localStorage (for non-authenticated users)
     try {
       const { AuthService, updateUserProfile } = await import('../../../backend');
       const { user } = await AuthService.getCurrentUser();
       
       if (user) {
+        // Authenticated user - update profile
         console.log('📝 Updating user profile...');
         await updateUserProfile(user.id, {
           full_name: userInfo.name,
@@ -71,12 +66,38 @@ export default function TimeUpPopup({ isOpen, onComplete }: TimeUpPopupProps) {
           location: userInfo.location
         });
         console.log('✅ User profile updated');
+      } else {
+        // Anonymous user - save to localStorage
+        const { saveAnonymousUserInfo } = await import('../../utils/test');
+        saveAnonymousUserInfo(userInfo);
+        console.log('💾 Anonymous user info saved to localStorage');
       }
     } catch (error) {
-      console.warn('⚠️ Could not update user profile:', error);
+      console.warn('⚠️ Could not save user info:', error);
     }
 
-    onComplete(userInfo);
+    // Complete test and redirect to result page
+    await onComplete(userInfo);
+    
+    // Get saved result from localStorage
+    const savedResult = localStorage.getItem('current-test-result');
+    if (savedResult) {
+      const result = JSON.parse(savedResult);
+      
+      // Create shareable URL with result data
+      const resultUrl = new URL('/result', window.location.origin);
+      resultUrl.searchParams.set('name', userInfo.name);
+      resultUrl.searchParams.set('age', userInfo.age);
+      resultUrl.searchParams.set('location', userInfo.location);
+      resultUrl.searchParams.set('score', result.iq || result.score);
+      resultUrl.searchParams.set('percentile', result.percentile);
+      resultUrl.searchParams.set('accuracy', result.detailed?.accuracy || 0);
+      resultUrl.searchParams.set('time', result.timeSpent);
+      resultUrl.searchParams.set('classification', result.classification);
+      
+      console.log('🚀 Redirecting to shareable result page...');
+      window.location.href = resultUrl.toString();
+    }
   };
 
   const handleInputChange = (field: keyof UserInfo, value: string) => {
@@ -105,16 +126,7 @@ export default function TimeUpPopup({ isOpen, onComplete }: TimeUpPopupProps) {
               <p className="text-gray-600">Vui lòng nhập thông tin để xem kết quả</p>
             </div>
             
-            {isLoadingProfile ? (
-              <div className="flex items-center justify-center py-8">
-                <svg className="w-6 h-6 animate-spin text-primary-600" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/>
-                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
-                </svg>
-                <span className="ml-2 text-gray-600">Đang tải thông tin...</span>
-              </div>
-            ) : (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Họ và tên *
@@ -165,18 +177,17 @@ export default function TimeUpPopup({ isOpen, onComplete }: TimeUpPopupProps) {
                   />
                 </div>
               </div>
-            )}
             
             <motion.button
               onClick={handleSubmit}
-              disabled={!isFormValid || isSubmitting || isLoadingProfile}
+              disabled={!isFormValid || isSubmitting}
               className={`w-full mt-6 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                isFormValid && !isSubmitting && !isLoadingProfile
+                isFormValid && !isSubmitting
                   ? 'bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-lg'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
-              whileHover={isFormValid && !isSubmitting && !isLoadingProfile ? { scale: 1.02 } : {}}
-              whileTap={isFormValid && !isSubmitting && !isLoadingProfile ? { scale: 0.98 } : {}}
+              whileHover={isFormValid && !isSubmitting ? { scale: 1.02 } : {}}
+              whileTap={isFormValid && !isSubmitting ? { scale: 0.98 } : {}}
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center">

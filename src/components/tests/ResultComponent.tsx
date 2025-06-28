@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
+import DetailedAnalysis from './DetailedAnalysis';
 
 interface ResultData {
   score: number;
@@ -37,643 +37,914 @@ interface ResultComponentProps {
   onHome: () => void;
 }
 
-interface SkillScores {
-  logic: number;
-  visual: number;
-  speed: number;
-  math: number;
-  memory: number;
+interface SkillData {
+  name: string;
+  score: number;
+  level: string;
+  description: string;
+  color: string;
+  icon: string;
 }
 
-// Badge info based on score
-const getBadgeInfo = (score: number) => {
-  if (score >= 140) return { 
-    type: 'genius', 
-    label: 'Thiên tài', 
-    color: 'from-purple-500 to-pink-500', 
-    icon: '⭐', 
-    bgColor: 'bg-purple-100',
-    textColor: 'text-purple-800'
+interface TestHistoryItem {
+  id: number;
+  date: string;
+  score: number;
+  percentile: number;
+  timeTaken: number;
+  improvement: number;
+  isFirst?: boolean;
+  isCurrent?: boolean;
+}
+
+// Convert real test history to timeline format
+const convertRealHistoryToTimeline = (realHistory: any[], currentResult: ResultData): TestHistoryItem[] => {
+  console.log('🔄 Converting history to timeline. Input:', realHistory.length, 'items');
+  console.log('📊 Sample history item:', realHistory[0]);
+  
+  // Current test data from ResultData
+  const currentTest = {
+    id: Date.now(), // Unique ID
+    date: new Date().toLocaleDateString('vi-VN'),
+    score: currentResult.score,
+    percentile: currentResult.percentile,
+    timeTaken: Math.round(currentResult.timeTaken / 60), // Convert seconds to minutes
+    improvement: 0, // Will calculate below
+    isFirst: false,
+    isCurrent: true
   };
-  if (score >= 130) return { 
-    type: 'superior', 
-    label: 'Xuất sắc', 
-    color: 'from-blue-500 to-cyan-500', 
-    icon: '🏆', 
-    bgColor: 'bg-blue-100',
-    textColor: 'text-blue-800'
-  };
-  if (score >= 115) return { 
-    type: 'above', 
-    label: 'Trên trung bình', 
-    color: 'from-green-500 to-emerald-500', 
-    icon: '⚡', 
-    bgColor: 'bg-green-100',
-    textColor: 'text-green-800'
-  };
-  return { 
-    type: 'average', 
-    label: 'Trung bình', 
-    color: 'from-orange-500 to-red-500', 
-    icon: '✓', 
-    bgColor: 'bg-orange-100',
-    textColor: 'text-orange-800'
-  };
+
+  if (!realHistory || realHistory.length === 0) {
+    // No history - this is first test
+    console.log('✅ First time user - showing welcome message');
+    return [{
+      ...currentTest,
+      isFirst: true,
+      improvement: 0
+    }];
+  }
+
+  // Filter out current test if it already exists in history (avoid duplicate)
+  // Use a more relaxed filter - only filter if very recent (last 5 minutes)
+  const filteredHistory = realHistory.filter(test => {
+    if (!test.timestamp) return true; // Keep tests without timestamp
+    const testTime = new Date(test.timestamp).getTime();
+    const currentTime = Date.now();
+    const timeDiff = Math.abs(currentTime - testTime);
+    return timeDiff > 5 * 60 * 1000; // More than 5 minutes difference
+  });
+
+  console.log('📊 Filtered history:', filteredHistory.length, 'items (removed recent duplicates)');
+
+  // Create timeline: current test + historical tests (show up to 10 most recent)
+  const timeline: TestHistoryItem[] = [];
+  
+  // Add current test first (newest)
+  if (filteredHistory.length > 0) {
+    currentTest.improvement = currentResult.score - filteredHistory[0].iq;
+  }
+  timeline.push(currentTest);
+
+  // Add historical tests (limit to 9 more for performance)
+  const historyToShow = filteredHistory.slice(0, 9);
+  historyToShow.forEach((test, index) => {
+    const date = test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+    const timeTakenMinutes = Math.round((test.timeSpent || 0) / 60);
+    
+    // Calculate improvement from previous test
+    let improvement = 0;
+    if (index < historyToShow.length - 1) {
+      improvement = test.iq - historyToShow[index + 1].iq;
+    }
+    
+    timeline.push({
+      id: test.timestamp || (Date.now() - (index + 1) * 1000),
+      date,
+      score: test.iq,
+      percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
+      timeTaken: timeTakenMinutes,
+      improvement,
+      isFirst: index === historyToShow.length - 1, // Last in shown array (oldest shown)
+      isCurrent: false
+    });
+  });
+
+  console.log('✅ Timeline created:', timeline.length, 'items total');
+  console.log('📊 Total history available:', realHistory.length, 'items');
+  
+  return timeline;
 };
 
-const formatTime = (seconds: number): string => {
+// Skill analysis data
+const getSkillAnalysis = (results: ResultData): SkillData[] => {
+  const base = Math.max(50, Math.min(95, results.score * 0.7 + 15));
+  
+  return [
+    {
+      name: 'Tư duy Logic',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Xuất sắc',
+      description: 'Khả năng phân tích và giải quyết vấn đề',
+      color: 'blue',
+      icon: '🧠'
+    },
+    {
+      name: 'Toán học',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Tốt',
+      description: 'Xử lý số và pattern toán học',
+      color: 'purple',
+      icon: '🔢'
+    },
+    {
+      name: 'Ngôn ngữ',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Khá',
+      description: 'Hiểu và xử lý thông tin ngôn ngữ',
+      color: 'green',
+      icon: '📝'
+    },
+    {
+      name: 'Không gian',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Tốt',
+      description: 'Hình dung và xoay đối tượng 3D',
+      color: 'orange',
+      icon: '🎯'
+    },
+    {
+      name: 'Trí nhớ',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Xuất sắc',
+      description: 'Ghi nhớ và truy xuất thông tin',
+      color: 'pink',
+      icon: '💾'
+    },
+    {
+      name: 'Tốc độ',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Khá',
+      description: 'Xử lý thông tin nhanh chóng',
+      color: 'yellow',
+      icon: '⚡'
+    }
+  ];
+};
+
+// Career suggestions
+const getCareerSuggestions = (score: number) => [
+  { name: 'Kỹ sư phần mềm', match: 98, salary: '25-50 triệu', icon: '💻' },
+  { name: 'Bác sĩ', match: 95, salary: '30-80 triệu', icon: '👨‍⚕️' },
+  { name: 'Nhà khoa học', match: 92, salary: '20-40 triệu', icon: '🔬' },
+  { name: 'Kiến trúc sư', match: 88, salary: '20-45 triệu', icon: '🏗️' },
+  { name: 'Giáo viên', match: 85, salary: '15-30 triệu', icon: '👨‍🏫' }
+];
+
+const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const ShareButton: React.FC<{ onShare: () => void; icon: string; label: string; color: string }> = ({ 
-  onShare, icon, label, color 
-}) => (
-  <button 
-    onClick={onShare}
-    className={`flex flex-col items-center justify-center p-3 rounded-lg ${color} transition-all duration-200 hover:scale-105`}
-  >
-    <span className="text-lg mb-1">{icon}</span>
-    <span className="text-xs font-medium">{label}</span>
-  </button>
-);
-
-const RadarChart: React.FC<{ skills: SkillScores }> = ({ skills }) => {
-  const center = 150;
-  const maxRadius = 120;
-  const skillOrder: (keyof SkillScores)[] = ['logic', 'visual', 'speed', 'math', 'memory'];
-  const angles = skillOrder.map((_, i) => (i * 2 * Math.PI) / 5 - Math.PI / 2);
-  
-  const points = skillOrder.map((skill, i) => {
-    const value = skills[skill] / 100;
-    const radius = value * maxRadius;
-    const x = center + radius * Math.cos(angles[i]);
-    const y = center + radius * Math.sin(angles[i]);
-    return { x, y, skill };
-  });
-  
-  const pointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
-
-  return (
-    <div className="relative mx-auto" style={{ width: '280px', height: '280px' }}>
-      <svg viewBox="0 0 300 300" className="w-full h-full">
-        {/* Background Grid */}
-        <g className="opacity-30" stroke="#e5e7eb" strokeWidth="1" fill="none">
-          <circle cx="150" cy="150" r="120" />
-          <circle cx="150" cy="150" r="90" />
-          <circle cx="150" cy="150" r="60" />
-          <circle cx="150" cy="150" r="30" />
-          <line x1="150" y1="30" x2="150" y2="270" />
-          <line x1="30" y1="150" x2="270" y2="150" />
-          <line x1="67" y1="67" x2="233" y2="233" />
-          <line x1="233" y1="67" x2="67" y2="233" />
-        </g>
-        
-        {/* Skill Polygon */}
-        <motion.polygon
-          points={pointsStr}
-          fill="rgba(59, 130, 246, 0.2)"
-          stroke="#3b82f6"
-          strokeWidth="2"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-        />
-        
-        {/* Skill Points */}
-        {points.map((point, i) => (
-          <motion.circle
-            key={skillOrder[i]}
-            cx={point.x}
-            cy={point.y}
-            r="4"
-            fill="#3b82f6"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: i * 0.2 + 1, duration: 0.3 }}
-          />
-        ))}
-      </svg>
-    </div>
-  );
+const getIQLevel = (score: number) => {
+  if (score >= 140) return { level: 'Thiên tài', color: 'purple', icon: '��' };
+  if (score >= 130) return { level: 'Xuất sắc', color: 'blue', icon: '🏆' };
+  if (score >= 115) return { level: 'Trên TB', color: 'green', icon: '⭐' };
+  if (score >= 85) return { level: 'Trung bình', color: 'yellow', icon: '✅' };
+  return { level: 'Dưới TB', color: 'orange', icon: '📈' };
 };
 
 export default function ResultComponent({ results, onRetake, onHome }: ResultComponentProps) {
-  const [showShareDropdown, setShowShareDropdown] = useState(false);
-  const [skills, setSkills] = useState<SkillScores>({ logic: 0, visual: 0, speed: 0, math: 0, memory: 0 });
-  const badgeInfo = getBadgeInfo(results.score);
-
-  // Calculate skills based on answer details
+  const [activeTab, setActiveTab] = useState('overview');
+  const [animationComplete, setAnimationComplete] = useState(false);
+  const [realTestHistory, setRealTestHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [showAllTestsModal, setShowAllTestsModal] = useState(false);
+  
+  const skills = getSkillAnalysis(results);
+  const careers = getCareerSuggestions(results.score);
+  const iqLevel = getIQLevel(results.score);
+  
+  // Load real test history on mount
   useEffect(() => {
-    const calculateSkills = (): SkillScores => {
-      const base = Math.max(50, Math.min(95, results.score * 0.7 + 15));
-      const typePerformance: Record<string, { correct: number; total: number }> = {};
-      
-      results.answerDetails.forEach(detail => {
-        if (!typePerformance[detail.type]) {
-          typePerformance[detail.type] = { correct: 0, total: 0 };
-        }
-        typePerformance[detail.type].total++;
-        if (detail.isCorrect) {
-          typePerformance[detail.type].correct++;
-        }
-      });
-
-      return {
-        logic: Math.round(base + (typePerformance.logic?.correct || 0) / (typePerformance.logic?.total || 1) * 30 - 15),
-        visual: Math.round(base + (typePerformance.spatial?.correct || 0) / (typePerformance.spatial?.total || 1) * 30 - 15),
-        speed: Math.round(base + (results.timeTaken < results.timeLimit * 0.7 ? 20 : -10)),
-        math: Math.round(base + (typePerformance.math?.correct || 0) / (typePerformance.math?.total || 1) * 30 - 15),
-        memory: Math.round(base + (results.completionRate > 0.8 ? 15 : -5))
-      };
+    const loadTestHistory = async () => {
+      try {
+        const { getUserRealTestHistory } = await import('../../utils/test');
+        const history = await getUserRealTestHistory();
+        setRealTestHistory(history);
+        console.log('📊 Loaded real test history:', history.length, 'tests');
+        console.log('📊 History data:', history);
+      } catch (error) {
+        console.warn('⚠️ Error loading test history:', error);
+        setRealTestHistory([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
     };
-
-    setSkills(calculateSkills());
-  }, [results]);
-
-  // Trigger confetti on mount
-  useEffect(() => {
-    if (results.score >= 115) {
-      setTimeout(() => {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-      }, 500);
-    }
-  }, [results.score]);
-
-  const shareToFacebook = () => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Tôi vừa đạt ${results.score} điểm IQ! 🧠✨ Thử sức với bài test này nhé!`);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
-  };
-
-  const shareToTwitter = () => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Tôi vừa đạt ${results.score} điểm IQ! 🧠✨ #IQTest #BrainPower`);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=400');
-  };
-
-  const shareToWhatsApp = () => {
-    const text = encodeURIComponent(`🧠 Tôi vừa đạt ${results.score} điểm IQ! 
-
-🎯 Vượt qua ${results.percentile}% dân số thế giới
-✨ Bạn có thể đạt được bao nhiêu điểm?
-
-Thử ngay test IQ này!`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      alert('🔗 Đã copy link thành công!');
-    }).catch(() => {
-      alert('❌ Không thể copy link');
-    });
-  };
-
-  const getSkillLevel = (score: number): string => {
-    if (score >= 85) return 'Xuất sắc';
-    if (score >= 75) return 'Tốt';
-    if (score >= 65) return 'Khá';
-    return 'Cần cải thiện';
-  };
-
-  const analyzeStrengths = () => {
-    const typePerformance: Record<string, { correct: number; total: number }> = {};
     
-    results.answerDetails.forEach(detail => {
-      if (!typePerformance[detail.type]) {
-        typePerformance[detail.type] = { correct: 0, total: 0 };
-      }
-      typePerformance[detail.type].total++;
-      if (detail.isCorrect) {
-        typePerformance[detail.type].correct++;
-      }
-    });
+    loadTestHistory();
+  }, []);
+  
+  // Convert real history to timeline format
+  const testHistory = convertRealHistoryToTimeline(realTestHistory, results);
+  
+  // Debug log timeline
+  useEffect(() => {
+    console.log('📊 Timeline generated:', testHistory.length, 'items');
+    console.log('📊 Timeline data:', testHistory);
+  }, [testHistory]);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimationComplete(true), 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
-    const strengths: string[] = [];
-    const improvements: string[] = [];
-
-    Object.entries(typePerformance).forEach(([type, performance]) => {
-      const percentage = (performance.correct / performance.total) * 100;
-      const typeName = type === 'logic' ? 'Tư duy logic' : 
-                      type === 'math' ? 'Toán học' :
-                      type === 'spatial' ? 'Tư duy không gian' :
-                      type === 'pattern' ? 'Nhận dạng mẫu' : type;
+  const TestHistory = () => (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+        <span className="mr-2">📈</span>
+        Lịch sử tiến bộ
+        {isLoadingHistory && (
+          <div className="ml-2 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        )}
+        {!isLoadingHistory && realTestHistory.length > 0 && (
+          <span className="ml-2 text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+            {realTestHistory.length + 1} bài test
+          </span>
+        )}
+      </h3>
       
-      if (percentage >= 70) {
-        strengths.push(typeName);
-      } else if (percentage < 50) {
-        improvements.push(typeName);
-      }
-    });
-
-    return { strengths, improvements };
-  };
-
-  const { strengths, improvements } = analyzeStrengths();
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Main Result Card */}
-        <motion.div 
-          className="bg-white rounded-3xl shadow-md p-8 mb-8 relative overflow-hidden"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-purple-600"></div>
+      {isLoadingHistory ? (
+        // Loading skeleton
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center space-x-4">
+              <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="flex-1 bg-gray-50 rounded-xl p-4">
+                <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : testHistory.length === 1 ? (
+        // First time user - welcome message
+        <div className="text-center py-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl mx-auto mb-4">
+            🎉
           </div>
-
-          <div className="relative z-10">
-            {/* Header Row with Badge and Quick Stats */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-              <div className="flex items-center mb-4 sm:mb-0">
-                <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${badgeInfo.color} flex items-center justify-center mr-4 shadow-lg`}>
-                  <span className="text-white text-2xl">{badgeInfo.icon}</span>
-                </div>
-                <div>
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r ${badgeInfo.color} text-white font-semibold text-sm shadow-md`}>
-                    <span className="mr-1">{badgeInfo.icon}</span>
-                    {badgeInfo.label}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">Vượt qua <span className="font-bold text-blue-600">{results.percentile}%</span> dân số</p>
-                </div>
-              </div>
-              
-              {/* Quick Stats */}
-              <div className="flex space-x-4 text-center">
-                <div className="bg-green-50 rounded-xl px-3 py-2">
-                  <div className="text-lg font-bold text-green-600">{Math.round(results.completionRate * 100)}%</div>
-                  <div className="text-xs text-gray-500">Chính xác</div>
-                </div>
-                <div className="bg-blue-50 rounded-xl px-3 py-2">
-                  <div className="text-lg font-bold text-blue-600">{formatTime(results.timeTaken)}</div>
-                  <div className="text-xs text-gray-500">Thời gian</div>
-                </div>
-                <div className="bg-purple-50 rounded-xl px-3 py-2">
-                  <div className="text-lg font-bold text-purple-600">{results.correctAnswers}/{results.totalQuestions}</div>
-                  <div className="text-xs text-gray-500">Đúng/Tổng</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Main Score Section */}
-            <div className="text-center mb-8">
-              <motion.h1 
-                className="text-7xl md:text-8xl font-bold text-gray-900 mb-2 leading-none"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.8, type: "spring" }}
-              >
-                {results.score}
-              </motion.h1>
-              <p className="text-xl text-gray-600 mb-6">Chỉ số IQ của bạn</p>
-              
-              {/* Mini IQ Scale */}
-              <div className="max-w-md mx-auto mb-6">
-                <div className="relative h-3 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 via-blue-400 to-purple-400 rounded-full">
-                  <motion.div 
-                    className="absolute w-4 h-4 bg-white border-3 border-blue-600 rounded-full shadow-md transform -translate-y-0.5 -translate-x-2"
-                    style={{ left: `${Math.min(Math.max(((results.score - 70) / 75) * 100, 0), 100)}%` }}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-2">
-                  <span>70</span>
-                  <span>100</span>
-                  <span>130</span>
-                  <span>145+</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Action Buttons Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-              {/* Làm lại IQ Button */}
-              <motion.button
-                onClick={onRetake}
-                className="group bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="mr-2 group-hover:rotate-180 transition-transform duration-300">🔄</span>
-                <span className="text-sm">Làm lại IQ</span>
-              </motion.button>
-
-              {/* Trang chủ Button */}
-              <motion.button
-                onClick={onHome}
-                className="group bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="mr-2">🏠</span>
-                <span className="text-sm">Trang chủ</span>
-              </motion.button>
-
-              {/* Test EQ Button */}
-              <motion.button
-                onClick={() => window.location.href = '/test/eq'}
-                className="group bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="mr-2 group-hover:scale-110 transition-transform duration-300">❤️</span>
-                <span className="text-sm">Test EQ</span>
-              </motion.button>
-
-              {/* Bảng xếp hạng Button */}
-              <motion.button
-                onClick={() => window.location.href = '/leaderboard'}
-                className="group bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="mr-2 group-hover:bounce transition-transform duration-300">🏆</span>
-                <span className="text-sm">Bảng xếp hạng</span>
-              </motion.button>
-
-              {/* Chia sẻ Button với Dropdown */}
-              <div className="relative">
-                <motion.button 
-                  onClick={() => setShowShareDropdown(!showShareDropdown)}
-                  className="group w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold px-4 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="mr-2">📤</span>
-                  <span className="text-sm">Chia sẻ</span>
-                  <span className={`ml-1 transition-transform duration-200 ${showShareDropdown ? 'rotate-180' : ''}`}>⬇️</span>
-                </motion.button>
-
-                <AnimatePresence>
-                  {showShareDropdown && (
-                    <motion.div 
-                      className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-56 bg-white rounded-lg shadow-md border border-gray-100 z-50"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                    >
-                      <div className="p-3">
-                        <div className="grid grid-cols-4 gap-2">
-                          <ShareButton onShare={shareToFacebook} icon="📘" label="Facebook" color="bg-blue-50 hover:bg-blue-100 text-blue-600" />
-                          <ShareButton onShare={shareToTwitter} icon="🐦" label="Twitter" color="bg-gray-50 hover:bg-gray-100 text-gray-700" />
-                          <ShareButton onShare={shareToWhatsApp} icon="💬" label="WhatsApp" color="bg-green-50 hover:bg-green-100 text-green-600" />
-                          <ShareButton onShare={copyLink} icon="🔗" label="Copy" color="bg-purple-50 hover:bg-purple-100 text-purple-600" />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+          <h4 className="text-lg font-bold text-gray-900 mb-2">Chúc mừng bài test đầu tiên!</h4>
+          <p className="text-gray-600 mb-4">Đây là điểm baseline của bạn. Hãy quay lại để theo dõi sự tiến bộ!</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-sm mx-auto">
+            <div className="text-2xl font-bold text-blue-600">{testHistory[0].score}</div>
+            <div className="text-sm text-gray-600">Điểm IQ hiện tại</div>
           </div>
-        </motion.div>
-
-        {/* Score Comparison Chart */}
-        <motion.div 
-          className="bg-white rounded-2xl shadow-md p-8 mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <span className="mr-3 text-indigo-600">📊</span>
-            So sánh với cộng đồng
-          </h2>
+        </div>
+      ) : (
+        // Multiple tests - timeline view
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-purple-200 via-green-200 to-blue-200"></div>
           
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Distribution Chart */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Phân bố điểm IQ</h3>
-              <div className="space-y-3">
-                {[
-                  { label: 'Thiên tài (140+)', width: 2, color: 'purple', isUser: results.score >= 140 },
-                  { label: 'Xuất sắc (130-139)', width: 6, color: 'blue', isUser: results.score >= 130 && results.score < 140 },
-                  { label: 'Trên TB (115-129)', width: 14, color: 'green', isUser: results.score >= 115 && results.score < 130 },
-                  { label: 'Trung bình (85-114)', width: 68, color: 'yellow', isUser: results.score >= 85 && results.score < 115 },
-                  { label: 'Dưới TB (70-84)', width: 10, color: 'orange', isUser: results.score >= 70 && results.score < 85 }
-                ].map((item, index) => (
-                  <motion.div 
-                    key={index}
-                    className="flex items-center justify-between"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
-                  >
-                    <span className="text-sm text-gray-600">{item.label}</span>
-                    <div className="flex-1 mx-3 h-3 bg-gray-100 rounded-full relative">
-                      <motion.div 
-                        className={`h-3 bg-gradient-to-r from-${item.color}-400 to-${item.color}-600 rounded-full`}
-                        style={{ width: `${item.width}%` }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${item.width}%` }}
-                        transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
-                      />
-                      {item.isUser && (
-                        <motion.div 
-                          className={`absolute top-0 right-0 w-3 h-3 bg-white border-2 border-${item.color}-600 rounded-full transform translate-x-1`}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 1.3 + index * 0.1 }}
-                        />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">{item.width}%</span>
-                  </motion.div>
-                ))}
+          {testHistory.map((test, index) => (
+            <motion.div
+              key={test.id}
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.2 }}
+              className={`relative flex items-center space-x-4 pb-6 ${index === testHistory.length - 1 ? 'pb-0' : ''}`}
+            >
+              {/* Timeline dot */}
+              <div className={`relative z-10 w-4 h-4 rounded-full border-2 ${
+                test.isCurrent 
+                  ? 'bg-purple-500 border-purple-500 shadow-lg' 
+                  : test.isFirst 
+                  ? 'bg-blue-500 border-blue-500' 
+                  : 'bg-green-500 border-green-500'
+              }`}>
+                {test.isCurrent && (
+                  <div className="absolute inset-0 rounded-full bg-purple-500 animate-ping opacity-75"></div>
+                )}
               </div>
-            </div>
-            
-            {/* Your Position */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Vị trí của bạn</h3>
-              <div className="space-y-4">
-                <motion.div 
-                  className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 text-center"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 1, duration: 0.5 }}
-                >
-                  <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
-                    #{Math.ceil((100 - results.percentile) / 100 * 1000)}
+              
+              {/* Content */}
+              <div className={`flex-1 p-4 rounded-xl border transition-all hover:shadow-md ${
+                test.isCurrent 
+                  ? 'bg-purple-50 border-purple-200' 
+                  : 'bg-gray-50 border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-3">
+                    <h4 className="font-semibold text-gray-900">
+                      {test.isFirst ? 'Lần đầu tiên' : test.isCurrent ? 'Hôm nay' : 'Lần trước'}
+                    </h4>
+                    {test.isCurrent && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Mới nhất</span>}
                   </div>
-                  <p className="text-sm text-gray-600">Trong 1000 người</p>
-                </motion.div>
+                  <span className="text-sm text-gray-500">{test.date}</span>
+                </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600 mb-1">{results.percentile}%</div>
-                    <p className="text-xs text-gray-600">Cao hơn</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600 mb-1">{100 - results.percentile}%</div>
-                    <p className="text-xs text-gray-600">Thấp hơn</p>
-                  </div>
-                </div>
-
-                <div className="text-center py-4">
-                  <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-100 to-emerald-200 rounded-full">
-                    <span className="text-emerald-600 mr-2">🏆</span>
-                    <span className="text-sm font-medium text-emerald-800">
-                      {results.score >= 130 ? 'Top 6% xuất sắc!' : 
-                       results.score >= 115 ? 'Top 20% trên trung bình!' : 
-                       'Điểm tốt, tiếp tục cố gắng!'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-          
-        {/* Analysis Section */}
-        <motion.div 
-          className="bg-white rounded-2xl shadow-md p-8 mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <span className="mr-3 text-blue-600">📊</span>
-            Phân tích chi tiết
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Strengths */}
-            <div>
-              <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center">
-                <span className="mr-2">⚡</span>
-                Điểm mạnh
-              </h3>
-              <div className="space-y-3">
-                {strengths.length > 0 ? strengths.map((strength, index) => (
-                  <motion.div 
-                    key={index}
-                    className="flex items-center p-3 bg-green-50 rounded-lg"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + index * 0.1 }}
-                  >
-                    <span className="text-green-500 mr-3">✅</span>
-                    <span className="text-gray-700">{strength}</span>
-                  </motion.div>
-                )) : (
-                  <div className="flex items-center p-3 bg-green-50 rounded-lg">
-                    <span className="text-green-500 mr-3">✅</span>
-                    <span className="text-gray-700">Tư duy tổng hợp tốt</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Improvements */}
-            <div>
-              <h3 className="text-lg font-semibold text-orange-600 mb-4 flex items-center">
-                <span className="mr-2">🏆</span>
-                Cơ hội phát triển
-              </h3>
-              <div className="space-y-3">
-                {improvements.length > 0 ? improvements.map((area, index) => (
-                  <motion.div 
-                    key={index}
-                    className="flex items-center p-3 bg-orange-50 rounded-lg"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + index * 0.1 }}
-                  >
-                    <span className="text-orange-500 mr-3">🧠</span>
-                    <span className="text-gray-700">{area}</span>
-                  </motion.div>
-                )) : (
-                  <div className="flex items-center p-3 bg-orange-50 rounded-lg">
-                    <span className="text-orange-500 mr-3">🧠</span>
-                    <span className="text-gray-700">Luyện tập thêm để nâng cao</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Skill Breakdown Section */}
-        <motion.div 
-          className="bg-white rounded-2xl shadow-md p-8 mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-        >
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <span className="mr-3 text-purple-600">🧠</span>
-            Phân tích theo kỹ năng
-          </h2>
-          
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Radar Chart */}
-            <div className="relative">
-              <RadarChart skills={skills} />
-            </div>
-            
-            {/* Skills List */}
-            <div className="space-y-4">
-              {[
-                { key: 'logic', icon: '🧠', title: 'Logic & Suy luận', desc: 'Giải quyết vấn đề, chuỗi lập luận', bg: 'bg-blue-50', color: 'text-blue-600' },
-                { key: 'visual', icon: '👁️', title: 'Tư duy trực quan', desc: 'Nhận diện mẫu, hình khối', bg: 'bg-green-50', color: 'text-green-600' },
-                { key: 'speed', icon: '⏱️', title: 'Phản xạ & tốc độ', desc: 'Trả lời nhanh & chính xác', bg: 'bg-amber-50', color: 'text-amber-600' },
-                { key: 'math', icon: '📐', title: 'Khả năng toán học', desc: 'Dạng số học, dãy số logic', bg: 'bg-purple-50', color: 'text-purple-600' },
-                { key: 'memory', icon: '🔄', title: 'Ghi nhớ & tập trung', desc: 'Giữ thông tin & duy trì chú ý', bg: 'bg-red-50', color: 'text-red-600' }
-              ].map((skill, index) => (
-                <motion.div 
-                  key={skill.key}
-                  className={`flex items-center justify-between p-4 ${skill.bg} rounded-xl hover:shadow-md transition-all duration-200`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 + index * 0.1 }}
-                >
-                  <div className="flex items-center">
-                    <div className={`w-10 h-10 ${skill.bg.replace('50', '500')} rounded-lg flex items-center justify-center mr-4`}>
-                      <span className="text-white text-lg">{skill.icon}</span>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${
+                      test.isCurrent ? 'text-purple-600' : 'text-gray-700'
+                    }`}>
+                      {test.score}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{skill.title}</h3>
-                      <p className="text-sm text-gray-600">{skill.desc}</p>
-                    </div>
+                    <div className="text-xs text-gray-500">IQ Score</div>
                   </div>
-                  <div className="text-right">
-                    <div className={`text-2xl font-bold ${skill.color}`}>
-                      {skills[skill.key as keyof SkillScores]}%
+                  
+                  <div className="text-center">
+                    <div className={`text-lg font-semibold ${
+                      test.improvement > 0 ? 'text-green-600' : 
+                      test.improvement < 0 ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {test.improvement > 0 ? '+' : ''}{test.improvement || '—'}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {getSkillLevel(skills[skill.key as keyof SkillScores])}
+                      {test.isFirst ? 'Baseline' : 'Tiến bộ'}
                     </div>
                   </div>
+                  
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-blue-600">
+                      {test.timeTaken > 0 ? `${test.timeTaken}m` : '—'}
+                    </div>
+                    <div className="text-xs text-gray-500">Thời gian</div>
+                  </div>
+                </div>
+                
+                {test.improvement > 0 && (
+                  <div className="mt-3 text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full inline-block">
+                    🎉 Cải thiện {test.improvement} điểm!
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+          
+          {/* Show "View All" if there are more tests */}
+          {realTestHistory.length > 9 && (
+            <div className="mt-4 text-center">
+              <div className="text-sm text-gray-500 mb-2">
+                Hiển thị 10 bài test gần nhất. Còn {realTestHistory.length - 9} bài test nữa.
+              </div>
+              <button 
+                onClick={() => setShowAllTestsModal(true)}
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
+              >
+                Xem tất cả {realTestHistory.length + 1} bài test
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Progress summary - only show for multiple tests */}
+      {!isLoadingHistory && testHistory.length > 1 && (
+        <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-gray-900">Tổng tiến bộ</h4>
+              <p className="text-sm text-gray-600">So với lần đầu tiên ({testHistory.length} bài test)</p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-green-600">
+                +{testHistory[0].score - testHistory[testHistory.length - 1].score}
+              </div>
+              <div className="text-sm text-gray-500">điểm IQ</div>
+            </div>
+          </div>
+          
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex items-center space-x-1">
+              <span className="text-blue-500">⚡</span>
+              <span className="text-gray-600">
+                {(() => {
+                  const oldestTime = testHistory[testHistory.length - 1].timeTaken;
+                  const newestTime = testHistory[0].timeTaken;
+                  if (oldestTime > 0 && newestTime > 0) {
+                    const timeDiff = oldestTime - newestTime;
+                    return timeDiff > 0 ? `Nhanh hơn ${timeDiff} phút` : 'Tốc độ ổn định';
+                  }
+                  return 'Theo dõi tốc độ';
+                })()}
+              </span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="text-green-500">📊</span>
+              <span className="text-gray-600">
+                Vượt thêm {Math.max(0, testHistory[0].percentile - testHistory[testHistory.length - 1].percentile)}% dân số
+              </span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="text-purple-500">📈</span>
+              <span className="text-gray-600">
+                Tốc độ cải thiện: {Math.round((testHistory[0].score - testHistory[testHistory.length - 1].score) / (testHistory.length - 1))} điểm/test
+              </span>
+            </div>
+          </div>
+          
+          {/* Mini chart visual */}
+          <div className="mt-4 flex items-end space-x-1 h-8">
+            {testHistory.slice().reverse().map((test, index) => {
+              const maxScore = Math.max(...testHistory.map(t => t.score));
+              const minScore = Math.min(...testHistory.map(t => t.score));
+              const range = maxScore - minScore || 1;
+              const height = Math.max(8, ((test.score - minScore) / range) * 24 + 8);
+              
+              return (
+                <div
+                  key={test.id}
+                  className={`flex-1 rounded-t transition-all duration-500 ${
+                    test.isCurrent ? 'bg-purple-500' : 'bg-blue-400'
+                  }`}
+                  style={{ height: `${height}px` }}
+                  title={`Test ${index + 1}: ${test.score} điểm`}
+                />
+              );
+            })}
+          </div>
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>Cũ nhất</span>
+            <span>Mới nhất</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const PersonalProfile = () => (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="flex items-center space-x-4">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+          {results.score}
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-gray-900">Kết quả của bạn</h3>
+          <p className="text-sm text-gray-600">{new Date().toLocaleDateString('vi-VN')}</p>
+          <div className="flex items-center space-x-4 mt-2">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
+              {iqLevel.icon} {iqLevel.level}
+            </span>
+            <span className="text-xs text-gray-500">Vượt {results.percentile}% dân số</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const HeroSection = () => (
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10"></div>
+      <div className="relative z-10">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.8, type: "spring" }}
+          className="text-7xl font-bold text-gray-900 mb-4"
+        >
+          {results.score}
+        </motion.div>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Chỉ số IQ của bạn</h1>
+        <p className="text-gray-600 mb-6">
+          Bạn thông minh hơn <span className="font-bold text-blue-600">{results.percentile}%</span> dân số thế giới
+        </p>
+        
+        {/* IQ Scale */}
+        <div className="max-w-md mx-auto">
+          <div className="relative h-3 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 to-blue-400 rounded-full">
+            <motion.div 
+              className="absolute w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-lg transform -translate-y-0.5 -translate-x-2"
+              style={{ left: `${Math.min(Math.max(((results.score - 70) / 80) * 100, 0), 100)}%` }}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.5 }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <span>70</span>
+            <span>100</span>
+            <span>130</span>
+            <span>150+</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const QuickStats = () => (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[
+        { label: 'Chính xác', value: `${Math.round(results.completionRate * 100)}%`, color: 'green', icon: '🎯' },
+        { label: 'Thời gian', value: formatTime(results.timeTaken), color: 'blue', icon: '⏱️' },
+        { label: 'Đúng/Tổng', value: `${results.correctAnswers}/${results.totalQuestions}`, color: 'purple', icon: '📊' },
+        { label: 'Percentile', value: `${results.percentile}%`, color: 'yellow', icon: '🏆' }
+      ].map((stat, index) => (
+        <motion.div 
+          key={index}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className={`bg-${stat.color}-50 rounded-xl p-4 text-center`}
+        >
+          <div className="text-2xl mb-1">{stat.icon}</div>
+          <div className={`text-lg font-bold text-${stat.color}-600`}>{stat.value}</div>
+          <div className="text-xs text-gray-600">{stat.label}</div>
+        </motion.div>
+      ))}
+    </div>
+  );
+
+  const SkillsRadar = () => (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+        <span className="mr-2">🎯</span>
+        Phân tích kỹ năng chi tiết
+      </h3>
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        {skills.map((skill, index) => (
+          <motion.div 
+            key={index}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="flex items-center space-x-4 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            <div className={`w-12 h-12 bg-${skill.color}-100 rounded-full flex items-center justify-center text-xl`}>
+              {skill.icon}
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-1">
+                <h4 className="font-semibold text-gray-900">{skill.name}</h4>
+                <span className={`text-sm font-bold text-${skill.color}-600`}>{skill.score}%</span>
+              </div>
+              <p className="text-xs text-gray-600 mb-2">{skill.description}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <motion.div 
+                  className={`bg-${skill.color}-500 h-2 rounded-full`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${skill.score}%` }}
+                  transition={{ delay: 0.5 + index * 0.1, duration: 0.8 }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const CareerSuggestions = () => (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+        <span className="mr-2">💼</span>
+        Nghề nghiệp phù hợp
+      </h3>
+      
+      <div className="space-y-4">
+        {careers.map((career, index) => (
+          <motion.div 
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="text-2xl">{career.icon}</div>
+              <div>
+                <h4 className="font-semibold text-gray-900">{career.name}</h4>
+                <p className="text-sm text-gray-600">Lương: {career.salary}/tháng</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-bold text-green-600">{career.match}%</div>
+              <div className="text-xs text-gray-500">Phù hợp</div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const TabNavigation = () => (
+    <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
+      <div className="flex space-x-2">
+        {[
+          { id: 'overview', label: 'Tổng quan', icon: '📊' },
+          { id: 'analysis', label: 'Phân tích', icon: '🔍' },
+          { id: 'career', label: 'Nghề nghiệp', icon: '💼' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <span>{tab.icon}</span>
+            <span className="text-sm">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const ActionButtons = () => (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {[
+        { label: 'Làm lại', icon: '🔄', color: 'gray', onClick: onRetake },
+        { label: 'Trang chủ', icon: '🏠', color: 'blue', onClick: onHome },
+        { label: 'Test EQ', icon: '❤️', color: 'pink', onClick: () => window.location.href = '/test/eq' },
+        { label: 'Chia sẻ', icon: '📤', color: 'green', onClick: () => navigator.share?.({ title: `IQ ${results.score}`, text: `Tôi đạt ${results.score} điểm IQ!` }) || navigator.clipboard.writeText(window.location.href) }
+      ].map((btn, index) => (
+        <motion.button
+          key={index}
+          onClick={btn.onClick}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={`p-3 rounded-xl font-medium text-white bg-${btn.color}-500 hover:bg-${btn.color}-600 transition-colors flex items-center justify-center space-x-2`}
+        >
+          <span>{btn.icon}</span>
+          <span className="text-sm">{btn.label}</span>
+        </motion.button>
+      ))}
+    </div>
+  );
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <>
+            <QuickStats />
+            <SkillsRadar />
+            <TestHistory />
+          </>
+        );
+      case 'analysis':
+        return (
+          <DetailedAnalysis 
+            score={results.score}
+            percentile={results.percentile}
+            timeTaken={results.timeTaken}
+            accuracy={Math.round(results.completionRate * 100)}
+          />
+        );
+      case 'career':
+        return <CareerSuggestions />;
+      default:
+        return null;
+    }
+  };
+
+  const AllTestsModal = () => {
+    const allTests = [
+      // Current test first
+      {
+        id: Date.now(),
+        date: new Date().toLocaleDateString('vi-VN'),
+        score: results.score,
+        percentile: results.percentile,
+        timeTaken: Math.round(results.timeTaken / 60),
+        accuracy: Math.round(results.completionRate * 100),
+        improvement: realTestHistory.length > 0 ? results.score - realTestHistory[0].iq : 0,
+        isCurrent: true
+      },
+      // Historical tests
+      ...realTestHistory.map((test, index) => ({
+        id: test.timestamp || Date.now() - index,
+        date: test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : 'N/A',
+        score: test.iq,
+        percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
+        timeTaken: Math.round((test.timeSpent || 0) / 60),
+        accuracy: test.detailed?.accuracy || 0,
+        improvement: index < realTestHistory.length - 1 ? test.iq - realTestHistory[index + 1].iq : 0,
+        isCurrent: false
+      }))
+    ];
+
+    const stats = {
+      total: allTests.length,
+      avgScore: Math.round(allTests.reduce((sum, test) => sum + test.score, 0) / allTests.length),
+      maxScore: Math.max(...allTests.map(test => test.score)),
+      minScore: Math.min(...allTests.map(test => test.score)),
+      totalImprovement: allTests[0].score - allTests[allTests.length - 1].score
+    };
+
+    // Close modal on Escape key
+    useEffect(() => {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setShowAllTestsModal(false);
+        }
+      };
+      
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }, []);
+
+    return (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={(e) => e.target === e.currentTarget && setShowAllTestsModal(false)}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Lịch sử IQ Test</h2>
+                <p className="text-blue-100">Tất cả {stats.total} bài test của bạn</p>
+              </div>
+              <button
+                onClick={() => setShowAllTestsModal(false)}
+                className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{stats.avgScore}</div>
+                <div className="text-sm text-blue-100">Điểm TB</div>
+              </div>
+              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{stats.maxScore}</div>
+                <div className="text-sm text-blue-100">Cao nhất</div>
+              </div>
+              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">+{stats.totalImprovement}</div>
+                <div className="text-sm text-blue-100">Tiến bộ</div>
+              </div>
+              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{stats.total}</div>
+                <div className="text-sm text-blue-100">Tổng test</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 overflow-y-auto max-h-[60vh]">
+            <div className="space-y-3">
+              {allTests.map((test, index) => (
+                <motion.div
+                  key={test.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                    test.isCurrent 
+                      ? 'bg-purple-50 border-purple-200 shadow-sm' 
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                        test.isCurrent ? 'bg-purple-500' : 'bg-gray-400'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">
+                          {test.isCurrent ? 'Hôm nay (Mới nhất)' : `Test #${stats.total - index}`}
+                        </h4>
+                        <p className="text-sm text-gray-500">{test.date}</p>
+                      </div>
+                      {test.isCurrent && (
+                        <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
+                          Hiện tại
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="text-right">
+                      <div className={`text-2xl font-bold ${
+                        test.isCurrent ? 'text-purple-600' : 'text-gray-700'
+                      }`}>
+                        {test.score}
+                      </div>
+                      <div className="text-xs text-gray-500">IQ Score</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-blue-600">{test.percentile}%</div>
+                      <div className="text-xs text-gray-500">Percentile</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-green-600">{test.accuracy}%</div>
+                      <div className="text-xs text-gray-500">Chính xác</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-orange-600">{test.timeTaken}m</div>
+                      <div className="text-xs text-gray-500">Thời gian</div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`text-lg font-semibold ${
+                        test.improvement > 0 ? 'text-green-600' : 
+                        test.improvement < 0 ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {test.improvement > 0 ? '+' : ''}{test.improvement || '—'}
+                      </div>
+                      <div className="text-xs text-gray-500">Tiến bộ</div>
+                    </div>
+                  </div>
+
+                  {test.improvement > 0 && (
+                    <div className="mt-3 flex items-center space-x-2">
+                      <span className="text-green-600 text-sm">🎉</span>
+                      <span className="text-green-600 text-sm font-medium">
+                        Cải thiện {test.improvement} điểm so với lần trước!
+                      </span>
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>
           </div>
-        </motion.div>
 
-        {/* Social Sharing - Simplified */}
-        <motion.div 
-          className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-3">💡 Mẹo nhỏ</h2>
-          <p className="text-gray-600 text-sm">Chia sẻ kết quả để thử thách bạn bè của bạn! Ai sẽ có điểm cao hơn? 🎯</p>
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-4 border-t">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Tổng cộng {stats.total} bài test • Tiến bộ {stats.totalImprovement} điểm
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowAllTestsModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAllTestsModal(false);
+                    onRetake();
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Làm test mới
+                </button>
+              </div>
+            </div>
+          </div>
         </motion.div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="space-y-6">
+          {/* Personal Profile */}
+          <PersonalProfile />
+          
+          {/* Hero Section */}
+          <HeroSection />
+          
+          {/* Tab Navigation */}
+          <TabNavigation />
+          
+          {/* Tab Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderTabContent()}
+            </motion.div>
+          </AnimatePresence>
+          
+          {/* Action Buttons */}
+          <ActionButtons />
+          
+          {/* All Tests Modal */}
+          <AnimatePresence>
+            {showAllTestsModal && <AllTestsModal />}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
