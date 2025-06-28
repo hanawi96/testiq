@@ -18,65 +18,147 @@ export interface LeaderboardStats {
   geniusPercentage: number;
 }
 
-/**
- * Get leaderboard data from user_test_results table (OPTIMIZED)
- */
-export async function getLeaderboard(limit: number = 50): Promise<{
+export interface PaginatedLeaderboard {
   data: LeaderboardEntry[] | null;
   stats: LeaderboardStats | null;
+  totalPages: number;
+  currentPage: number;
   error: any;
-}> {
+}
+
+// Simple cache with longer duration
+let cachedData: {
+  allResults: any[] | null;
+  stats: LeaderboardStats | null;
+  lastFetch: number;
+} = {
+  allResults: null,
+  stats: null,
+  lastFetch: 0
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Retry utility for failed requests
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 2,
+  delay: number = 1000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Don't retry if it's a permanent error
+      if (error?.code && !['PGRST301', 'PGRST116'].includes(error.code)) {
+        console.error(`❌ Non-retryable error:`, error);
+        throw error;
+      }
+      
+      if (attempt < maxRetries) {
+        console.log(`⚠️ Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * Simple optimized leaderboard function with retry logic
+ */
+export async function getLeaderboard(
+  page: number = 1, 
+  itemsPerPage: number = 20
+): Promise<PaginatedLeaderboard> {
   try {
-    console.log('🏆 Fetching leaderboard data (optimized)...');
-
-    // SINGLE QUERY: Get all test results for both leaderboard and stats
-    const { data: allResults, error } = await supabase
-      .from('user_test_results')
-      .select('user_id, score, tested_at, guest_name, guest_location')
-      .order('score', { ascending: false });
-
-    if (error) {
-      console.error('❌ Error fetching leaderboard:', error);
-      return { data: null, stats: null, error };
-    }
-
-    if (!allResults || allResults.length === 0) {
-      return { 
-        data: [], 
-        stats: { totalParticipants: 0, highestScore: 0, averageScore: 0, geniusPercentage: 0 }, 
-        error: null 
-      };
-    }
-
-    // Calculate stats from the same data (no extra query)
-    const scores = allResults.map(r => r.score);
-    const totalParticipants = scores.length;
-    const highestScore = Math.max(...scores);
-    const averageScore = Math.round(scores.reduce((a, b) => a + b, 0) / totalParticipants);
-    const geniusCount = scores.filter(score => score >= 140).length;
-    const geniusPercentage = totalParticipants > 0 
-      ? Math.round((geniusCount / totalParticipants) * 100 * 10) / 10 
-      : 0;
-
-    const stats: LeaderboardStats = {
-      totalParticipants,
-      highestScore,
-      averageScore,
-      geniusPercentage
-    };
-
-    // Get top entries for leaderboard (already sorted by score desc)
-    const topResults = allResults.slice(0, limit);
+    const now = Date.now();
+    const needsFetch = !cachedData.allResults || (now - cachedData.lastFetch > CACHE_DURATION);
     
-    // Transform to leaderboard format (no JOIN needed)
-    const leaderboard: LeaderboardEntry[] = topResults.map((result: any, index) => {
+    if (needsFetch) {
+      console.log('🔄 Fetching leaderboard...');
+      
+      const result = await retryOperation(async () => {
+        const { data: results, error } = await supabase
+          .from('user_test_results')
+          .select(`
+            user_id,
+            score,
+            tested_at,
+            guest_name,
+            guest_location,
+            user_profiles!left(full_name, location)
+          `)
+          .order('score', { ascending: false });
+
+        if (error) {
+          console.error('❌ Supabase error:', error);
+          throw error;
+        }
+
+        return results;
+      });
+
+      if (!result?.length) {
+        return { 
+          data: [], 
+          stats: { totalParticipants: 0, highestScore: 0, averageScore: 0, geniusPercentage: 0 },
+          totalPages: 0,
+          currentPage: page, 
+          error: null 
+        };
+      }
+      
+      // Calculate stats
+      const scores = result.map(r => r.score);
+      const stats: LeaderboardStats = {
+        totalParticipants: scores.length,
+        highestScore: Math.max(...scores),
+        averageScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+        geniusPercentage: Math.round((scores.filter(s => s >= 140).length / scores.length) * 100 * 10) / 10
+      };
+      
+      // Update cache
+      cachedData = {
+        allResults: result,
+        stats,
+        lastFetch: now
+      };
+      
+      console.log(`✅ Cached ${result.length} results`);
+    }
+    
+    // Paginate from cache
+    const totalPages = Math.ceil((cachedData.allResults?.length || 0) / itemsPerPage);
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageResults = cachedData.allResults?.slice(startIndex, endIndex) || [];
+    
+    // Transform to leaderboard format
+    const leaderboard: LeaderboardEntry[] = pageResults.map((result: any, index) => {
+      const globalRank = startIndex + index + 1;
       const isAnonymous = !result.user_id;
       
+      const name = isAnonymous 
+        ? (result.guest_name || 'Anonymous User')
+        : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
+
+      // Fix location logic
+      const location = isAnonymous 
+        ? (result.guest_location || 'Không rõ')
+        : (result.user_profiles?.location || 'Chưa cập nhật');
+      
       return {
-        rank: index + 1,
-        name: isAnonymous ? (result.guest_name || 'Anonymous User') : 'User',
+        rank: globalRank,
+        name,
         score: result.score,
-        location: isAnonymous ? (result.guest_location || 'Không rõ') : 'Không rõ',
+        location,
         date: result.tested_at,
         badge: getBadgeFromScore(result.score),
         isAnonymous,
@@ -84,12 +166,64 @@ export async function getLeaderboard(limit: number = 50): Promise<{
       };
     });
 
-    console.log(`✅ Leaderboard optimized: ${leaderboard.length} entries, ${totalParticipants} total`);
-    return { data: leaderboard, stats, error: null };
+    return { 
+      data: leaderboard, 
+      stats: cachedData.stats, 
+      totalPages, 
+      currentPage: page,
+      error: null 
+    };
 
   } catch (err) {
-    console.error('❌ Unexpected error fetching leaderboard:', err);
-    return { data: null, stats: null, error: err };
+    console.error('❌ Leaderboard error:', err);
+    
+    // Return cached data if available, even if stale
+    if (cachedData.allResults) {
+      console.log('⚠️ Using stale cache due to error');
+      const totalPages = Math.ceil(cachedData.allResults.length / itemsPerPage);
+      const startIndex = (page - 1) * itemsPerPage;
+      const pageResults = cachedData.allResults.slice(startIndex, startIndex + itemsPerPage);
+      
+      const leaderboard: LeaderboardEntry[] = pageResults.map((result: any, index) => {
+        const globalRank = startIndex + index + 1;
+        const isAnonymous = !result.user_id;
+        const name = isAnonymous 
+          ? (result.guest_name || 'Anonymous User')
+          : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
+        
+        // Fix location logic
+        const location = isAnonymous 
+          ? (result.guest_location || 'Không rõ')
+          : (result.user_profiles?.location || 'Chưa cập nhật');
+        
+        return {
+          rank: globalRank,
+          name,
+          score: result.score,
+          location,
+          date: result.tested_at,
+          badge: getBadgeFromScore(result.score),
+          isAnonymous,
+          user_id: result.user_id
+        };
+      });
+
+      return { 
+        data: leaderboard, 
+        stats: cachedData.stats, 
+        totalPages, 
+        currentPage: page,
+        error: null 
+      };
+    }
+    
+    return { 
+      data: null, 
+      stats: null, 
+      totalPages: 0, 
+      currentPage: page,
+      error: err 
+    };
   }
 }
 
@@ -104,39 +238,91 @@ function getBadgeFromScore(score: number): string {
 }
 
 /**
- * Get recent top performers (for highlights) - OPTIMIZED
+ * Simple recent top performers with retry
  */
 export async function getRecentTopPerformers(days: number = 7, limit: number = 5): Promise<{
   data: LeaderboardEntry[] | null;
   error: any;
 }> {
   try {
-    const dateThreshold = new Date();
-    dateThreshold.setDate(dateThreshold.getDate() - days);
-
-    const { data: recentResults, error } = await supabase
-      .from('user_test_results')
-      .select('user_id, score, tested_at, guest_name, guest_location')
-      .gte('tested_at', dateThreshold.toISOString())
-      .order('score', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      return { data: null, error };
+    // Use cached data if available
+    if (cachedData.allResults && Date.now() - cachedData.lastFetch < CACHE_DURATION) {
+      const dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - days);
+      
+      const recentResults = cachedData.allResults
+        .filter((result: any) => new Date(result.tested_at) >= dateThreshold)
+        .slice(0, limit);
+      
+      const recentTop: LeaderboardEntry[] = recentResults.map((result: any, index) => {
+        const isAnonymous = !result.user_id;
+        const name = isAnonymous 
+          ? (result.guest_name || 'Anonymous User')
+          : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
+        
+        // Fix location logic
+        const location = isAnonymous 
+          ? (result.guest_location || 'Không rõ')
+          : (result.user_profiles?.location || 'Chưa cập nhật');
+        
+        return {
+          rank: index + 1,
+          name,
+          score: result.score,
+          location,
+          date: result.tested_at,
+          badge: getBadgeFromScore(result.score),
+          isAnonymous,
+          user_id: result.user_id
+        };
+      });
+      
+      return { data: recentTop, error: null };
     }
 
-    const recentTop: LeaderboardEntry[] = (recentResults || []).map((result: any, index) => {
-      const isAnonymous = !result.user_id;
+    // Fallback direct query with retry
+    const result = await retryOperation(async () => {
+      const dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - days);
+
+      const { data: results, error } = await supabase
+        .from('user_test_results')
+        .select(`
+          user_id,
+          score,
+          tested_at,
+          guest_name,
+          guest_location,
+          user_profiles!left(full_name, location)
+        `)
+        .gte('tested_at', dateThreshold.toISOString())
+        .order('score', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return results;
+    });
+
+    const recentTop: LeaderboardEntry[] = (result || []).map((entry: any, index) => {
+      const isAnonymous = !entry.user_id;
+      const name = isAnonymous 
+        ? (entry.guest_name || 'Anonymous User')
+        : (entry.user_profiles?.full_name || `User_${entry.user_id.slice(-8)}`);
+      
+      // Fix location logic
+      const location = isAnonymous 
+        ? (entry.guest_location || 'Không rõ')
+        : (entry.user_profiles?.location || 'Chưa cập nhật');
       
       return {
         rank: index + 1,
-        name: isAnonymous ? (result.guest_name || 'Anonymous User') : 'User',
-        score: result.score,
-        location: isAnonymous ? (result.guest_location || 'Không rõ') : 'Không rõ',
-        date: result.tested_at,
-        badge: getBadgeFromScore(result.score),
+        name,
+        score: entry.score,
+        location,
+        date: entry.tested_at,
+        badge: getBadgeFromScore(entry.score),
         isAnonymous,
-        user_id: result.user_id
+        user_id: entry.user_id
       };
     });
 
@@ -145,4 +331,16 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
   } catch (err) {
     return { data: null, error: err };
   }
+}
+
+/**
+ * Clear cache to force refresh (useful after data updates)
+ */
+export function clearLeaderboardCache(): void {
+  cachedData = {
+    allResults: null,
+    stats: null,
+    lastFetch: 0
+  };
+  console.log('🧹 Leaderboard cache cleared');
 } 

@@ -12,6 +12,14 @@ interface TestResultData {
   guest_location?: string;
 }
 
+interface TestHistoryFilters {
+  user_id?: string | null;
+  test_type?: string;
+  limit?: number;
+  offset?: number;
+  search?: string;
+}
+
 /**
  * Lưu kết quả test vào bảng user_test_results (cho cả user đăng nhập và anonymous)
  */
@@ -49,6 +57,63 @@ export async function saveTestResult(data: TestResultData) {
     return { success: false, error };
   }
 }
+
+/**
+ * Lấy lịch sử test results (cho cả authenticated và anonymous users)
+ */
+export async function getUserTestResults(filters: TestHistoryFilters = {}) {
+  try {
+    console.log('🔄 Fetching test results...', filters);
+    
+    let query = supabase
+      .from('user_test_results')
+      .select('*')
+      .order('tested_at', { ascending: false });
+
+    // Apply filters
+    if (filters.user_id !== undefined) {
+      if (filters.user_id === null) {
+        // Fetch anonymous users only
+        query = query.is('user_id', null);
+      } else {
+        // Fetch specific user's results
+        query = query.eq('user_id', filters.user_id);
+      }
+    }
+
+    if (filters.test_type) {
+      query = query.eq('test_type', filters.test_type);
+    }
+
+    if (filters.search) {
+      // Search in guest names or user profiles
+      query = query.or(`guest_name.ilike.%${filters.search}%`);
+    }
+
+    // Apply pagination
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+    if (filters.offset) {
+      query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+    }
+
+    const { data: results, error } = await query;
+
+    if (error) {
+      console.error('❌ Error fetching test results:', error);
+      throw error;
+    }
+
+    console.log('✅ Test results fetched successfully:', results?.length || 0, 'items');
+    return { success: true, data: results || [] };
+  } catch (error) {
+    console.error('❌ Failed to fetch test results:', error);
+    return { success: false, error, data: [] };
+  }
+}
+
+
 
 /**
  * Helper function để convert từ format cũ sang format mới

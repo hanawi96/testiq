@@ -284,7 +284,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <ProgressBar 
-              current={currentQuestion + 1} 
+              current={answeredQuestions} 
               total={questions.length}
               showSteps={false}
             />

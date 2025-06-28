@@ -21,7 +21,7 @@ export default function ProgressBar({
       {/* Progress info */}
       <div className="flex justify-between items-center mb-2">
         <span className="text-sm font-medium text-gray-700">
-          Câu {current} / {total}
+          Đã trả lời: {current} / {total}
         </span>
         <span className="text-sm font-medium text-primary-600">
           {Math.round(percentage)}%

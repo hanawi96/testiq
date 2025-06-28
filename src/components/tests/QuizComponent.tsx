@@ -159,7 +159,7 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
           {/* Progress Bar */}
           <div className="mt-6">
             <ProgressBar 
-              current={currentQuestion + 1} 
+              current={answeredCount} 
               total={quizData.questions.length}
             />
           </div>

@@ -489,7 +489,7 @@ Thử ngay test IQ này!`);
                           transition={{ delay: 1.3 + index * 0.1 }}
                         />
                       )}
-                </div>
+                    </div>
                     <span className="text-sm font-medium text-gray-900">{item.width}%</span>
                   </motion.div>
                 ))}
@@ -531,7 +531,7 @@ Thử ngay test IQ này!`);
                        results.score >= 115 ? 'Top 20% trên trung bình!' : 
                        'Điểm tốt, tiếp tục cố gắng!'}
                     </span>
-              </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -547,15 +547,15 @@ Thử ngay test IQ này!`);
         >
           <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
             <span className="mr-3 text-blue-600">📊</span>
-              Phân tích chi tiết
+            Phân tích chi tiết
           </h2>
 
           <div className="grid md:grid-cols-2 gap-8">
-              {/* Strengths */}
-              <div>
+            {/* Strengths */}
+            <div>
               <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center">
                 <span className="mr-2">⚡</span>
-                  Điểm mạnh
+                Điểm mạnh
               </h3>
               <div className="space-y-3">
                 {strengths.length > 0 ? strengths.map((strength, index) => (
@@ -573,7 +573,7 @@ Thử ngay test IQ này!`);
                   <div className="flex items-center p-3 bg-green-50 rounded-lg">
                     <span className="text-green-500 mr-3">✅</span>
                     <span className="text-gray-700">Tư duy tổng hợp tốt</span>
-              </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -600,11 +600,11 @@ Thử ngay test IQ này!`);
                   <div className="flex items-center p-3 bg-orange-50 rounded-lg">
                     <span className="text-orange-500 mr-3">🧠</span>
                     <span className="text-gray-700">Luyện tập thêm để nâng cao</span>
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
         </motion.div>
 
         {/* Skill Breakdown Section */}
@@ -623,7 +623,7 @@ Thử ngay test IQ này!`);
             {/* Radar Chart */}
             <div className="relative">
               <RadarChart skills={skills} />
-          </div>
+            </div>
             
             {/* Skills List */}
             <div className="space-y-4">

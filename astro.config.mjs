@@ -5,6 +5,10 @@ import react from '@astrojs/react';
 
 export default defineConfig({
   site: 'https://iqtest.yourdomain.com', // Thay đổi domain thực của bạn
+  output: 'static', // Change to static for now to avoid adapter issues
+  devToolbar: {
+    enabled: false // Disable dev toolbar to prevent it from appearing in screenshots
+  },
   integrations: [
     tailwind(),
     sitemap({

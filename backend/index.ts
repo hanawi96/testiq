@@ -11,7 +11,11 @@ export { supabase, supabaseConfig, TABLES } from './config/supabase';
 export { testSupabaseConnection, checkDatabaseSetup } from './utils/test-connection';
 
 // Test results service (unified approach)
-export { saveTestResult, convertAnonymousPlayerToTestResult } from './utils/user-test-results-service';
+export { 
+  saveTestResult, 
+  convertAnonymousPlayerToTestResult,
+  getUserTestResults
+} from './utils/user-test-results-service';
 
 // Export types
 export type { UserWithProfile, UsersListResponse, UsersFilters } from './admin/users-service';

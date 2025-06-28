@@ -11,14 +11,49 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.log('✅ Supabase configuration loaded successfully');
 }
 
-// Create Supabase client
+// Create Supabase client with optimized configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: false, // Disable to avoid conflicts
+  },
+  global: {
+    headers: {
+      'apikey': supabaseAnonKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'Cache-Control': 'max-age=300', // 5 minutes cache
+    },
+    fetch: (url, options = {}) => {
+      // Add timeout and retry logic
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      return fetch(url, {
+        ...options,
+        signal: controller.signal,
+      }).finally(() => {
+        clearTimeout(timeoutId);
+      });
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 2, // Limit realtime events
+    },
   },
 });
+
+// Storage configuration
+export const storageConfig = {
+  avatarsBucket: 'avatars',
+  defaultAvatarSize: 200,
+  maxUploadSizeMB: 2,
+  allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+};
 
 // Configuration object
 export const supabaseConfig = {
