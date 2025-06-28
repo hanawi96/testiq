@@ -430,7 +430,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
           
           {/* Mini chart visual */}
           <div className="mt-4 flex items-end space-x-1 h-8">
-            {testHistory.slice().reverse().map((test, index) => {
+            {testHistory.map((test, index) => {
               const maxScore = Math.max(...testHistory.map(t => t.score));
               const minScore = Math.min(...testHistory.map(t => t.score));
               const range = maxScore - minScore || 1;
@@ -449,8 +449,8 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
             })}
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Cũ nhất</span>
             <span>Mới nhất</span>
+            <span>Cũ nhất</span>
           </div>
         </div>
       )}
@@ -479,7 +479,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     };
     
     loadUserInfo();
-  }, []);
+  }, []); 
 
     const HeroSection = () => (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden">
