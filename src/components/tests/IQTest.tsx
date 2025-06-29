@@ -276,7 +276,9 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     
     console.log('submitTest: starting submission process');
     setIsSubmitting(true);
-    // DON'T setIsActive(false) here - keep timer running until popup completes
+    
+    // ✅ STOP TIMER IMMEDIATELY when user clicks Complete
+    setIsActive(false);
     
     // Clear saved state when submitting
     clearTestState();
@@ -305,8 +307,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Handle popup completion
   const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {
-    // Stop timer now
-    setIsActive(false);
+    // Timer already stopped in submitTest, no need to stop again
     
     // Check if we're completing from saved state
     const savedState = loadTestState();
