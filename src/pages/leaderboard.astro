@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import LeaderboardList from '../components/LeaderboardList.tsx';
 import LeaderboardStats from '../components/LeaderboardStats.tsx';
+import LocalRankingWrapper from '../components/LocalRankingWrapper.tsx';
 
 // Ultra-fast SSR data loading with smart fallbacks
 let initialData = { topPerformers: [], stats: null, leaderboardData: null };
@@ -182,9 +183,24 @@ const getBadgeInfo = (badge: string) => {
     </div>
   </section>
 
-  <!-- Optimized Full Leaderboard -->
-  <section class="py-12 bg-gray-50">
+  <!-- Local Ranking Section for Logged-in Users -->
+  <section class="py-12 bg-white border-t border-gray-200">
     <div class="max-w-6xl mx-auto px-4">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Vị trí của bạn</h2>
+        <p class="text-gray-600">Xem vị trí cá nhân và những người xung quanh bạn</p>
+      </div>
+             <LocalRankingWrapper client:load />
+    </div>
+  </section>
+
+  <!-- Optimized Full Leaderboard -->
+  <section id="full-leaderboard" class="py-12 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Bảng xếp hạng toàn bộ</h2>
+        <p class="text-gray-600">Danh sách chi tiết tất cả người tham gia</p>
+      </div>
       <!-- Pass initial data to avoid duplicate loading -->
       <LeaderboardList client:load initialData={initialData.leaderboardData} />
     </div>

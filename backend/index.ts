@@ -29,6 +29,7 @@ export {
   getLeaderboard, 
   getRecentTopPerformers, 
   getQuickStats,
+  getUserLocalRanking,
   clearLeaderboardCache,
   preloadLeaderboardData,
   getCacheStatus 

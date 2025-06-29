@@ -505,4 +505,98 @@ export async function getQuickStats(): Promise<LeaderboardStats> {
     // Return sensible defaults
     return { totalParticipants: 0, highestScore: 0, averageScore: 0, geniusPercentage: 0 };
   }
+}
+
+/**
+ * Get user's personal ranking with surrounding users (local view)
+ * Shows current user's position + 5 people above and below
+ */
+export async function getUserLocalRanking(userId: string): Promise<{
+  data: {
+    userRank: number;
+    userEntry: LeaderboardEntry;
+    surrounding: LeaderboardEntry[];
+    totalParticipants: number;
+  } | null;
+  error: any;
+}> {
+  try {
+    // Ensure we have fresh data
+    const now = Date.now();
+    const needsFetch = !cachedData.allResults || (now - cachedData.lastFetch > CACHE_DURATION);
+    
+    if (needsFetch) {
+      console.log('🔄 Fetching leaderboard for local ranking...');
+      await getLeaderboard(1, 20); // This will populate the cache
+    }
+
+    if (!cachedData.allResults?.length) {
+      return { data: null, error: 'No leaderboard data available' };
+    }
+
+    // Find user's position in the global ranking
+    const userResultIndex = cachedData.allResults.findIndex((result: any) => result.user_id === userId);
+    
+    if (userResultIndex === -1) {
+      return { data: null, error: 'User not found in leaderboard' };
+    }
+
+    const userRank = userResultIndex + 1;
+    const userResult = cachedData.allResults[userResultIndex];
+    
+    // Get surrounding users (5 above, user, 5 below) - max 11 entries total
+    const startIndex = Math.max(0, userResultIndex - 5);
+    const endIndex = Math.min(cachedData.allResults.length, userResultIndex + 6);
+    const surroundingResults = cachedData.allResults.slice(startIndex, endIndex);
+
+    // Transform to leaderboard format
+    const userEntry: LeaderboardEntry = {
+      rank: userRank,
+      name: userResult.user_profiles?.full_name || `User_${userResult.user_id.slice(-8)}`,
+      score: userResult.score,
+      location: userResult.user_profiles?.location || 'Chưa cập nhật',
+      date: userResult.tested_at,
+      badge: getBadgeFromScore(userResult.score),
+      isAnonymous: false,
+      user_id: userResult.user_id
+    };
+
+    const surrounding: LeaderboardEntry[] = surroundingResults.map((result: any, index) => {
+      const globalRank = startIndex + index + 1;
+      const isAnonymous = !result.user_id;
+      
+      const name = isAnonymous 
+        ? (result.guest_name || 'Anonymous User')
+        : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
+
+      const location = isAnonymous 
+        ? (result.guest_location || 'Không rõ')
+        : (result.user_profiles?.location || 'Chưa cập nhật');
+      
+      return {
+        rank: globalRank,
+        name,
+        score: result.score,
+        location,
+        date: result.tested_at,
+        badge: getBadgeFromScore(result.score),
+        isAnonymous,
+        user_id: result.user_id
+      };
+    });
+
+    return {
+      data: {
+        userRank,
+        userEntry,
+        surrounding,
+        totalParticipants: cachedData.allResults.length
+      },
+      error: null
+    };
+
+  } catch (error) {
+    console.error('❌ Get user local ranking error:', error);
+    return { data: null, error };
+  }
 } 
