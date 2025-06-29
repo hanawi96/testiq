@@ -218,7 +218,7 @@ export interface Question {
             name: result.userInfo.name,
             email: result.userInfo.email,
             age: parseInt(result.userInfo.age) || undefined,
-            location: result.userInfo.location || undefined,
+            country_name: result.userInfo.location || undefined,
             country_code: result.userInfo.countryCode || undefined,
             test_result: {
               score: result.score,
@@ -407,7 +407,7 @@ export interface Question {
           const profile = result.data;
           return {
             name: profile.full_name || user.email?.split('@')[0] || '',
-            email: user.email || '',
+            email: profile.email || user.email || '',
             age: profile.age?.toString() || '',
             location: profile.location || '',
             countryCode: profile.country_code || ''
@@ -440,7 +440,7 @@ export interface Question {
           name: dbPlayer.name,
           email: dbPlayer.email,
           age: dbPlayer.age?.toString() || '',
-          location: dbPlayer.location || '',
+          location: dbPlayer.country_name || '',
           countryCode: dbPlayer.country_code || ''
         };
               
@@ -475,7 +475,7 @@ export interface Question {
           name: player.name,
           email: player.email,
           age: player.age?.toString() || '',
-          location: player.location || '',
+          location: player.country_name || '',
           countryCode: player.country_code || ''
         };
       }

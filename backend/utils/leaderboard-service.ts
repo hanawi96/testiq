@@ -38,7 +38,7 @@ let cachedData: {
 } = {
   allResults: null,
   stats: null,
-  lastFetch: 0
+  lastFetch: 0 // Force refresh by setting lastFetch to 0
 };
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -125,8 +125,8 @@ export async function getLeaderboard(
             user_id,
             score,
             tested_at,
-            guest_name,
-            guest_location,
+            name,
+            country,
             user_profiles!left(full_name, location)
           `)
           .order('score', { ascending: false });
@@ -196,12 +196,12 @@ export async function getLeaderboard(
       const isAnonymous = !result.user_id;
       
       const name = isAnonymous 
-        ? (result.guest_name || 'Anonymous User')
+        ? (result.name || 'Anonymous User')
         : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
 
       // Fix location logic
       const location = isAnonymous 
-        ? (result.guest_location || 'Không rõ')
+        ? (result.country || 'Không rõ')
         : (result.user_profiles?.location || 'Chưa cập nhật');
       
       return {
@@ -238,12 +238,12 @@ export async function getLeaderboard(
         const globalRank = startIndex + index + 1;
         const isAnonymous = !result.user_id;
         const name = isAnonymous 
-          ? (result.guest_name || 'Anonymous User')
+          ? (result.name || 'Anonymous User')
           : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
         
         // Fix location logic
         const location = isAnonymous 
-          ? (result.guest_location || 'Không rõ')
+          ? (result.country || 'Không rõ')
           : (result.user_profiles?.location || 'Chưa cập nhật');
         
         return {
@@ -307,12 +307,12 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
       const recentTop: LeaderboardEntry[] = recentResults.map((result: any, index) => {
         const isAnonymous = !result.user_id;
         const name = isAnonymous 
-          ? (result.guest_name || 'Anonymous User')
+          ? (result.name || 'Anonymous User')
           : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
         
         // Fix location logic
         const location = isAnonymous 
-          ? (result.guest_location || 'Không rõ')
+          ? (result.country || 'Không rõ')
           : (result.user_profiles?.location || 'Chưa cập nhật');
         
         return {
@@ -341,8 +341,8 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
           user_id,
           score,
           tested_at,
-          guest_name,
-          guest_location,
+          name,
+          country,
           user_profiles!left(full_name, location)
         `)
         .gte('tested_at', dateThreshold.toISOString())
@@ -356,12 +356,12 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
     const recentTop: LeaderboardEntry[] = (result || []).map((entry: any, index) => {
       const isAnonymous = !entry.user_id;
       const name = isAnonymous 
-        ? (entry.guest_name || 'Anonymous User')
+        ? (entry.name || 'Anonymous User')
         : (entry.user_profiles?.full_name || `User_${entry.user_id.slice(-8)}`);
       
       // Fix location logic
       const location = isAnonymous 
-        ? (entry.guest_location || 'Không rõ')
+        ? (entry.country || 'Không rõ')
         : (entry.user_profiles?.location || 'Chưa cập nhật');
       
       return {
@@ -566,11 +566,11 @@ export async function getUserLocalRanking(userId: string): Promise<{
       const isAnonymous = !result.user_id;
       
       const name = isAnonymous 
-        ? (result.guest_name || 'Anonymous User')
+        ? (result.name || 'Anonymous User')
         : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
 
       const location = isAnonymous 
-        ? (result.guest_location || 'Không rõ')
+        ? (result.country || 'Không rõ')
         : (result.user_profiles?.location || 'Chưa cập nhật');
       
       return {

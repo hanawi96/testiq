@@ -45,6 +45,7 @@ create table public.user_profiles (
   created_at timestamp without time zone null default now(),
   updated_at timestamp without time zone null default now(),
   country_code character(2) null,
+  email text null,
   constraint user_profiles_pkey primary key (id),
   constraint user_profiles_id_fkey foreign KEY (id) references auth.users (id) on delete CASCADE,
   constraint user_profiles_gender_check check (
@@ -72,7 +73,7 @@ create table public.anonymous_players (
   id uuid not null default gen_random_uuid (),
   name text not null,
   age integer null,
-  location text null,
+  country_name text null,
   test_result jsonb not null,
   test_score integer null,
   test_duration integer null,
