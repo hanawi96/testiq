@@ -1,39 +1,204 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Pro features data
+const proFeatures = {
+  pricing: {
+    monthly: 2,
+    currency: 'USD',
+    originalPrice: 9.99,
+    discount: 80
+  },
+  
+  plans: {
+    free: {
+      name: 'Miễn phí',
+      price: 0,
+      features: [
+        '10 câu hỏi IQ cơ bản',
+        'Kết quả IQ tổng quát',
+        'Lịch sử test cơ bản',
+        'Chia sẻ kết quả',
+        'Hỗ trợ cộng đồng'
+      ],
+      limitations: [
+        'Chỉ 1 test/ngày',
+        'Không có phân tích chi tiết',
+        'Không có gợi ý cải thiện',
+        'Quảng cáo hiển thị'
+      ]
+    },
+    pro: {
+      name: 'Pro',
+      price: 2,
+      features: [
+        '50+ câu hỏi IQ chuyên sâu',
+        'Phân tích chi tiết 12 kỹ năng',
+        'AI Coach cá nhân hóa',
+        'Lộ trình cải thiện IQ',
+        'So sánh với chuyên gia',
+        'Báo cáo PDF chuyên nghiệp',
+        'Lịch sử không giới hạn',
+        'Thống kê tiến bộ nâng cao',
+        'Ưu tiên hỗ trợ 24/7',
+        'Không quảng cáo',
+        'Sync đa thiết bị',
+        'Xuất dữ liệu'
+      ]
+    }
+  },
+
+  exclusiveFeatures: [
+    {
+      icon: '🧠',
+      title: 'AI Coach thông minh',
+      description: 'Huấn luyện viên AI cá nhân phân tích điểm yếu và đưa ra lộ trình cải thiện IQ hiệu quả',
+      category: 'AI-Powered'
+    },
+    {
+      icon: '📊',
+      title: 'Phân tích 12 kỹ năng',
+      description: 'Đánh giá chi tiết: Logic, Toán học, Ngôn ngữ, Không gian, Trí nhớ, Tốc độ, Pattern, Suy luận...',
+      category: 'Deep Analysis'
+    },
+    {
+      icon: '🎯',
+      title: 'Lộ trình cá nhân hóa',
+      description: 'Kế hoạch luyện tập 30 ngày được thiết kế riêng dựa trên điểm mạnh/yếu của bạn',
+      category: 'Personalized'
+    },
+    {
+      icon: '🏆',
+      title: 'So sánh chuyên gia',
+      description: 'Đối chiếu kết quả với các chuyên gia trong lĩnh vực: Bác sĩ, Kỹ sư, Nhà khoa học...',
+      category: 'Professional'
+    },
+    {
+      icon: '📈',
+      title: 'Tracking tiến bộ',
+      description: 'Theo dõi sự cải thiện theo thời gian với biểu đồ chi tiết và milestone',
+      category: 'Progress'
+    },
+    {
+      icon: '💎',
+      title: 'Unlimited Tests',
+      description: 'Làm test không giới hạn với 500+ câu hỏi từ các nguồn uy tín quốc tế',
+      category: 'Unlimited'
+    }
+  ],
+
+  testimonials: [
+    {
+      name: 'Dr. Nguyễn Minh',
+      role: 'Bác sĩ Thần kinh',
+      avatar: 'NM',
+      rating: 5,
+      comment: 'AI Coach đã giúp tôi cải thiện 15 điểm IQ chỉ trong 1 tháng. Phân tích rất chính xác và khoa học.',
+      improvement: '+15 IQ points'
+    },
+    {
+      name: 'Lê Hồng Anh',
+      role: 'Software Engineer',
+      avatar: 'LA',
+      rating: 5,
+      comment: 'Lộ trình cá nhân hóa rất hiệu quả. Từ 125 lên 142 IQ, giúp tôi thăng tiến trong công việc.',
+      improvement: '+17 IQ points'
+    },
+    {
+      name: 'Trần Văn Bình',
+      role: 'Sinh viên Y khoa',
+      avatar: 'TB',
+      rating: 5,
+      comment: 'So sánh với chuyên gia giúp tôi hiểu rõ vị trí của mình. Động lực để phấn đấu hơn.',
+      improvement: '+12 IQ points'
+    }
+  ],
+
+  faqs: [
+    {
+      q: 'Tại sao chỉ $2/tháng mà có nhiều tính năng vậy?',
+      a: 'Chúng tôi tin rằng phát triển trí tuệ không nên bị giới hạn bởi chi phí. Giá $2/tháng giúp duy trì hệ thống AI và nghiên cứu khoa học.'
+    },
+    {
+      q: 'AI Coach hoạt động như thế nào?',
+      a: 'AI Coach phân tích kết quả test của bạn, so sánh với database 1M+ người dùng, và tạo ra lộ trình cải thiện cá nhân hóa dựa trên khoa học nhận thức.'
+    },
+    {
+      q: 'Tôi có thể hủy bất cứ lúc nào không?',
+      a: 'Có, bạn có thể hủy subscription bất cứ lúc nào. Không có phí ràng buộc hay hợp đồng dài hạn.'
+    },
+    {
+      q: 'Có đảm bảo cải thiện IQ không?',
+      a: 'Chúng tôi cam kết bạn sẽ thấy sự cải thiện rõ rệt sau 30 ngày sử dụng. Nếu không hài lòng, hoàn tiền 100%.'
+    }
+  ]
+};
+
+// Helper functions
+const formatPrice = (price: number) => `$${price}`;
+const calculateSavings = (original: number, current: number) => Math.round(((original - current) / original) * 100);
 ---
 
-<BaseLayout title="Nâng cấp Pro - $2/tháng" description="Nâng cấp lên IQ Pro với AI Coach cá nhân và phân tích chi tiết chỉ $2/tháng.">
-  
+<BaseLayout
+  title="Nâng cấp Pro - Phát triển IQ với AI Coach"
+  description="Nâng cấp lên IQ Pro để được AI Coach cá nhân, phân tích 12 kỹ năng chi tiết và lộ trình cải thiện IQ hiệu quả. Chỉ $2/tháng."
+>
   <!-- Hero Section -->
-  <section class="relative bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-16">
-    <div class="max-w-4xl mx-auto px-4 text-center">
-      
+  <section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 pt-24 pb-16 overflow-hidden">
+    <!-- Background decoration -->
+    <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+    <div class="absolute top-20 right-10 w-72 h-72 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full opacity-10 blur-3xl"></div>
+    <div class="absolute bottom-20 left-10 w-96 h-96 bg-gradient-to-br from-indigo-400 to-pink-500 rounded-full opacity-10 blur-3xl"></div>
+    
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       <!-- Badge -->
-      <div class="inline-flex items-center px-4 py-2 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium mb-8">
-        ⭐ Nâng cấp Pro
+      <div class="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 text-sm font-medium mb-8">
+        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        Nâng cấp Pro
       </div>
       
-      <!-- Title -->
-      <h1 class="text-5xl font-bold text-gray-900 mb-6">
-        Phát triển IQ với <span class="text-blue-600">AI Coach</span>
+      <!-- Main heading -->
+      <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+        Phát triển IQ với
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+          AI Coach
+        </span>
       </h1>
       
       <!-- Subtitle -->
-      <p class="text-xl text-gray-600 mb-8">
+      <p class="text-xl md:text-2xl text-gray-600 font-medium mb-4">
         Cải thiện trí thông minh một cách khoa học và hiệu quả
       </p>
+      
+      <p class="text-lg text-gray-500 max-w-2xl mx-auto mb-8">
+        Được huấn luyện bởi AI Coach cá nhân, phân tích 12 kỹ năng nhận thức và lộ trình cải thiện được cá nhân hóa
+      </p>
 
-      <!-- Pricing -->
-      <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-2xl p-6 max-w-sm mx-auto mb-8">
+      <!-- Special Offer -->
+      <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-2xl p-6 max-w-md mx-auto mb-8">
         <div class="text-sm font-medium mb-2">🔥 Ưu đãi đặc biệt</div>
-        <div class="text-3xl font-bold mb-1">$2/tháng</div>
-        <div class="text-sm line-through opacity-75 mb-2">Thay vì $9.99</div>
-        <div class="text-sm font-medium">Tiết kiệm 80% • Chỉ trong tháng này</div>
+        <div class="text-2xl font-bold mb-1">
+          {formatPrice(proFeatures.pricing.monthly)}/tháng
+        </div>
+        <div class="text-sm line-through opacity-75 mb-2">
+          Thay vì {formatPrice(proFeatures.pricing.originalPrice)}
+        </div>
+        <div class="text-sm font-medium">
+          Tiết kiệm {calculateSavings(proFeatures.pricing.originalPrice, proFeatures.pricing.monthly)}% • Chỉ trong tháng này
+        </div>
       </div>
 
-      <!-- CTA -->
-      <button id="upgradeBtn" class="px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg text-lg">
-        🚀 Nâng cấp Pro ngay
+      <!-- CTA Button -->
+      <button 
+        id="upgradeBtn"
+        class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl text-lg"
+      >
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Nâng cấp Pro ngay
       </button>
       
       <p class="text-sm text-gray-500 mt-4">
@@ -42,81 +207,79 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
-  <!-- Features Comparison -->
+  <!-- Comparison Table -->
   <section class="py-16 bg-white">
-    <div class="max-w-6xl mx-auto px-4">
-      <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">So sánh gói dịch vụ</h2>
-      
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">So sánh gói dịch vụ</h2>
+        <p class="text-gray-600">Xem sự khác biệt giữa gói Miễn phí và Pro</p>
+      </div>
+
       <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        
         <!-- Free Plan -->
-        <div class="bg-gray-50 rounded-2xl p-8 border">
-          <h3 class="text-2xl font-bold text-gray-900 mb-4 text-center">Miễn phí</h3>
-          <div class="text-4xl font-bold text-gray-600 mb-6 text-center">$0</div>
-          
-          <div class="space-y-3 mb-8">
-            <div class="flex items-center">
-              <span class="text-green-500 mr-3">✓</span>
-              <span>10 câu hỏi IQ cơ bản</span>
+        <div class="bg-gray-50 rounded-2xl p-8 border border-gray-200">
+          <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">{proFeatures.plans.free.name}</h3>
+            <div class="text-4xl font-bold text-gray-600 mb-2">
+              {formatPrice(proFeatures.plans.free.price)}
             </div>
-            <div class="flex items-center">
-              <span class="text-green-500 mr-3">✓</span>
-              <span>Kết quả IQ tổng quát</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-green-500 mr-3">✓</span>
-              <span>Chia sẻ kết quả</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-red-400 mr-3">✗</span>
-              <span class="text-gray-500">Chỉ 1 test/ngày</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-red-400 mr-3">✗</span>
-              <span class="text-gray-500">Không có AI Coach</span>
-            </div>
+            <p class="text-gray-500">Mãi mãi miễn phí</p>
           </div>
           
-          <button class="w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-medium">Gói hiện tại</button>
+          <div class="space-y-4 mb-8">
+            {proFeatures.plans.free.features.map(feature => (
+              <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span class="text-gray-700">{feature}</span>
+              </div>
+            ))}
+            
+            {proFeatures.plans.free.limitations.map(limitation => (
+              <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <span class="text-gray-500">{limitation}</span>
+              </div>
+            ))}
+          </div>
+          
+          <button class="w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors">
+            Gói hiện tại
+          </button>
         </div>
 
         <!-- Pro Plan -->
-        <div class="bg-blue-50 rounded-2xl p-8 border-2 border-blue-200 relative">
+        <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border-2 border-blue-200 relative">
+          <!-- Popular badge -->
           <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-            <span class="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium">🔥 Phổ biến nhất</span>
+            <span class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+              🔥 Phổ biến nhất
+            </span>
           </div>
           
-          <h3 class="text-2xl font-bold text-gray-900 mb-4 text-center">Pro</h3>
-          <div class="text-4xl font-bold text-blue-600 mb-6 text-center">$2</div>
-          
-          <div class="space-y-3 mb-8">
-            <div class="flex items-center">
-              <span class="text-blue-500 mr-3">✓</span>
-              <span>50+ câu hỏi IQ chuyên sâu</span>
+          <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">{proFeatures.plans.pro.name}</h3>
+            <div class="text-4xl font-bold text-blue-600 mb-2">
+              {formatPrice(proFeatures.plans.pro.price)}
             </div>
-            <div class="flex items-center">
-              <span class="text-blue-500 mr-3">✓</span>
-              <span>AI Coach cá nhân hóa</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-blue-500 mr-3">✓</span>
-              <span>Phân tích 12 kỹ năng chi tiết</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-blue-500 mr-3">✓</span>
-              <span>Lộ trình cải thiện IQ</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-blue-500 mr-3">✓</span>
-              <span>Unlimited Tests</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-blue-500 mr-3">✓</span>
-              <span>Báo cáo PDF chuyên nghiệp</span>
-            </div>
+            <p class="text-gray-600">per month</p>
           </div>
           
-          <button class="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+          <div class="space-y-4 mb-8">
+            {proFeatures.plans.pro.features.map(feature => (
+              <div class="flex items-center space-x-3">
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span class="text-gray-700">{feature}</span>
+              </div>
+            ))}
+          </div>
+          
+          <button class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
             Nâng cấp ngay
           </button>
         </div>
@@ -124,160 +287,255 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
-  <!-- Pro Features -->
+  <!-- Exclusive Features -->
   <section class="py-16 bg-gray-50">
-    <div class="max-w-6xl mx-auto px-4">
-      <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Tính năng độc quyền Pro</h2>
-      
-      <div class="grid md:grid-cols-3 gap-8">
-        <div class="bg-white rounded-2xl p-6 shadow-sm">
-          <div class="text-3xl mb-4">🧠</div>
-          <h3 class="text-lg font-semibold mb-2">AI Coach thông minh</h3>
-          <p class="text-gray-600">Huấn luyện viên AI cá nhân phân tích điểm yếu và đưa ra lộ trình cải thiện IQ hiệu quả</p>
-        </div>
-        
-        <div class="bg-white rounded-2xl p-6 shadow-sm">
-          <div class="text-3xl mb-4">📊</div>
-          <h3 class="text-lg font-semibold mb-2">Phân tích 12 kỹ năng</h3>
-          <p class="text-gray-600">Đánh giá chi tiết: Logic, Toán học, Ngôn ngữ, Không gian, Trí nhớ, Tốc độ...</p>
-        </div>
-        
-        <div class="bg-white rounded-2xl p-6 shadow-sm">
-          <div class="text-3xl mb-4">🎯</div>
-          <h3 class="text-lg font-semibold mb-2">Lộ trình cá nhân hóa</h3>
-          <p class="text-gray-600">Kế hoạch luyện tập 30 ngày được thiết kế riêng dựa trên điểm mạnh/yếu của bạn</p>
-        </div>
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Tính năng độc quyền Pro</h2>
+        <p class="text-gray-600">Những công cụ mạnh mẽ chỉ có trong gói Pro</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {proFeatures.exclusiveFeatures.map((feature, index) => (
+          <div class="group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+            <div class="flex items-start space-x-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                {feature.icon}
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center space-x-2 mb-2">
+                  <h3 class="text-lg font-semibold text-gray-900">{feature.title}</h3>
+                  <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
+                    {feature.category}
+                  </span>
+                </div>
+                <p class="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   </section>
 
   <!-- Testimonials -->
   <section class="py-16 bg-white">
-    <div class="max-w-6xl mx-auto px-4">
-      <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Người dùng nói gì về Pro?</h2>
-      
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Người dùng nói gì về Pro?</h2>
+        <p class="text-gray-600">Câu chuyện thành công từ cộng đồng Pro</p>
+      </div>
+
       <div class="grid md:grid-cols-3 gap-8">
-        <div class="bg-blue-50 rounded-2xl p-6">
-          <div class="flex items-center mb-4">
-            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">NM</div>
-            <div class="ml-3">
-              <h4 class="font-semibold">Dr. Nguyễn Minh</h4>
-              <p class="text-sm text-gray-600">Bác sĩ Thần kinh</p>
+        {proFeatures.testimonials.map((testimonial, index) => (
+          <div class="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-100">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <span class="text-white font-semibold text-sm">{testimonial.avatar}</span>
+              </div>
+              <div>
+                <h4 class="font-semibold text-gray-900">{testimonial.name}</h4>
+                <p class="text-sm text-gray-600">{testimonial.role}</p>
+              </div>
+              <div class="ml-auto">
+                <div class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+                  {testimonial.improvement}
+                </div>
+              </div>
             </div>
-            <div class="ml-auto bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">+15 IQ</div>
-          </div>
-          <p class="text-gray-700 italic">"AI Coach đã giúp tôi cải thiện 15 điểm IQ chỉ trong 1 tháng."</p>
-        </div>
-        
-        <div class="bg-blue-50 rounded-2xl p-6">
-          <div class="flex items-center mb-4">
-            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">LA</div>
-            <div class="ml-3">
-              <h4 class="font-semibold">Lê Hồng Anh</h4>
-              <p class="text-sm text-gray-600">Software Engineer</p>
+            
+            <div class="flex items-center space-x-1 mb-3">
+              {[...Array(testimonial.rating)].map((_, i) => (
+                <svg key={i} class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              ))}
             </div>
-            <div class="ml-auto bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">+17 IQ</div>
+            
+            <p class="text-gray-700 text-sm leading-relaxed italic">
+              "{testimonial.comment}"
+            </p>
           </div>
-          <p class="text-gray-700 italic">"Lộ trình cá nhân hóa rất hiệu quả. Từ 125 lên 142 IQ."</p>
-        </div>
-        
-        <div class="bg-blue-50 rounded-2xl p-6">
-          <div class="flex items-center mb-4">
-            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">TB</div>
-            <div class="ml-3">
-              <h4 class="font-semibold">Trần Văn Bình</h4>
-              <p class="text-sm text-gray-600">Sinh viên Y khoa</p>
-            </div>
-            <div class="ml-auto bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">+12 IQ</div>
-          </div>
-          <p class="text-gray-700 italic">"So sánh với chuyên gia giúp tôi hiểu rõ vị trí của mình."</p>
-        </div>
+        ))}
       </div>
     </div>
   </section>
 
   <!-- FAQ -->
   <section class="py-16 bg-gray-50">
-    <div class="max-w-4xl mx-auto px-4">
-      <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Câu hỏi thường gặp</h2>
-      
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Câu hỏi thường gặp</h2>
+        <p class="text-gray-600">Giải đáp những thắc mắc về gói Pro</p>
+      </div>
+
       <div class="space-y-4">
-        <details class="bg-white rounded-xl p-6 shadow-sm">
-          <summary class="font-semibold cursor-pointer">Tại sao chỉ $2/tháng mà có nhiều tính năng vậy?</summary>
-          <p class="mt-4 text-gray-600">Chúng tôi tin rằng phát triển trí tuệ không nên bị giới hạn bởi chi phí. Giá $2/tháng giúp duy trì hệ thống AI và nghiên cứu khoa học.</p>
-        </details>
-        
-        <details class="bg-white rounded-xl p-6 shadow-sm">
-          <summary class="font-semibold cursor-pointer">AI Coach hoạt động như thế nào?</summary>
-          <p class="mt-4 text-gray-600">AI Coach phân tích kết quả test của bạn, so sánh với database 1M+ người dùng, và tạo ra lộ trình cải thiện cá nhân hóa.</p>
-        </details>
-        
-        <details class="bg-white rounded-xl p-6 shadow-sm">
-          <summary class="font-semibold cursor-pointer">Tôi có thể hủy bất cứ lúc nào không?</summary>
-          <p class="mt-4 text-gray-600">Có, bạn có thể hủy subscription bất cứ lúc nào. Không có phí ràng buộc hay hợp đồng dài hạn.</p>
-        </details>
-        
-        <details class="bg-white rounded-xl p-6 shadow-sm">
-          <summary class="font-semibold cursor-pointer">Có đảm bảo cải thiện IQ không?</summary>
-          <p class="mt-4 text-gray-600">Chúng tôi cam kết bạn sẽ thấy sự cải thiện rõ rệt sau 30 ngày sử dụng. Nếu không hài lòng, hoàn tiền 100%.</p>
-        </details>
+        {proFeatures.faqs.map((faq, index) => (
+          <details class="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <summary class="flex items-center justify-between p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+              <h3 class="font-semibold text-gray-900 pr-4">{faq.q}</h3>
+              <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center group-open:bg-blue-500 group-open:text-white transition-all">
+                <svg class="w-4 h-4 group-open:rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+              </div>
+            </summary>
+            <div class="px-6 pb-6">
+              <p class="text-gray-600 leading-relaxed">{faq.a}</p>
+            </div>
+          </details>
+        ))}
       </div>
     </div>
   </section>
 
   <!-- Final CTA -->
-  <section class="py-16 bg-blue-600">
-    <div class="max-w-4xl mx-auto px-4 text-center">
-      <h2 class="text-3xl font-bold text-white mb-4">Sẵn sàng phát triển IQ của bạn?</h2>
-      <p class="text-blue-100 text-lg mb-8">Tham gia cùng 50,000+ người dùng đã cải thiện IQ với AI Coach.</p>
-      
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-        <button class="px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">
-          Dùng thử 7 ngày miễn phí
-        </button>
-        <button class="px-8 py-4 bg-yellow-500 text-gray-900 font-semibold rounded-xl hover:bg-yellow-400 transition-colors">
-          Nâng cấp Pro - $2/tháng
-        </button>
-      </div>
-      
-      <div class="flex justify-center gap-6 text-blue-100 text-sm">
-        <span>✅ Không ràng buộc</span>
-        <span>✅ Hoàn tiền 100%</span>
-        <span>✅ Hỗ trợ 24/7</span>
+  <section class="py-16 bg-gradient-to-r from-blue-600 to-purple-700">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="bg-white bg-opacity-10 rounded-2xl p-8 backdrop-blur-sm">
+        <h2 class="text-3xl font-bold text-white mb-4">
+          Sẵn sàng phát triển IQ của bạn?
+        </h2>
+        <p class="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
+          Tham gia cùng 50,000+ người dùng đã cải thiện IQ với AI Coach. 
+          Bắt đầu hành trình phát triển trí tuệ ngay hôm nay.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+          <button class="px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg">
+            Dùng thử 7 ngày miễn phí
+          </button>
+          <button class="px-8 py-4 bg-yellow-500 text-gray-900 font-semibold rounded-xl hover:bg-yellow-400 transition-colors shadow-lg">
+            Nâng cấp Pro - {formatPrice(proFeatures.pricing.monthly)}/tháng
+          </button>
+        </div>
+        
+        <div class="flex flex-wrap justify-center gap-6 text-blue-100 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span>Không ràng buộc</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span>Hoàn tiền 100%</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span>Hỗ trợ 24/7</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
-
 </BaseLayout>
 
+<style>
+  /* Grid pattern background */
+  .bg-grid-pattern {
+    background-image: 
+      linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+      linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  /* Custom details styling */
+  details[open] summary {
+    margin-bottom: 0;
+  }
+  
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+  
+  /* Smooth animations */
+  .fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
 <script>
-  // Simple upgrade modal
+  // Add scroll animations
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('fade-in-up');
+        }, index * 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+  
+  // Observe sections
+  document.querySelectorAll('section > div').forEach(el => {
+    observer.observe(el);
+  });
+
+  // Upgrade button functionality
   document.getElementById('upgradeBtn')?.addEventListener('click', () => {
+    // Show upgrade modal or redirect to payment
+    showUpgradeModal();
+  });
+
+  // Mock upgrade modal (replace with real payment integration)
+  function showUpgradeModal() {
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
       <div class="bg-white rounded-2xl p-8 max-w-md w-full">
         <div class="text-center mb-6">
-          <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span class="text-white text-2xl">✓</span>
+          <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
           </div>
           <h3 class="text-2xl font-bold text-gray-900 mb-2">Nâng cấp Pro</h3>
           <p class="text-gray-600">Chỉ $2/tháng • Hủy bất cứ lúc nào</p>
         </div>
         
-        <div class="bg-gray-50 rounded-xl p-4 mb-6">
-          <div class="flex justify-between items-center mb-2">
-            <span class="font-medium">IQ Pro Monthly</span>
-            <span class="font-bold text-blue-600">$2.00</span>
+        <div class="space-y-4 mb-6">
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="flex justify-between items-center mb-2">
+              <span class="font-medium">IQ Pro Monthly</span>
+              <span class="font-bold text-blue-600">$2.00</span>
+            </div>
+            <div class="text-sm text-gray-500">Gia hạn hàng tháng</div>
           </div>
-          <div class="text-sm text-gray-500">Gia hạn hàng tháng</div>
+          
+          <div class="text-sm text-gray-600">
+            ✅ Dùng thử 7 ngày miễn phí<br>
+            ✅ Hủy bất cứ lúc nào<br>
+            ✅ Hoàn tiền 100% nếu không hài lòng
+          </div>
         </div>
         
         <div class="flex space-x-3">
-          <button onclick="this.closest('.fixed').remove()" class="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium">
+          <button onclick="this.closest('.fixed').remove()" class="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors">
             Hủy
           </button>
-          <button onclick="alert('Demo: Nâng cấp thành công!'); this.closest('.fixed').remove()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium">
+          <button onclick="processUpgrade()" class="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all">
             Xác nhận
           </button>
         </div>
@@ -286,10 +544,62 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     
     document.body.appendChild(modal);
     
+    // Close on outside click
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         modal.remove();
       }
     });
+  }
+
+  // Mock upgrade process
+  function processUpgrade() {
+    const modal = document.querySelector('.fixed');
+    const button = modal.querySelector('button[onclick="processUpgrade()"]');
+    
+    button.innerHTML = `
+      <svg class="w-4 h-4 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Đang xử lý...
+    `;
+    button.disabled = true;
+    
+    // Simulate payment processing
+    setTimeout(() => {
+      modal.innerHTML = `
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full text-center">
+          <div class="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">Chúc mừng! 🎉</h3>
+          <p class="text-gray-600 mb-6">Bạn đã nâng cấp thành công lên IQ Pro. Hãy khám phá những tính năng mới!</p>
+          <button onclick="window.location.reload()" class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium">
+            Bắt đầu sử dụng Pro
+          </button>
+        </div>
+      `;
+      
+      // Auto close after 3 seconds
+      setTimeout(() => {
+        modal.remove();
+        // Could redirect to dashboard or reload page
+        // window.location.href = '/dashboard';
+      }, 3000);
+    }, 2000);
+  }
+
+  // FAQ toggle functionality
+  document.querySelectorAll('details').forEach(detail => {
+    detail.addEventListener('toggle', () => {
+      if (detail.open) {
+        detail.querySelector('summary').classList.add('text-blue-600');
+      } else {
+        detail.querySelector('summary').classList.remove('text-blue-600');
+      }
+    });
   });
-</script> 
+</script>
