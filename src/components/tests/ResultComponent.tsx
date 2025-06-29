@@ -34,6 +34,7 @@ interface ResultData {
 
 interface ResultComponentProps {
   results: ResultData;
+  userInfo?: {name: string, email: string, age: string, location: string} | null;
   onRetake: () => void;
   onHome: () => void;
 }
@@ -188,6 +189,38 @@ const getSkillAnalysis = (results: ResultData): SkillData[] => {
       description: 'Xử lý thông tin nhanh chóng',
       color: 'yellow',
       icon: '⚡'
+    },
+    {
+      name: 'Sáng tạo',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Tốt',
+      description: 'Tư duy đột phá và ý tưởng mới',
+      color: 'indigo',
+      icon: '💡'
+    },
+    {
+      name: 'Phân tích',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Xuất sắc',
+      description: 'Phân tích dữ liệu và nhận định',
+      color: 'cyan',
+      icon: '📊'
+    },
+    {
+      name: 'Lãnh đạo',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Khá',
+      description: 'Quản lý và dẫn dắt nhóm',
+      color: 'amber',
+      icon: '👑'
+    },
+    {
+      name: 'Thích ứng',
+      score: Math.round(base + Math.random() * 20 - 10),
+      level: 'Tốt',
+      description: 'Linh hoạt trong môi trường thay đổi',
+      color: 'teal',
+      icon: '🔄'
     }
   ];
 };
@@ -215,7 +248,7 @@ const getIQLevel = (score: number) => {
   return { level: 'Dưới TB', color: 'orange', icon: '📈' };
 };
 
-export default function ResultComponent({ results, onRetake, onHome }: ResultComponentProps) {
+export default function ResultComponent({ results, userInfo: propUserInfo, onRetake, onHome }: ResultComponentProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [realTestHistory, setRealTestHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -237,20 +270,38 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        // Load user info and test history in parallel
+        // ALWAYS use prop userInfo if available (from URL params)
+        if (propUserInfo?.name) {
+          setUserInfo({
+            name: propUserInfo.name,
+            age: propUserInfo.age || '',
+            location: propUserInfo.location || ''
+          });
+          console.log('✅ Using userInfo from URL params:', propUserInfo);
+        } else {
+          // Only fallback to localStorage if no URL params
+          const [testUtils] = await Promise.all([
+            import('../../utils/test')
+          ]);
+          
+          const anonymousInfo = testUtils.getAnonymousUserInfo();
+          if (anonymousInfo) {
+            setUserInfo({
+              name: anonymousInfo.name || 'Bạn',
+              age: anonymousInfo.age || '',
+              location: anonymousInfo.location || ''
+            });
+            console.log('✅ Using userInfo from localStorage fallback');
+          }
+        }
+        
+        // Load test history
         const [testUtils] = await Promise.all([
           import('../../utils/test')
         ]);
-        
-        const [history, anonymousInfo] = await Promise.all([
-          testUtils.getUserRealTestHistory(),
-          Promise.resolve(testUtils.getAnonymousUserInfo())
-        ]);
-        
+        const history = await testUtils.getUserRealTestHistory();
         setRealTestHistory(history);
-        if (anonymousInfo) {
-          setUserInfo(anonymousInfo);
-        }
+        
       } catch (error) {
         console.warn('⚠️ Error loading data:', error);
         setRealTestHistory([]);
@@ -260,7 +311,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     };
     
     loadAllData();
-  }, []);
+  }, [propUserInfo]);
   
   // Trigger confetti and score animation on mount
   useEffect(() => {
@@ -693,30 +744,30 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         Phân tích kỹ năng chi tiết
       </h3>
       
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
         {skills.map((skill, index) => (
                   <motion.div 
                     key={index}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="flex items-center space-x-4 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+            transition={{ delay: index * 0.05 }}
+            className="flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100"
           >
-            <div className={`w-12 h-12 bg-${skill.color}-100 rounded-full flex items-center justify-center text-xl`}>
+            <div className={`w-12 h-12 bg-${skill.color}-100 rounded-full flex items-center justify-center text-xl mb-3`}>
               {skill.icon}
             </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-center mb-1">
-                <h4 className="font-semibold text-gray-900">{skill.name}</h4>
+            <div className="text-center w-full">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-gray-900 text-sm">{skill.name}</h4>
                 <span className={`text-sm font-bold text-${skill.color}-600`}>{skill.score}%</span>
               </div>
-              <p className="text-xs text-gray-600 mb-2">{skill.description}</p>
+              <p className="text-xs text-gray-600 mb-3 min-h-[2.5rem] flex items-center">{skill.description}</p>
               <div className="w-full bg-gray-200 rounded-full h-2">
                       <motion.div 
                   className={`bg-${skill.color}-500 h-2 rounded-full`}
                         initial={{ width: 0 }}
                   animate={{ width: `${skill.score}%` }}
-                  transition={{ delay: 0.5 + index * 0.1, duration: 0.8 }}
+                  transition={{ delay: 0.5 + index * 0.05, duration: 0.8 }}
                 />
               </div>
                     </div>

@@ -125,7 +125,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
         resultUrl.searchParams.set('time', result.timeSpent);
         resultUrl.searchParams.set('classification', result.classification);
         
-        console.log('🚀 Redirecting to shareable result page...');
+        console.log('🚀 Redirecting with userInfo:', userInfo);
+        console.log('🔗 URL:', resultUrl.toString());
         window.location.href = resultUrl.toString();
       }
     }, 500);

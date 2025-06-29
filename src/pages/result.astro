@@ -20,7 +20,11 @@ const seoDescription = `${userName ? userName + ' đạt' : 'Đạt'} ${testScor
   title={seoTitle}
   description={seoDescription}
 >
-  <div id="result-container" class="min-h-screen" data-user-name={userName} data-user-age={userAge} data-user-location={userLocation}>
+  <div id="result-container" class="min-h-screen" 
+       data-user-name={userName} 
+       data-user-age={userAge} 
+       data-user-location={userLocation}
+       data-user-email={url.searchParams.get('email') || ''}>
     <!-- Loading skeleton -->
     <div id="loading-skeleton" class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -232,10 +236,22 @@ const seoDescription = `${userName ? userName + ' đạt' : 'Đạt'} ${testScor
       const container = document.getElementById('result-container');
       if (!container) return;
       
+      // Get user info from URL params directly (more reliable than data attributes)
+      const urlParams = new URLSearchParams(window.location.search);
+      const userInfo = {
+        name: urlParams.get('name') || '',
+        email: urlParams.get('email') || '',
+        age: urlParams.get('age') || '',
+        location: urlParams.get('location') || ''
+      };
+      
+      console.log('📋 User info from URL params:', userInfo);
+      
       const root = createRoot(container);
       
       const props = {
         results: resultData,
+        userInfo: userInfo.name ? userInfo : null, // Only pass if we have name
         onRetake: () => window.location.href = '/test/iq',
         onHome: () => window.location.href = '/'
       };

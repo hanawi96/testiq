@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserProfile {
@@ -54,43 +54,58 @@ const ProfileComponent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Load user data
+  // Memoized calculations to avoid re-computation
+  const profileStats = useMemo(() => {
+    if (!userProfile.testHistory?.length) return { average: 0, best: 0, joinDate: new Date().toLocaleDateString('vi-VN') };
+    
+    const scores = userProfile.testHistory.map(test => test.iq || 0);
+    const average = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+    const best = Math.max(...scores);
+    
+    const oldestTest = userProfile.testHistory[userProfile.testHistory.length - 1];
+    const joinDate = oldestTest?.timestamp 
+      ? new Date(oldestTest.timestamp).toLocaleDateString('vi-VN')
+      : new Date().toLocaleDateString('vi-VN');
+    
+    return { average, best, joinDate };
+  }, [userProfile.testHistory]);
+
+  // Load user data with optimized parallel execution
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        // Dynamic import with proper error handling
-        const testUtils = await import('../utils/test.ts');
-        
-        // Check authentication status
-        try {
-          const { AuthService } = await import('../../backend');
-          const { user } = await AuthService.getCurrentUser();
-          setIsAuthenticated(!!user);
-        } catch (error) {
-          console.warn('Could not check auth status:', error);
-          setIsAuthenticated(false);
-        }
-        
-        // Get user info and test history in parallel
-        const [userInfo, testHistory] = await Promise.all([
-          Promise.resolve(testUtils.getAnonymousUserInfo?.() || null),
-          testUtils.getUserRealTestHistory?.() || Promise.resolve([])
+        // Start all imports and data loading in parallel
+        const [testUtils, backendModule] = await Promise.all([
+          import('../utils/test.ts'),
+          import('../../backend').catch(() => null) // Don't fail if backend unavailable
         ]);
+        
+        // Check auth and get user info in parallel
+        const authPromise = backendModule?.AuthService?.getCurrentUser?.()
+          .then(({ user }) => !!user)
+          .catch(() => false) || Promise.resolve(false);
+        
+        const [authCheck, userInfo] = await Promise.all([
+          authPromise,
+          testUtils.getAnonymousUserInfo?.() || null
+        ]);
+        
+        setIsAuthenticated(authCheck);
+        
+        // Get test history (this is the slowest operation, but we can show user info first)
+        const testHistory = await (testUtils.getUserRealTestHistory?.() || Promise.resolve([]));
 
-        const stats = calculateStats(testHistory);
+        // Update profile with all data
         setUserProfile({
           name: userInfo?.name || 'Người dùng',
           age: userInfo?.age || '',
           location: userInfo?.location || '',
-          joinDate: getJoinDate(testHistory),
           totalTests: testHistory.length,
-          averageScore: stats.average,
-          bestScore: stats.best,
           testHistory: testHistory
         });
+        
       } catch (error) {
         console.warn('Error loading user data:', error);
-        // Set default profile on error
         setUserProfile(prev => ({ ...prev, name: 'Người dùng' }));
       } finally {
         setIsLoading(false);
@@ -100,63 +115,34 @@ const ProfileComponent: React.FC = () => {
     loadUserData();
   }, []);
 
-  // Calculate test statistics
-  const calculateStats = (history: any[]) => {
-    if (!history.length) return { average: 0, best: 0 };
-    
-    const scores = history.map(test => test.iq || 0);
-    const average = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
-    const best = Math.max(...scores);
-    
-    return { average, best };
-  };
-
-  // Get join date from first test
-  const getJoinDate = (history: any[]) => {
-    if (!history.length) return new Date().toLocaleDateString('vi-VN');
-    
-    const oldestTest = history[history.length - 1];
-    return oldestTest.timestamp 
-      ? new Date(oldestTest.timestamp).toLocaleDateString('vi-VN')
-      : new Date().toLocaleDateString('vi-VN');
-  };
-
-  // Format time display
-  const formatTimeDisplay = (totalSeconds: number): string => {
+  // Optimized helper functions
+  const formatTimeDisplay = useCallback((totalSeconds: number): string => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     
-    if (minutes > 0 && seconds > 0) {
-      return `${minutes} phút ${seconds} giây`;
-    } else if (minutes > 0) {
-      return `${minutes} phút`;
-    } else {
-      return `${seconds} giây`;
-    }
-  };
+    if (minutes > 0 && seconds > 0) return `${minutes} phút ${seconds} giây`;
+    if (minutes > 0) return `${minutes} phút`;
+    return `${seconds} giây`;
+  }, []);
 
-  // Get time ago display
-  const getTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const getTimeAgo = useCallback((date: Date): string => {
+    const diffDays = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return 'Hôm nay';
     if (diffDays === 1) return 'Hôm qua';
     if (diffDays < 7) return `${diffDays} ngày trước`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
     return `${Math.floor(diffDays / 30)} tháng trước`;
-  };
+  }, []);
 
-  // Get IQ color scheme
-  const getIQColor = (iq: number) => {
+  const getIQColor = useCallback((iq: number) => {
     if (iq >= 140) return { bg: 'bg-gradient-to-br from-purple-100 to-purple-200', text: 'text-purple-700' };
     if (iq >= 130) return { bg: 'bg-gradient-to-br from-indigo-100 to-indigo-200', text: 'text-indigo-700' };
     if (iq >= 120) return { bg: 'bg-gradient-to-br from-blue-100 to-blue-200', text: 'text-blue-700' };
     if (iq >= 110) return { bg: 'bg-gradient-to-br from-green-100 to-green-200', text: 'text-green-700' };
     if (iq >= 90) return { bg: 'bg-gradient-to-br from-yellow-100 to-yellow-200', text: 'text-yellow-700' };
     return { bg: 'bg-gradient-to-br from-orange-100 to-orange-200', text: 'text-orange-700' };
-  };
+  }, []);
 
   const HeroSection = () => (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-3xl p-8 text-center relative overflow-hidden">
@@ -187,12 +173,10 @@ const ProfileComponent: React.FC = () => {
                 {userProfile.location}
               </span>
             )}
-            {userProfile.joinDate && (
-              <span className="flex items-center">
-                <span className="mr-1">📅</span>
-                Tham gia {userProfile.joinDate}
-              </span>
-            )}
+            <span className="flex items-center">
+              <span className="mr-1">📅</span>
+              Tham gia {profileStats.joinDate}
+            </span>
           </div>
         </div>
 
@@ -203,11 +187,11 @@ const ProfileComponent: React.FC = () => {
             <div className="text-xs text-gray-600">Bài test</div>
           </div>
           <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-green-600">{userProfile.averageScore}</div>
+            <div className="text-2xl font-bold text-green-600">{profileStats.average}</div>
             <div className="text-xs text-gray-600">Điểm TB</div>
           </div>
           <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-purple-600">{userProfile.bestScore}</div>
+            <div className="text-2xl font-bold text-purple-600">{profileStats.best}</div>
             <div className="text-xs text-gray-600">Tốt nhất</div>
           </div>
         </div>
@@ -291,7 +275,7 @@ const ProfileComponent: React.FC = () => {
             </div>
             <div>
               <div className="text-sm text-gray-500">Ngày tham gia</div>
-              <div className="font-semibold text-gray-900">{userProfile.joinDate}</div>
+              <div className="font-semibold text-gray-900">{profileStats.joinDate}</div>
             </div>
           </div>
 

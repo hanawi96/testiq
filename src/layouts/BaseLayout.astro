@@ -74,70 +74,195 @@ import SEO from '../components/SEO.astro';
   </main>
 
   <!-- Footer -->
-  <footer class="bg-gray-900 text-white py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+  <footer class="relative bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-white overflow-hidden">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 opacity-5">
+      <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 20px 20px;"></div>
+    </div>
+    
+    <!-- Gradient Overlays -->
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+    <div class="absolute -top-32 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
+    <div class="absolute -top-32 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-12">
         
-        <!-- About Section -->
-        <div class="md:col-span-2">
-          <div class="flex items-center space-x-3 mb-6">
-            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <LucideIcon name="brain" class="w-6 h-6 text-white" />
+        <!-- Brand Section -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center space-x-4 mb-8">
+            <div class="relative group">
+              <div class="w-14 h-14 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl group-hover:shadow-blue-500/25 transition-all duration-500">
+                <LucideIcon name="brain" class="w-8 h-8 text-white" />
+              </div>
+              <div class="absolute -inset-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl opacity-20 group-hover:opacity-40 transition-opacity blur"></div>
             </div>
-            <span class="text-xl font-bold">IQ Test System</span>
+            <div>
+              <span class="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                Test Pro
+              </span>
+              <p class="text-sm text-gray-400 font-medium">Intelligence Testing Platform</p>
+            </div>
           </div>
-          <p class="text-gray-300 mb-6 max-w-md leading-relaxed">
-            Nền tảng kiểm tra IQ chuyên nghiệp với các bài test chuẩn quốc tế, giúp bạn khám phá tiềm năng trí tuệ của mình.
+          
+          <p class="text-gray-300 mb-8 max-w-lg leading-relaxed text-lg">
+            Nền tảng kiểm tra IQ chuyên nghiệp với các bài test chuẩn quốc tế, 
+            giúp bạn <span class="text-blue-400 font-semibold">khám phá tiềm năng trí tuệ</span> 
+            và phát triển bản thân một cách toàn diện.
           </p>
+          
+          <!-- Stats -->
+          <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-400 mb-1">50K+</div>
+              <div class="text-sm text-gray-400">Người dùng</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-green-400 mb-1">1M+</div>
+              <div class="text-sm text-gray-400">Bài test</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-purple-400 mb-1">99.9%</div>
+              <div class="text-sm text-gray-400">Độ chính xác</div>
+            </div>
+          </div>
+          
+          <!-- Social Links -->
           <div class="flex space-x-4">
-            <a href="#" class="text-gray-400 hover:text-blue-400 transition-colors" aria-label="Facebook">
-              <LucideIcon name="facebook" class="w-5 h-5" />
-            </a>
-            <a href="#" class="text-gray-400 hover:text-blue-400 transition-colors" aria-label="Twitter">
-              <LucideIcon name="twitter" class="w-5 h-5" />
-            </a>
-            <a href="#" class="text-gray-400 hover:text-blue-400 transition-colors" aria-label="LinkedIn">
-              <LucideIcon name="linkedin" class="w-5 h-5" />
-            </a>
+            {[
+              { name: 'facebook', label: 'Facebook', color: 'hover:text-blue-400' },
+              { name: 'twitter', label: 'Twitter', color: 'hover:text-sky-400' },
+              { name: 'instagram', label: 'Instagram', color: 'hover:text-pink-400' },
+              { name: 'linkedin', label: 'LinkedIn', color: 'hover:text-blue-500' },
+              { name: 'youtube', label: 'YouTube', color: 'hover:text-red-400' }
+            ].map(social => (
+              <a 
+                href="#" 
+                class={`w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-gray-400 ${social.color} transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-110 hover:shadow-lg`}
+                aria-label={social.label}
+              >
+                <LucideIcon name={social.name} class="w-5 h-5" />
+              </a>
+            ))}
           </div>
         </div>
 
         <!-- Quick Links -->
         <div>
-          <h3 class="text-lg font-semibold mb-6">Liên kết nhanh</h3>
-          <ul class="space-y-3">
-            <li><a href="/" class="text-gray-300 hover:text-white transition-colors">Trang chủ</a></li>
-            <li><a href="/test" class="text-gray-300 hover:text-white transition-colors">Bắt đầu test</a></li>
-            <li><a href="/blog" class="text-gray-300 hover:text-white transition-colors">Blog</a></li>
-            <li><a href="/about" class="text-gray-300 hover:text-white transition-colors">Về chúng tôi</a></li>
+          <h3 class="text-lg font-bold mb-6 text-white">
+            <span class="relative">
+              Liên kết nhanh
+              <div class="absolute -bottom-2 left-0 w-8 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+            </span>
+          </h3>
+          <ul class="space-y-4">
+            {[
+              { href: '/', label: 'Trang chủ', icon: '🏠' },
+              { href: '/test/iq', label: 'IQ Test', icon: '🧠' },
+              { href: '/test/eq', label: 'EQ Test', icon: '❤️' },
+              { href: '/leaderboard', label: 'Bảng xếp hạng', icon: '🏆' },
+              { href: '/blog', label: 'Blog', icon: '📖' },
+              { href: '/about', label: 'Về chúng tôi', icon: 'ℹ️' }
+            ].map(link => (
+              <li>
+                <a 
+                  href={link.href} 
+                  class="group flex items-center space-x-3 text-gray-300 hover:text-white transition-all duration-300 hover:translate-x-1"
+                >
+                  <span class="text-sm">{link.icon}</span>
+                  <span class="group-hover:text-blue-400 transition-colors duration-300">{link.label}</span>
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
 
-        <!-- Support -->
+        <!-- Support & Help -->
         <div>
-          <h3 class="text-lg font-semibold mb-6">Hỗ trợ</h3>
-          <ul class="space-y-3">
-            <li><a href="/help" class="text-gray-300 hover:text-white transition-colors">Trợ giúp</a></li>
-            <li><a href="/contact" class="text-gray-300 hover:text-white transition-colors">Liên hệ</a></li>
-            <li><a href="/privacy" class="text-gray-300 hover:text-white transition-colors">Bảo mật</a></li>
-            <li><a href="/terms" class="text-gray-300 hover:text-white transition-colors">Điều khoản</a></li>
+          <h3 class="text-lg font-bold mb-6 text-white">
+            <span class="relative">
+              Hỗ trợ & Giúp đỡ
+              <div class="absolute -bottom-2 left-0 w-8 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+            </span>
+          </h3>
+          <ul class="space-y-4 mb-8">
+            {[
+              { href: '/help', label: 'Trung tâm trợ giúp', icon: '🆘' },
+              { href: '/contact', label: 'Liên hệ', icon: '📞' },
+              { href: '/faq', label: 'Câu hỏi thường gặp', icon: '❓' },
+              { href: '/support', label: 'Hỗ trợ kỹ thuật', icon: '🔧' },
+              { href: '/feedback', label: 'Góp ý', icon: '💬' }
+            ].map(link => (
+              <li>
+                <a 
+                  href={link.href} 
+                  class="group flex items-center space-x-3 text-gray-300 hover:text-white transition-all duration-300 hover:translate-x-1"
+                >
+                  <span class="text-sm">{link.icon}</span>
+                  <span class="group-hover:text-green-400 transition-colors duration-300">{link.label}</span>
+                </a>
+              </li>
+            ))}
           </ul>
+          
+          <!-- Contact Info -->
+          <div class="space-y-3">
+            <div class="flex items-center space-x-3 text-gray-300">
+              <LucideIcon name="mail" class="w-4 h-4 text-blue-400" />
+              <span class="text-sm">support@testpro.com</span>
+            </div>
+            <div class="flex items-center space-x-3 text-gray-300">
+              <LucideIcon name="phone" class="w-4 h-4 text-green-400" />
+              <span class="text-sm">+84 (0) 123 456 789</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Bottom Section -->
-      <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-        <p class="text-gray-400 text-sm">
-          © 2024 IQ Test System. Tất cả quyền được bảo lưu.
-        </p>
-        <div class="flex items-center space-x-6 mt-4 md:mt-0">
-          <div class="flex items-center space-x-2 text-gray-400 text-sm">
-            <LucideIcon name="shield-check" class="w-4 h-4" />
-            <span>Test an toàn</span>
+      <div class="mt-16 pt-8 border-t border-white/10">
+        <div class="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
+          
+          <!-- Copyright -->
+          <div class="text-center lg:text-left">
+            <p class="text-gray-400 text-sm">
+              © 2024 <span class="text-white font-semibold">Test Pro</span>. 
+              Tất cả quyền được bảo lưu.
+            </p>
+            <p class="text-gray-500 text-xs mt-1">
+              Được phát triển với ❤️ tại Việt Nam
+            </p>
           </div>
-          <div class="flex items-center space-x-2 text-gray-400 text-sm">
-            <LucideIcon name="clock" class="w-4 h-4" />
-            <span>Kết quả nhanh</span>
+
+          <!-- Legal Links -->
+          <div class="flex items-center space-x-6 text-sm">
+            {[
+              { href: '/privacy', label: 'Chính sách bảo mật' },
+              { href: '/terms', label: 'Điều khoản sử dụng' },
+              { href: '/cookies', label: 'Cookie Policy' }
+            ].map((link, index) => (
+              <>
+                <a 
+                  href={link.href} 
+                  class="text-gray-400 hover:text-white transition-colors duration-300"
+                >
+                  {link.label}
+                </a>
+                {index < 2 && <span class="text-gray-600">•</span>}
+              </>
+            ))}
+          </div>
+
+          <!-- Trust Badges -->
+          <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-2 text-gray-400 text-sm bg-white/5 px-3 py-2 rounded-lg border border-white/10">
+              <LucideIcon name="shield-check" class="w-4 h-4 text-green-400" />
+              <span>SSL Secured</span>
+            </div>
+            <div class="flex items-center space-x-2 text-gray-400 text-sm bg-white/5 px-3 py-2 rounded-lg border border-white/10">
+              <LucideIcon name="zap" class="w-4 h-4 text-yellow-400" />
+              <span>Fast & Reliable</span>
+            </div>
           </div>
         </div>
       </div>

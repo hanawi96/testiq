@@ -109,7 +109,8 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
       resultUrl.searchParams.set('time', result.timeSpent);
       resultUrl.searchParams.set('classification', result.classification);
       
-      console.log('🚀 Redirecting to shareable result page...');
+      console.log('🚀 TimeUp - Redirecting with userInfo:', userInfo);
+      console.log('🔗 URL:', resultUrl.toString());
       window.location.href = resultUrl.toString();
     }
   };
