@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserInfo {
   name: string;
+  email: string;
   age: string;
   location: string;
 }
@@ -14,10 +15,11 @@ interface TimeUpPopupProps {
 }
 
 export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: TimeUpPopupProps) {
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', age: '', location: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isFormValid = userInfo.name.trim() && userInfo.age.trim() && userInfo.location.trim();
+  const isFormValid = userInfo.name?.trim() && userInfo.email?.trim() && 
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userInfo.email?.trim() || '');
 
   // Initialize with preloaded data when popup opens
   useEffect(() => {
@@ -25,7 +27,12 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: T
       if (isOpen) {
         // Try preloaded info first (for authenticated users)
         if (preloadedUserInfo) {
-          setUserInfo(preloadedUserInfo);
+          setUserInfo({
+            name: preloadedUserInfo.name || '',
+            email: preloadedUserInfo.email || '',
+            age: preloadedUserInfo.age || '',
+            location: preloadedUserInfo.location || ''
+          });
           console.log('✅ Using pre-loaded user info for authenticated user');
           return;
         }
@@ -35,7 +42,12 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: T
           const { getAnonymousUserInfo } = await import('../../utils/test');
           const savedInfo = getAnonymousUserInfo();
           if (savedInfo) {
-            setUserInfo(savedInfo);
+            setUserInfo({
+              name: savedInfo.name || '',
+              email: savedInfo.email || '',
+              age: savedInfo.age || '',
+              location: savedInfo.location || ''
+            });
             console.log('✅ Loaded saved anonymous user info from localStorage');
           }
         } catch (error) {
@@ -87,8 +99,9 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: T
       // Create shareable URL with result data
       const resultUrl = new URL('/result', window.location.origin);
       resultUrl.searchParams.set('name', userInfo.name);
-      resultUrl.searchParams.set('age', userInfo.age);
-      resultUrl.searchParams.set('location', userInfo.location);
+      resultUrl.searchParams.set('email', userInfo.email);
+      if (userInfo.age) resultUrl.searchParams.set('age', userInfo.age);
+      if (userInfo.location) resultUrl.searchParams.set('location', userInfo.location);
       resultUrl.searchParams.set('score', result.iq || result.score);
       resultUrl.searchParams.set('percentile', result.percentile);
       resultUrl.searchParams.set('accuracy', result.detailed?.accuracy || 0);
@@ -129,52 +142,70 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: T
             <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Họ và tên *
+                    Họ và tên <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={userInfo.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     disabled={isSubmitting}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                       isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
                     }`}
                     placeholder="Nhập họ tên của bạn"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tuổi *
+                    Email <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    value={userInfo.age}
-                    onChange={(e) => handleInputChange('age', e.target.value)}
+                    type="email"
+                    value={userInfo.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
                     disabled={isSubmitting}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                       isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
                     }`}
-                    placeholder="Nhập tuổi của bạn"
-                    min="1"
-                    max="120"
+                    placeholder="Nhập email của bạn"
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nơi ở *
-                  </label>
-                  <input
-                    type="text"
-                    value={userInfo.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    disabled={isSubmitting}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                      isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="Nhập nơi ở của bạn"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tuổi
+                    </label>
+                    <input
+                      type="number"
+                      value={userInfo.age}
+                      onChange={(e) => handleInputChange('age', e.target.value)}
+                      disabled={isSubmitting}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
+                      placeholder="Tuổi"
+                      min="1"
+                      max="120"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nơi ở
+                    </label>
+                    <input
+                      type="text"
+                      value={userInfo.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      disabled={isSubmitting}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
+                      placeholder="Thành phố"
+                    />
+                  </div>
                 </div>
               </div>
             

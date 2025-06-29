@@ -20,6 +20,7 @@ export interface Question {
   
   export interface UserInfo {
     name: string;
+    email: string;
     age: string;
     location: string;
   }
@@ -220,8 +221,9 @@ export interface Question {
             detailed: result.detailed
           },
           guest_name: result.userInfo.name,
-          guest_age: parseInt(result.userInfo.age) || null,
-          guest_location: result.userInfo.location
+          guest_email: result.userInfo.email,
+          guest_age: parseInt(result.userInfo.age) || undefined,
+          guest_location: result.userInfo.location || undefined
         };
       }
 

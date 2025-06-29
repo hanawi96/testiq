@@ -8,6 +8,7 @@ interface TestProgressPopupProps {
   timeRemaining: number; // seconds
   onContinue: () => void;
   onRestart: () => void;
+  onViewResult?: () => void; // New option for completed tests
 }
 
 export default function TestProgressPopup({ 
@@ -16,7 +17,8 @@ export default function TestProgressPopup({
   totalQuestions,
   timeRemaining,
   onContinue, 
-  onRestart 
+  onRestart,
+  onViewResult
 }: TestProgressPopupProps) {
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -26,6 +28,7 @@ export default function TestProgressPopup({
 
   const progress = (questionNumber / totalQuestions) * 100;
   const isLowTime = timeRemaining < 300; // 5 minutes
+  const isCompleted = questionNumber === totalQuestions;
 
   return (
     <AnimatePresence>
@@ -51,15 +54,22 @@ export default function TestProgressPopup({
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Bài test chưa hoàn thành</h3>
-              <p className="text-gray-600 text-sm">Bạn có muốn tiếp tục từ câu đã làm không?</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {isCompleted ? 'Bài test đã hoàn thành' : 'Bài test chưa hoàn thành'}
+              </h3>
+              <p className="text-gray-600 text-sm">
+                {isCompleted 
+                  ? 'Bạn có muốn xem kết quả không?' 
+                  : 'Bạn có muốn tiếp tục từ câu đã làm không?'
+                }
+              </p>
             </div>
 
             {/* Progress Stats */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="bg-blue-50 rounded-xl p-3 text-center">
                 <div className="text-lg font-bold text-blue-600">{questionNumber}/{totalQuestions}</div>
-                <div className="text-xs text-gray-600">Câu hỏi</div>
+                <div className="text-xs text-gray-600">Đã hoàn thành</div>
               </div>
               <div className={`rounded-xl p-3 text-center ${isLowTime ? 'bg-red-50' : 'bg-green-50'}`}>
                 <div className={`text-lg font-bold ${isLowTime ? 'text-red-600' : 'text-green-600'}`}>
@@ -100,17 +110,33 @@ export default function TestProgressPopup({
                 Làm lại
               </motion.button>
               
-              <motion.button
-                onClick={onContinue}
-                className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none">
-                  <polygon points="5,3 19,12 5,21" fill="currentColor"/>
-                </svg>
-                Tiếp tục
-              </motion.button>
+              {isCompleted && onViewResult ? (
+                <motion.button
+                  onClick={onViewResult}
+                  className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Xem kết quả
+                </motion.button>
+              ) : (
+                <motion.button
+                  onClick={onContinue}
+                  className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none">
+                    <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                  </svg>
+                  Tiếp tục
+                </motion.button>
+              )}
             </div>
           </motion.div>
         </motion.div>

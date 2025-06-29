@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserInfo {
   name: string;
+  email: string;
   age: string;
   location: string;
 }
@@ -15,11 +16,12 @@ interface CongratulationsPopupProps {
 }
 
 export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTrigger, preloadedUserInfo }: CongratulationsPopupProps) {
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', age: '', location: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
-  const isFormValid = userInfo.name.trim() && userInfo.age.trim() && userInfo.location.trim();
+  const isFormValid = userInfo.name?.trim() && userInfo.email?.trim() && 
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userInfo.email?.trim() || '');
 
   // Load saved user info on component mount
   useEffect(() => {
@@ -27,7 +29,12 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
       if (isOpen) {
         // Try preloaded info first (for authenticated users)
         if (preloadedUserInfo) {
-          setUserInfo(preloadedUserInfo);
+          setUserInfo({
+            name: preloadedUserInfo.name || '',
+            email: preloadedUserInfo.email || '',
+            age: preloadedUserInfo.age || '',
+            location: preloadedUserInfo.location || ''
+          });
           console.log('✅ Using pre-loaded user info for authenticated user');
           return;
         }
@@ -37,7 +44,12 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
           const { getAnonymousUserInfo } = await import('../../utils/test');
           const savedInfo = getAnonymousUserInfo();
           if (savedInfo) {
-            setUserInfo(savedInfo);
+            setUserInfo({
+              name: savedInfo.name || '',
+              email: savedInfo.email || '',
+              age: savedInfo.age || '',
+              location: savedInfo.location || ''
+            });
             console.log('✅ Loaded saved anonymous user info from localStorage');
           }
         } catch (error) {
@@ -77,7 +89,7 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
         await updateUserProfile(user.id, {
           full_name: userInfo.name,
           age: parseInt(userInfo.age) || undefined,
-          location: userInfo.location
+          location: userInfo.location || undefined
         });
         console.log('✅ User profile updated');
       } else {
@@ -103,8 +115,9 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
         // Create shareable URL with result data
         const resultUrl = new URL('/result', window.location.origin);
         resultUrl.searchParams.set('name', userInfo.name);
-        resultUrl.searchParams.set('age', userInfo.age);
-        resultUrl.searchParams.set('location', userInfo.location);
+        resultUrl.searchParams.set('email', userInfo.email);
+        if (userInfo.age) resultUrl.searchParams.set('age', userInfo.age);
+        if (userInfo.location) resultUrl.searchParams.set('location', userInfo.location);
         resultUrl.searchParams.set('score', result.iq || result.score);
         resultUrl.searchParams.set('percentile', result.percentile);
         resultUrl.searchParams.set('accuracy', result.detailed?.accuracy || 0);
@@ -131,79 +144,104 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100"
+            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, type: "spring", damping: 25 }}
           >
-            <div className="text-center mb-6">
-              <div className="text-6xl mb-4">🎉</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Chúc mừng!</h3>
-              <p className="text-gray-600">Bạn đã hoàn thành xuất sắc bài test IQ</p>
+            <div className="text-center mb-8">
+              <div className="text-7xl mb-4 animate-bounce">🎉</div>
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
+                Chúc mừng!
+              </h3>
+              <p className="text-gray-600 text-lg">Bạn đã hoàn thành xuất sắc bài test IQ</p>
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl">
+                <p className="text-sm text-gray-700">
+                  <span className="text-red-500 font-medium">*</span> Email và tên là bắt buộc
+                </p>
+              </div>
             </div>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Họ và tên *
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Họ và tên <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={userInfo.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   disabled={isAnalyzing}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
                   }`}
                   placeholder="Nhập họ tên của bạn"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tuổi *
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  value={userInfo.age}
-                  onChange={(e) => handleInputChange('age', e.target.value)}
+                  type="email"
+                  value={userInfo.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                   disabled={isAnalyzing}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
                   }`}
-                  placeholder="Nhập tuổi của bạn"
-                  min="1"
-                  max="120"
+                  placeholder="Nhập email của bạn"
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nơi ở *
-                </label>
-                <input
-                  type="text"
-                  value={userInfo.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  disabled={isAnalyzing}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="Nhập nơi ở của bạn"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tuổi
+                  </label>
+                  <input
+                    type="number"
+                    value={userInfo.age}
+                    onChange={(e) => handleInputChange('age', e.target.value)}
+                    disabled={isAnalyzing}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                      isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
+                    }`}
+                    placeholder="Tuổi"
+                    min="1"
+                    max="120"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nơi ở
+                  </label>
+                  <input
+                    type="text"
+                    value={userInfo.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    disabled={isAnalyzing}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                      isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
+                    }`}
+                    placeholder="Thành phố"
+                  />
+                </div>
               </div>
             </div>
             
             <motion.button
               onClick={handleSubmit}
               disabled={!isFormValid || isAnalyzing}
-              className={`w-full mt-6 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+              className={`w-full mt-8 px-6 py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
                 isFormValid && !isAnalyzing
-                  ? 'bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-lg'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/25'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
-              whileHover={isFormValid && !isAnalyzing ? { scale: 1.02 } : {}}
+              whileHover={isFormValid && !isAnalyzing ? { scale: 1.02, y: -2 } : {}}
               whileTap={isFormValid && !isAnalyzing ? { scale: 0.98 } : {}}
             >
               {isAnalyzing ? (

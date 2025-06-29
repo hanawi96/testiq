@@ -54,12 +54,24 @@ export function hasInProgressTest(): boolean {
     return false;
   }
   
-  // Check if test has meaningful progress (answered at least one question)
+  // Check if test has meaningful progress (started test - has time elapsed or current question > 0)
   const answeredCount = state.answers.filter(a => a !== null).length;
-  const hasProgress = answeredCount > 0 && answeredCount < state.answers.length;
+  const hasStarted = state.timeElapsed > 0 || state.currentQuestion > 0;
+  const hasProgress = hasStarted; // Any progress means show popup
   
-  console.log(`📈 Progress check: ${answeredCount}/${state.answers.length} answered, hasProgress: ${hasProgress}`);
+  console.log(`📈 Progress check: question ${state.currentQuestion + 1}/${state.answers.length}, ${answeredCount} answered, timeElapsed: ${state.timeElapsed}s, hasProgress: ${hasProgress}`);
   return hasProgress;
+}
+
+export function isTestCompleted(): boolean {
+  const state = loadTestState();
+  if (!state) return false;
+  
+  const answeredCount = state.answers.filter(a => a !== null).length;
+  const isCompleted = answeredCount === state.answers.length;
+  
+  console.log(`✅ Completion check: ${answeredCount}/${state.answers.length} answered, isCompleted: ${isCompleted}`);
+  return isCompleted;
 }
 
 export function calculateRemainingTime(state: TestState): number {

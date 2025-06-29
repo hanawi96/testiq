@@ -8,8 +8,9 @@ interface TestResultData {
   duration_seconds?: number;
   test_data?: any;
   guest_name?: string;
-  guest_age?: number | null;
+  guest_age?: number;
   guest_location?: string;
+  guest_email?: string;
 }
 
 interface TestHistoryFilters {
@@ -33,7 +34,11 @@ export async function saveTestResult(data: TestResultData) {
       score: data.score,
       accuracy: data.accuracy,
       duration_seconds: data.duration_seconds,
-      test_data: data.test_data,
+      test_data: {
+        ...data.test_data,
+        // Lưu email vào test_data để không cần alter table
+        guest_email: data.guest_email
+      },
       guest_name: data.guest_name,
       guest_age: data.guest_age,
       guest_location: data.guest_location

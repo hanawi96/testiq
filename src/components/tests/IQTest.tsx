@@ -7,9 +7,10 @@ import Confetti, { useConfetti } from '../common/Confetti';
 import CongratulationsPopup, { type UserInfo } from '../common/CongratulationsPopup';
 import TimeUpPopup from '../common/TimeUpPopup';
 import TestProgressPopup from '../common/TestProgressPopup';
+import CompletedTestPopup from '../common/CompletedTestPopup';
 import type { Question, TestResult } from '../../utils/test';
 import { generateTestResult, saveTestResult } from '../../utils/test';
-import { saveTestState, loadTestState, clearTestState, hasInProgressTest, calculateRemainingTime } from '../../utils/test-state';
+import { saveTestState, loadTestState, clearTestState, hasInProgressTest, isTestCompleted, calculateRemainingTime } from '../../utils/test-state';
 
 interface IQTestProps {
   questions: Question[];
@@ -29,6 +30,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [showCongratulationsPopup, setShowCongratulationsPopup] = useState(false);
   const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
   const [showProgressPopup, setShowProgressPopup] = useState(false);
+  const [showCompletedTestPopup, setShowCompletedTestPopup] = useState(false);
   const [savedProgress, setSavedProgress] = useState<number>(0);
   const [savedTimeRemaining, setSavedTimeRemaining] = useState<number>(0);
   
@@ -128,12 +130,24 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       const savedState = loadTestState();
       console.log('💾 Found saved state:', savedState);
       if (savedState) {
-        setSavedProgress(savedState.currentQuestion + 1);
+        const completedCount = savedState.answers.filter(a => a !== null).length;
         const remainingTime = Math.max(0, savedState.totalTime - savedState.timeElapsed);
-        setSavedTimeRemaining(remainingTime);
-        setShowProgressPopup(true);
-        console.log('✅ Showing progress popup for question', savedState.currentQuestion + 1);
-        return; // Don't start test yet, wait for user choice
+        
+        // Check if test is completed but not submitted
+        if (isTestCompleted()) {
+          // All questions answered - show completed test popup
+          console.log('🎉 Test completed but not submitted - showing completed test popup');
+          setShowCompletedTestPopup(true);
+          return;
+        } else {
+          // Test in progress - show continue popup
+          console.log('📝 Test in progress - showing continue option');
+          setSavedProgress(completedCount);
+          setSavedTimeRemaining(remainingTime);
+          // Keep in start screen state but show popup
+          setShowProgressPopup(true);
+          return;
+        }
       }
     }
     
@@ -156,6 +170,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setShowCongratulationsPopup(false);
     setShowTimeUpPopup(false);
     setShowProgressPopup(false);
+    setShowCompletedTestPopup(false);
     setSavedProgress(0);
     setSavedTimeRemaining(0);
   }, [questions.length]);
@@ -163,7 +178,13 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   // Continue test from saved state
   const continueTest = useCallback(() => {
     const savedState = loadTestState();
-    if (!savedState) return;
+    if (!savedState) {
+      // No saved state, start fresh
+      setIsActive(true);
+      setStartTime(Date.now());
+      setShowProgressPopup(false);
+      return;
+    }
 
     setCurrentQuestion(savedState.currentQuestion);
     setAnswers(savedState.answers);
@@ -171,6 +192,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setStartTime(Date.now() - (savedState.timeElapsed * 1000));
     setIsActive(true);
     setShowProgressPopup(false);
+    console.log('✅ Continuing test from saved state');
   }, []);
 
   // Restart test (clear saved state and start fresh)
@@ -179,6 +201,26 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setShowProgressPopup(false);
     resetTest();
     // Start fresh test immediately
+    setIsActive(true);
+    setStartTime(Date.now());
+  }, [resetTest]);
+
+  // View result from completed saved test
+  const viewSavedResult = useCallback(() => {
+    setShowProgressPopup(false);
+    setShowCongratulationsPopup(true);
+  }, []);
+
+  // Handle completed test popup actions
+  const handleCompletedTestViewResult = useCallback(() => {
+    setShowCompletedTestPopup(false);
+    setShowCongratulationsPopup(true);
+  }, []);
+
+  const handleCompletedTestRestart = useCallback(() => {
+    clearTestState();
+    setShowCompletedTestPopup(false);
+    resetTest();
     setIsActive(true);
     setStartTime(Date.now());
   }, [resetTest]);
@@ -259,11 +301,21 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     // Stop timer now
     setIsActive(false);
     
-    // Calculate total time spent
-    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-    const filledAnswers = answers.map(answer => answer ?? -1);
+    // Check if we're completing from saved state
+    const savedState = loadTestState();
+    let timeSpent, filledAnswers;
     
-    console.log('⏱️ Test completed - timeSpent:', timeSpent, 'seconds');
+    if (savedState && isTestCompleted()) {
+      // Completing from saved completed test
+      timeSpent = savedState.timeElapsed;
+      filledAnswers = savedState.answers.map(answer => answer ?? -1);
+      console.log('⏱️ Completing saved test - timeSpent:', timeSpent, 'seconds');
+    } else {
+      // Normal completion
+      timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+      filledAnswers = answers.map(answer => answer ?? -1);
+      console.log('⏱️ Normal completion - timeSpent:', timeSpent, 'seconds');
+    }
     
     const result = generateTestResult(questions, filledAnswers, timeSpent);
     
@@ -275,6 +327,9 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     
     // Save to Supabase and localStorage
     await saveTestResult(resultWithUserInfo);
+    
+    // Clear saved state after successful completion
+    clearTestState();
     
     onComplete(resultWithUserInfo);
   }, [answers, questions, startTime, onComplete]);
@@ -348,6 +403,8 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
 
 
+  console.log('🔄 Render check:', { isActive, startTime, showProgressPopup, showCongratulationsPopup });
+  
   if (!isActive && startTime === null) {
     return (
       <>
@@ -359,6 +416,22 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           timeRemaining={savedTimeRemaining}
           onContinue={continueTest}
           onRestart={restartTest}
+          onViewResult={viewSavedResult}
+        />
+        
+        {/* Completed Test Popup - for tests that are done but not submitted */}
+        <CompletedTestPopup 
+          isOpen={showCompletedTestPopup}
+          onViewResult={handleCompletedTestViewResult}
+          onRestart={handleCompletedTestRestart}
+        />
+        
+        {/* Congratulations Popup - for entering user info and viewing results */}
+        <CongratulationsPopup 
+          isOpen={showCongratulationsPopup}
+          onComplete={handlePopupComplete}
+          onConfettiTrigger={handleConfettiTrigger}
+          preloadedUserInfo={preloadedUserInfo}
         />
         
         <div className="max-w-4xl mx-auto text-center py-20">
@@ -438,6 +511,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         timeRemaining={savedTimeRemaining}
         onContinue={continueTest}
         onRestart={restartTest}
+        onViewResult={viewSavedResult}
       />
 
       
