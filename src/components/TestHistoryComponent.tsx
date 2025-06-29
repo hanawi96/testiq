@@ -38,36 +38,8 @@ const FastSkeleton = ({ count = 3 }: { count?: number }) => (
 );
 
 const TestHistoryComponent: React.FC = () => {
-  const [testHistory, setTestHistory] = useState<TestHistoryItem[]>(() => {
-    // Optimistic loading from cache
-    if (typeof window === 'undefined') return [];
-    
-    try {
-      const cached = sessionStorage.getItem('test-history-cache');
-      if (cached) {
-        const data = JSON.parse(cached);
-        if (Date.now() - data.timestamp < 30000) { // 30s cache
-          return data.history;
-        }
-      }
-
-      // Fallback to localStorage for instant display
-      const localHistory = localStorage.getItem('iq-test-history');
-      if (localHistory) {
-        const history = formatTestData(JSON.parse(localHistory));
-        // Cache for next time
-        sessionStorage.setItem('test-history-cache', JSON.stringify({
-          history,
-          timestamp: Date.now()
-        }));
-        return history;
-      }
-    } catch (error) {
-      console.warn('Cache load failed:', error);
-    }
-    
-    return [];
-  });
+  // Fix hydration: Start with empty array, load data in useEffect
+  const [testHistory, setTestHistory] = useState<TestHistoryItem[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -87,12 +59,37 @@ const TestHistoryComponent: React.FC = () => {
     return cleanup;
   }, []);
 
-  // Streamlined data loading
+  // Fast cache loading + background sync
   useEffect(() => {
     let isMounted = true;
     
-    const loadFreshData = async () => {
-      // Only show loading if we have no data
+    // Phase 1: Load from cache immediately (post-hydration)
+    const loadCacheData = () => {
+      try {
+        const cached = sessionStorage.getItem('test-history-cache');
+        if (cached) {
+          const data = JSON.parse(cached);
+          if (Date.now() - data.timestamp < 30000) { // 30s cache
+            setTestHistory(data.history);
+            return true; // Has fresh cache
+          }
+        }
+
+        // Fallback to localStorage
+        const localHistory = localStorage.getItem('iq-test-history');
+        if (localHistory) {
+          const history = formatTestData(JSON.parse(localHistory));
+          setTestHistory(history);
+          return false; // Needs refresh
+        }
+      } catch (error) {
+        console.warn('Cache load failed:', error);
+      }
+      return false;
+    };
+
+    // Phase 2: Background sync
+    const backgroundSync = async () => {
       const needsLoading = testHistory.length === 0;
       if (needsLoading) setIsLoading(true);
       
@@ -142,13 +139,21 @@ const TestHistoryComponent: React.FC = () => {
       }
     };
 
-    // Start fresh data load with small delay
-    const timer = setTimeout(loadFreshData, 100);
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, []);
+    // Execute phases
+    const hasFreshCache = loadCacheData();
+    if (!hasFreshCache) {
+      const timer = setTimeout(backgroundSync, 50);
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
+    } else {
+      // Still sync in background but don't show loading
+      setTimeout(backgroundSync, 100);
+    }
+    
+    return () => { isMounted = false; };
+  }, [testHistory.length]);
 
   // Memoized helper functions
   const formatTimeDisplay = useCallback((totalSeconds: number): string => {
@@ -201,10 +206,9 @@ const TestHistoryComponent: React.FC = () => {
     return { totalPages: total, currentItems: items };
   }, [filteredAndSortedHistory, currentPage, itemsPerPage]);
 
-  // Optimized handlers
+  // Instant page change (no scrolling for better performance)
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-    document.getElementById('test-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

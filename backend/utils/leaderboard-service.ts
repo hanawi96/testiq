@@ -136,6 +136,11 @@ export async function getLeaderboard(
           throw error;
         }
 
+        console.log('🗄️ Database query result:', {
+          totalRows: results?.length || 0,
+          sampleScores: results?.slice(0, 5).map(r => r.score) || []
+        });
+
         return results;
       });
 
@@ -169,10 +174,21 @@ export async function getLeaderboard(
     }
     
     // Paginate from cache
-    const totalPages = Math.ceil((cachedData.allResults?.length || 0) / itemsPerPage);
+    const totalRecords = cachedData.allResults?.length || 0;
+    const totalPages = Math.ceil(totalRecords / itemsPerPage);
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const pageResults = cachedData.allResults?.slice(startIndex, endIndex) || [];
+    
+    console.log('🔢 Backend pagination:', {
+      requestedPage: page,
+      itemsPerPage,
+      totalRecords,
+      totalPages,
+      startIndex,
+      endIndex,
+      pageResultsLength: pageResults.length
+    });
     
     // Transform to leaderboard format
     const leaderboard: LeaderboardEntry[] = pageResults.map((result: any, index) => {

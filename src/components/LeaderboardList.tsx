@@ -20,9 +20,7 @@ interface Props {
   initialData?: LeaderboardData | null;
 }
 
-// Smart cache with TTL
-const cache = new Map<number, { data: LeaderboardEntry[], timestamp: number }>();
-const CACHE_TTL = 60000; // 1 minute
+
 
 // Optimized badge info with memoization
 const getBadgeInfo = (badge: string) => {
@@ -45,95 +43,97 @@ const FastSkeleton = ({ count = 3 }: { count?: number }) => (
 );
 
 export default function LeaderboardList({ initialData }: Props) {
-  const [data, setData] = useState<LeaderboardEntry[]>(() => {
+  // Load ALL data once, then paginate on client
+    const [allData, setAllData] = useState<LeaderboardEntry[]>(() => {
     if (initialData?.data) {
-      // Filter out top 3 immediately
-      const filtered = initialData.data.filter(entry => entry.rank > 3);
-      // Cache first page
-      cache.set(1, { data: filtered, timestamp: Date.now() });
-      return filtered;
+      return initialData.data.filter(entry => entry.rank > 3);
     }
     return [];
   });
   
-  const [totalPages, setTotalPages] = useState(initialData?.totalPages || 0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(!initialData);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasLoadedFresh, setHasLoadedFresh] = useState(false);
 
-  const itemsPerPage = 20;
+  const itemsPerPage = 15;
 
-  // Memoized backend service
-  const backendService = useMemo(() => {
-    let service: any = null;
-    return {
-      async get() {
-        if (!service) {
-          try {
-            service = await import('../../backend');
-          } catch (error) {
-            console.warn('Backend load failed:', error);
-          }
+  // Force clear cache first
+  useEffect(() => {
+    const clearCache = async () => {
+      try {
+        const backend = await import('../../backend');
+        if (backend.clearLeaderboardCache) {
+          backend.clearLeaderboardCache();
         }
-        return service;
+      } catch (e) {
+        console.warn('Cannot clear cache:', e);
       }
     };
+    clearCache();
   }, []);
 
-  // Smart data loading with cache
-  const loadData = useCallback(async (page: number) => {
-    // Check cache first
-    const cached = cache.get(page);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      setData(cached.data);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    
-    try {
-      const backend = await backendService.get();
-      if (!backend) throw new Error('Không thể kết nối server');
-
-      const result = await backend.getLeaderboard(page, itemsPerPage);
-      
-      if (result.error) throw new Error(result.error);
-      
-      const filtered = (result.data || []).filter((entry: LeaderboardEntry) => entry.rank > 3);
-      
-      // Cache result
-      cache.set(page, { data: filtered, timestamp: Date.now() });
-      
-      setData(filtered);
-      setTotalPages(result.totalPages || 0);
-      
-    } catch (err: any) {
-      setError(err.message || 'Không thể tải dữ liệu');
-      if (page === 1) setData([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [backendService]);
-
+  // Load ALL leaderboard data once
   useEffect(() => {
-    if (!initialData && currentPage === 1) {
-      loadData(1);
-    } else if (currentPage > 1) {
-      loadData(currentPage);
-    }
-  }, [currentPage, initialData, loadData]);
+    if (loading || hasLoadedFresh) return;
+    
+    const loadAllData = async () => {
+      setLoading(true);
 
-  // Optimized handlers
+      
+      try {
+        const backend = await import('../../backend');
+        if (!backend) throw new Error('Không thể kết nối server');
+
+        // Load all pages (no limit - get everything)
+        const allResults = [];
+        let page = 1;
+        
+        while (page <= 50) { // Increased limit to 50 pages
+          const result = await backend.getLeaderboard(page, itemsPerPage);
+          
+          if (result.error || !result.data?.length) {
+            break;
+          }
+          
+          allResults.push(...result.data);
+          page++;
+          
+          // Safety check
+          if (allResults.length > 1000) {
+            break;
+          }
+        }
+        
+        const filtered = allResults.filter(entry => entry.rank > 3);
+        setAllData(filtered);
+        setHasLoadedFresh(true);
+        
+      } catch (err: any) {
+        setError(err.message || 'Lỗi tải dữ liệu');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
+  }, [initialData]);
+
+  // Client-side pagination (instant!)
+  const { totalPages, currentItems } = useMemo(() => {
+    const total = Math.ceil(allData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const items = allData.slice(startIndex, startIndex + itemsPerPage);
+    
+
+    
+    return { totalPages: total, currentItems: items };
+  }, [allData, currentPage, itemsPerPage]);
+
+  // Instant page change
   const handlePageChange = useCallback((page: number) => {
-    if (page === currentPage || loading) return;
     setCurrentPage(page);
-    document.getElementById('leaderboard-container')?.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start' 
-    });
-  }, [currentPage, loading]);
+  }, []);
 
   // Memoized helpers
   const getAvatarInitials = useCallback((name: string) => 
@@ -165,7 +165,7 @@ export default function LeaderboardList({ initialData }: Props) {
   return (
     <div className="w-full">
       {/* Loading State */}
-      {loading && data.length === 0 && (
+      {loading && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -191,7 +191,7 @@ export default function LeaderboardList({ initialData }: Props) {
           <h3 className="text-lg font-bold text-gray-900 mb-2">Không thể tải dữ liệu</h3>
           <p className="text-gray-600 mb-4">{error}</p>
           <button 
-            onClick={() => loadData(currentPage)}
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Thử lại
@@ -200,7 +200,7 @@ export default function LeaderboardList({ initialData }: Props) {
       )}
 
       {/* Empty State */}
-      {!loading && !error && data.length === 0 && (
+      {!loading && !error && allData.length === 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
           <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <span className="text-3xl">🏆</span>
@@ -217,7 +217,7 @@ export default function LeaderboardList({ initialData }: Props) {
       )}
 
       {/* Leaderboard List */}
-      {!loading && !error && data.length > 0 && (
+      {!loading && !error && currentItems.length > 0 && (
         <div id="leaderboard-container" className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Header */}
           <div className="bg-gray-50 p-6 border-b border-gray-200">
@@ -241,7 +241,7 @@ export default function LeaderboardList({ initialData }: Props) {
           
           {/* List */}
           <div className="p-6 space-y-3">
-            {data.map((entry, index) => {
+            {currentItems.map((entry, index) => {
               const badgeInfo = getBadgeInfo(entry.badge);
               const isTopTier = entry.rank <= 10;
               
@@ -300,49 +300,55 @@ export default function LeaderboardList({ initialData }: Props) {
           </div>
 
           {/* Simplified Pagination */}
-          {totalPages > 1 && (
+          {allData.length > 0 && (
             <div className="bg-gray-50 p-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-500">
-                  Trang {currentPage}/{totalPages}
+                  Trang {currentPage}/{totalPages} • {allData.length} kết quả
                 </div>
                 
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    ←
-                  </button>
+                {totalPages > 1 ? (
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ←
+                    </button>
 
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + Math.max(1, currentPage - 2);
-                    if (page > totalPages) return null;
-                    
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => handlePageChange(page)}
-                        className={`w-8 h-8 flex items-center justify-center text-sm rounded ${
-                          currentPage === page
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = i + Math.max(1, currentPage - 2);
+                      if (page > totalPages) return null;
+                      
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-8 h-8 flex items-center justify-center text-sm rounded ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
 
-                  <button
-                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    →
-                  </button>
-                </div>
+                    <button
+                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400">
+                    Tất cả kết quả
+                  </div>
+                )}
               </div>
             </div>
           )}
