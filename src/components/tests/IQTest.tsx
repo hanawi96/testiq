@@ -25,6 +25,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiTriggered, setConfettiTriggered] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [justAnswered, setJustAnswered] = useState(false);
   const [showCongratulationsPopup, setShowCongratulationsPopup] = useState(false);
@@ -36,7 +37,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [preloadedUserInfo, setPreloadedUserInfo] = useState<UserInfo | null>(null);
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
   
-  const { fireMultipleBursts } = useConfetti();
+  const { fireSingle } = useConfetti();
 
   // Pre-load user profile on component mount for instant popup display
   useEffect(() => {
@@ -90,6 +91,30 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Check if all questions are answered
   const allAnswered = answers.every(a => a !== null);
+
+  // Reset confetti trigger when test restarts
+  const resetConfetti = useCallback(() => {
+    setConfettiTriggered(false);
+    setShowConfetti(false);
+  }, []);
+
+  // Reset test state
+  const resetTest = useCallback(() => {
+    setCurrentQuestion(0);
+    setAnswers(new Array(questions.length).fill(null));
+    setIsActive(false);
+    setStartTime(null);
+    setTimeElapsed(0);
+    setShowConfetti(false);
+    setIsSubmitting(false);
+    setJustAnswered(false);
+    setShowCongratulationsPopup(false);
+    setShowTimeUpPopup(false);
+    setShowProgressPopup(false);
+    setShowCompletedTestPopup(false);
+    setSavedProgress(0);
+    setSavedTimeRemaining(0);
+  }, [questions.length]);
 
   // Don't check on mount, only when user clicks start button
 
@@ -147,25 +172,8 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     console.log('🆕 Starting fresh test');
     setIsActive(true);
     setStartTime(Date.now());
-  }, []);
-
-  // Reset test state
-  const resetTest = useCallback(() => {
-    setCurrentQuestion(0);
-    setAnswers(new Array(questions.length).fill(null));
-    setIsActive(false);
-    setStartTime(null);
-    setTimeElapsed(0);
-    setShowConfetti(false);
-    setIsSubmitting(false);
-    setJustAnswered(false);
-    setShowCongratulationsPopup(false);
-    setShowTimeUpPopup(false);
-    setShowProgressPopup(false);
-    setShowCompletedTestPopup(false);
-    setSavedProgress(0);
-    setSavedTimeRemaining(0);
-  }, [questions.length]);
+    resetConfetti(); // Reset confetti state when starting new test
+  }, [resetConfetti]);
 
   // Continue test from saved state
   const continueTest = useCallback(() => {
@@ -283,10 +291,17 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Handle confetti trigger when popup opens
   const handleConfettiTrigger = useCallback(() => {
-    console.log('handleConfettiTrigger: firing confetti');
-    setShowConfetti(true);
-    fireMultipleBursts('celebration');
-  }, [fireMultipleBursts]);
+    if (!confettiTriggered) {
+      console.log('🎉 Triggering confetti once');
+      setShowConfetti(true);
+      setConfettiTriggered(true);
+      
+      // Reset confetti state after animation
+      setTimeout(() => {
+        setShowConfetti(false);
+      }, 1000);
+    }
+  }, [confettiTriggered]);
 
   // Handle popup completion
   const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {
@@ -479,7 +494,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   return (
     <div className="max-w-4xl mx-auto py-20">
-      <Confetti trigger={showConfetti} duration={3000} />
+      <Confetti trigger={showConfetti} type="light" />
       
       {/* Congratulations Popup */}
       <CongratulationsPopup 

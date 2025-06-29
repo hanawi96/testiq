@@ -125,28 +125,4 @@ export async function getUserTestResults(filters: TestHistoryFilters = {}) {
     console.error('❌ Failed to fetch test results:', error);
     return { success: false, error, data: [] };
   }
-}
-
-/**
- * Helper function để convert từ format cũ sang format mới
- */
-export function convertAnonymousPlayerToTestResult(anonymousData: {
-  name: string;
-  age: number;
-  location: string;
-  test_result: any;
-  test_score: number;
-  test_duration: number;
-}): TestResultData {
-  return {
-    user_id: null, // Anonymous user
-    test_type: 'iq',
-    score: anonymousData.test_score,
-    accuracy: anonymousData.test_result?.detailed?.accuracy,
-    duration_seconds: anonymousData.test_duration,
-    test_data: anonymousData.test_result,
-    guest_name: anonymousData.name,
-    guest_age: anonymousData.age,
-    guest_location: anonymousData.location
-  };
 } 

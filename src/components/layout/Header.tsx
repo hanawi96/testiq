@@ -496,26 +496,32 @@ export default function Header() {
                           {/* Separator */}
                           <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
                           
-                          {/* Logout/Clear Data Button */}
+                          {/* Logout/Login Button */}
                           <motion.button
                             onClick={() => {
                               if (user) {
                                 handleLogout();
                               } else {
-                                // Clear anonymous user data
-                                localStorage.removeItem('anonymous-user-info');
-                                localStorage.removeItem('iq-test-history');
+                                // For anonymous users, show login popup instead of clearing data
+                                setShowLoginPopup(true);
                                 setShowUserDropdown(false);
-                                window.location.reload();
                               }
                             }}
-                            className="flex items-center w-full px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+                            className={`flex items-center w-full px-4 py-3 text-sm transition-all duration-200 ${
+                              user 
+                                ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                            }`}
                             whileHover={{ x: 4 }}
                           >
                             <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                              {user ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                              ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m0 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                              )}
                             </svg>
-                            {user ? 'Đăng xuất' : 'Xóa dữ liệu'}
+                            {user ? 'Đăng xuất' : 'Đăng nhập'}
                           </motion.button>
                         </div>
                       </motion.div>
@@ -704,7 +710,7 @@ export default function Header() {
                           </motion.a>
                         ))}
                         
-                        {/* Mobile Logout Button */}
+                        {/* Primary Action Button - Login or Logout */}
                         <motion.button
                           onClick={() => {
                             handleLogout();
@@ -789,7 +795,23 @@ export default function Header() {
                           </motion.a>
                         ))}
                         
-                        {/* Mobile Clear Data Button */}
+                        {/* Primary Action Button - Login or Logout */}
+                        <motion.button
+                          onClick={() => {
+                            setShowLoginPopup(true);
+                            closeMobileMenu();
+                          }}
+                          className="w-full flex items-center px-4 py-3 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200 font-medium"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m0 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                          </svg>
+                          Đăng nhập
+                        </motion.button>
+                        
+                        {/* Secondary Action - Clear Data */}
                         <motion.button
                           onClick={() => {
                             // Clear anonymous user data
@@ -798,7 +820,7 @@ export default function Header() {
                             closeMobileMenu();
                             window.location.reload();
                           }}
-                          className="w-full flex items-center px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+                          className="w-full flex items-center px-4 py-3 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >

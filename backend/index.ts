@@ -13,7 +13,6 @@ export { testSupabaseConnection, checkDatabaseSetup } from './utils/test-connect
 // Test results service (unified approach)
 export { 
   saveTestResult, 
-  convertAnonymousPlayerToTestResult,
   getUserTestResults
 } from './utils/user-test-results-service';
 

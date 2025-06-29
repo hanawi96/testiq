@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DetailedAnalysis from './DetailedAnalysis';
+import Confetti, { useConfetti } from '../common/Confetti';
 
 interface ResultData {
   score: number;
@@ -221,10 +222,16 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   const [userInfo, setUserInfo] = useState<{name: string, age: string, location: string}>({ 
     name: 'Bạn', age: '', location: '' 
   });
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const [animatedThumbPosition, setAnimatedThumbPosition] = useState(0);
   
-  const skills = getSkillAnalysis(results);
-  const careers = getCareerSuggestions(results.score);
-  const iqLevel = getIQLevel(results.score);
+  const { fireSingle } = useConfetti();
+  
+  // Memoized static data to prevent recalculation
+  const skills = useMemo(() => getSkillAnalysis(results), [results]);
+  const careers = useMemo(() => getCareerSuggestions(results.score), [results.score]);
+  const iqLevel = useMemo(() => getIQLevel(results.score), [results.score]);
   
   // Single useEffect for all data loading
   useEffect(() => {
@@ -255,10 +262,72 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     loadAllData();
   }, []);
   
+  // Trigger confetti and score animation on mount
+  useEffect(() => {
+    // Trigger confetti after short delay
+    const confettiTimer = setTimeout(() => {
+      setShowConfetti(true);
+      
+      // Reset confetti after animation
+      setTimeout(() => {
+        setShowConfetti(false);
+      }, 1000);
+    }, 500);
+
+    // Animate score counting and thumb position from 0 to actual score
+    const duration = 2000; // 2 seconds
+    const steps = 60; // 60 FPS
+    const scoreIncrement = results.score / steps;
+    
+    // Calculate target thumb position (same logic as in the component)
+    const targetThumbPosition = Math.min(Math.max(((results.score - 70) / 80) * 100, 0), 100);
+    const thumbIncrement = targetThumbPosition / steps;
+    
+    let currentStep = 0;
+
+    const animationTimer = setInterval(() => {
+      currentStep++;
+      
+      // Animate score
+      const newScore = Math.min(Math.round(scoreIncrement * currentStep), results.score);
+      setAnimatedScore(newScore);
+      
+      // Animate thumb position  
+      const newThumbPosition = Math.min(thumbIncrement * currentStep, targetThumbPosition);
+      setAnimatedThumbPosition(newThumbPosition);
+
+      if (currentStep >= steps || (newScore >= results.score && newThumbPosition >= targetThumbPosition)) {
+        setAnimatedScore(results.score);
+        setAnimatedThumbPosition(targetThumbPosition);
+        clearInterval(animationTimer);
+      }
+    }, duration / steps);
+
+    return () => {
+      clearTimeout(confettiTimer);
+      clearInterval(animationTimer);
+    };
+  }, [results.score]);
+  
   // Convert real history to timeline format
   const testHistory = convertRealHistoryToTimeline(realTestHistory, results, 10);
 
-  const TestHistory = () => (
+  // Isolated animated components to prevent re-render of static content
+  const AnimatedScore = ({ score }: { score: number }) => (
+    <div className="text-7xl font-bold text-gray-900 mb-4">
+      {score}
+    </div>
+  );
+
+  const AnimatedThumb = ({ position }: { position: number }) => (
+    <div 
+      className="absolute w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-lg transform -translate-y-0.5 -translate-x-2"
+      style={{ left: `${position}%` }}
+    />
+  );
+
+  // Memoized TestHistory to prevent re-render during animation
+  const TestHistory = useMemo(() => () => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
         <span className="mr-2">📈</span>
@@ -479,7 +548,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         </div>
       )}
     </div>
-  );
+  ), [isLoadingHistory, testHistory]);
 
   // Add debug helpers to global window for testing
   useEffect(() => {
@@ -505,7 +574,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     };
   }, []);
 
-    const HeroSection = () => (
+    const HeroSection = useMemo(() => () => (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10"></div>
       <div className="relative z-10">
@@ -521,9 +590,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
           )}
         </div>
 
-        <div className="text-7xl font-bold text-gray-900 mb-4">
-          {results.score}
-        </div>
+        <AnimatedScore score={animatedScore} />
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Chỉ số IQ của bạn</h2>
         <div className="flex items-center justify-center space-x-4 mb-4">
           <span className={`px-3 py-1 rounded-full text-sm font-medium bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
@@ -537,19 +604,16 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         {/* IQ Scale */}
         <div className="max-w-md mx-auto mb-8">
           <div className="relative h-3 bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 to-blue-400 rounded-full">
-            <div 
-              className="absolute w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-lg transform -translate-y-0.5 -translate-x-2 transition-all duration-500"
-              style={{ left: `${Math.min(Math.max(((results.score - 70) / 80) * 100, 0), 100)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-2">
-                  <span>70</span>
-                  <span>100</span>
-                  <span>130</span>
+            <AnimatedThumb position={animatedThumbPosition} />
+          </div>
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <span>70</span>
+            <span>100</span>
+            <span>130</span>
             <span>150+</span>
-              </div>
-            </div>
-            
+          </div>
+        </div>
+        
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
           <button
@@ -594,12 +658,12 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
             </svg>
             <span>Chia sẻ</span>
           </button>
-              </div>
-            </div>
-          </div>
-  );
+        </div>
+      </div>
+    </div>
+  ), [animatedScore, animatedThumbPosition, userInfo, iqLevel, results.percentile, onRetake]);
 
-  const QuickStats = () => (
+  const QuickStats = useMemo(() => () => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
       {[
         { label: 'Chính xác', value: `${Math.round(results.completionRate * 100)}%`, color: 'green', icon: '🎯' },
@@ -620,9 +684,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         </motion.div>
       ))}
     </div>
-  );
+  ), [results]);
 
-  const SkillsRadar = () => (
+  const SkillsRadar = useMemo(() => () => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
         <span className="mr-2">🎯</span>
@@ -660,9 +724,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
                 ))}
               </div>
             </div>
-  );
+  ), [skills]);
 
-  const CareerSuggestions = () => (
+  const CareerSuggestions = useMemo(() => () => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
         <span className="mr-2">💼</span>
@@ -693,9 +757,9 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         ))}
       </div>
     </div>
-  );
+  ), [careers]);
 
-  const TabNavigation = () => (
+  const TabNavigation = useMemo(() => () => (
     <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
       <div className="flex space-x-2">
         {[
@@ -718,9 +782,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
         ))}
       </div>
     </div>
-  );
-
-
+  ), [activeTab]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -748,10 +810,10 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     }
   };
 
-
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
+      <Confetti trigger={showConfetti} type="success" />
+      
       <div className="max-w-6xl mx-auto px-4">
         <div className="space-y-8">
           {/* Hero Section */}
