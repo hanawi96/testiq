@@ -13,9 +13,10 @@ interface CongratulationsPopupProps {
   onComplete: (userInfo: UserInfo) => Promise<void>;
   onConfettiTrigger?: () => void;
   preloadedUserInfo?: UserInfo | null;
+  isAuthenticatedUser?: boolean;
 }
 
-export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTrigger, preloadedUserInfo }: CongratulationsPopupProps) {
+export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false }: CongratulationsPopupProps) {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
@@ -132,6 +133,28 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
 
   const handleInputChange = (field: keyof UserInfo, value: string) => {
     setUserInfo(prev => ({ ...prev, [field]: value }));
+    
+    // If email changed and we're not authenticated, try to lookup user
+    if (field === 'email' && !isAuthenticatedUser && value.includes('@')) {
+      handleEmailLookup(value);
+    }
+  };
+
+  // Email lookup for auto-fill
+  const handleEmailLookup = async (email: string) => {
+    if (!email?.trim() || isAuthenticatedUser) return;
+    
+    try {
+      const { getAnonymousUserByEmail } = await import('../../utils/test');
+      const userData = await getAnonymousUserByEmail(email);
+      
+      if (userData) {
+        console.log('🎯 Found user data for email, auto-filling...');
+        setUserInfo(userData);
+      }
+    } catch (error) {
+      console.warn('⚠️ Email lookup failed:', error);
+    }
   };
 
   return (
@@ -156,11 +179,7 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
                 Chúc mừng!
               </h3>
               <p className="text-gray-600 text-lg">Bạn đã hoàn thành xuất sắc bài test IQ</p>
-              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl">
-                <p className="text-sm text-gray-700">
-                  <span className="text-red-500 font-medium">*</span> Email và tên là bắt buộc
-                </p>
-              </div>
+
             </div>
             
             <div className="space-y-4">
@@ -183,17 +202,32 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email <span className="text-red-500">*</span>
+                  {isAuthenticatedUser && (
+                    <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                      🔒 Tài khoản đã xác thực
+                    </span>
+                  )}
                 </label>
                 <input
                   type="email"
                   value={userInfo.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  disabled={isAnalyzing}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
+                  disabled={isAnalyzing || isAuthenticatedUser}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 transition-all duration-200 ${
+                    isAuthenticatedUser 
+                      ? 'bg-blue-50 border-blue-200 text-blue-800 cursor-not-allowed' 
+                      : isAnalyzing 
+                        ? 'bg-gray-100 border-gray-300 cursor-not-allowed' 
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400'
                   }`}
-                  placeholder="Nhập email của bạn"
+                  placeholder={isAuthenticatedUser ? "Email đã được xác thực" : "Nhập email của bạn"}
+                  title={isAuthenticatedUser ? "Email không thể thay đổi với tài khoản đã đăng nhập" : ""}
                 />
+                {isAuthenticatedUser && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    💡 Email không thể thay đổi vì bạn đã đăng nhập bằng tài khoản này
+                  </p>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">

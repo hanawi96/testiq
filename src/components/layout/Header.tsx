@@ -452,6 +452,21 @@ export default function Header() {
                           </div>
                         </div>
 
+                        {/* Anonymous User Warning */}
+                        {!user && (
+                          <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800">
+                            <div className="flex items-center space-x-2">
+                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              <div className="flex-1">
+                                <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Dữ liệu tạm thời</p>
+                                <p className="text-xs text-amber-700 dark:text-amber-300">Sẽ mất khi xóa dữ liệu trình duyệt</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Menu Items */}
                         <div className="py-2">
                           {userMenuItems.map((item, index) => (
@@ -703,6 +718,94 @@ export default function Header() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                           </svg>
                           Đăng xuất
+                        </motion.button>
+                      </div>
+                    </div>
+                  ) : getAnonymousUserInfo() ? (
+                    <div className="space-y-3">
+                      {/* Anonymous User Info */}
+                      <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg">
+                        {(() => {
+                          const anonymousUser = getAnonymousUserInfo();
+                          const displayName = anonymousUser?.name || 'Người dùng';
+                          const avatarLetter = displayName.charAt(0).toUpperCase();
+                          const avatarColor = generateAvatarColor(displayName);
+                          
+                          return (
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-10 h-10 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold`}>
+                                {avatarLetter}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                                  {displayName}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {anonymousUser ? `${anonymousUser.age} tuổi, ${anonymousUser.location}` : 'Người dùng ẩn danh'}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Anonymous User Warning */}
+                      <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Dữ liệu tạm thời</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-300">Sẽ mất khi xóa dữ liệu trình duyệt</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Mobile Menu Items */}
+                      <div className="space-y-1">
+                        {userMenuItems.map((item) => (
+                          <motion.a
+                            key={item.label}
+                            href={item.href}
+                            className={`flex items-center px-4 py-3 rounded-lg text-sm transition-all duration-200 ${
+                              item.highlight 
+                                ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' 
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                            onClick={closeMobileMenu}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <span className={`mr-3 ${item.highlight ? 'text-amber-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                              {item.icon}
+                            </span>
+                            {item.label}
+                            {item.highlight && (
+                              <span className="ml-auto text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full">
+                                Pro
+                              </span>
+                            )}
+                          </motion.a>
+                        ))}
+                        
+                        {/* Mobile Clear Data Button */}
+                        <motion.button
+                          onClick={() => {
+                            // Clear anonymous user data
+                            localStorage.removeItem('anonymous-user-info');
+                            localStorage.removeItem('iq-test-history');
+                            closeMobileMenu();
+                            window.location.reload();
+                          }}
+                          className="w-full flex items-center px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Xóa dữ liệu
                         </motion.button>
                       </div>
                     </div>

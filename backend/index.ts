@@ -29,4 +29,6 @@ export * from './types';
 export { getLeaderboard, getRecentTopPerformers } from './utils/leaderboard-service';
 export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-service';
 export { updateUserProfile, getUserProfile } from './utils/user-profile-service';
-export type { UserProfileData } from './utils/user-profile-service'; 
+export type { UserProfileData } from './utils/user-profile-service';
+export { findAnonymousPlayerByEmail, saveAnonymousPlayer } from './utils/anonymous-players-service';
+export type { AnonymousPlayer, AnonymousPlayerInput } from './utils/anonymous-players-service'; 

@@ -19,6 +19,7 @@ const TestHistoryComponent: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const itemsPerPage = 10;
 
@@ -26,6 +27,16 @@ const TestHistoryComponent: React.FC = () => {
   useEffect(() => {
     const loadTestHistory = async () => {
       try {
+        // Check authentication status
+        try {
+          const { AuthService } = await import('../../backend');
+          const { user } = await AuthService.getCurrentUser();
+          setIsAuthenticated(!!user);
+        } catch (error) {
+          console.warn('Could not check auth status:', error);
+          setIsAuthenticated(false);
+        }
+
         const testUtils = await import('../utils/test');
         const history = await testUtils.getUserRealTestHistory?.() || [];
         
@@ -101,6 +112,31 @@ const TestHistoryComponent: React.FC = () => {
     totalImprovement: testHistory.length > 1 ? testHistory[0].score - testHistory[testHistory.length - 1].score : 0
   };
 
+  const AnonymousUserWarning = () => (
+    !isAuthenticated && (
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+        <div className="flex items-center space-x-3">
+          <svg className="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <div className="flex-1">
+            <h4 className="font-semibold text-amber-800 mb-1">⚠️ Dữ liệu tạm thời</h4>
+            <p className="text-sm text-amber-700 mb-3">
+              Lịch sử test của bạn chỉ được lưu trên thiết bị này. 
+              Khi xóa dữ liệu trình duyệt, tất cả kết quả test sẽ bị mất vĩnh viễn.
+            </p>
+            <button 
+              onClick={() => window.location.href = '/admin/login'}
+              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+            >
+              🔐 Đăng ký tài khoản để bảo vệ dữ liệu
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
       <div className="max-w-6xl mx-auto px-4 space-y-8">
@@ -129,6 +165,9 @@ const TestHistoryComponent: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Anonymous User Warning */}
+        <AnonymousUserWarning />
 
         {/* Filter Controls */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

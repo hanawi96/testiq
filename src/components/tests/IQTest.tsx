@@ -31,11 +31,10 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
   const [showProgressPopup, setShowProgressPopup] = useState(false);
   const [showCompletedTestPopup, setShowCompletedTestPopup] = useState(false);
-  const [savedProgress, setSavedProgress] = useState<number>(0);
-  const [savedTimeRemaining, setSavedTimeRemaining] = useState<number>(0);
-  
-  // Pre-loaded user info state
+  const [savedProgress, setSavedProgress] = useState(0);
+  const [savedTimeRemaining, setSavedTimeRemaining] = useState(0);
   const [preloadedUserInfo, setPreloadedUserInfo] = useState<UserInfo | null>(null);
+  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
   
   const { fireMultipleBursts } = useConfetti();
 
@@ -43,35 +42,28 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   useEffect(() => {
     const preloadUserProfile = async () => {
       try {
-        const { AuthService, getUserProfile } = await import('../../../backend');
-        const { user } = await AuthService.getCurrentUser();
+        const { getCurrentUserInfo } = await import('../../utils/test');
+        const { AuthService } = await import('../../../backend');
         
-        if (user) {
-          // Authenticated user - load from profile
-          console.log('🚀 Pre-loading user profile for authenticated user...');
-          const result = await getUserProfile(user.id);
-          
-          if (result.success && result.data) {
-            const profile = result.data;
-            setPreloadedUserInfo({
-              name: profile.full_name || '',
-              age: profile.age?.toString() || '',
-              location: profile.location || ''
-            });
-            console.log('✅ User profile pre-loaded successfully');
-          }
+        // Check if user is authenticated
+        const { user } = await AuthService.getCurrentUser();
+        const isAuthenticated = !!user;
+        setIsAuthenticatedUser(isAuthenticated);
+        
+        const userInfo = await getCurrentUserInfo();
+        
+        if (userInfo) {
+          setPreloadedUserInfo(userInfo);
+          console.log('✅ User info pre-loaded successfully:', {
+            name: userInfo.name,
+            email: userInfo.email ? '✅ with email' : '❌ no email',
+            age: userInfo.age || 'not set',
+            location: userInfo.location || 'not set',
+            type: isAuthenticated ? '🔐 Authenticated User (email disabled)' : '👤 Anonymous User',
+            emailFieldStatus: isAuthenticated ? '🔒 DISABLED - Cannot be changed' : '✏️ EDITABLE - Can be changed'
+          });
         } else {
-          // Anonymous user - load from localStorage
-          console.log('📱 Pre-loading anonymous user info from localStorage...');
-          const { getAnonymousUserInfo } = await import('../../utils/test');
-          const savedInfo = getAnonymousUserInfo();
-          
-          if (savedInfo) {
-            setPreloadedUserInfo(savedInfo);
-            console.log('✅ Anonymous user info pre-loaded successfully');
-          } else {
-            console.log('📝 No saved anonymous user info found');
-          }
+          console.log('📝 No user info found - user will need to enter info manually');
         }
       } catch (error) {
         console.warn('⚠️ Could not pre-load user info:', error);
@@ -432,6 +424,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           onComplete={handlePopupComplete}
           onConfettiTrigger={handleConfettiTrigger}
           preloadedUserInfo={preloadedUserInfo}
+          isAuthenticatedUser={isAuthenticatedUser}
         />
         
         <div className="max-w-4xl mx-auto text-center py-20">
@@ -494,6 +487,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         onComplete={handlePopupComplete}
         onConfettiTrigger={handleConfettiTrigger}
         preloadedUserInfo={preloadedUserInfo}
+        isAuthenticatedUser={isAuthenticatedUser}
       />
       
       {/* Time Up Popup */}
@@ -501,6 +495,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         isOpen={showTimeUpPopup}
         onComplete={handlePopupComplete}
         preloadedUserInfo={preloadedUserInfo}
+        isAuthenticatedUser={isAuthenticatedUser}
       />
       
       {/* Test Progress Popup */}

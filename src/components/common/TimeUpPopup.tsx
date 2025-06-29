@@ -12,9 +12,10 @@ interface TimeUpPopupProps {
   isOpen: boolean;
   onComplete: (userInfo: UserInfo) => void;
   preloadedUserInfo?: UserInfo | null;
+  isAuthenticatedUser?: boolean;
 }
 
-export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: TimeUpPopupProps) {
+export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isAuthenticatedUser = false }: TimeUpPopupProps) {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -115,6 +116,28 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: T
 
   const handleInputChange = (field: keyof UserInfo, value: string) => {
     setUserInfo(prev => ({ ...prev, [field]: value }));
+    
+    // If email changed and we're not authenticated, try to lookup user
+    if (field === 'email' && !isAuthenticatedUser && value.includes('@')) {
+      handleEmailLookup(value);
+    }
+  };
+
+  // Email lookup for auto-fill
+  const handleEmailLookup = async (email: string) => {
+    if (!email?.trim() || isAuthenticatedUser) return;
+    
+    try {
+      const { getAnonymousUserByEmail } = await import('../../utils/test');
+      const userData = await getAnonymousUserByEmail(email);
+      
+      if (userData) {
+        console.log('🎯 Found user data for email, auto-filling...');
+        setUserInfo(userData);
+      }
+    } catch (error) {
+      console.warn('⚠️ Email lookup failed:', error);
+    }
   };
 
   return (
@@ -159,17 +182,32 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo }: T
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email <span className="text-red-500">*</span>
+                    {isAuthenticatedUser && (
+                      <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                        🔒 Đã xác thực
+                      </span>
+                    )}
                   </label>
                   <input
                     type="email"
                     value={userInfo.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    disabled={isSubmitting}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                    disabled={isSubmitting || isAuthenticatedUser}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors ${
+                      isAuthenticatedUser 
+                        ? 'bg-blue-50 border-blue-200 text-blue-800 cursor-not-allowed' 
+                        : isSubmitting 
+                          ? 'bg-gray-100 border-gray-300 cursor-not-allowed' 
+                          : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                     }`}
-                    placeholder="Nhập email của bạn"
+                    placeholder={isAuthenticatedUser ? "Email đã được xác thực" : "Nhập email của bạn"}
+                    title={isAuthenticatedUser ? "Email không thể thay đổi với tài khoản đã đăng nhập" : ""}
                   />
+                  {isAuthenticatedUser && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      💡 Email không thể thay đổi vì bạn đã đăng nhập
+                    </p>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">

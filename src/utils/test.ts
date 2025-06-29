@@ -205,6 +205,42 @@ export interface Question {
         }
         
         console.log('💾 Saving test result for anonymous user');
+        
+        // Save to anonymous_players table for email-based lookup
+        try {
+          const { saveAnonymousPlayer } = await import('../../backend');
+          const anonymousPlayerData = {
+            name: result.userInfo.name,
+            email: result.userInfo.email,
+            age: parseInt(result.userInfo.age) || undefined,
+            location: result.userInfo.location || undefined,
+            test_result: {
+              score: result.score,
+              iq: result.iq,
+              classification: result.classification,
+              percentile: result.percentile,
+              answers: result.answers,
+              categoryScores: result.categoryScores,
+              detailed: result.detailed,
+              timestamp: Date.now()
+            },
+            test_score: result.iq,
+            test_duration: result.timeSpent
+          };
+          
+          const playerResult = await saveAnonymousPlayer(anonymousPlayerData);
+          if (playerResult.success) {
+            console.log('✅ Anonymous player saved to database');
+            // Update localStorage with potentially updated data
+            saveAnonymousUserInfo(result.userInfo);
+          } else {
+            console.warn('⚠️ Failed to save to anonymous_players:', playerResult.error);
+          }
+        } catch (error) {
+          console.warn('⚠️ Error saving to anonymous_players:', error);
+        }
+        
+        // Also save to user_test_results for compatibility
         testData = {
           user_id: null, // Anonymous user
           test_type: 'iq',
@@ -218,7 +254,8 @@ export interface Question {
             percentile: result.percentile,
             answers: result.answers,
             categoryScores: result.categoryScores,
-            detailed: result.detailed
+            detailed: result.detailed,
+            email: result.userInfo.email // Add email to test_data for reference
           },
           guest_name: result.userInfo.name,
           guest_email: result.userInfo.email,
@@ -336,5 +373,96 @@ export interface Question {
     } catch (error) {
       console.warn('⚠️ Error loading test history, fallback to localStorage');
       return getTestHistory().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    }
+  }
+
+  // Smart User Info Getter - For instant popup population
+  export async function getCurrentUserInfo(): Promise<UserInfo | null> {
+    try {
+      const { AuthService, getUserProfile } = await import('../../backend');
+      const { user } = await AuthService.getCurrentUser();
+      
+      if (user) {
+        // Authenticated user - get from profile + auth
+        console.log('🚀 Getting authenticated user info with email...');
+        const result = await getUserProfile(user.id);
+        
+        if (result.success && result.data) {
+          const profile = result.data;
+          return {
+            name: profile.full_name || user.email?.split('@')[0] || '',
+            email: user.email || '',
+            age: profile.age?.toString() || '',
+            location: profile.location || ''
+          };
+        } else {
+          // Fallback to basic auth info
+          return {
+            name: user.email?.split('@')[0] || '',
+            email: user.email || '',
+            age: '',
+            location: ''
+          };
+        }
+      } else {
+        // Anonymous user - smart lookup from localStorage + database
+        console.log('📱 Getting anonymous user info...');
+        const localInfo = getAnonymousUserInfo();
+        
+        // If we have email in localStorage, try to lookup from database
+        if (localInfo?.email) {
+          try {
+            const { findAnonymousPlayerByEmail } = await import('../../backend');
+            const dbResult = await findAnonymousPlayerByEmail(localInfo.email);
+            
+            if (dbResult.success && dbResult.data) {
+              console.log('🎯 Found user in database, using DB data');
+              const dbPlayer = dbResult.data;
+              const mergedInfo = {
+                name: dbPlayer.name,
+                email: dbPlayer.email,
+                age: dbPlayer.age?.toString() || '',
+                location: dbPlayer.location || ''
+              };
+              
+              // Update localStorage with latest database data
+              saveAnonymousUserInfo(mergedInfo);
+              return mergedInfo;
+            }
+          } catch (error) {
+            console.warn('⚠️ Database lookup failed, using localStorage:', error);
+          }
+        }
+        
+        return localInfo;
+      }
+    } catch (error) {
+      console.warn('⚠️ Error getting current user info:', error);
+      return getAnonymousUserInfo(); // Fallback to localStorage
+    }
+  }
+
+  // Lookup anonymous user by email for popup auto-fill
+  export async function getAnonymousUserByEmail(email: string): Promise<UserInfo | null> {
+    if (!email?.trim()) return null;
+    
+    try {
+      const { findAnonymousPlayerByEmail } = await import('../../backend');
+      const result = await findAnonymousPlayerByEmail(email.trim());
+      
+      if (result.success && result.data) {
+        const player = result.data;
+        return {
+          name: player.name,
+          email: player.email,
+          age: player.age?.toString() || '',
+          location: player.location || ''
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('⚠️ Error looking up user by email:', error);
+      return null;
     }
   }
