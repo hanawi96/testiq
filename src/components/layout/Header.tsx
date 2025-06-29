@@ -395,10 +395,10 @@ export default function Header() {
                         <>
                           <div className={`w-8 h-8 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
                             {avatarLetter}
-                          </div>
-                          <span className="text-sm font-medium">
+                    </div>
+                    <span className="text-sm font-medium">
                             {displayName}
-                          </span>
+                    </span>
                         </>
                       );
                     })()}
@@ -437,15 +437,15 @@ export default function Header() {
                                 <>
                                   <div className={`w-10 h-10 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold`}>
                                     {avatarLetter}
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-white text-sm">
                                       {displayName}
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                       {user?.email || (anonymousUser ? `${anonymousUser.age} tuổi, ${anonymousUser.location}` : 'Người dùng ẩn danh')}
-                                    </p>
-                                  </div>
+                              </p>
+                            </div>
                                 </>
                               );
                             })()}

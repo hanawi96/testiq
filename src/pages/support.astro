@@ -1,0 +1,461 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const supportData = {
+  title: 'Hỗ trợ & Trợ giúp',
+  subtitle: 'Chúng tôi luôn sẵn sàng hỗ trợ bạn',
+  description: 'Tìm câu trả lời cho các câu hỏi thường gặp hoặc liên hệ với đội ngũ hỗ trợ của chúng tôi',
+  
+  faq: [
+    {
+      category: 'Bài test IQ',
+      icon: '🧠',
+      color: 'purple',
+      questions: [
+        {
+          q: 'Bài test IQ có độ chính xác như thế nào?',
+          a: 'Bài test của chúng tôi được thiết kế dựa trên các thang đo IQ chuẩn quốc tế như Wechsler và Raven\'s Progressive Matrices. Độ chính xác đạt 95% so với các bài test chuyên nghiệp.'
+        },
+        {
+          q: 'Tôi có thể làm lại bài test không?',
+          a: 'Có, bạn có thể làm lại bài test sau 24 giờ. Tuy nhiên, để có kết quả chính xác nhất, chúng tôi khuyến nghị chỉ làm test khi bạn ở trạng thái tỉnh táo và tập trung tốt nhất.'
+        },
+        {
+          q: 'Thời gian làm bài test là bao lâu?',
+          a: 'Bài test IQ tiêu chuẩn của chúng tôi có thời gian 55 phút với 10 câu hỏi được chọn lọc kỹ lưỡng. Thời gian này được tính toán để đảm bảo độ chính xác cao nhất.'
+        }
+      ]
+    },
+    {
+      category: 'Tài khoản & Bảo mật',
+      icon: '🔒',
+      color: 'blue',
+      questions: [
+        {
+          q: 'Thông tin cá nhân của tôi có được bảo mật không?',
+          a: 'Chúng tôi cam kết bảo vệ thông tin cá nhân của bạn theo tiêu chuẩn GDPR. Dữ liệu được mã hóa và không bao giờ chia sẻ với bên thứ ba.'
+        },
+        {
+          q: 'Tôi có cần tạo tài khoản để làm test không?',
+          a: 'Không, bạn có thể làm test mà không cần tạo tài khoản. Tuy nhiên, việc tạo tài khoản sẽ giúp bạn lưu trữ lịch sử test và theo dõi tiến bộ của mình.'
+        },
+        {
+          q: 'Làm thế nào để xóa tài khoản?',
+          a: 'Bạn có thể xóa tài khoản bằng cách liên hệ với chúng tôi qua email support@iqtest.com. Chúng tôi sẽ xóa toàn bộ dữ liệu của bạn trong vòng 48 giờ.'
+        }
+      ]
+    },
+    {
+      category: 'Kết quả & Phân tích',
+      icon: '📊',
+      color: 'green',
+      questions: [
+        {
+          q: 'Kết quả IQ của tôi có được so sánh với ai?',
+          a: 'Kết quả của bạn được so sánh với dữ liệu chuẩn từ hàng triệu người trên toàn thế giới, được phân tích theo độ tuổi và khu vực địa lý.'
+        },
+        {
+          q: 'Tôi có thể chia sẻ kết quả không?',
+          a: 'Có, bạn có thể chia sẻ kết quả qua link hoặc tải xuống báo cáo PDF. Bạn cũng có thể chọn chia sẻ công khai trên bảng xếp hạng.'
+        },
+        {
+          q: 'Báo cáo chi tiết bao gồm những gì?',
+          a: 'Báo cáo bao gồm điểm IQ tổng thể, phân tích 6 kỹ năng nhận thức, so sánh với dân số, gợi ý nghề nghiệp phù hợp và lời khuyên cải thiện.'
+        }
+      ]
+    }
+  ],
+
+  contact: {
+    title: 'Liên hệ hỗ trợ',
+    methods: [
+      {
+        icon: '📧',
+        title: 'Email',
+        value: 'support@iqtest.com',
+        desc: 'Phản hồi trong 24 giờ',
+        color: 'blue'
+      },
+      {
+        icon: '💬',
+        title: 'Live Chat',
+        value: 'Trò chuyện trực tiếp',
+        desc: 'Thứ 2 - Thứ 6, 9:00 - 18:00',
+        color: 'green'
+      },
+      {
+        icon: '📱',
+        title: 'Hotline',
+        value: '1900 1234',
+        desc: 'Hỗ trợ 24/7',
+        color: 'purple'
+      }
+    ]
+  }
+};
+
+const getColorClasses = (color: string) => ({
+  bg: `bg-${color}-50`,
+  border: `border-${color}-200`,
+  text: `text-${color}-700`,
+  icon: `text-${color}-600`
+});
+---
+
+<BaseLayout
+  title={`${supportData.title} - IQ Test`}
+  description={supportData.description}
+>
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 pt-24 pb-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <!-- Badge -->
+      <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-medium mb-8">
+        <span class="mr-2">🎧</span>
+        Hỗ trợ khách hàng
+      </div>
+      
+      <!-- Main heading -->
+      <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+        {supportData.title}
+      </h1>
+      
+      <!-- Subtitle -->
+      <p class="text-xl md:text-2xl text-gray-600 font-medium mb-4">
+        {supportData.subtitle}
+      </p>
+      
+      <p class="text-lg text-gray-500 max-w-2xl mx-auto">
+        {supportData.description}
+      </p>
+    </div>
+  </section>
+
+  <!-- Quick Help Section -->
+  <section class="py-16 bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Trợ giúp nhanh</h2>
+        <p class="text-gray-600">Các vấn đề thường gặp và cách giải quyết</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 mb-16">
+        <div class="group bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 hover:shadow-lg transition-all duration-300">
+          <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+            🚀
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Bắt đầu test</h3>
+          <p class="text-gray-600 text-sm mb-4">Hướng dẫn làm bài test IQ từ A đến Z</p>
+          <a href="/test/iq" class="text-blue-600 font-medium text-sm hover:text-blue-700">
+            Làm test ngay →
+          </a>
+        </div>
+
+        <div class="group bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 hover:shadow-lg transition-all duration-300">
+          <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+            📊
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Hiểu kết quả</h3>
+          <p class="text-gray-600 text-sm mb-4">Cách đọc và phân tích kết quả IQ của bạn</p>
+          <a href="/about" class="text-green-600 font-medium text-sm hover:text-green-700">
+            Tìm hiểu thêm →
+          </a>
+        </div>
+
+        <div class="group bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6 border border-purple-100 hover:shadow-lg transition-all duration-300">
+          <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+            👤
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Quản lý profile</h3>
+          <p class="text-gray-600 text-sm mb-4">Xem lịch sử test và cập nhật thông tin</p>
+          <a href="/profile" class="text-purple-600 font-medium text-sm hover:text-purple-700">
+            Xem profile →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="py-16 bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Câu hỏi thường gặp</h2>
+        <p class="text-gray-600">Tìm câu trả lời cho các thắc mắc phổ biến</p>
+      </div>
+
+      <div class="space-y-8">
+        {supportData.faq.map((category, categoryIndex) => (
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 p-6 border-b border-gray-200">
+              <div class="flex items-center space-x-3">
+                <div class="text-2xl">{category.icon}</div>
+                <h3 class="text-xl font-semibold text-gray-900">{category.category}</h3>
+              </div>
+            </div>
+            
+            <div class="divide-y divide-gray-100">
+              {category.questions.map((item, index) => (
+                <details class="group" key={index}>
+                  <summary class="flex items-center justify-between p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+                    <h4 class="font-medium text-gray-900 pr-4">{item.q}</h4>
+                    <div class="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center group-open:bg-blue-500 group-open:text-white transition-all">
+                      <svg class="w-4 h-4 group-open:rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                      </svg>
+                    </div>
+                  </summary>
+                  <div class="px-6 pb-6">
+                    <p class="text-gray-600 leading-relaxed">{item.a}</p>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="py-16 bg-white">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">{supportData.contact.title}</h2>
+        <p class="text-gray-600">Không tìm thấy câu trả lời? Liên hệ trực tiếp với chúng tôi</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        {supportData.contact.methods.map((method, index) => (
+          <div class="group bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 text-center border border-gray-200 hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-sm group-hover:shadow-md transition-shadow">
+              {method.icon}
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">{method.title}</h3>
+            <p class="text-blue-600 font-medium mb-2">{method.value}</p>
+            <p class="text-sm text-gray-500">{method.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <!-- Contact Form -->
+      <div class="mt-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
+        <div class="text-center mb-8">
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">Gửi tin nhắn</h3>
+          <p class="text-gray-600">Chúng tôi sẽ phản hồi trong vòng 24 giờ</p>
+        </div>
+
+        <form class="space-y-6" id="supportForm">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Họ tên *</label>
+              <input 
+                type="text" 
+                required
+                class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                placeholder="Nhập họ tên của bạn"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+              <input 
+                type="email" 
+                required
+                class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                placeholder="email@example.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Chủ đề</label>
+            <select class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+              <option>Vấn đề về bài test</option>
+              <option>Thắc mắc về kết quả</option>
+              <option>Lỗi kỹ thuật</option>
+              <option>Góp ý cải thiện</option>
+              <option>Khác</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung *</label>
+            <textarea 
+              required
+              rows="4"
+              class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors resize-none"
+              placeholder="Mô tả chi tiết vấn đề hoặc câu hỏi của bạn..."
+            ></textarea>
+          </div>
+
+          <div class="text-center">
+            <button 
+              type="submit"
+              class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <span class="mr-2">📤</span>
+              Gửi tin nhắn
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Resources Section -->
+  <section class="py-16 bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Tài nguyên hữu ích</h2>
+        <p class="text-gray-600">Các tài liệu và hướng dẫn chi tiết</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+              📖
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Hướng dẫn sử dụng</h3>
+              <p class="text-gray-600 text-sm mb-4">Tài liệu chi tiết về cách sử dụng hệ thống và làm bài test hiệu quả</p>
+              <a href="/guide" class="text-blue-600 font-medium text-sm hover:text-blue-700">
+                Xem hướng dẫn →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+              🎓
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Kiến thức về IQ</h3>
+              <p class="text-gray-600 text-sm mb-4">Tìm hiểu sâu về chỉ số IQ, cách tính toán và ý nghĩa của các mức điểm</p>
+              <a href="/about" class="text-green-600 font-medium text-sm hover:text-green-700">
+                Tìm hiểu thêm →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+              🏆
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Bảng xếp hạng</h3>
+              <p class="text-gray-600 text-sm mb-4">Xem thứ hạng của bạn so với những người dùng khác trên toàn thế giới</p>
+              <a href="/leaderboard" class="text-purple-600 font-medium text-sm hover:text-purple-700">
+                Xem bảng xếp hạng →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div class="flex items-start space-x-4">
+            <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+              📱
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Ứng dụng di động</h3>
+              <p class="text-gray-600 text-sm mb-4">Tải ứng dụng để làm test IQ mọi lúc mọi nơi với trải nghiệm tối ưu</p>
+              <a href="#" class="text-orange-600 font-medium text-sm hover:text-orange-700">
+                Tải ứng dụng →
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Smooth animations */
+  .fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Custom details styling */
+  details[open] summary {
+    margin-bottom: 0;
+  }
+  
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>
+
+<script>
+  // Add scroll animations
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('fade-in-up');
+        }, index * 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+  
+  // Observe sections
+  document.querySelectorAll('section > div').forEach(el => {
+    observer.observe(el);
+  });
+
+  // Handle form submission
+  document.getElementById('supportForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    // Show success message
+    const button = e.target.querySelector('button[type="submit"]');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<span class="mr-2">✅</span>Đã gửi thành công!';
+    button.disabled = true;
+    button.classList.add('bg-green-500', 'hover:bg-green-600');
+    button.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-indigo-600');
+    
+    // Reset form after 3 seconds
+    setTimeout(() => {
+      e.target.reset();
+      button.innerHTML = originalText;
+      button.disabled = false;
+      button.classList.remove('bg-green-500', 'hover:bg-green-600');
+      button.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-indigo-600');
+    }, 3000);
+  });
+
+  // Add hover effects to FAQ items
+  document.querySelectorAll('details').forEach(detail => {
+    detail.addEventListener('toggle', () => {
+      if (detail.open) {
+        detail.querySelector('summary').classList.add('text-blue-600');
+      } else {
+        detail.querySelector('summary').classList.remove('text-blue-600');
+      }
+    });
+  });
+</script>

@@ -124,6 +124,29 @@ const ProfileComponent: React.FC = () => {
     }
   };
 
+  // Get time ago display
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Hôm nay';
+    if (diffDays === 1) return 'Hôm qua';
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return `${Math.floor(diffDays / 30)} tháng trước`;
+  };
+
+  // Get IQ color scheme
+  const getIQColor = (iq: number) => {
+    if (iq >= 140) return { bg: 'bg-gradient-to-br from-purple-100 to-purple-200', text: 'text-purple-700' };
+    if (iq >= 130) return { bg: 'bg-gradient-to-br from-indigo-100 to-indigo-200', text: 'text-indigo-700' };
+    if (iq >= 120) return { bg: 'bg-gradient-to-br from-blue-100 to-blue-200', text: 'text-blue-700' };
+    if (iq >= 110) return { bg: 'bg-gradient-to-br from-green-100 to-green-200', text: 'text-green-700' };
+    if (iq >= 90) return { bg: 'bg-gradient-to-br from-yellow-100 to-yellow-200', text: 'text-yellow-700' };
+    return { bg: 'bg-gradient-to-br from-orange-100 to-orange-200', text: 'text-orange-700' };
+  };
+
   const HeroSection = () => (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-3xl p-8 text-center relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/10 to-purple-400/10"></div>
@@ -250,35 +273,88 @@ const ProfileComponent: React.FC = () => {
     </div>
   );
 
-  const TestStatistics = () => (
+  const RecentTestsOverview = () => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-        <span className="mr-2">📊</span>
-        Thống kê bài test
-      </h3>
-      
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Tổng bài test', value: userProfile.totalTests, color: 'blue', icon: '📝' },
-          { label: 'Điểm trung bình', value: userProfile.averageScore, color: 'green', icon: '📈' },
-          { label: 'Điểm cao nhất', value: userProfile.bestScore, color: 'purple', icon: '🏆' },
-          { label: 'Cải thiện', value: (userProfile.testHistory?.length || 0) > 1 ? 
-            Math.max(0, (userProfile.bestScore || 0) - (userProfile.testHistory?.[userProfile.testHistory.length - 1]?.iq || 0)) : 0, 
-            color: 'orange', icon: '⚡' }
-        ].map((stat, index) => (
-          <motion.div 
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`bg-${stat.color}-50 rounded-xl p-4 text-center`}
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-gray-900 flex items-center">
+          <span className="mr-2">📝</span>
+          10 bài test gần nhất
+        </h3>
+        {(userProfile.testHistory?.length || 0) > 0 && (
+          <button 
+            onClick={() => window.location.href = '/test-history'}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium"
           >
-            <div className="text-2xl mb-1">{stat.icon}</div>
-            <div className={`text-lg font-bold text-${stat.color}-600`}>{stat.value}</div>
-            <div className="text-xs text-gray-600">{stat.label}</div>
-          </motion.div>
-        ))}
+            <span>Xem tất cả</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
       </div>
+      
+      {(userProfile.testHistory?.length || 0) > 0 ? (
+        <div className="space-y-3">
+          {(userProfile.testHistory || []).slice(0, 10).map((test, index) => {
+            const date = test.timestamp ? new Date(test.timestamp) : new Date();
+            const timeAgo = getTimeAgo(date);
+            const iqColor = getIQColor(test.iq);
+            const testNumber = (userProfile.testHistory?.length || 0) - index;
+            
+            return (
+              <motion.div 
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className={`w-12 h-12 ${iqColor.bg} rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
+                    <span className={`${iqColor.text} font-bold text-sm`}>{test.iq}</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">
+                      Bài test IQ #{testNumber}
+                    </div>
+                    <div className="text-sm text-gray-500 flex items-center space-x-3">
+                      <span>{date.toLocaleDateString('vi-VN')}</span>
+                      <span className="text-gray-400">•</span>
+                      <span>{timeAgo}</span>
+                      {test.totalTime && (
+                        <>
+                          <span className="text-gray-400">•</span>
+                          <span>{formatTimeDisplay(test.totalTime)}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-xl font-bold ${iqColor.text}`}>{test.iq}</div>
+                  <div className="text-xs text-gray-500">điểm</div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">Chưa có bài test nào</h4>
+          <p className="text-gray-500 mb-6">Hãy bắt đầu với bài test IQ đầu tiên của bạn</p>
+          <button 
+            onClick={() => window.location.href = '/test/iq'}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+          >
+            Làm bài test đầu tiên
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -363,7 +439,7 @@ const ProfileComponent: React.FC = () => {
         return (
           <>
             <PersonalInfo />
-            <TestStatistics />
+            <RecentTestsOverview />
           </>
         );
       case 'tests':
