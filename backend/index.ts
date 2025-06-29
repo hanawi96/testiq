@@ -25,7 +25,14 @@ export { quickSetupDatabase, createTestAdmin } from './utils/setup-database';
 export * from './types';
 
 // Export new services
-export { getLeaderboard, getRecentTopPerformers } from './utils/leaderboard-service';
+export { 
+  getLeaderboard, 
+  getRecentTopPerformers, 
+  getQuickStats,
+  clearLeaderboardCache,
+  preloadLeaderboardData,
+  getCacheStatus 
+} from './utils/leaderboard-service';
 export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-service';
 export { updateUserProfile, getUserProfile } from './utils/user-profile-service';
 export type { UserProfileData } from './utils/user-profile-service';

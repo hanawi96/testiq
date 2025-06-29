@@ -1,11 +1,42 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProfileComponent from '../components/ProfileComponent.tsx';
+
+// Server-side data loading for instant display (like leaderboard)
+let initialUserProfile = {
+  name: 'Người dùng',
+  age: '',
+  location: '',
+  totalTests: 0,
+  testHistory: [],
+  isAuthenticated: false
+};
+
+// Load data from server-side for instant display
+try {
+  // Try to load initial data (this will be fast and cached)
+  
+  // For now, we'll load from localStorage-like approach on server
+  // This is a placeholder - in real SSR, you'd check auth headers/cookies
+  
+  // Set default data that will be instantly available
+  initialUserProfile = {
+    name: 'Người dùng', // Will be replaced client-side if data exists
+    age: '',
+    location: '',
+    totalTests: 0,
+    testHistory: [],
+    isAuthenticated: false
+  };
+  
+} catch (error) {
+  console.warn('Server-side profile loading failed:', error);
+}
 ---
 
 <BaseLayout 
   title="Profile - Astro IQ Test"
   description="Xem thông tin profile và lịch sử bài test IQ của bạn"
 >
-  <ProfileComponent client:load />
+  <ProfileComponent client:load initialProfile={initialUserProfile} />
 </BaseLayout> 

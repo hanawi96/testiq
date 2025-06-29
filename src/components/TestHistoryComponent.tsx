@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
 interface TestHistoryItem {
@@ -13,321 +13,401 @@ interface TestHistoryItem {
   timestamp?: string;
 }
 
+// Smart formatter with memoization-friendly structure
+const formatTestData = (testHistory: any[]): TestHistoryItem[] => 
+  testHistory.map((test: any, index: number) => ({
+    id: test.timestamp ? new Date(test.timestamp).getTime() : Date.now() - index,
+    date: test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+    score: test.iq || 0,
+    percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
+    timeTaken: test.timeSpent || test.duration_seconds || 0,
+    accuracy: test.accuracy || Math.round(70 + (test.iq - 70) * 0.8),
+    improvement: index < testHistory.length - 1 ? test.iq - testHistory[index + 1].iq : 0,
+    isFirst: index === testHistory.length - 1,
+    timestamp: test.timestamp
+  }));
+
+// Optimized skeleton with minimal DOM
+const FastSkeleton = ({ count = 3 }: { count?: number }) => (
+  <div className="space-y-3">
+    {[...Array(count)].map((_, i) => (
+      <div key={i} className="animate-pulse h-20 bg-gray-200 rounded-xl" 
+           style={{ animationDelay: `${i * 100}ms` }} />
+    ))}
+  </div>
+);
+
 const TestHistoryComponent: React.FC = () => {
-  const [testHistory, setTestHistory] = useState<TestHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [testHistory, setTestHistory] = useState<TestHistoryItem[]>(() => {
+    // Optimistic loading from cache
+    if (typeof window === 'undefined') return [];
+    
+    try {
+      const cached = sessionStorage.getItem('test-history-cache');
+      if (cached) {
+        const data = JSON.parse(cached);
+        if (Date.now() - data.timestamp < 30000) { // 30s cache
+          return data.history;
+        }
+      }
+
+      // Fallback to localStorage for instant display
+      const localHistory = localStorage.getItem('iq-test-history');
+      if (localHistory) {
+        const history = formatTestData(JSON.parse(localHistory));
+        // Cache for next time
+        sessionStorage.setItem('test-history-cache', JSON.stringify({
+          history,
+          timestamp: Date.now()
+        }));
+        return history;
+      }
+    } catch (error) {
+      console.warn('Cache load failed:', error);
+    }
+    
+    return [];
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   const itemsPerPage = 10;
 
-  // Load test history
+  // Optimized screen size detection
   useEffect(() => {
-    const loadTestHistory = async () => {
+    const checkScreenSize = () => setIsMobile(window.innerWidth < 640);
+    checkScreenSize();
+    const cleanup = () => window.removeEventListener('resize', checkScreenSize);
+    window.addEventListener('resize', checkScreenSize);
+    return cleanup;
+  }, []);
+
+  // Streamlined data loading
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadFreshData = async () => {
+      // Only show loading if we have no data
+      const needsLoading = testHistory.length === 0;
+      if (needsLoading) setIsLoading(true);
+      
       try {
-        // Check authentication status
-        try {
-          const { AuthService } = await import('../../backend');
-          const { user } = await AuthService.getCurrentUser();
-          setIsAuthenticated(!!user);
-        } catch (error) {
-          console.warn('Could not check auth status:', error);
-          setIsAuthenticated(false);
+        // Parallel loading
+        const [authPromise, testUtilsPromise] = [
+          import('../../backend')
+            .then(backend => backend?.AuthService?.getCurrentUser?.())
+            .then(result => !!result?.user)
+            .catch(() => false),
+          import('../utils/test')
+        ];
+
+        const [isAuth, testUtils] = await Promise.all([authPromise, testUtilsPromise]);
+        
+        if (!isMounted) return;
+        setIsAuthenticated(isAuth);
+
+        // Get fresh data
+        const freshHistory = await testUtils.getUserRealTestHistory?.() || [];
+        const formattedHistory = formatTestData(freshHistory);
+        
+        if (!isMounted) return;
+
+        // Only update if data actually changed
+        const hasChanged = formattedHistory.length !== testHistory.length ||
+          formattedHistory.some((item, i) => item.id !== testHistory[i]?.id);
+
+        if (hasChanged) {
+          setTestHistory(formattedHistory);
+          
+          // Update cache
+          try {
+            sessionStorage.setItem('test-history-cache', JSON.stringify({
+              history: formattedHistory,
+              timestamp: Date.now()
+            }));
+          } catch (error) {
+            console.warn('Cache save failed:', error);
+          }
         }
-
-        const testUtils = await import('../utils/test');
-        const history = await testUtils.getUserRealTestHistory?.() || [];
         
-        console.log('Loaded test history:', history);
-        
-        const formattedHistory = history.map((test: any, index: number) => ({
-          id: test.timestamp ? new Date(test.timestamp).getTime() : Date.now() - index,
-          date: test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
-          score: test.iq || 0,
-          percentile: test.percentile || Math.round((test.iq - 70) * 1.2),
-          timeTaken: test.timeSpent || test.duration_seconds || 0,
-          accuracy: test.accuracy || Math.round(70 + (test.iq - 70) * 0.8),
-          improvement: index < history.length - 1 ? test.iq - history[index + 1].iq : 0,
-          isFirst: index === history.length - 1,
-          timestamp: test.timestamp
-        }));
-
-        console.log('Formatted history:', formattedHistory);
-        setTestHistory(formattedHistory);
       } catch (error) {
-        console.error('Error loading test history:', error);
+        console.error('Load error:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
-    loadTestHistory();
+    // Start fresh data load with small delay
+    const timer = setTimeout(loadFreshData, 100);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
-  const formatTimeDisplay = (totalSeconds: number): string => {
+  // Memoized helper functions
+  const formatTimeDisplay = useCallback((totalSeconds: number): string => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     
-    if (minutes > 0 && seconds > 0) {
-      return `${minutes} phút ${seconds} giây`;
-    } else if (minutes > 0) {
-      return `${minutes} phút`;
-    } else {
-      return `${seconds} giây`;
-    }
-  };
+    if (minutes > 0 && seconds > 0) return `${minutes}p ${seconds}s`;
+    if (minutes > 0) return `${minutes}p`;
+    return `${seconds}s`;
+  }, []);
 
-  const getIQLevel = (score: number) => {
+  const getIQLevel = useCallback((score: number) => {
     if (score >= 140) return { level: 'Thiên tài', color: 'purple', icon: '🌟' };
     if (score >= 130) return { level: 'Xuất sắc', color: 'blue', icon: '🏆' };
     if (score >= 115) return { level: 'Trên TB', color: 'green', icon: '⭐' };
     if (score >= 85) return { level: 'Trung bình', color: 'yellow', icon: '✅' };
     return { level: 'Dưới TB', color: 'orange', icon: '📈' };
-  };
+  }, []);
 
-  // Filter and sort
-  const filteredAndSortedHistory = testHistory
-    .filter(test => 
-      searchTerm === '' || 
-      test.score.toString().includes(searchTerm) ||
-      test.date.includes(searchTerm)
-    )
-    .sort((a, b) => {
-      if (sortBy === 'score') return b.score - a.score;
-      return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
-    });
+  // Memoized computations
+  const filteredAndSortedHistory = useMemo(() => {
+    return testHistory
+      .filter(test => 
+        searchTerm === '' || 
+        test.score.toString().includes(searchTerm) ||
+        test.date.includes(searchTerm)
+      )
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'newest': return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+          case 'oldest': return new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime();
+          case 'highest': return b.score - a.score;
+          case 'lowest': return a.score - b.score;
+          default: return 0;
+        }
+      });
+  }, [testHistory, searchTerm, sortBy]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedHistory.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentItems = filteredAndSortedHistory.slice(startIndex, startIndex + itemsPerPage);
-
-  // Statistics
-  const stats = {
+  const stats = useMemo(() => ({
     total: testHistory.length,
     averageScore: testHistory.length ? Math.round(testHistory.reduce((sum, test) => sum + test.score, 0) / testHistory.length) : 0,
     bestScore: testHistory.length ? Math.max(...testHistory.map(test => test.score)) : 0,
     totalImprovement: testHistory.length > 1 ? testHistory[0].score - testHistory[testHistory.length - 1].score : 0
-  };
+  }), [testHistory]);
 
+  const { totalPages, currentItems } = useMemo(() => {
+    const total = Math.ceil(filteredAndSortedHistory.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const items = filteredAndSortedHistory.slice(startIndex, startIndex + itemsPerPage);
+    return { totalPages: total, currentItems: items };
+  }, [filteredAndSortedHistory, currentPage, itemsPerPage]);
+
+  // Optimized handlers
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    document.getElementById('test-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page
+  }, []);
+
+  const handleSortChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortBy(e.target.value as typeof sortBy);
+    setCurrentPage(1); // Reset to first page
+  }, []);
+
+  // Lightweight components
   const AnonymousUserWarning = () => (
-    !isAuthenticated && (
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-        <div className="flex items-center space-x-3">
-          <svg className="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
+    isAuthenticated === false && (
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-amber-50 border border-amber-200 rounded-2xl p-4"
+      >
+        <div className="flex items-start space-x-3">
+          <div className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5">⚠️</div>
           <div className="flex-1">
-            <h4 className="font-semibold text-amber-800 mb-1">⚠️ Dữ liệu tạm thời</h4>
+            <h4 className="font-semibold text-amber-800 mb-1">Dữ liệu tạm thời</h4>
             <p className="text-sm text-amber-700 mb-3">
-              Lịch sử test của bạn chỉ được lưu trên thiết bị này. 
-              Khi xóa dữ liệu trình duyệt, tất cả kết quả test sẽ bị mất vĩnh viễn.
+              Lịch sử test chỉ lưu trên thiết bị này. Đăng ký để bảo vệ dữ liệu vĩnh viễn.
             </p>
             <button 
               onClick={() => window.location.href = '/admin/login'}
               className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
             >
-              🔐 Đăng ký tài khoản để bảo vệ dữ liệu
+              🔐 Đăng ký ngay
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     )
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
-      <div className="max-w-6xl mx-auto px-4 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 space-y-6">
         
-        {/* Hero Section */}
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-3xl p-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">📊 Lịch sử Test IQ</h1>
-          <p className="text-gray-600 mb-6">Theo dõi tiến bộ và phân tích kết quả qua từng bài test</p>
+        {/* Optimized Hero Section */}
+        <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 rounded-3xl p-6 md:p-8 overflow-hidden">
+          {/* Simplified background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-purple-500/5 rounded-3xl"></div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-              <div className="text-xs text-gray-600">Tổng test</div>
+          <div className="relative text-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
             </div>
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-              <div className="text-2xl font-bold text-green-600">{stats.averageScore}</div>
-              <div className="text-xs text-gray-600">Điểm TB</div>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-              <div className="text-2xl font-bold text-purple-600">{stats.bestScore}</div>
-              <div className="text-xs text-gray-600">Cao nhất</div>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-              <div className="text-2xl font-bold text-orange-600">+{stats.totalImprovement}</div>
-              <div className="text-xs text-gray-600">Tiến bộ</div>
+            
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+              Lịch sử <span className="text-blue-600">Test IQ</span>
+            </h1>
+            
+            <p className="text-gray-600 mb-6">Theo dõi hành trình phát triển trí tuệ</p>
+
+            {/* Optimized Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-gray-200">
+                <div className="text-xl font-bold text-blue-600">{stats.total}</div>
+                <div className="text-xs text-gray-600">Tổng test</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-gray-200">
+                <div className="text-xl font-bold text-purple-600">{stats.bestScore}</div>
+                <div className="text-xs text-gray-600">Cao nhất</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-gray-200">
+                <div className="text-xl font-bold text-green-600">{stats.averageScore}</div>
+                <div className="text-xs text-gray-600">Trung bình</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-gray-200">
+                <div className="text-xl font-bold text-orange-600">+{stats.totalImprovement}</div>
+                <div className="text-xs text-gray-600">Cải thiện</div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Anonymous User Warning */}
         <AnonymousUserWarning />
 
-        {/* Filter Controls */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        {/* Streamlined Filter Controls */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
             <div className="relative flex-1 max-w-md">
               <input
                 type="text"
-                placeholder="Tìm kiếm theo điểm số hoặc ngày..."
+                placeholder="Tìm kiếm theo điểm số..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none"
+                onChange={handleSearchChange}
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'date' | 'score')}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none"
+                onChange={handleSortChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="date">Mới nhất</option>
-                <option value="score">Điểm cao nhất</option>
+                <option value="newest">Mới nhất</option>
+                <option value="oldest">Cũ nhất</option>
+                <option value="highest">Cao nhất</option>
+                <option value="lowest">Thấp nhất</option>
               </select>
 
               <div className="text-sm text-gray-500">
-                {currentItems.length} / {filteredAndSortedHistory.length} kết quả
+                {currentItems.length}/{filteredAndSortedHistory.length}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Test History List */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100" id="test-list">
-          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+        {/* Optimized Test History List */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100" id="test-list">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
             <span className="mr-2">📈</span>
             Danh sách bài test
           </h3>
 
-          {isLoading ? (
-            <div className="space-y-4 min-h-[600px]">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="animate-pulse h-24 bg-gray-200 rounded-xl"></div>
-              ))}
-            </div>
+          {isLoading && testHistory.length === 0 ? (
+            <FastSkeleton count={3} />
           ) : currentItems.length === 0 ? (
-            <div className="text-center py-12 min-h-[400px] flex flex-col justify-center">
+            <div className="text-center py-12">
               <div className="text-4xl mb-4">📝</div>
               <h4 className="text-lg font-semibold text-gray-900 mb-2">
                 {searchTerm ? 'Không tìm thấy kết quả' : 'Chưa có bài test nào'}
               </h4>
               <p className="text-gray-600 mb-4">
-                {searchTerm ? 'Thử thay đổi từ khóa tìm kiếm' : 'Hãy làm bài test đầu tiên của bạn!'}
+                {searchTerm ? 'Thử từ khóa khác' : 'Hãy làm bài test đầu tiên!'}
               </p>
               {!searchTerm && (
                 <button 
                   onClick={() => window.location.href = '/test/iq'}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors focus:outline-none"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
                 >
                   Làm bài test ngay
                 </button>
               )}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {currentItems.map((test, index) => {
                 const iqLevel = getIQLevel(test.score);
-                const globalIndex = startIndex + index;
+                const globalIndex = (currentPage - 1) * itemsPerPage + index;
+                const isTop = globalIndex === 0;
                 
                 return (
                   <motion.div
                     key={test.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={`p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${
-                      globalIndex === 0 
-                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 shadow-sm' 
+                    transition={{ delay: index * 0.03, duration: 0.2 }}
+                    className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${
+                      isTop 
+                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200' 
                         : 'bg-white border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-white shadow-sm ${
-                          globalIndex === 0 
-                            ? 'bg-gradient-to-br from-purple-400 to-indigo-500' 
-                            : 'bg-gradient-to-br from-purple-300 to-indigo-400'
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white text-sm ${
+                          isTop 
+                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600' 
+                            : 'bg-gradient-to-br from-gray-400 to-gray-500'
                         }`}>
-                          <span className="text-sm">#{filteredAndSortedHistory.length - globalIndex}</span>
+                          #{filteredAndSortedHistory.length - globalIndex}
                         </div>
                         <div>
-                          <h4 className="font-bold text-gray-900 text-lg">
-                            {globalIndex === 0 ? 'Bài test mới nhất' : 
-                             test.isFirst ? 'Bài test đầu tiên' : 
-                             `Test IQ #${filteredAndSortedHistory.length - globalIndex}`}
+                          <h4 className="font-semibold text-gray-900">
+                            {isTop ? 'Bài test mới nhất' : `Test IQ #${filteredAndSortedHistory.length - globalIndex}`}
                           </h4>
-                          <p className="text-sm text-gray-500 flex items-center mt-1">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            {test.date}
-                          </p>
+                          <div className="text-sm text-gray-500 flex items-center space-x-4">
+                            <span>{test.date}</span>
+                            <span>•</span>
+                            <span>{test.timeTaken > 0 ? formatTimeDisplay(test.timeTaken) : '—'}</span>
+                            <span>•</span>
+                            <span>{test.accuracy}% chính xác</span>
+                          </div>
                         </div>
-                        {globalIndex === 0 && (
-                          <span className="bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm">
-                            ✨ Mới nhất
+                        {isTop && (
+                          <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
+                            ✨ Mới
                           </span>
                         )}
                       </div>
                       
                       <div className="text-right">
-                        <div className={`text-4xl font-bold mb-1 ${
-                          globalIndex === 0 
-                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent' 
-                            : 'text-gray-700'
-                        }`}>
+                        <div className={`text-2xl font-bold ${isTop ? 'text-purple-600' : 'text-gray-700'}`}>
                           {test.score}
                         </div>
-                        <div className={`text-xs px-3 py-1.5 rounded-full font-medium shadow-sm bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
+                        <div className={`text-xs px-2 py-1 rounded-full font-medium bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
                           {iqLevel.icon} {iqLevel.level}
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-6">
-                        <div className="text-gray-600">
-                          <span className="font-medium text-gray-900">{test.percentile}%</span> percentile
-                        </div>
-                        <div className="text-gray-600">
-                          <span className="font-medium text-gray-900">{test.accuracy}%</span> chính xác
-                        </div>
-                        <div className="text-gray-600">
-                          <span className="font-medium text-gray-900">
-                            {test.timeTaken > 0 ? formatTimeDisplay(test.timeTaken) : '—'}
-                          </span> thời gian
-                        </div>
-                        {!test.isFirst && (
-                          <div className="text-gray-600">
-                            <span className={`font-medium ${
-                              test.improvement > 0 ? 'text-green-600' : 
-                              test.improvement < 0 ? 'text-red-600' : 'text-gray-900'
-                            }`}>
-                              {test.improvement > 0 ? '+' : ''}{test.improvement}
-                            </span> điểm
-                          </div>
-                        )}
-                      </div>
-                      
-                      <button 
-                        onClick={() => window.open(`/result?name=${encodeURIComponent('Người dùng')}&score=${test.score}&percentile=${test.percentile}&timeSpent=${test.timeTaken}`, '_blank')}
-                        className="text-purple-600 hover:text-purple-700 text-sm font-medium focus:outline-none transition-colors flex items-center"
-                      >
-                        Chi tiết →
-                      </button>
-                    </div>
-
-
                   </motion.div>
                 );
               })}
@@ -335,24 +415,21 @@ const TestHistoryComponent: React.FC = () => {
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Simplified Pagination */}
         {totalPages > 1 && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                Trang {currentPage} / {totalPages} • Tổng {filteredAndSortedHistory.length} bài test
+                Trang {currentPage}/{totalPages} • {filteredAndSortedHistory.length} kết quả
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
                 <button
-                  onClick={() => {
-                    setCurrentPage(Math.max(1, currentPage - 1));
-                    document.getElementById('test-list')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+                  className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ← Trước
+                  ←
                 </button>
 
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -362,11 +439,8 @@ const TestHistoryComponent: React.FC = () => {
                   return (
                     <button
                       key={page}
-                      onClick={() => {
-                        setCurrentPage(page);
-                        document.getElementById('test-list')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none ${
+                      onClick={() => handlePageChange(page)}
+                      className={`w-8 h-8 flex items-center justify-center text-sm rounded ${
                         currentPage === page
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
@@ -378,14 +452,11 @@ const TestHistoryComponent: React.FC = () => {
                 })}
 
                 <button
-                  onClick={() => {
-                    setCurrentPage(Math.min(totalPages, currentPage + 1));
-                    document.getElementById('test-list')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+                  className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sau →
+                  →
                 </button>
               </div>
             </div>

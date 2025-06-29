@@ -11,6 +11,11 @@ interface UserProfile {
   averageScore?: number;
   bestScore?: number;
   testHistory?: any[];
+  isAuthenticated?: boolean;
+}
+
+interface Props {
+  initialProfile?: UserProfile;
 }
 
 // Generate avatar from name
@@ -40,21 +45,209 @@ const getInitials = (name: string): string => {
     .toUpperCase();
 };
 
-const ProfileComponent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: 'Người dùng',
-    age: '',
-    location: '',
-    totalTests: 0,
-    averageScore: 0,
-    bestScore: 0,
-    testHistory: []
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+// Enhanced loading states
+const ProgressiveLoader = ({ progress }: { progress: number }) => (
+  <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300" 
+         style={{ width: `${progress}%` }} />
+  </div>
+);
 
-  // Memoized calculations to avoid re-computation
+// Optimized skeleton with better animations
+const OptimizedSkeleton = ({ className = '', delay = 0 }: { className?: string; delay?: number }) => (
+  <div 
+    className={`bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse rounded ${className}`}
+    style={{ animationDelay: `${delay}ms` }}
+  />
+);
+
+// Smart content loader with fade-in
+const ContentLoader = ({ children, isLoading, skeleton }: { 
+  children: React.ReactNode; 
+  isLoading: boolean; 
+  skeleton: React.ReactNode;
+}) => (
+  <AnimatePresence mode="wait">
+    {isLoading ? (
+      <motion.div
+        key="skeleton"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        {skeleton}
+      </motion.div>
+    ) : (
+      <motion.div
+        key="content"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
+        {children}
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+// Smart skeleton components
+const SkeletonProfile = () => (
+  <div className="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-3xl p-8 text-center relative overflow-hidden">
+    <div className="relative z-10">
+      <div className="mb-6">
+        <OptimizedSkeleton className="w-24 h-24 rounded-full mx-auto" />
+      </div>
+      <div className="mb-6">
+        <OptimizedSkeleton className="h-8 w-48 mx-auto mb-2" delay={100} />
+        <div className="flex items-center justify-center space-x-4">
+          <OptimizedSkeleton className="h-4 w-20" delay={200} />
+          <OptimizedSkeleton className="h-4 w-16" delay={300} />
+          <OptimizedSkeleton className="h-4 w-24" delay={400} />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
+            <OptimizedSkeleton className="h-6 w-8 mx-auto mb-1" delay={i * 100} />
+            <OptimizedSkeleton className="h-3 w-12 mx-auto" delay={i * 100 + 50} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonTestList = () => (
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div className="flex items-center justify-between mb-6">
+      <OptimizedSkeleton className="h-6 w-40" />
+      <OptimizedSkeleton className="h-8 w-24 rounded-xl" delay={100} />
+    </div>
+    <div className="space-y-3">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="p-4 rounded-xl border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <OptimizedSkeleton className="w-12 h-12 rounded-full" delay={i * 100} />
+              <div className="space-y-2">
+                <OptimizedSkeleton className="w-32 h-4" delay={i * 100 + 50} />
+                <OptimizedSkeleton className="w-24 h-3" delay={i * 100 + 100} />
+              </div>
+            </div>
+            <div className="text-right space-y-1">
+              <OptimizedSkeleton className="w-12 h-6" delay={i * 100 + 150} />
+              <OptimizedSkeleton className="w-8 h-3" delay={i * 100 + 200} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const SkeletonPersonalInfo = () => (
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <OptimizedSkeleton className="h-6 w-32 mb-6" />
+    <div className="grid md:grid-cols-2 gap-6">
+      {[...Array(2)].map((col) => (
+        <div key={col} className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
+              <OptimizedSkeleton className="w-10 h-10 rounded-full" delay={col * 200 + i * 100} />
+              <div className="space-y-2">
+                <OptimizedSkeleton className="w-16 h-3" delay={col * 200 + i * 100 + 50} />
+                <OptimizedSkeleton className="w-24 h-4" delay={col * 200 + i * 100 + 100} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [dataReady, setDataReady] = useState(false);
+  
+  // Optimistic UI - Start with best guess data
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    // Server-side safe initialization
+    if (typeof window === 'undefined') {
+      return initialProfile || {
+        name: 'Người dùng',
+        age: '',
+        location: '',
+        totalTests: 0,
+        averageScore: 0,
+        bestScore: 0,
+        testHistory: [],
+        isAuthenticated: false
+      };
+    }
+
+    // Client-side optimistic loading
+    let cachedData = null;
+    try {
+      const cached = sessionStorage.getItem('profile-cache');
+      if (cached) {
+        cachedData = JSON.parse(cached);
+        if (Date.now() - cachedData.timestamp < 60000) { // 1 minute cache
+          setDataReady(true);
+          setLoadingProgress(100);
+          return cachedData.data;
+        }
+      }
+    } catch (error) {
+      console.warn('Cache load failed:', error);
+    }
+
+    // Fallback to localStorage but non-blocking
+    setTimeout(() => {
+      try {
+        const localUserInfo = localStorage.getItem('anonymous-user-info');
+        const localHistory = localStorage.getItem('iq-test-history');
+        
+        if (localUserInfo || localHistory) {
+          const userInfo = localUserInfo ? JSON.parse(localUserInfo) : null;
+          const testHistory = localHistory ? JSON.parse(localHistory) : [];
+          
+          const optimisticData = {
+            name: userInfo?.name || 'Người dùng',
+            age: userInfo?.age || '',
+            location: userInfo?.location || '',
+            totalTests: testHistory.length,
+            averageScore: 0,
+            bestScore: 0,
+            testHistory: testHistory.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)),
+            isAuthenticated: false
+          };
+          
+          setUserProfile(optimisticData);
+          setLoadingProgress(50);
+        }
+      } catch (error) {
+        console.warn('Optimistic load failed:', error);
+      }
+    }, 0);
+
+    return initialProfile || {
+      name: 'Người dùng',
+      age: '',
+      location: '',
+      totalTests: 0,
+      averageScore: 0,
+      bestScore: 0,
+      testHistory: [],
+      isAuthenticated: false
+    };
+  });
+  
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(initialProfile?.isAuthenticated || null);
+
+  // Memoized calculations
   const profileStats = useMemo(() => {
     if (!userProfile.testHistory?.length) return { average: 0, best: 0, joinDate: new Date().toLocaleDateString('vi-VN') };
     
@@ -70,52 +263,131 @@ const ProfileComponent: React.FC = () => {
     return { average, best, joinDate };
   }, [userProfile.testHistory]);
 
-  // Load user data with optimized parallel execution
+  // Progressive data loading with caching
   useEffect(() => {
-    const loadUserData = async () => {
+    let isMounted = true;
+    
+    const loadDataProgressively = async () => {
       try {
-        // Start all imports and data loading in parallel
-        const [testUtils, backendModule] = await Promise.all([
-          import('../utils/test.ts'),
-          import('../../backend').catch(() => null) // Don't fail if backend unavailable
-        ]);
-        
-        // Check auth and get user info in parallel
-        const authPromise = backendModule?.AuthService?.getCurrentUser?.()
-          .then(({ user }) => !!user)
-          .catch(() => false) || Promise.resolve(false);
-        
-        const [authCheck, userInfo] = await Promise.all([
-          authPromise,
-          testUtils.getAnonymousUserInfo?.() || null
-        ]);
-        
-        setIsAuthenticated(authCheck);
-        
-        // Get test history (this is the slowest operation, but we can show user info first)
-        const testHistory = await (testUtils.getUserRealTestHistory?.() || Promise.resolve([]));
+        setLoadingProgress(10);
 
-        // Update profile with all data
-        setUserProfile({
-          name: userInfo?.name || 'Người dùng',
-          age: userInfo?.age || '',
-          location: userInfo?.location || '',
-          totalTests: testHistory.length,
-          testHistory: testHistory
-        });
+        // Phase 1: Load modules (fastest)
+        const [testUtilsPromise, backendPromise] = [
+          import('../utils/test.ts'),
+          import('../../backend').catch(() => null)
+        ];
         
+        setLoadingProgress(30);
+
+        // Phase 2: Auth check (medium speed)
+        const authPromise = backendPromise
+          .then(backend => backend?.AuthService?.getCurrentUser?.())
+          .then(result => !!result?.user)
+          .catch(() => false);
+
+        const [testUtils, backend, isAuth] = await Promise.all([
+          testUtilsPromise,
+          backendPromise,
+          authPromise
+        ]);
+
+        if (!isMounted) return;
+        
+        setIsAuthenticated(isAuth);
+        setLoadingProgress(60);
+
+        // Phase 3: Data loading (slower but cached)
+        let freshData = { ...userProfile };
+
+        if (isAuth && backend) {
+          // Authenticated path
+          try {
+            const [profileResult, historyResult] = await Promise.all([
+              backend.getUserProfile?.('current'),
+              testUtils.getUserRealTestHistory?.()
+            ]);
+
+            if (profileResult?.success && profileResult.data) {
+              const profile = profileResult.data;
+              freshData = {
+                ...freshData,
+                name: profile.full_name || freshData.name,
+                age: profile.age?.toString() || freshData.age,
+                location: profile.location || freshData.location,
+                totalTests: historyResult?.length || freshData.totalTests,
+                testHistory: historyResult || freshData.testHistory,
+                isAuthenticated: true
+              };
+            }
+          } catch (error) {
+            console.warn('Auth data load failed:', error);
+          }
+        } else {
+          // Anonymous path - prefer cached/local data
+          try {
+            const [freshHistory, freshUserInfo] = await Promise.all([
+              testUtils.getUserRealTestHistory?.() || [],
+              testUtils.getAnonymousUserInfo?.() || null
+            ]);
+
+            if (freshHistory?.length > 0 || freshUserInfo) {
+              freshData = {
+                ...freshData,
+                name: freshUserInfo?.name || freshData.name,
+                age: freshUserInfo?.age || freshData.age,
+                location: freshUserInfo?.location || freshData.location,
+                totalTests: freshHistory?.length || freshData.totalTests,
+                testHistory: freshHistory || freshData.testHistory,
+                isAuthenticated: false
+              };
+            }
+          } catch (error) {
+            console.warn('Anonymous data load failed:', error);
+          }
+        }
+
+        if (!isMounted) return;
+
+        // Only update if there are meaningful changes
+        const hasChanges = 
+          freshData.name !== userProfile.name ||
+          freshData.totalTests !== userProfile.totalTests ||
+          (freshData.testHistory?.length || 0) !== (userProfile.testHistory?.length || 0);
+
+        if (hasChanges) {
+          setUserProfile(freshData);
+          
+          // Cache for next time
+          try {
+            sessionStorage.setItem('profile-cache', JSON.stringify({
+              data: freshData,
+              timestamp: Date.now()
+            }));
+          } catch (error) {
+            console.warn('Cache save failed:', error);
+          }
+        }
+
+        setLoadingProgress(100);
+        setDataReady(true);
+
       } catch (error) {
-        console.warn('Error loading user data:', error);
-        setUserProfile(prev => ({ ...prev, name: 'Người dùng' }));
-      } finally {
-        setIsLoading(false);
+        console.error('Data loading failed:', error);
+        setLoadingProgress(100);
+        setDataReady(true);
       }
     };
 
-    loadUserData();
+    // Start loading with small delay to avoid blocking render
+    const timer = setTimeout(loadDataProgressively, 50);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
-  // Optimized helper functions
+  // Optimized helper functions with memoization
   const formatTimeDisplay = useCallback((totalSeconds: number): string => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -183,15 +455,15 @@ const ProfileComponent: React.FC = () => {
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
           <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-blue-600">{userProfile.totalTests}</div>
+            <div className="text-2xl font-bold text-blue-600">{userProfile.totalTests || 0}</div>
             <div className="text-xs text-gray-600">Bài test</div>
           </div>
           <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-green-600">{profileStats.average}</div>
+            <div className="text-2xl font-bold text-green-600">{profileStats.average || 0}</div>
             <div className="text-xs text-gray-600">Điểm TB</div>
           </div>
           <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-purple-600">{profileStats.best}</div>
+            <div className="text-2xl font-bold text-purple-600">{profileStats.best || 0}</div>
             <div className="text-xs text-gray-600">Tốt nhất</div>
           </div>
         </div>
@@ -200,7 +472,7 @@ const ProfileComponent: React.FC = () => {
   );
 
   const AnonymousUserWarning = () => (
-    !isAuthenticated && (
+    isAuthenticated === false && (
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
         <div className="flex items-center space-x-3">
           <svg className="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,127 +585,83 @@ const ProfileComponent: React.FC = () => {
         )}
       </div>
       
-      {(userProfile.testHistory?.length || 0) > 0 ? (
-        <div className="space-y-3">
-          {(userProfile.testHistory || []).slice(0, 10).map((test, index) => {
-            const date = test.timestamp ? new Date(test.timestamp) : new Date();
-            const timeAgo = getTimeAgo(date);
-            const iqColor = getIQColor(test.iq);
-            const testNumber = (userProfile.testHistory?.length || 0) - index;
-            
-            return (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`w-12 h-12 ${iqColor.bg} rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
-                    <span className={`${iqColor.text} font-bold text-sm`}>{test.iq}</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">
-                      Bài test IQ #{testNumber}
+      <ContentLoader
+        isLoading={!dataReady && (!userProfile.testHistory || userProfile.testHistory.length === 0)}
+        skeleton={<SkeletonTestList />}
+      >
+        {(userProfile.testHistory?.length || 0) > 0 ? (
+          <div className="space-y-3">
+            {(userProfile.testHistory || []).slice(0, 10).map((test, index) => {
+              const date = test.timestamp ? new Date(test.timestamp) : new Date();
+              const timeAgo = getTimeAgo(date);
+              const iqColor = getIQColor(test.iq);
+              const testNumber = (userProfile.testHistory?.length || 0) - index;
+              
+              return (
+                <motion.div 
+                  key={`${test.timestamp || index}-${test.iq}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                  className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 ${iqColor.bg} rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
+                      <span className={`${iqColor.text} font-bold text-sm`}>{test.iq}</span>
                     </div>
-                    <div className="text-sm text-gray-500 flex items-center space-x-3">
-                      <span>{date.toLocaleDateString('vi-VN')}</span>
-                      <span className="text-gray-400">•</span>
-                      <span>{timeAgo}</span>
-                      {test.totalTime && (
-                        <>
-                          <span className="text-gray-400">•</span>
-                          <span>{formatTimeDisplay(test.totalTime)}</span>
-                        </>
-                      )}
+                    <div>
+                      <div className="font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">
+                        Bài test IQ #{testNumber}
+                      </div>
+                      <div className="text-sm text-gray-500 flex items-center space-x-3">
+                        <span>{date.toLocaleDateString('vi-VN')}</span>
+                        <span className="text-gray-400">•</span>
+                        <span>{timeAgo}</span>
+                        {test.totalTime && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <span>{formatTimeDisplay(test.totalTime)}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-xl font-bold ${iqColor.text}`}>{test.iq}</div>
-                  <div className="text-xs text-gray-500">điểm</div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+                  <div className="text-right">
+                    <div className={`text-xl font-bold ${iqColor.text}`}>{test.iq}</div>
+                    <div className="text-xs text-gray-500">điểm</div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
-          <h4 className="text-lg font-semibold text-gray-900 mb-2">Chưa có bài test nào</h4>
-          <p className="text-gray-500 mb-6">Hãy bắt đầu với bài test IQ đầu tiên của bạn</p>
-          <button 
-            onClick={() => window.location.href = '/test/iq'}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
-          >
-            Làm bài test đầu tiên
-          </button>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">Chưa có bài test nào</h4>
+            <p className="text-gray-500 mb-6">Hãy bắt đầu với bài test IQ đầu tiên của bạn</p>
+            <button 
+              onClick={() => window.location.href = '/test/iq'}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+            >
+              Làm bài test đầu tiên
+            </button>
+          </div>
+        )}
+      </ContentLoader>
     </div>
   );
 
-  const RecentTests = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-        <span className="mr-2">🕒</span>
-        Bài test gần đây
-      </h3>
-      
-      {userProfile.testHistory?.length ? (
-        <div className="space-y-3">
-          {userProfile.testHistory.slice(0, 5).map((test, index) => (
-            <motion.div 
-              key={index}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-bold">{test.iq}</span>
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">IQ Test</div>
-                  <div className="text-sm text-gray-500">
-                    {test.timestamp ? new Date(test.timestamp).toLocaleDateString('vi-VN') : 'Không rõ'}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-green-600">{test.iq}</div>
-                <div className="text-xs text-gray-500">điểm</div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-gray-500">
-          <div className="text-4xl mb-2">📝</div>
-          <p>Chưa có bài test nào</p>
-          <button 
-            onClick={() => window.location.href = '/test/iq'}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Làm bài test đầu tiên
-          </button>
-        </div>
-      )}
-    </div>
-  );
+
 
   const TabNavigation = () => (
     <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
       <div className="flex space-x-2">
         {[
           { id: 'overview', label: 'Tổng quan', icon: '📊' },
-          { id: 'tests', label: 'Bài test', icon: '📝' },
           { id: 'settings', label: 'Cài đặt', icon: '⚙️' }
         ].map((tab) => (
           <button
@@ -454,6 +682,16 @@ const ProfileComponent: React.FC = () => {
   );
 
   const renderTabContent = () => {
+    if (!dataReady) {
+      return (
+        <>
+          <SkeletonPersonalInfo />
+          <SkeletonTestList />
+        </>
+      );
+    }
+
+    // Normal content rendering
     switch (activeTab) {
       case 'overview':
         return (
@@ -462,8 +700,6 @@ const ProfileComponent: React.FC = () => {
             <RecentTestsOverview />
           </>
         );
-      case 'tests':
-        return <RecentTests />;
       case 'settings':
         return (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -473,7 +709,7 @@ const ProfileComponent: React.FC = () => {
             </h3>
             <div className="text-center py-8 text-gray-500">
               <div className="text-4xl mb-2">🔧</div>
-              <p>Tính năng cài đặt đang được phát triển</p>
+              <p>Chức năng đang phát triển</p>
             </div>
           </div>
         );
@@ -482,41 +718,31 @@ const ProfileComponent: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="w-12 h-12 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải thông tin profile...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="space-y-8">
-          {/* Hero Section */}
-          <HeroSection />
+    <div className="min-h-screen bg-gray-50 pt-24 pb-8">
+      {/* Loading indicator for background updates */}
+      {loadingProgress < 100 && <ProgressiveLoader progress={loadingProgress} />}
+      
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="space-y-6">
+          <ContentLoader
+            isLoading={!dataReady}
+            skeleton={<SkeletonProfile />}
+          >
+            <HeroSection />
+          </ContentLoader>
           
-          {/* Anonymous User Warning */}
-          <AnonymousUserWarning />
-          
-          {/* Tab Navigation */}
+          {isAuthenticated === false && <AnonymousUserWarning />}
           <TabNavigation />
           
-          {/* Tab Content */}
           <AnimatePresence mode="wait">
-            <motion.div 
-              key={activeTab}
+            <motion.div
+              key={`${activeTab}-${dataReady}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-8"
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
             >
               {renderTabContent()}
             </motion.div>

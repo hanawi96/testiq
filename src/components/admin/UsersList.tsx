@@ -19,6 +19,7 @@ export default function UsersList() {
   const [actionLoading, setActionLoading] = useState<string>('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number} | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Cache for instant pagination and filtering
   const cache = useRef<Map<string, UsersListResponse>>(new Map());
@@ -27,6 +28,17 @@ export default function UsersList() {
   const aggressivePrefetchDone = useRef<Set<string>>(new Set()); // Track completed aggressive prefetches
 
   const limit = 5;
+
+  // Detect screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Debounced search effect
   useEffect(() => {
@@ -661,37 +673,97 @@ export default function UsersList() {
       {/* Pagination - Clean & Simple */}
       {usersData && usersData.totalPages > 1 && (
         <div className="flex items-center justify-center">
-          <nav className="flex items-center space-x-1">
+          <nav className="flex items-center space-x-1 sm:space-x-2">
+            {/* First Page - Hidden on mobile */}
+            <button
+              onClick={() => handlePageChange(1)}
+              disabled={currentPage === 1}
+              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              aria-label="Trang đầu"
+            >
+              ⇤
+            </button>
+
+            {/* Previous Page */}
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={!usersData.hasPrev}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              aria-label="Trang trước"
             >
-              ‹ Trước
+              ←
             </button>
             
-            {Array.from({ length: usersData.totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`px-3 py-2 text-sm font-medium border-t border-b ${
-                  page === currentPage
-                    ? 'bg-primary-600 text-white border-primary-600'
-                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            {/* Page Numbers - Responsive count */}
+            <div className="flex items-center space-x-1">
+              {Array.from({ 
+                length: Math.min(
+                  isMobile ? 3 : 5, // 3 on mobile, 5 on desktop
+                  usersData.totalPages
+                ) 
+              }, (_, i) => {
+                const maxVisible = isMobile ? 3 : 5;
+                const page = i + Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                if (page > usersData.totalPages) return null;
+                
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-colors ${
+                      page === currentPage
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                    }`}
+                    aria-label={`Trang ${page}`}
+                    aria-current={page === currentPage ? 'page' : undefined}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
             
+            {/* Next Page */}
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={!usersData.hasNext}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              aria-label="Trang sau"
             >
-              Tiếp ›
+              →
+            </button>
+
+            {/* Last Page - Hidden on mobile */}
+            <button
+              onClick={() => handlePageChange(usersData.totalPages)}
+              disabled={currentPage === usersData.totalPages}
+              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              aria-label="Trang cuối"
+            >
+              ⇥
             </button>
           </nav>
+
+          {/* Mobile-only: Jump to page input */}
+          {usersData.totalPages > 5 && (
+            <div className="flex sm:hidden items-center ml-4 space-x-2">
+              <span className="text-xs text-gray-500">Đến:</span>
+              <input
+                type="number"
+                min="1"
+                max={usersData.totalPages}
+                value={currentPage}
+                onChange={(e) => {
+                  const page = parseInt(e.target.value);
+                  if (page >= 1 && page <= usersData.totalPages) {
+                    handlePageChange(page);
+                  }
+                }}
+                className="w-12 h-8 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
