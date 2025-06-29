@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CountrySelector from './CountrySelector';
 
 interface UserInfo {
   name: string;
   email: string;
   age: string;
   location: string;
+  countryCode?: string;
 }
 
 interface CongratulationsPopupProps {
@@ -17,7 +19,7 @@ interface CongratulationsPopupProps {
 }
 
 export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false }: CongratulationsPopupProps) {
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
@@ -34,7 +36,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
             name: preloadedUserInfo.name || '',
             email: preloadedUserInfo.email || '',
             age: preloadedUserInfo.age || '',
-            location: preloadedUserInfo.location || ''
+            location: preloadedUserInfo.location || '',
+            countryCode: preloadedUserInfo.countryCode || ''
           });
           console.log('✅ Using pre-loaded user info for authenticated user');
           return;
@@ -49,7 +52,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
               name: savedInfo.name || '',
               email: savedInfo.email || '',
               age: savedInfo.age || '',
-              location: savedInfo.location || ''
+              location: savedInfo.location || '',
+              countryCode: savedInfo.countryCode || ''
             });
             console.log('✅ Loaded saved anonymous user info from localStorage');
           }
@@ -90,7 +94,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
         await updateUserProfile(user.id, {
           full_name: userInfo.name,
           age: parseInt(userInfo.age) || undefined,
-          location: userInfo.location || undefined
+          location: userInfo.location || undefined,
+          country_code: userInfo.countryCode
         });
         console.log('✅ User profile updated');
       } else {
@@ -252,17 +257,16 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nơi ở
+                    Quốc gia
                   </label>
-                  <input
-                    type="text"
+                  <CountrySelector
                     value={userInfo.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    onChange={(countryName, countryCode) => {
+                      handleInputChange('location', countryName);
+                      setUserInfo(prev => ({ ...prev, countryCode: countryCode || '' }));
+                    }}
                     disabled={isAnalyzing}
-                    className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
-                      isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
-                    }`}
-                    placeholder="Thành phố"
+                    placeholder="Chọn quốc gia của bạn"
                   />
                 </div>
               </div>

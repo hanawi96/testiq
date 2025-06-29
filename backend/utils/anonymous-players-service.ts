@@ -6,6 +6,7 @@ export interface AnonymousPlayer {
   email: string;
   age?: number;
   location?: string;
+  country_code?: string;
   test_result: any;
   test_score?: number;
   test_duration?: number;
@@ -17,6 +18,7 @@ export interface AnonymousPlayerInput {
   email: string;
   age?: number;
   location?: string;
+  country_code?: string;
   test_result: any;
   test_score: number;
   test_duration: number;
@@ -87,6 +89,7 @@ export async function saveAnonymousPlayer(playerData: AnonymousPlayerInput): Pro
           name: playerData.name,
           age: playerData.age,
           location: playerData.location,
+          country_code: playerData.country_code,
           test_result: playerData.test_result,
           test_score: playerData.test_score,
           test_duration: playerData.test_duration

@@ -7,10 +7,11 @@ interface TestResultData {
   accuracy?: number;
   duration_seconds?: number;
   test_data?: any;
-  guest_name?: string;
-  guest_age?: number;
-  guest_location?: string;
-  guest_email?: string;
+  name?: string | null;
+  email?: string | null;
+  age?: number | null;
+  country?: string | null;
+  country_code?: string | null;
 }
 
 interface TestHistoryFilters {
@@ -27,6 +28,14 @@ interface TestHistoryFilters {
 export async function saveTestResult(data: TestResultData) {
   try {
     console.log('🔄 Saving test result to user_test_results...');
+    console.log('📥 Received data:', {
+      user_id: data.user_id,
+      name: data.name,
+      email: data.email,
+      age: data.age,
+      country: data.country,
+      country_code: data.country_code
+    });
     
     const testRecord = {
       user_id: data.user_id || null, // NULL cho anonymous users
@@ -34,14 +43,12 @@ export async function saveTestResult(data: TestResultData) {
       score: data.score,
       accuracy: data.accuracy,
       duration_seconds: data.duration_seconds,
-      test_data: {
-        ...data.test_data,
-        // Lưu email vào test_data để không cần alter table
-        guest_email: data.guest_email
-      },
-      guest_name: data.guest_name,
-      guest_age: data.guest_age,
-      guest_location: data.guest_location
+      test_data: data.test_data,
+      name: data.name,
+      email: data.email,
+      age: data.age,
+      country: data.country,
+      country_code: data.country_code
     };
 
     const { data: result, error } = await supabase
@@ -91,8 +98,8 @@ export async function getUserTestResults(filters: TestHistoryFilters = {}) {
     }
 
     if (filters.search) {
-      // Search in guest names or user profiles
-      query = query.or(`guest_name.ilike.%${filters.search}%`);
+      // Search in names
+      query = query.or(`name.ilike.%${filters.search}%`);
     }
 
     // Apply pagination - increase default limit

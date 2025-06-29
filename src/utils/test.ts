@@ -19,11 +19,12 @@ export interface Question {
   }
   
   export interface UserInfo {
-    name: string;
-    email: string;
-    age: string;
-    location: string;
-  }
+  name: string;
+  email: string;
+  age: string;
+  location: string;
+  countryCode?: string;
+}
   
   export interface TestResult {
     score: number;
@@ -178,7 +179,7 @@ export interface Question {
       let testData;
       
       if (user) {
-        // Authenticated user - save with user_id
+        // Authenticated user - save with user_id + user info if available
         console.log('💾 Saving test result for authenticated user:', user.id);
         testData = {
           user_id: user.id,
@@ -194,8 +195,12 @@ export interface Question {
             answers: result.answers,
             categoryScores: result.categoryScores,
             detailed: result.detailed
-          }
-          // guest_* fields are null for authenticated users
+          },
+          name: result.userInfo?.name || null,
+          email: result.userInfo?.email || user.email || null,
+          age: result.userInfo?.age ? parseInt(result.userInfo.age) : null,
+          country: result.userInfo?.location || null,
+          country_code: result.userInfo?.countryCode || null
         };
       } else {
         // Anonymous user - save with guest info if provided
@@ -214,6 +219,7 @@ export interface Question {
             email: result.userInfo.email,
             age: parseInt(result.userInfo.age) || undefined,
             location: result.userInfo.location || undefined,
+            country_code: result.userInfo.countryCode || undefined,
             test_result: {
               score: result.score,
               iq: result.iq,
@@ -254,15 +260,25 @@ export interface Question {
             percentile: result.percentile,
             answers: result.answers,
             categoryScores: result.categoryScores,
-            detailed: result.detailed,
-            email: result.userInfo.email // Add email to test_data for reference
+            detailed: result.detailed
           },
-          guest_name: result.userInfo.name,
-          guest_email: result.userInfo.email,
-          guest_age: parseInt(result.userInfo.age) || undefined,
-          guest_location: result.userInfo.location || undefined
+          name: result.userInfo.name,
+          email: result.userInfo.email,
+          age: parseInt(result.userInfo.age) || undefined,
+          country: result.userInfo.location || undefined,
+          country_code: result.userInfo.countryCode || undefined
         };
       }
+
+      // Debug: Log what we're about to save
+      console.log('🔍 Data being sent to Supabase:', {
+        user_id: testData.user_id,
+        name: testData.name,
+        email: testData.email,
+        age: testData.age,
+        country: testData.country,
+        country_code: testData.country_code
+      });
 
       const saveResult = await saveToSupabase(testData);
       
@@ -393,7 +409,8 @@ export interface Question {
             name: profile.full_name || user.email?.split('@')[0] || '',
             email: user.email || '',
             age: profile.age?.toString() || '',
-            location: profile.location || ''
+            location: profile.location || '',
+            countryCode: profile.country_code || ''
           };
         } else {
           // Fallback to basic auth info
@@ -401,7 +418,8 @@ export interface Question {
             name: user.email?.split('@')[0] || '',
             email: user.email || '',
             age: '',
-            location: ''
+            location: '',
+            countryCode: ''
           };
         }
       } else {
@@ -418,12 +436,13 @@ export interface Question {
             if (dbResult.success && dbResult.data) {
               console.log('🎯 Found user in database, using DB data');
               const dbPlayer = dbResult.data;
-              const mergedInfo = {
-                name: dbPlayer.name,
-                email: dbPlayer.email,
-                age: dbPlayer.age?.toString() || '',
-                location: dbPlayer.location || ''
-              };
+                      const mergedInfo = {
+          name: dbPlayer.name,
+          email: dbPlayer.email,
+          age: dbPlayer.age?.toString() || '',
+          location: dbPlayer.location || '',
+          countryCode: dbPlayer.country_code || ''
+        };
               
               // Update localStorage with latest database data
               saveAnonymousUserInfo(mergedInfo);
@@ -456,7 +475,8 @@ export interface Question {
           name: player.name,
           email: player.email,
           age: player.age?.toString() || '',
-          location: player.location || ''
+          location: player.location || '',
+          countryCode: player.country_code || ''
         };
       }
       

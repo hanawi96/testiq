@@ -38,4 +38,6 @@ export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-ser
 export { updateUserProfile, getUserProfile } from './utils/user-profile-service';
 export type { UserProfileData } from './utils/user-profile-service';
 export { findAnonymousPlayerByEmail, saveAnonymousPlayer } from './utils/anonymous-players-service';
-export type { AnonymousPlayer, AnonymousPlayerInput } from './utils/anonymous-players-service'; 
+export type { AnonymousPlayer, AnonymousPlayerInput } from './utils/anonymous-players-service';
+export { getCountries, getCountriesWithVietnamFirst, clearCountriesCache } from './utils/countries-service';
+export type { Country } from './utils/countries-service'; 

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CountrySelector from './CountrySelector';
 
 interface UserInfo {
   name: string;
   email: string;
   age: string;
   location: string;
+  countryCode?: string;
 }
 
 interface TimeUpPopupProps {
@@ -16,7 +18,7 @@ interface TimeUpPopupProps {
 }
 
 export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isAuthenticatedUser = false }: TimeUpPopupProps) {
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isFormValid = userInfo.name?.trim() && userInfo.email?.trim() && 
@@ -32,7 +34,8 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
             name: preloadedUserInfo.name || '',
             email: preloadedUserInfo.email || '',
             age: preloadedUserInfo.age || '',
-            location: preloadedUserInfo.location || ''
+            location: preloadedUserInfo.location || '',
+            countryCode: preloadedUserInfo.countryCode || ''
           });
           console.log('✅ Using pre-loaded user info for authenticated user');
           return;
@@ -47,7 +50,8 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
               name: savedInfo.name || '',
               email: savedInfo.email || '',
               age: savedInfo.age || '',
-              location: savedInfo.location || ''
+              location: savedInfo.location || '',
+              countryCode: savedInfo.countryCode || ''
             });
             console.log('✅ Loaded saved anonymous user info from localStorage');
           }
@@ -76,7 +80,8 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
         await updateUserProfile(user.id, {
           full_name: userInfo.name,
           age: parseInt(userInfo.age) || undefined,
-          location: userInfo.location
+          location: userInfo.location,
+          country_code: userInfo.countryCode
         });
         console.log('✅ User profile updated');
       } else {
@@ -232,17 +237,16 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nơi ở
+                      Quốc gia
                     </label>
-                    <input
-                      type="text"
+                    <CountrySelector
                       value={userInfo.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      onChange={(countryName, countryCode) => {
+                        handleInputChange('location', countryName);
+                        setUserInfo(prev => ({ ...prev, countryCode: countryCode || '' }));
+                      }}
                       disabled={isSubmitting}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-                      }`}
-                      placeholder="Thành phố"
+                      placeholder="Chọn quốc gia"
                     />
                   </div>
                 </div>
