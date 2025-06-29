@@ -218,7 +218,6 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   const [activeTab, setActiveTab] = useState('overview');
   const [realTestHistory, setRealTestHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [showAllTestsModal, setShowAllTestsModal] = useState(false);
   const [userInfo, setUserInfo] = useState<{name: string, age: string, location: string}>({ 
     name: 'Bạn', age: '', location: '' 
   });
@@ -258,7 +257,6 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
   
   // Convert real history to timeline format
   const testHistory = convertRealHistoryToTimeline(realTestHistory, results, 10);
-  const allTestHistory = convertRealHistoryToTimeline(realTestHistory, results);
 
   const TestHistory = () => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -395,12 +393,15 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
               <div className="text-xs text-gray-500 mb-2">
                 Hiển thị 10 bài test gần nhất • Còn {realTestHistory.length - 9} bài test nữa
               </div>
-              <button 
-                onClick={() => setShowAllTestsModal(true)}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
+              <a 
+                href="/test-history"
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm"
               >
-                Xem tất cả {realTestHistory.length + 1} bài test
-              </button>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Xem tất cả {realTestHistory.length + 1} bài test</span>
+              </a>
             </div>
           )}
         </div>
@@ -747,197 +748,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
     }
   };
 
-  const AllTestsModal = () => {
-    // Use all test history data for modal
-    const allTests = allTestHistory.map((test, index) => ({
-      ...test,
-      accuracy: test.isCurrent ? Math.round(results.completionRate * 100) : 
-                Math.round(70 + (test.score - 70) * 0.8) // Estimate accuracy from score
-    }));
 
-    const stats = {
-      total: allTests.length,
-      avgScore: Math.round(allTests.reduce((sum, test) => sum + test.score, 0) / allTests.length),
-      maxScore: Math.max(...allTests.map(test => test.score)),
-      minScore: Math.min(...allTests.map(test => test.score)),
-      totalImprovement: allTests.length > 1 ? allTests[0].score - allTests[allTests.length - 1].score : 0
-    };
-
-    // Close modal on Escape key
-    useEffect(() => {
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          setShowAllTestsModal(false);
-        }
-      };
-      
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }, []);
-
-    return (
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-        onClick={(e) => e.target === e.currentTarget && setShowAllTestsModal(false)}
-      >
-                  <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">Lịch sử IQ Test</h2>
-                <p className="text-blue-100">Tất cả {stats.total} bài test của bạn</p>
-              </div>
-              <button
-                onClick={() => setShowAllTestsModal(false)}
-                className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
-                <div className="text-xl font-bold">{stats.avgScore}</div>
-                <div className="text-sm text-blue-100">Điểm TB</div>
-              </div>
-              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
-                <div className="text-xl font-bold">{stats.maxScore}</div>
-                <div className="text-sm text-blue-100">Cao nhất</div>
-              </div>
-              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
-                <div className="text-xl font-bold">+{stats.totalImprovement}</div>
-                <div className="text-sm text-blue-100">Tiến bộ</div>
-                  </div>
-              <div className="bg-white bg-opacity-10 rounded-lg p-3 text-center">
-                <div className="text-xl font-bold">{stats.total}</div>
-                <div className="text-sm text-blue-100">Tổng test</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[60vh]">
-            <div className="space-y-3">
-              {allTests.map((test, index) => (
-        <motion.div 
-                  key={test.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${
-                    test.isCurrent 
-                      ? 'bg-purple-50 border-purple-200 shadow-sm' 
-                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-                        test.isCurrent ? 'bg-purple-500' : 'bg-gray-400'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">
-                          {test.isCurrent ? 'Hôm nay (Mới nhất)' : 
-                           test.isFirst ? 'Lần đầu tiên' : 
-                           `Test #${stats.total - index}`}
-                        </h4>
-                        <p className="text-sm text-gray-500">{test.date}</p>
-                      </div>
-                      {test.isCurrent && (
-                        <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
-                          Hiện tại
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${
-                        test.isCurrent ? 'text-purple-600' : 'text-gray-700'
-                      }`}>
-                        {test.score}
-                      </div>
-                      <div className="text-xs text-gray-500">IQ Score</div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-blue-600">{test.percentile}%</div>
-                      <div className="text-xs text-gray-500">Percentile</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-green-600">{test.accuracy}%</div>
-                      <div className="text-xs text-gray-500">Chính xác</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-orange-600">
-                        {test.timeTaken > 0 ? formatTimeDisplay(test.timeTaken) : '—'}
-                      </div>
-                      <div className="text-xs text-gray-500">Thời gian</div>
-                    </div>
-                    <div className="text-center">
-                      <div className={`text-lg font-semibold ${
-                        test.improvement > 0 ? 'text-green-600' : 
-                        test.improvement < 0 ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {test.improvement > 0 ? '+' : ''}{test.improvement || '—'}
-                      </div>
-                      <div className="text-xs text-gray-500">Tiến bộ</div>
-                    </div>
-                  </div>
-
-                  {test.improvement > 0 && (
-                    <div className="mt-3 flex items-center space-x-2">
-                      <span className="text-green-600 text-sm">🎉</span>
-                      <span className="text-green-600 text-sm font-medium">
-                        Cải thiện {test.improvement} điểm so với lần trước!
-                      </span>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 border-t">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Tổng cộng {stats.total} bài test • Tiến bộ {stats.totalImprovement} điểm
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowAllTestsModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Đóng
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAllTestsModal(false);
-                    onRetake();
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Làm test mới
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
@@ -964,11 +775,7 @@ export default function ResultComponent({ results, onRetake, onHome }: ResultCom
           </AnimatePresence>
           
 
-          
-          {/* All Tests Modal */}
-          <AnimatePresence>
-            {showAllTestsModal && <AllTestsModal />}
-          </AnimatePresence>
+
         </div>
       </div>
     </div>

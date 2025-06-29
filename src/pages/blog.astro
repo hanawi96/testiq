@@ -1,0 +1,497 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Demo blog data
+const blogPosts = [
+  {
+    id: 1,
+    title: 'Cách tăng IQ hiệu quả: 7 phương pháp khoa học',
+    excerpt: 'Khám phá những phương pháp được chứng minh khoa học để cải thiện trí thông minh và nâng cao khả năng nhận thức của bạn.',
+    content: 'Nghiên cứu cho thấy IQ có thể được cải thiện thông qua các bài tập não bộ, thiền định, và học tập liên tục...',
+    author: 'Dr. Nguyễn Minh',
+    authorAvatar: 'NM',
+    date: '2024-01-15',
+    readTime: '5 phút đọc',
+    category: 'Khoa học',
+    tags: ['IQ', 'Não bộ', 'Học tập'],
+    image: '/api/placeholder/400/240',
+    featured: true
+  },
+  {
+    id: 2,
+    title: 'Hiểu về các loại trí thông minh: Từ IQ đến EQ',
+    excerpt: 'Tìm hiểu về sự khác biệt giữa IQ, EQ, và các dạng trí thông minh khác để phát triển toàn diện bản thân.',
+    content: 'Trí thông minh không chỉ có một dạng. Howard Gardner đã xác định 8 loại trí thông minh khác nhau...',
+    author: 'ThS. Lê Hồng Anh',
+    authorAvatar: 'LA',
+    date: '2024-01-12',
+    readTime: '7 phút đọc',
+    category: 'Tâm lý học',
+    tags: ['IQ', 'EQ', 'Trí thông minh'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 3,
+    title: 'Luyện tập trí nhớ: Kỹ thuật Palace Method',
+    excerpt: 'Học cách sử dụng kỹ thuật cung điện trí nhớ để ghi nhớ thông tin một cách hiệu quả và lâu dài.',
+    content: 'Palace Method là một trong những kỹ thuật ghi nhớ mạnh mẽ nhất, được sử dụng từ thời Hy Lạp cổ đại...',
+    author: 'Gs. Trần Văn Bình',
+    authorAvatar: 'TB',
+    date: '2024-01-10',
+    readTime: '6 phút đọc',
+    category: 'Kỹ thuật',
+    tags: ['Trí nhớ', 'Học tập', 'Kỹ thuật'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 4,
+    title: 'Ảnh hưởng của giấc ngủ đến khả năng nhận thức',
+    excerpt: 'Tìm hiểu tại sao giấc ngủ chất lượng là yếu tố quan trọng để duy trì và cải thiện hiệu suất não bộ.',
+    content: 'Nghiên cứu gần đây cho thấy giấc ngủ đóng vai trò quan trọng trong việc củng cố trí nhớ và tăng cường khả năng học tập...',
+    author: 'Dr. Phạm Thu Hà',
+    authorAvatar: 'PH',
+    date: '2024-01-08',
+    readTime: '4 phút đọc',
+    category: 'Sức khỏe',
+    tags: ['Giấc ngủ', 'Não bộ', 'Sức khỏe'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 5,
+    title: 'Dinh dưỡng cho não: Thực phẩm tăng cường trí tuệ',
+    excerpt: 'Khám phá những thực phẩm giúp nuôi dưỡng não bộ và cải thiện khả năng tập trung, ghi nhớ.',
+    content: 'Não bộ tiêu thụ khoảng 20% năng lượng cơ thể. Việc cung cấp dinh dưỡng phù hợp có thể cải thiện đáng kể hiệu suất nhận thức...',
+    author: 'ThS. Võ Minh Tâm',
+    authorAvatar: 'VT',
+    date: '2024-01-05',
+    readTime: '5 phút đọc',
+    category: 'Dinh dưỡng',
+    tags: ['Dinh dưỡng', 'Não bộ', 'Thực phẩm'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 6,
+    title: 'Stress và trí thông minh: Mối quan hệ phức tạp',
+    excerpt: 'Tìm hiểu cách stress ảnh hưởng đến khả năng nhận thức và các phương pháp quản lý stress hiệu quả.',
+    content: 'Stress vừa có thể là động lực vừa có thể là rào cản đối với hiệu suất nhận thức. Hiểu rõ mối quan hệ này giúp tối ưu hóa khả năng học tập...',
+    author: 'Dr. Hoàng Văn Nam',
+    authorAvatar: 'HN',
+    date: '2024-01-03',
+    readTime: '6 phút đọc',
+    category: 'Tâm lý học',
+    tags: ['Stress', 'Tâm lý', 'Nhận thức'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 7,
+    title: 'Công nghệ và não bộ: Tác động của kỷ nguyên số',
+    excerpt: 'Phân tích cách công nghệ hiện đại ảnh hưởng đến cách chúng ta suy nghĩ và xử lý thông tin.',
+    content: 'Kỷ nguyên số đã thay đổi cách não bộ hoạt động. Việc hiểu những thay đổi này giúp chúng ta sử dụng công nghệ một cách có lợi...',
+    author: 'ThS. Đặng Thị Mai',
+    authorAvatar: 'DM',
+    date: '2024-01-01',
+    readTime: '8 phút đọc',
+    category: 'Công nghệ',
+    tags: ['Công nghệ', 'Não bộ', 'Kỷ nguyên số'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 8,
+    title: 'Thiền định và trí tuệ: Khoa học đằng sau sự tĩnh lặng',
+    excerpt: 'Khám phá những lợi ích được chứng minh khoa học của thiền định đối với khả năng nhận thức và trí thông minh.',
+    content: 'Các nghiên cứu neuroplasticity cho thấy thiền định có thể thay đổi cấu trúc não bộ một cách tích cực...',
+    author: 'Gs. Lý Thanh Sơn',
+    authorAvatar: 'LS',
+    date: '2023-12-28',
+    readTime: '7 phút đọc',
+    category: 'Tâm linh',
+    tags: ['Thiền định', 'Tâm linh', 'Khoa học'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 9,
+    title: 'Trò chơi trí tuệ: Liệu có thực sự hiệu quả?',
+    excerpt: 'Đánh giá khách quan về hiệu quả của các trò chơi rèn luyện trí tuệ và ứng dụng di động.',
+    content: 'Ngành công nghiệp trò chơi trí tuệ trị giá hàng tỷ đô la. Nhưng liệu chúng có thực sự giúp cải thiện IQ?...',
+    author: 'Dr. Ngô Quang Minh',
+    authorAvatar: 'NQ',
+    date: '2023-12-25',
+    readTime: '5 phút đọc',
+    category: 'Giải trí',
+    tags: ['Trò chơi', 'Trí tuệ', 'Ứng dụng'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  },
+  {
+    id: 10,
+    title: 'Tương lai của đo lường trí thông minh',
+    excerpt: 'Nhìn về tương lai: Làm thế nào AI và công nghệ mới sẽ thay đổi cách chúng ta đánh giá trí thông minh.',
+    content: 'Với sự phát triển của AI và machine learning, cách chúng ta hiểu và đo lường trí thông minh đang thay đổi...',
+    author: 'ThS. Bùi Văn Hùng',
+    authorAvatar: 'BH',
+    date: '2023-12-22',
+    readTime: '9 phút đọc',
+    category: 'Tương lai',
+    tags: ['AI', 'Tương lai', 'Đo lường'],
+    image: '/api/placeholder/400/240',
+    featured: false
+  }
+];
+
+// Get unique categories for filter
+const categories = [...new Set(blogPosts.map(post => post.category))];
+
+// Helper function to get category color
+const getCategoryColor = (category: string) => {
+  const colors = {
+    'Khoa học': 'bg-blue-100 text-blue-700',
+    'Tâm lý học': 'bg-purple-100 text-purple-700',
+    'Kỹ thuật': 'bg-green-100 text-green-700',
+    'Sức khỏe': 'bg-red-100 text-red-700',
+    'Dinh dưỡng': 'bg-orange-100 text-orange-700',
+    'Công nghệ': 'bg-indigo-100 text-indigo-700',
+    'Tâm linh': 'bg-pink-100 text-pink-700',
+    'Giải trí': 'bg-yellow-100 text-yellow-700',
+    'Tương lai': 'bg-cyan-100 text-cyan-700'
+  };
+  return colors[category] || 'bg-gray-100 text-gray-700';
+};
+
+// Format date
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+---
+
+<BaseLayout
+  title="Blog - Kiến thức về IQ và Trí thông minh"
+  description="Khám phá những bài viết chuyên sâu về IQ, trí thông minh, và phát triển nhận thức từ các chuyên gia hàng đầu."
+>
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 pt-24 pb-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <!-- Badge -->
+      <div class="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-sm font-medium mb-8">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+        Blog kiến thức
+      </div>
+      
+      <!-- Main heading -->
+      <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+        Blog IQ & Trí tuệ
+      </h1>
+      
+      <!-- Subtitle -->
+      <p class="text-xl md:text-2xl text-gray-600 font-medium mb-4">
+        Khám phá kiến thức chuyên sâu về trí thông minh
+      </p>
+      
+      <p class="text-lg text-gray-500 max-w-2xl mx-auto">
+        Những bài viết được biên soạn bởi các chuyên gia hàng đầu về tâm lý học, khoa học nhận thức và phát triển trí tuệ
+      </p>
+    </div>
+  </section>
+
+  <!-- Categories Filter -->
+  <section class="py-8 bg-white border-b border-gray-100">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <button class="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium transition-colors hover:bg-blue-600">
+          Tất cả
+        </button>
+        {categories.map(category => (
+          <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium transition-colors hover:bg-gray-200">
+            {category}
+          </button>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Post -->
+  {blogPosts.filter(post => post.featured).map(post => (
+    <section class="py-16 bg-white">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl overflow-hidden border border-blue-100">
+          <div class="grid md:grid-cols-2 gap-0">
+            <!-- Content -->
+            <div class="p-8 md:p-12 flex flex-col justify-center">
+              <div class="mb-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mb-4">
+                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  Nổi bật
+                </span>
+                <span class={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(post.category)}`}>
+                  {post.category}
+                </span>
+              </div>
+              
+              <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                {post.title}
+              </h2>
+              
+              <p class="text-gray-600 text-lg mb-6 leading-relaxed">
+                {post.excerpt}
+              </p>
+              
+              <!-- Author & Meta -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                    <span class="text-white font-semibold text-sm">{post.authorAvatar}</span>
+                  </div>
+                  <div>
+                    <div class="font-semibold text-gray-900 text-sm">{post.author}</div>
+                    <div class="text-gray-500 text-xs">{formatDate(post.date)} • {post.readTime}</div>
+                  </div>
+                </div>
+                
+                <a href={`/blog/${post.id}`} class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg">
+                  Đọc thêm
+                  <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+            
+            <!-- Image -->
+            <div class="relative h-64 md:h-auto bg-gradient-to-br from-blue-200 to-indigo-300">
+              <div class="absolute inset-0 flex items-center justify-center">
+                <svg class="w-24 h-24 text-blue-600 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <!-- Blog Posts Grid -->
+  <section class="py-16 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Bài viết mới nhất</h2>
+        <p class="text-gray-600">Cập nhật kiến thức mới nhất về IQ và phát triển trí tuệ</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {blogPosts.filter(post => !post.featured).map(post => (
+          <article class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 group">
+            <!-- Image placeholder -->
+            <div class="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 group-hover:from-blue-200 group-hover:to-indigo-300 transition-all duration-200">
+              <div class="absolute inset-0 flex items-center justify-center">
+                <svg class="w-12 h-12 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+              </div>
+              
+              <!-- Category badge -->
+              <div class="absolute top-4 left-4">
+                <span class={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(post.category)}`}>
+                  {post.category}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-6">
+              <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                {post.title}
+              </h3>
+              
+              <p class="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">
+                {post.excerpt}
+              </p>
+              
+              <!-- Tags -->
+              <div class="flex flex-wrap gap-2 mb-4">
+                {post.tags.slice(0, 2).map(tag => (
+                  <span class="inline-flex px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+              
+              <!-- Author & Meta -->
+              <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div class="flex items-center space-x-2">
+                  <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                    <span class="text-white font-semibold text-xs">{post.authorAvatar}</span>
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900 text-sm">{post.author}</div>
+                    <div class="text-gray-500 text-xs">{formatDate(post.date)}</div>
+                  </div>
+                </div>
+                
+                <div class="text-xs text-gray-500 flex items-center">
+                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  {post.readTime}
+                </div>
+              </div>
+              
+              <!-- Read more link -->
+              <a href={`/blog/${post.id}`} class="block mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">
+                Đọc thêm →
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter Section -->
+  <section class="py-16 bg-white">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100 text-center">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        
+        <h3 class="text-2xl font-bold text-gray-900 mb-4">Đăng ký nhận bài viết mới</h3>
+        <p class="text-gray-600 mb-8 max-w-md mx-auto">
+          Nhận những bài viết mới nhất về IQ và phát triển trí tuệ ngay trong hộp thư của bạn
+        </p>
+        
+        <form class="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+          <input 
+            type="email" 
+            placeholder="Nhập email của bạn"
+            class="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+          />
+          <button 
+            type="submit"
+            class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+          >
+            Đăng ký
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Smooth animations */
+  .fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<script>
+  // Add scroll animations
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('fade-in-up');
+        }, index * 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+  
+  // Observe articles
+  document.querySelectorAll('article').forEach(el => {
+    observer.observe(el);
+  });
+
+  // Category filter functionality
+  const categoryButtons = document.querySelectorAll('button');
+  const articles = document.querySelectorAll('article');
+  
+  categoryButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Update active button
+      categoryButtons.forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white');
+        btn.classList.add('bg-gray-100', 'text-gray-700');
+      });
+      
+      button.classList.remove('bg-gray-100', 'text-gray-700');
+      button.classList.add('bg-blue-500', 'text-white');
+      
+      // Filter logic would go here when connected to real data
+      console.log('Filter by:', button.textContent);
+    });
+  });
+
+  // Newsletter form
+  const newsletterForm = document.querySelector('form');
+  newsletterForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = e.target.querySelector('input[type="email"]').value;
+    
+    // Show success message
+    const button = e.target.querySelector('button');
+    const originalText = button.textContent;
+    
+    button.textContent = 'Đã đăng ký!';
+    button.disabled = true;
+    button.classList.add('bg-green-500', 'hover:bg-green-600');
+    button.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-indigo-600');
+    
+    // Reset after 3 seconds
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.disabled = false;
+      button.classList.remove('bg-green-500', 'hover:bg-green-600');
+      button.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-indigo-600');
+      e.target.reset();
+    }, 3000);
+  });
+</script>
