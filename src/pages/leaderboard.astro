@@ -22,7 +22,7 @@ try {
   // Load song song tất cả data cần thiết
   const [statsResult, fullDataResult] = await Promise.all([
     getDashboardStats(),
-    getLeaderboard(1, 100) // Chỉ load 100 records đầu thay vì 1000
+    getLeaderboard(1, 600, true) // 🎯 SMART: Enable full cache for frontend pagination
   ]);
 
   dashboardStats = statsResult;
@@ -31,13 +31,15 @@ try {
   // Tách data cho từng component
   topTenData = fullDataResult?.data?.slice(0, 10) || [];
   fullLeaderboardData = {
-    data: fullDataResult?.data?.slice(10) || [], // Bỏ top 10
+    data: fullDataResult?.data?.slice(10) || [], // Bỏ top 10, còn lại 590 records
     stats: fullDataResult?.stats,
-    totalPages: Math.ceil((fullDataResult?.data?.length || 0) / 15)
+    totalPages: Math.ceil((fullDataResult?.data?.length - 10 || 0) / 15) // 🔥 FIX: Tính đúng total pages
   };
 
   const loadTime = Date.now() - startTime;
   console.log(`✅ All data loaded in ${loadTime}ms`);
+  console.log(`📊 Total records: ${fullDataResult?.data?.length || 0}`);
+  console.log(`📄 Full leaderboard pages: ${fullLeaderboardData.totalPages}`);
   
 } catch (error) {
   console.error('❌ Lỗi load data:', error);

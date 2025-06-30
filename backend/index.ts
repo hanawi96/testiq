@@ -23,12 +23,19 @@ export * from './types';
 // Export leaderboard services
 export { 
   getLeaderboard, 
+  getScalableLeaderboard,
+  getMaterializedLeaderboard,
+  getMaterializedUserRanking,
+  refreshMaterializedCache,
+  getMaterializedCacheStatus,
   getRecentTopPerformers, 
   getQuickStats,
   getUserLocalRanking,
   clearLeaderboardCache,
+  clearScalableCache,
   preloadLeaderboardData,
-  getCacheStatus 
+  getCacheStatus,
+  getScalableCacheStats
 } from './utils/leaderboard-service';
 export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-service';
 
