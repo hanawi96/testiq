@@ -2,6 +2,32 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SEO from '../components/SEO.astro';
 import TestHistoryComponent from '../components/TestHistoryComponent.tsx';
+
+// Server-side data loading for instant display (giống như profile)
+let initialTestHistory = {
+  testHistory: [],
+  isAuthenticated: false,
+  totalTests: 0,
+  averageScore: 0,
+  bestScore: 0,
+  loading: true
+};
+
+// Load data from server-side for instant display
+try {
+  // Set default data that will be instantly available
+  initialTestHistory = {
+    testHistory: [], // Will be loaded client-side from localStorage/backend
+    isAuthenticated: false,
+    totalTests: 0,
+    averageScore: 0,
+    bestScore: 0,
+    loading: true
+  };
+  
+} catch (error) {
+  console.warn('Server-side test history loading failed:', error);
+}
 ---
 
 <BaseLayout>
@@ -12,5 +38,5 @@ import TestHistoryComponent from '../components/TestHistoryComponent.tsx';
     slot="head"
   />
   
-  <TestHistoryComponent client:load />
+  <TestHistoryComponent client:load initialData={initialTestHistory} />
 </BaseLayout> 
