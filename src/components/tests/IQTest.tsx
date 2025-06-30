@@ -36,8 +36,67 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [savedTimeRemaining, setSavedTimeRemaining] = useState(0);
   const [preloadedUserInfo, setPreloadedUserInfo] = useState<UserInfo | null>(null);
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   
   const { fireSingle } = useConfetti();
+
+
+
+  const playSound = useCallback((type: 'correct' | 'wrong' | 'warning' | 'complete') => {
+    console.log(`🔊 playSound called with type: ${type}`);
+    
+    // ✅ SMART: Create audio context on-demand if not exists
+    let ctx = audioContext;
+    if (!ctx) {
+      console.log('🔊 Creating audio context on-demand...');
+      try {
+        ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(ctx); // Update state for future calls
+        console.log('🎵 Audio context created:', ctx.state);
+      } catch (error) {
+        console.error('❌ Failed to create audio context:', error);
+        return;
+      }
+    }
+
+    try {
+      // Resume context if suspended
+      if (ctx.state === 'suspended') {
+        console.log('🔊 Resuming suspended audio context...');
+        ctx.resume();
+      }
+
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      const configs = {
+        correct: { frequency: 800, duration: 0.15, type: 'sine' as OscillatorType },
+        wrong: { frequency: 800, duration: 0.15, type: 'sine' as OscillatorType },
+        warning: { frequency: 600, duration: 0.1, type: 'triangle' as OscillatorType },
+        complete: { frequency: 1000, duration: 0.4, type: 'sine' as OscillatorType }
+      };
+      
+      const config = configs[type];
+      console.log(`🔊 Playing ${type} sound:`, config);
+      
+      oscillator.frequency.setValueAtTime(config.frequency, ctx.currentTime);
+      oscillator.type = config.type;
+      
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + config.duration);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + config.duration);
+      
+      console.log('✅ Sound should be playing now');
+      
+    } catch (error) {
+      console.error('❌ Error playing sound:', error);
+    }
+  }, [audioContext]);
 
   // Pre-load user profile on component mount for instant popup display
   useEffect(() => {
@@ -227,10 +286,28 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Handle answer selection
   const handleAnswerSelect = useCallback((answerIndex: number) => {
+    console.log(`🎯 handleAnswerSelect called: questionIndex=${currentQuestion}, answerIndex=${answerIndex}`);
+    
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
     setJustAnswered(true);
+    
+    // ✅ SMART: Instant sound feedback
+    const question = questions[currentQuestion];
+    if (question) {
+      const isCorrect = answerIndex === question.correct;
+      console.log(`🎯 Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
+      playSound(isCorrect ? 'correct' : 'wrong');
+      
+      // ✅ Haptic feedback for mobile
+      if (navigator.vibrate) {
+        console.log(`📱 Vibrating: ${isCorrect ? 50 : 100}ms`);
+        navigator.vibrate(isCorrect ? 50 : 100);
+      }
+    } else {
+      console.error('❌ Question not found!');
+    }
     
     // Save state immediately when answer is selected (if test is active)
     if (isActive && startTime) {
@@ -244,7 +321,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       });
       console.log('💾 Saved state after answer selection');
     }
-  }, [answers, currentQuestion, isActive, startTime, timeLimit]);
+  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound]);
 
   // Navigate to next question (smart navigation)
   const nextQuestion = useCallback(() => {
@@ -280,6 +357,9 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     // ✅ STOP TIMER IMMEDIATELY when user clicks Complete
     setIsActive(false);
     
+    // ✅ Play completion sound
+    playSound('complete');
+    
     // Clear saved state when submitting
     clearTestState();
     
@@ -289,7 +369,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       setShowCongratulationsPopup(true);
       setIsSubmitting(false);
     }, 500);
-  }, [isSubmitting, allAnswered]);
+  }, [isSubmitting, allAnswered, playSound]);
 
   // Handle confetti trigger when popup opens
   const handleConfettiTrigger = useCallback(() => {
@@ -345,9 +425,13 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   // Handle time up - shows time up popup
   const handleTimeUp = useCallback(() => {
     setIsActive(false);
+    
+    // ✅ Play warning sound for time up
+    playSound('warning');
+    
     clearTestState(); // Clear saved state when time is up
     setShowTimeUpPopup(true);
-  }, []);
+  }, [playSound]);
 
   // Smart auto-advance logic
   useEffect(() => {

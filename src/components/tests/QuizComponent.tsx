@@ -34,15 +34,106 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
   const [timeStarted] = useState(Date.now());
   const [showTimeWarning, setShowTimeWarning] = useState(false);
 
+  // ✅ ĐƠN GIẢN TUYỆT ĐỐI: Tạo âm thanh bằng Web Audio API + user interaction
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+
+  const initAudio = () => {
+    console.log('🎵 initAudio called, current audioContext:', audioContext);
+    if (!audioContext) {
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        console.log('🎵 Audio context created:', ctx.state);
+        setAudioContext(ctx);
+      } catch (error) {
+        console.error('❌ Failed to create audio context:', error);
+      }
+    }
+  };
+
+  const playSound = (type: 'correct' | 'wrong' | 'warning' | 'complete') => {
+    console.log(`🔊 playSound called with type: ${type}`);
+    console.log(`🔊 audioContext state:`, audioContext?.state);
+    
+    if (!audioContext) {
+      console.log('❌ No audio context available, trying to init...');
+      initAudio();
+      return;
+    }
+
+    try {
+      // Resume context if suspended
+      if (audioContext.state === 'suspended') {
+        console.log('🔊 Resuming suspended audio context...');
+        audioContext.resume();
+      }
+
+      // Tạo âm thanh đơn giản với frequency khác nhau
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Cấu hình âm thanh cho từng loại
+      const configs = {
+        correct: { frequency: 800, duration: 0.15, type: 'sine' as OscillatorType },
+        wrong: { frequency: 300, duration: 0.3, type: 'square' as OscillatorType },
+        warning: { frequency: 600, duration: 0.1, type: 'triangle' as OscillatorType },
+        complete: { frequency: 1000, duration: 0.4, type: 'sine' as OscillatorType }
+      };
+      
+      const config = configs[type];
+      console.log(`🔊 Playing ${type} sound:`, config);
+      
+      oscillator.frequency.setValueAtTime(config.frequency, audioContext.currentTime);
+      oscillator.type = config.type;
+      
+      // Volume control
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); // Tăng volume
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + config.duration);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + config.duration);
+      
+      console.log('✅ Sound should be playing now');
+      
+    } catch (error) {
+      console.error('❌ Error playing sound:', error);
+      console.log(`🔊 Visual fallback: ${type === 'correct' ? '✅' : type === 'wrong' ? '❌' : '🔔'}`);
+    }
+  };
+
   const handleAnswer = (questionId: number, answerIndex: number) => {
+    console.log(`🎯 handleAnswer called: questionId=${questionId}, answerIndex=${answerIndex}`);
     setAnswers(prev => ({ ...prev, [questionId]: answerIndex }));
+    
+    // ✅ SMART: Instant feedback with sound
+    const question = quizData.questions.find(q => q.id === questionId);
+    console.log(`🎯 Found question:`, question);
+    
+    if (question) {
+      const isCorrect = answerIndex === question.correct;
+      console.log(`🎯 Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
+      
+      playSound(isCorrect ? 'correct' : 'wrong');
+      
+      // ✅ SIMPLE: Haptic feedback for mobile
+      if (navigator.vibrate) {
+        console.log(`📱 Vibrating: ${isCorrect ? 50 : 100}ms`);
+        navigator.vibrate(isCorrect ? 50 : 100);
+      }
+    } else {
+      console.error('❌ Question not found!');
+    }
   };
 
   const handleTimeWarning = () => {
     setShowTimeWarning(true);
+    playSound('warning');
   };
 
   const handleTimeUp = () => {
+    playSound('complete');
     calculateResults();
   };
 
@@ -122,6 +213,7 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
         spread: 70,
         origin: { y: 0.6 }
       });
+      playSound('complete');
     }
 
     onComplete(results);
@@ -176,7 +268,7 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
         )}
 
         {/* Question Card */}
-        <div className="mb-8">
+        <div className="mb-8" onClick={initAudio}>
           <QuestionCard
             question={{
               id: currentQ.id,
