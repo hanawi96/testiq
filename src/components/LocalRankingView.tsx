@@ -197,116 +197,121 @@ export default function LocalRankingView({ userId }: Props) {
         </div>
       </div>
 
-      {/* Danh sách xung quanh */}
+      {/* Danh sách xung quanh - Compact Grid Layout */}
       <div className="p-6">
-        <div className="space-y-3">
-          {data.surrounding.map((entry) => {
-            const isCurrentUser = entry.user_id === userId;
+        {(() => {
+          const currentUserIndex = data.surrounding.findIndex(entry => entry.user_id === userId);
+          const aboveUsers = data.surrounding.slice(0, currentUserIndex);
+          const currentUser = data.surrounding[currentUserIndex];
+          const belowUsers = data.surrounding.slice(currentUserIndex + 1);
+          
+          // Ensure we have exactly 4 users above and 4 below if possible
+          const topUsers = aboveUsers.slice(-4);
+          const bottomUsers = belowUsers.slice(0, 4);
+          
+          const UserCard = ({ entry, isCurrentUser = false }: { entry: LocalRankingEntry, isCurrentUser?: boolean }) => {
             const badgeInfo = getBadgeInfo(entry.badge);
             const isTopRank = entry.rank <= 10;
             
-            // Use real age data from database
-            const displayEntry = entry;
-            
             return (
-              <div 
-                key={`${entry.rank}-${entry.user_id || entry.name}`}
-                className={`relative group rounded-xl p-4 border transition-all duration-200 ${
-                  isCurrentUser 
-                    ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 shadow-md ring-2 ring-yellow-200' 
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
-                }`}
-              >
-                {/* Highlight cho user hiện tại */}
+              <div className={`relative rounded-lg p-3 sm:p-4 border transition-all duration-200 ${
+                isCurrentUser 
+                  ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 shadow-md ring-2 ring-yellow-200' 
+                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+              }`}>
                 {isCurrentUser && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">!</span>
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">!</span>
                   </div>
                 )}
                 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* Rank Badge */}
-                    <div className="relative">
-                      <div className={`w-10 h-10 bg-gradient-to-br ${getRankColor(entry.rank, isCurrentUser)} rounded-lg flex items-center justify-center`}>
-                        <span className="text-white font-bold text-sm">#{entry.rank}</span>
-                      </div>
-                      {isTopRank && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs">✨</span>
-                        </div>
+                                 <div className="flex items-center space-x-2 sm:space-x-3">
+                   {/* Responsive Rank */}
+                   <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br ${getRankColor(entry.rank, isCurrentUser)} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                     <span className="text-white font-bold text-xs sm:text-sm">#{entry.rank}</span>
+                   </div>
+                  
+                  {/* User Info - Compact */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-1">
+                      <h4 className={`font-bold text-sm truncate ${isCurrentUser ? 'text-yellow-800' : 'text-gray-900'}`}>
+                        {isCurrentUser ? 'Bạn' : entry.name}
+                      </h4>
+                      {getGenderIcon(entry.gender) && (
+                        <span className="text-xs">{getGenderIcon(entry.gender)}</span>
+                      )}
+                      {entry.age && (
+                        <span className="text-xs bg-gray-200 text-gray-600 px-1 rounded text-center min-w-[20px]">
+                          {entry.age}
+                        </span>
                       )}
                     </div>
                     
-                    {/* User Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 flex-wrap">
-                        <h4 className={`font-bold ${isCurrentUser ? 'text-yellow-800' : 'text-gray-900'}`}>
-                          {isCurrentUser ? `${displayEntry.name} (Bạn)` : displayEntry.name}
-                        </h4>
-                        <div className="flex items-center space-x-1">
-                          {getGenderIcon(displayEntry.gender) && (
-                            <span className="text-sm" title={`Giới tính: ${displayEntry.gender === 'male' ? 'Nam' : displayEntry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
-                              {getGenderIcon(displayEntry.gender)}
-                            </span>
-                          )}
-                          {displayEntry.age && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium" title={`${displayEntry.age} tuổi`}>
-                              {displayEntry.age}
-                            </span>
-                          )}
-                        </div>
-                        {isCurrentUser && (
-                          <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                            Của bạn
-                          </span>
-                        )}
-                        {isTopRank && !isCurrentUser && (
-                          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                            Top {displayEntry.rank <= 5 ? '5' : '10'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1 flex-wrap">
-                        <span className="flex items-center">
-                          <span className="mr-1">📍</span>
-                          {displayEntry.location}
-                        </span>
-                        <span className="hidden sm:inline">•</span>
-                        <span className="flex items-center">
-                          <span className="mr-1">⏰</span>
-                          {formatDate(displayEntry.date)}
-                        </span>
-                        {displayEntry.duration && (
-                          <>
-                            <span className="hidden sm:inline">•</span>
-                            <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(displayEntry.duration)}`}>
-                              <span className="mr-1">⏱️</span>
-                              {formatDuration(displayEntry.duration)}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                                         <div className="flex items-center space-x-1 text-xs text-gray-500 mt-0.5">
+                       <span className="truncate max-w-[60px] sm:max-w-[80px]">{entry.location}</span>
+                       {entry.duration && (
+                         <>
+                           <span className="hidden sm:inline">•</span>
+                           <span className="text-blue-600" title={`Thời gian: ${formatDuration(entry.duration)}`}>
+                             <span className="sm:hidden">⏱️</span>
+                             <span className="hidden sm:inline">⏱️{formatDuration(entry.duration)}</span>
+                             <span className="sm:hidden">{formatDuration(entry.duration)}</span>
+                           </span>
+                         </>
+                       )}
+                     </div>
                   </div>
                   
-                  {/* Score & Badge */}
-                  <div className="text-right">
-                    <div className={`text-xl font-bold mb-1 ${
-                      isCurrentUser ? 'text-yellow-600' : 
-                      isTopRank ? 'text-blue-600' : 'text-gray-700'
-                    }`}>
-                      {displayEntry.score}
-                    </div>
-                    <div className={`text-xs px-2 py-1 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
-                      {badgeInfo.icon} {badgeInfo.label}
-                    </div>
-                  </div>
+                                     {/* Score - Responsive */}
+                   <div className="text-right flex-shrink-0">
+                     <div className={`text-lg sm:text-xl font-bold ${isCurrentUser ? 'text-yellow-600' : 'text-gray-700'}`}>
+                       {entry.score}
+                     </div>
+                     <div className={`text-xs px-1.5 py-0.5 rounded-full bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
+                       {badgeInfo.icon}
+                     </div>
+                   </div>
                 </div>
               </div>
             );
-          })}
-        </div>
+          };
+          
+          return (
+            <div className="space-y-4">
+                             {/* 4 users phía trên - Responsive Grid */}
+               {topUsers.length > 0 && (
+                 <div>
+                   <h4 className="text-sm font-medium text-gray-600 mb-2 text-center">Phía trên bạn</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                     {topUsers.map((entry) => (
+                       <UserCard key={`${entry.rank}-${entry.user_id || entry.name}`} entry={entry} />
+                     ))}
+                   </div>
+                 </div>
+               )}
+              
+              {/* Current User - Full Width */}
+              {currentUser && (
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-600 mb-2 text-center">🎯 Vị trí của bạn</h4>
+                  <UserCard entry={currentUser} isCurrentUser={true} />
+                </div>
+              )}
+              
+                             {/* 4 users phía dưới - Responsive Grid */}
+               {bottomUsers.length > 0 && (
+                 <div>
+                   <h4 className="text-sm font-medium text-gray-600 mb-2 text-center">Phía dưới bạn</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                     {bottomUsers.map((entry) => (
+                       <UserCard key={`${entry.rank}-${entry.user_id || entry.name}`} entry={entry} />
+                     ))}
+                   </div>
+                 </div>
+               )}
+            </div>
+          );
+        })()}
 
         {/* Motivation message */}
         <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
