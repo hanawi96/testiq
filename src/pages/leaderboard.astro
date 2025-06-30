@@ -5,17 +5,46 @@ import LeaderboardStats from '../components/LeaderboardStats.tsx';
 import LocalRankingWrapper from '../components/LocalRankingWrapper.tsx';
 import TopTenLeaderboard from '../components/TopTenLeaderboard.tsx';
 
-// ✅ FAST LOADING: Chỉ load leaderboard data, để stats component tự fetch
+// ✅ SUPER OPTIMIZED: Load tất cả data song song trong 1 lần
 import { getLeaderboard } from '../../backend/utils/leaderboard-service';
+import { getDashboardStats } from '../../backend/utils/dashboard-stats-service';
 
+// 🚀 PARALLEL LOADING: Load tất cả data cần thiết song song
+let dashboardStats;
 let leaderboardData;
+let topTenData;
+let fullLeaderboardData;
 
 try {
-  // Chỉ load leaderboard data cho TopTen và List components
-  leaderboardData = await getLeaderboard();
+  console.log('⚡ Loading all data in parallel...');
+  const startTime = Date.now();
+  
+  // Load song song tất cả data cần thiết
+  const [statsResult, fullDataResult] = await Promise.all([
+    getDashboardStats(),
+    getLeaderboard(1, 100) // Chỉ load 100 records đầu thay vì 1000
+  ]);
+
+  dashboardStats = statsResult;
+  leaderboardData = fullDataResult;
+  
+  // Tách data cho từng component
+  topTenData = fullDataResult?.data?.slice(0, 10) || [];
+  fullLeaderboardData = {
+    data: fullDataResult?.data?.slice(10) || [], // Bỏ top 10
+    stats: fullDataResult?.stats,
+    totalPages: Math.ceil((fullDataResult?.data?.length || 0) / 15)
+  };
+
+  const loadTime = Date.now() - startTime;
+  console.log(`✅ All data loaded in ${loadTime}ms`);
+  
 } catch (error) {
-  console.error('❌ Lỗi load data leaderboard:', error);
+  console.error('❌ Lỗi load data:', error);
+  dashboardStats = null;
   leaderboardData = [];
+  topTenData = [];
+  fullLeaderboardData = { data: [], stats: null, totalPages: 0 };
 }
 
 const getBadgeInfo = (badge: string) => {
@@ -58,15 +87,15 @@ const getGenderIcon = (gender?: string) => {
       
       <p class="text-lg text-gray-600 mb-8">Khám phá những tài năng xuất sắc nhất</p>
 
-      <!-- ✅ SKELETON LOADING: Component tự fetch data -->
-      <LeaderboardStats client:load />
+      <!-- ✅ INSTANT DISPLAY: Có initialStats từ server -->
+      <LeaderboardStats client:load initialStats={dashboardStats} />
     </div>
   </section>
 
   <!-- Top 10 Leaderboard Section -->
   <section class="bg-white py-8">
     <div class="max-w-6xl mx-auto px-4">
-      <TopTenLeaderboard client:load initialData={leaderboardData} />
+      <TopTenLeaderboard client:load initialData={topTenData} />
     </div>
   </section>
 
@@ -80,8 +109,8 @@ const getGenderIcon = (gender?: string) => {
   <!-- Optimized Full Leaderboard -->
   <section id="full-leaderboard" class="py-8 bg-gray-50 border-t border-gray-200">
     <div class="max-w-6xl mx-auto px-4">
-      <!-- Pass initial data to avoid duplicate loading -->
-      <LeaderboardList client:load initialData={leaderboardData} />
+      <!-- ✅ OPTIMIZED: Pass pre-processed data -->
+      <LeaderboardList client:load initialData={fullLeaderboardData} />
     </div>
   </section>
 </BaseLayout>

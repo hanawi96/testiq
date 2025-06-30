@@ -22,8 +22,6 @@ interface Props {
   initialData?: LeaderboardData | null;
 }
 
-
-
 // Optimized badge info with memoization
 const getBadgeInfo = (badge: string) => {
   switch(badge) {
@@ -68,18 +66,15 @@ interface Filters {
 }
 
 export default function LeaderboardList({ initialData }: Props) {
-  // Load ALL data once, then paginate on client
+  // ✅ OPTIMIZED: Use initialData directly, no additional loading
   const [allData, setAllData] = useState<LeaderboardEntry[]>(() => {
-    if (initialData?.data) {
-      return initialData.data.filter(entry => entry.rank > 10);
-    }
-    return [];
+    return initialData?.data || [];
   });
   
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [hasLoadedFresh, setHasLoadedFresh] = useState(false);
+  const [hasLoadedFresh, setHasLoadedFresh] = useState(!!initialData?.data?.length);
   
   // 🚀 FILTER STATES
   const [filters, setFilters] = useState<Filters>({
@@ -143,56 +138,25 @@ export default function LeaderboardList({ initialData }: Props) {
   // Apply filters to data
   const filteredData = useMemo(() => filterData(allData), [allData, filterData]);
 
-  // Force clear cache first
+  // ✅ OPTIMIZED: Only load more data if we don't have enough
   useEffect(() => {
-    const clearCache = async () => {
-      try {
-        const backend = await import('../../backend');
-        if (backend.clearLeaderboardCache) {
-          backend.clearLeaderboardCache();
-        }
-      } catch (e) {
-        console.warn('Cannot clear cache:', e);
-      }
-    };
-    clearCache();
-  }, []);
-
-  // Load ALL leaderboard data once
-  useEffect(() => {
-    if (loading || hasLoadedFresh) return;
+    // If we have initialData, don't load more unless user requests
+    if (hasLoadedFresh || loading) return;
     
-    const loadAllData = async () => {
+    const loadMoreData = async () => {
       setLoading(true);
-
       
       try {
         const backend = await import('../../backend');
         if (!backend) throw new Error('Không thể kết nối server');
 
-        // Load all pages (no limit - get everything)
-        const allResults = [];
-        let page = 1;
+        // Load additional pages if needed
+        const result = await backend.getLeaderboard(1, 200); // Load more if needed
         
-        while (page <= 50) { // Increased limit to 50 pages
-          const result = await backend.getLeaderboard(page, itemsPerPage);
-          
-          if (result.error || !result.data?.length) {
-            break;
-          }
-          
-          allResults.push(...result.data);
-          page++;
-          
-          // Safety check
-          if (allResults.length > 1000) {
-            break;
-          }
+        if (result.data?.length) {
+          setAllData(result.data.filter(entry => entry.rank > 10));
+          setHasLoadedFresh(true);
         }
-        
-        const filtered = allResults.filter(entry => entry.rank > 10);
-        setAllData(filtered);
-        setHasLoadedFresh(true);
         
       } catch (err: any) {
         setError(err.message || 'Lỗi tải dữ liệu');
@@ -201,8 +165,8 @@ export default function LeaderboardList({ initialData }: Props) {
       }
     };
 
-    loadAllData();
-  }, [initialData]);
+    loadMoreData();
+  }, [hasLoadedFresh, loading]);
 
   // Client-side pagination with filters (instant!)
   const { totalPages, currentItems, totalFiltered } = useMemo(() => {
@@ -247,8 +211,8 @@ export default function LeaderboardList({ initialData }: Props) {
 
   return (
     <div className="w-full">
-      {/* Loading State */}
-      {loading && (
+      {/* Loading State - Only show if no initial data */}
+      {loading && !hasLoadedFresh && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -334,7 +298,6 @@ export default function LeaderboardList({ initialData }: Props) {
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     )}
                   </button>
-
                 </div>
               </div>
 
@@ -437,18 +400,15 @@ export default function LeaderboardList({ initialData }: Props) {
             </div>
           </div>
           
-          {/* List */}
+          {/* List - Show current page items */}
           <div className="p-6 space-y-3">
             {currentItems.length > 0 ? currentItems.map((entry, index) => {
               const badgeInfo = getBadgeInfo(entry.badge);
               const isTopTier = entry.rank <= 10;
               
-              // Use real age data from database
-              const displayEntry = entry;
-              
-                              return (
-                  <div 
-                    key={`${displayEntry.rank}-${displayEntry.score}`}
+              return (
+                <div 
+                  key={`${entry.rank}-${entry.score}`}
                   className={`group bg-white rounded-xl p-4 border border-gray-200 transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
                     isTopTier ? 'border-blue-200 bg-blue-50/30' : ''
                   }`}
@@ -457,8 +417,8 @@ export default function LeaderboardList({ initialData }: Props) {
                     <div className="flex items-center space-x-4">
                       {/* Rank Badge */}
                       <div className="relative">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(displayEntry.rank)} rounded-xl flex items-center justify-center`}>
-                          <span className="text-white font-bold text-sm">#{displayEntry.rank}</span>
+                        <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(entry.rank)} rounded-xl flex items-center justify-center`}>
+                          <span className="text-white font-bold text-sm">#{entry.rank}</span>
                         </div>
                         {isTopTier && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
@@ -470,34 +430,34 @@ export default function LeaderboardList({ initialData }: Props) {
                       {/* User Info */}
                       <div>
                         <div className="flex items-center space-x-2 flex-wrap">
-                          <h4 className="font-bold text-gray-900">{displayEntry.name}</h4>
+                          <h4 className="font-bold text-gray-900">{entry.name}</h4>
                           <div className="flex items-center space-x-1">
-                            {getGenderIcon(displayEntry.gender) && (
-                              <span className="text-sm" title={`Giới tính: ${displayEntry.gender === 'male' ? 'Nam' : displayEntry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
-                                {getGenderIcon(displayEntry.gender)}
+                            {getGenderIcon(entry.gender) && (
+                              <span className="text-sm" title={`Giới tính: ${entry.gender === 'male' ? 'Nam' : entry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
+                                {getGenderIcon(entry.gender)}
                               </span>
                             )}
-                            {displayEntry.age && (
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium" title={`${displayEntry.age} tuổi`}>
-                                {formatAge(displayEntry.age)}
+                            {entry.age && (
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium" title={`${entry.age} tuổi`}>
+                                {formatAge(entry.age)}
                               </span>
                             )}
                           </div>
                           {isTopTier && (
                             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                              Top {displayEntry.rank <= 5 ? '5' : '10'}
+                              Top {entry.rank <= 5 ? '5' : '10'}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1 flex-wrap">
                           <span className="flex items-center">
                             <span className="mr-1">📍</span>
-                            {displayEntry.location}
+                            {entry.location}
                           </span>
                           <span className="hidden sm:inline">•</span>
                           <span className="flex items-center">
                             <span className="mr-1">⏰</span>
-                            {formatDate(displayEntry.date)}
+                            {formatDate(entry.date)}
                           </span>
                         </div>
                       </div>
@@ -505,8 +465,8 @@ export default function LeaderboardList({ initialData }: Props) {
                     
                     {/* Score & Badge */}
                     <div className="text-right">
-                      <div className={`text-2xl font-bold ${isTopTier ? 'text-blue-600' : 'text-gray-700'} mb-1`}>
-                        {displayEntry.score}
+                      <div className="text-xl font-bold text-gray-700 mb-1">
+                        {entry.score}
                       </div>
                       <div className={`text-xs px-2 py-1 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
                         {badgeInfo.icon} {badgeInfo.label}
@@ -516,76 +476,56 @@ export default function LeaderboardList({ initialData }: Props) {
                 </div>
               );
             }) : (
-              // Empty filter results
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🔍</span>
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Không tìm thấy kết quả</h3>
-                <p className="text-gray-600 mb-4">Không có người dùng nào phù hợp với bộ lọc đã chọn</p>
-                <button
-                  onClick={clearFilters}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Xóa bộ lọc
-                </button>
+              <div className="text-center py-8 text-gray-500">
+                Không có kết quả phù hợp với bộ lọc
               </div>
             )}
           </div>
 
-          {/* Simplified Pagination */}
-          {allData.length > 0 && (
-            <div className="bg-gray-50 p-4 border-t border-gray-200">
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                  Trang {currentPage}/{totalPages} • {totalFiltered} / {allData.length} kết quả
-                  {totalFiltered < allData.length && (
-                    <span className="text-blue-600 ml-1">(đã lọc)</span>
-                  )}
+                <div className="text-sm text-gray-600">
+                  Trang {currentPage} / {totalPages} ({totalFiltered} kết quả)
                 </div>
-                
-                {totalPages > 1 ? (
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ←
-                    </button>
-
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const page = i + Math.max(1, currentPage - 2);
-                      if (page > totalPages) return null;
-                      
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`w-8 h-8 flex items-center justify-center text-sm rounded ${
-                            currentPage === page
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
-
-                    <button
-                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className="w-8 h-8 flex items-center justify-center text-sm text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-400">
-                    Tất cả kết quả
-                  </div>
-                )}
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ← Trước
+                  </button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const page = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                    if (page > totalPages) return null;
+                    
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                          page === currentPage
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                  
+                  <button
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Sau →
+                  </button>
+                </div>
               </div>
             </div>
           )}
