@@ -5,30 +5,16 @@ import LeaderboardStats from '../components/LeaderboardStats.tsx';
 import LocalRankingWrapper from '../components/LocalRankingWrapper.tsx';
 import TopTenLeaderboard from '../components/TopTenLeaderboard.tsx';
 
-// ✅ FIXED: Clear cache để dùng logic mới
-import { clearDashboardCache } from '../../backend/utils/dashboard-stats-service';
-clearDashboardCache();
-
-// Load dữ liệu dashboard stats tối ưu
-import { getDashboardStats } from '../../backend/utils/dashboard-stats-service';
+// ✅ FAST LOADING: Chỉ load leaderboard data, để stats component tự fetch
 import { getLeaderboard } from '../../backend/utils/leaderboard-service';
 
-let dashboardStats;
 let leaderboardData;
 
 try {
-  // Load song song để tối ưu hiệu suất
-  const [statsResult, leaderboardResult] = await Promise.all([
-    getDashboardStats(),
-    getLeaderboard()
-  ]);
-
-  dashboardStats = statsResult;
-  leaderboardData = leaderboardResult;
-
+  // Chỉ load leaderboard data cho TopTen và List components
+  leaderboardData = await getLeaderboard();
 } catch (error) {
   console.error('❌ Lỗi load data leaderboard:', error);
-  dashboardStats = null;
   leaderboardData = [];
 }
 
@@ -72,8 +58,8 @@ const getGenderIcon = (gender?: string) => {
       
       <p class="text-lg text-gray-600 mb-8">Khám phá những tài năng xuất sắc nhất</p>
 
-      <!-- Optimized Stats Component -->
-      <LeaderboardStats client:load initialStats={dashboardStats} />
+      <!-- ✅ SKELETON LOADING: Component tự fetch data -->
+      <LeaderboardStats client:load />
     </div>
   </section>
 

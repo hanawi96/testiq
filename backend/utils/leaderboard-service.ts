@@ -122,31 +122,45 @@ export async function getLeaderboard(
       console.log('🔄 Fetching leaderboard...');
       
       const result = await retryOperation(async () => {
-        // 🚀 ULTRA-OPTIMIZED: Select only essential fields for leaderboard display
-        const { data: results, error } = await supabase
+                // ✅ SIMPLE & SMART: Chỉ group by email - đơn giản nhất!
+        const { data: fallbackResults, error: fallbackError } = await supabase
           .from('user_test_results')
           .select(`
-            user_id,
             score,
             tested_at,
             name,
             country,
             gender,
-            age
+            age,
+            email,
+            user_id
           `)
           .order('score', { ascending: false });
 
-        if (error) {
-          console.error('❌ Supabase error:', error);
-          throw error;
-        }
+        if (fallbackError) throw fallbackError;
 
-        console.log('🗄️ Database query result:', {
-          totalRows: results?.length || 0,
-          sampleScores: results?.slice(0, 5).map(r => r.score) || []
+        // ✅ SUPER SIMPLE: Group by email - lấy điểm cao nhất mỗi email
+        const emailBestScores = new Map<string, any>();
+        for (const record of fallbackResults || []) {
+          const email = record.email;
+          if (!email) continue; // Bỏ qua records không có email
+          
+          const existing = emailBestScores.get(email);
+          if (!existing || record.score > existing.score) {
+            emailBestScores.set(email, record);
+          }
+        }
+        
+        const uniqueResults = Array.from(emailBestScores.values())
+          .sort((a: any, b: any) => b.score - a.score);
+
+        console.log('🗄️ Email-based deduplication result:', {
+          originalRows: fallbackResults?.length || 0,
+          uniqueEmails: uniqueResults.length,
+          sampleScores: uniqueResults.slice(0, 5).map((r: any) => r.score) || []
         });
 
-        return results;
+        return uniqueResults;
       });
 
       if (!result?.length) {

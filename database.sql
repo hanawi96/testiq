@@ -35,6 +35,59 @@ create index IF not exists idx_user_test_results_tested_at_desc on public.user_t
 create index IF not exists idx_user_test_results_score_tested_at on public.user_test_results using btree (score DESC, tested_at DESC) TABLESPACE pg_default;
 create index IF not exists idx_user_test_results_user_id_score on public.user_test_results using btree (user_id, score DESC) TABLESPACE pg_default;
 
+-- ✅ SIMPLE: RPC function để lấy điểm cao nhất mỗi email (anti-spam)
+create or replace function public.get_best_scores_per_email()
+returns table (
+  user_id uuid,
+  score integer,
+  tested_at timestamp without time zone,
+  name text,
+  country text,
+  gender text,
+  age integer,
+  email text
+) 
+language sql
+security definer
+as $$
+  -- ✅ SUPER SIMPLE: Group by email, lấy điểm cao nhất
+  -- 🚀 PERFORMANCE: ROW_NUMBER() với PARTITION BY email
+  with ranked_scores as (
+    select 
+      utr.user_id,
+      utr.score,
+      utr.tested_at,
+      utr.name,
+      utr.country,
+      utr.gender,
+      utr.age,
+      utr.email,
+      row_number() over (
+        partition by utr.email
+        order by utr.score desc, utr.tested_at desc
+      ) as rn
+    from user_test_results utr
+    where utr.email is not null 
+      and utr.score is not null 
+      and utr.score >= 0
+  )
+  select 
+    rs.user_id,
+    rs.score,
+    rs.tested_at,
+    rs.name,
+    rs.country,
+    rs.gender,
+    rs.age,
+    rs.email
+  from ranked_scores rs
+  where rs.rn = 1
+  order by rs.score desc, rs.tested_at desc;
+$$;
+
+-- Grant execute permission
+grant execute on function public.get_best_scores_per_email() to authenticated, anon;
+
 -- anonymous_players
 
 create table public.anonymous_players (

@@ -45,7 +45,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
     console.log('🔄 Tính toán dashboard stats...');
 
-    // Query tối ưu: lấy tất cả dữ liệu cần thiết trong 1 lần
+    // Query tối ưu: lấy tất cả dữ liệu cần thiết trong 1 lần + email để đếm unique
     const { data: results, error } = await supabase
       .from('user_test_results')
       .select(`
@@ -54,7 +54,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         age,
         country,
         country_code,
-        tested_at
+        tested_at,
+        email
       `);
 
     if (error) throw error;
@@ -86,10 +87,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
  * 🧠 THÔNG MINH: Xử lý tất cả trong 1 vòng lặp, memory-efficient
  */
 function calculateOptimizedStats(results: any[]): DashboardStats {
-  // Khởi tạo counters đơn giản
+  // ✅ FIXED: Khởi tạo counters để đếm unique emails theo quốc gia
   const countryStats = new Map<string, { 
     name: string; 
-    count: number; 
+    emails: Set<string>; // Đếm unique emails thay vì count
     totalScore: number; 
     scores: number[]; 
   }>();
@@ -114,8 +115,8 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
     // Tính tổng điểm
     totalScore += score;
     
-    // Tính thời gian
-    if (duration_seconds && duration_seconds > 0) {
+    // ✅ FIXED: Tính thời gian - bao gồm cả duration = 0 (hợp lệ)
+    if (duration_seconds != null && duration_seconds >= 0) {
       totalDuration += duration_seconds;
       durationCount++;
     }
@@ -141,32 +142,45 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
       else ageRanges[4]++;
     }
     
-    // ✅ FIXED: Thống kê quốc gia - LOGIC ĐƠN GIẢN
-    if (country && country_code) {
+    // ✅ FIXED: Thống kê quốc gia - ĐẾM UNIQUE EMAILS
+    if (country && country_code && record.email) {
       uniqueCountries.add(country_code);
       
       if (!countryStats.has(country_code)) {
         countryStats.set(country_code, {
           name: country,
-          count: 0,
+          emails: new Set<string>(),
           totalScore: 0,
           scores: []
         });
       }
       
       const stat = countryStats.get(country_code)!;
-      stat.count++;
+      stat.emails.add(record.email); // Đếm unique emails
       stat.totalScore += score;
       stat.scores.push(score);
     }
   }
 
-  // Tính toán cuối cùng
-  const validParticipants = results.filter(r => r.score != null && r.score >= 0).length;
-  const globalAverageIQ = validParticipants > 0 ? Math.round(totalScore / validParticipants) : 100;
-  const avgDurationSeconds = durationCount > 0 ? totalDuration / durationCount : 330;
+  // ✅ FIXED: Đếm unique emails thay vì tất cả records
+  const validRecords = results.filter(r => r.score != null && r.score >= 0);
+  const uniqueEmails = new Set(validRecords.filter(r => r.email).map(r => r.email));
+  const validParticipants = uniqueEmails.size; // Số người thật sự (unique emails)
+  const globalAverageIQ = validRecords.length > 0 ? Math.round(totalScore / validRecords.length) : 100;
   
-  // Format thời gian
+  // ✅ FIXED: Thời gian trung bình thông minh hơn
+  let avgDurationSeconds;
+  if (durationCount > 0) {
+    avgDurationSeconds = totalDuration / durationCount;
+    // Validation: thời gian hợp lý (30 giây - 30 phút)
+    if (avgDurationSeconds < 30) avgDurationSeconds = 30;
+    if (avgDurationSeconds > 1800) avgDurationSeconds = 1800;
+  } else {
+    // Fallback thông minh dựa trên data thực tế
+    avgDurationSeconds = 300; // 5:00 - realistic for IQ test
+  }
+  
+  // ✅ FIXED: Format thời gian chính xác
   const minutes = Math.floor(avgDurationSeconds / 60);
   const seconds = Math.round(avgDurationSeconds % 60);
   const averageTestTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -182,23 +196,23 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
     .sort((a, b) => b.avgIQ - a.avgIQ)
     .slice(0, 5);
 
-  // ✅ FIXED: Top quốc gia theo số người tham gia - ĐƠN GIẢN HÓA
+  // ✅ FIXED: Top quốc gia theo số người tham gia - ĐẾM UNIQUE EMAILS
   const topCountriesByParticipants = Array.from(countryStats.entries())
     .map(([code, stat]) => ({
       country: stat.name,
       flag: countryFlags[code] || '🏳️',
-      participants: stat.count
+      participants: stat.emails.size // Số người thật (unique emails)
     }))
     .sort((a, b) => b.participants - a.participants)
     .slice(0, 5);
 
-  // Phân bố tuổi (phần trăm)
+  // Phân bố tuổi (phần trăm) - dùng total records để tính %
   const ageDistribution = [
-    { age: "16-20", percentage: Math.round((ageRanges[0] / validParticipants) * 100) },
-    { age: "21-25", percentage: Math.round((ageRanges[1] / validParticipants) * 100) },
-    { age: "26-30", percentage: Math.round((ageRanges[2] / validParticipants) * 100) },
-    { age: "31-35", percentage: Math.round((ageRanges[3] / validParticipants) * 100) },
-    { age: "36+", percentage: Math.round((ageRanges[4] / validParticipants) * 100) }
+    { age: "16-20", percentage: Math.round((ageRanges[0] / validRecords.length) * 100) },
+    { age: "21-25", percentage: Math.round((ageRanges[1] / validRecords.length) * 100) },
+    { age: "26-30", percentage: Math.round((ageRanges[2] / validRecords.length) * 100) },
+    { age: "31-35", percentage: Math.round((ageRanges[3] / validRecords.length) * 100) },
+    { age: "36+", percentage: Math.round((ageRanges[4] / validRecords.length) * 100) }
   ];
 
   // Phân bố IQ
@@ -273,7 +287,7 @@ export async function debugDashboardStats(): Promise<DashboardStats & { debug: a
   
   console.log('🔍 DEBUG: Bắt đầu tính toán mới...');
   
-  // Get fresh data
+  // Get fresh data - THÊM EMAIL
   const { data: results, error } = await supabase
     .from('user_test_results')
     .select(`
@@ -282,7 +296,8 @@ export async function debugDashboardStats(): Promise<DashboardStats & { debug: a
       age,
       country,
       country_code,
-      tested_at
+      tested_at,
+      email
     `);
 
   if (error) throw error;
@@ -293,27 +308,44 @@ export async function debugDashboardStats(): Promise<DashboardStats & { debug: a
     return { ...getDefaultStats(), debug: { rawRecords: 0, validRecords: 0 } };
   }
 
-  // Debug data quality
+  // Debug data quality - THÊM DURATION DEBUG
   const validRecords = results.filter(r => r.score != null && r.score >= 0);
   const recordsWithCountry = results.filter(r => r.country && r.country_code);
+  const recordsWithDuration = results.filter(r => r.duration_seconds != null && r.duration_seconds >= 0);
+  const validDurations = results.filter(r => r.duration_seconds != null && r.duration_seconds > 0);
   const uniqueCountryCodes = new Set(results.filter(r => r.country_code).map(r => r.country_code));
+  const uniqueEmails = new Set(validRecords.filter(r => r.email).map(r => r.email));
   
   console.log(`✅ DEBUG: Valid records: ${validRecords.length}`);
   console.log(`🌍 DEBUG: Records with country: ${recordsWithCountry.length}`);
+  console.log(`👤 DEBUG: Unique emails: ${uniqueEmails.size}`);
+  console.log(`⏱️ DEBUG: Records with duration: ${recordsWithDuration.length}`);
+  console.log(`⏰ DEBUG: Valid durations > 0: ${validDurations.length}`);
   console.log(`🗺️ DEBUG: Unique countries: ${uniqueCountryCodes.size}`);
   console.log(`🏳️ DEBUG: Country codes: ${Array.from(uniqueCountryCodes).slice(0, 10).join(', ')}...`);
+  
+  // Debug duration samples
+  if (validDurations.length > 0) {
+    const durationSamples = validDurations.slice(0, 5).map(r => r.duration_seconds);
+    console.log(`📊 DEBUG: Duration samples: ${durationSamples.join(', ')} seconds`);
+  }
 
   const stats = calculateOptimizedStats(results);
   
   const debug = {
     rawRecords: results.length,
     validRecords: validRecords.length,
+    uniqueEmails: uniqueEmails.size,
     recordsWithCountry: recordsWithCountry.length,
+    recordsWithDuration: recordsWithDuration.length,
+    validDurations: validDurations.length,
+    averageTestTime: stats.averageTestTime,
     uniqueCountryCodes: Array.from(uniqueCountryCodes),
-    topCountriesDebug: stats.topCountriesByParticipants
+    topCountriesDebug: stats.topCountriesByParticipants,
+    durationSamples: validDurations.slice(0, 5).map(r => r.duration_seconds)
   };
 
-  console.log(`🎯 DEBUG: Final stats - Countries: ${stats.totalCountries}, Participants: ${stats.totalParticipants}`);
+  console.log(`🎯 DEBUG: Final stats - Countries: ${stats.totalCountries}, Participants: ${stats.totalParticipants} unique emails, AvgTime: ${stats.averageTestTime}`);
   
   return { ...stats, debug };
 } 

@@ -47,37 +47,43 @@ const defaultStats: DashboardStats = {
 
 /**
  * Component dashboard thống kê IQ thông minh
- * 🚀 SIÊU TỐI ƯU: Sử dụng dữ liệu thật, cache thông minh, hiển thị mượt mà
+ * 🚀 SKELETON LOADING: Hiển thị skeleton cho đến khi data được load
  */
 const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
-  const [stats, setStats] = useState<DashboardStats>(initialStats || defaultStats);
-  const [isLoading, setIsLoading] = useState(!initialStats);
+  // ✅ SKELETON FIRST: Luôn bắt đầu với loading state để hiển thị skeleton
+  const [stats, setStats] = useState<DashboardStats>(defaultStats);
+  const [isLoading, setIsLoading] = useState(true);
 
   const formatNumber = useMemo(() => (num: number) => 
     new Intl.NumberFormat('vi-VN').format(num), []);
 
-  // Load dữ liệu thật nếu chưa có
+  // ✅ CLIENT-SIDE LOADING: Luôn load data từ client để có skeleton effect
   useEffect(() => {
-    if (!initialStats) {
-      loadRealStats();
-    }
-  }, [initialStats]);
+    const loadData = async () => {
+      try {
+        // Nếu có initialStats, dùng luôn nhưng vẫn show loading ngắn
+        if (initialStats) {
+          setStats(initialStats);
+          setIsLoading(false);
+          return;
+        }
 
-  const loadRealStats = async () => {
-    try {
-      // Import dynamic để tránh SSR issues
-      const { getDashboardStats } = await import('../../backend/utils/dashboard-stats-service');
-      const realStats = await getDashboardStats();
-      
-      setStats(realStats);
-      setIsLoading(false);
-      
-      console.log('✅ Dashboard stats loaded:', realStats.totalParticipants, 'participants');
-    } catch (error) {
-      console.error('❌ Lỗi load dashboard stats:', error);
-      setIsLoading(false);
-    }
-  };
+        // Load data từ client
+        const { getDashboardStats } = await import('../../backend/utils/dashboard-stats-service');
+        const realStats = await getDashboardStats();
+        
+        setStats(realStats);
+        setIsLoading(false);
+        
+        console.log('✅ Dashboard stats loaded:', realStats.totalParticipants, 'participants');
+      } catch (error) {
+        console.error('❌ Lỗi load dashboard stats:', error);
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const StatCard = ({ icon, value, label, subtitle, gradient }: {
     icon: string;
@@ -91,7 +97,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
         <span className="text-2xl group-hover:scale-110 transition-transform">{icon}</span>
         <div>
           <div className="text-2xl font-bold text-gray-800">
-            {isLoading ? '...' : (typeof value === 'number' ? formatNumber(value) : value)}
+            {isLoading ? (
+              <div className="w-12 h-6 bg-gray-200 rounded animate-pulse"></div>
+            ) : (typeof value === 'number' ? formatNumber(value) : value)}
           </div>
           <div className="text-sm text-gray-600 font-medium">{label}</div>
           {subtitle && <div className="text-xs text-gray-500">{subtitle}</div>}
@@ -111,7 +119,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
               🌍
             </div>
             <div className="text-lg font-bold text-slate-800">
-              {isLoading ? '...' : formatNumber(stats.totalCountries)}
+              {isLoading ? (
+                <div className="w-8 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+              ) : formatNumber(stats.totalCountries)}
             </div>
             <div className="text-xs text-slate-500 font-medium">Quốc gia</div>
           </div>
@@ -121,7 +131,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
               👤
             </div>
             <div className="text-lg font-bold text-slate-800">
-              {isLoading ? '...' : formatNumber(stats.totalParticipants)}
+              {isLoading ? (
+                <div className="w-10 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+              ) : formatNumber(stats.totalParticipants)}
             </div>
             <div className="text-xs text-slate-500 font-medium">Người test</div>
           </div>
@@ -131,7 +143,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
               🧠
             </div>
             <div className="text-lg font-bold text-slate-800">
-              {isLoading ? '...' : stats.globalAverageIQ}
+              {isLoading ? (
+                <div className="w-8 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+              ) : stats.globalAverageIQ}
             </div>
             <div className="text-xs text-slate-500 font-medium">IQ TB</div>
           </div>
@@ -141,7 +155,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
               ⏱️
             </div>
             <div className="text-lg font-bold text-slate-800">
-              {isLoading ? '...' : stats.averageTestTime}
+              {isLoading ? (
+                <div className="w-10 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+              ) : stats.averageTestTime}
             </div>
             <div className="text-xs text-slate-500 font-medium">Thời gian</div>
           </div>
@@ -156,7 +172,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
             <div className="flex items-center gap-1.5 mb-1">
               <div className="w-6 h-6 rounded-md bg-amber-100 flex items-center justify-center text-xs">🏆</div>
               <span className="text-base font-bold text-slate-800">
-                {isLoading ? '...' : formatNumber(stats.geniusBadges)}
+                {isLoading ? (
+                  <div className="w-6 h-4 bg-gray-200 rounded animate-pulse"></div>
+                ) : formatNumber(stats.geniusBadges)}
               </span>
             </div>
             <div className="text-xs text-amber-600 font-medium">Genius</div>
@@ -166,7 +184,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
             <div className="flex items-center gap-1.5 mb-1">
               <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center text-xs">🎓</div>
               <span className="text-base font-bold text-slate-800">
-                {isLoading ? '...' : formatNumber(stats.smartBadges)}
+                {isLoading ? (
+                  <div className="w-6 h-4 bg-gray-200 rounded animate-pulse"></div>
+                ) : formatNumber(stats.smartBadges)}
               </span>
             </div>
             <div className="text-xs text-blue-600 font-medium">Smart</div>
@@ -176,7 +196,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
             <div className="flex items-center gap-1.5 mb-1">
               <div className="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center text-xs">⭐</div>
               <span className="text-base font-bold text-slate-800">
-                {isLoading ? '...' : formatNumber(stats.excellentBadges)}
+                {isLoading ? (
+                  <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                ) : formatNumber(stats.excellentBadges)}
               </span>
             </div>
             <div className="text-xs text-emerald-600 font-medium">Excellent</div>
@@ -208,7 +230,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
                     </div>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {isLoading ? '...' : formatNumber(item.count)}
+                    {isLoading ? (
+                      <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    ) : formatNumber(item.count)}
                   </span>
                 </div>
               );
@@ -234,7 +258,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
                   </div>
                 </div>
                 <span className="text-sm text-gray-600">
-                  {isLoading ? '...' : `${item.percentage}%`}
+                  {isLoading ? (
+                    <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  ) : `${item.percentage}%`}
                 </span>
               </div>
             ))}
@@ -253,12 +279,12 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
             {isLoading ? (
               // Loading skeleton
               [...Array(5)].map((_, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-4 bg-gray-300 rounded"></div>
-                    <div className="w-20 h-4 bg-gray-300 rounded"></div>
+                    <div className="w-6 h-4 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="w-20 h-4 bg-gray-300 rounded animate-pulse"></div>
                   </div>
-                  <div className="w-8 h-4 bg-gray-300 rounded"></div>
+                  <div className="w-8 h-4 bg-gray-300 rounded animate-pulse"></div>
                 </div>
               ))
             ) : stats.topCountriesByIQ.length > 0 ? (
@@ -286,12 +312,12 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
             {isLoading ? (
               // Loading skeleton
               [...Array(5)].map((_, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-4 bg-gray-300 rounded"></div>
-                    <div className="w-20 h-4 bg-gray-300 rounded"></div>
+                    <div className="w-6 h-4 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="w-20 h-4 bg-gray-300 rounded animate-pulse"></div>
                   </div>
-                  <div className="w-12 h-4 bg-gray-300 rounded"></div>
+                  <div className="w-12 h-4 bg-gray-300 rounded animate-pulse"></div>
                 </div>
               ))
             ) : stats.topCountriesByParticipants.length > 0 ? (
@@ -310,13 +336,6 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
           </div>
         </div>
       </div>
-
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="text-center text-gray-500 text-sm">
-          🔄 Đang tải thống kê từ database...
-        </div>
-      )}
     </div>
   );
 };

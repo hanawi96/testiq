@@ -8,7 +8,6 @@ export { AdminService } from './admin/service';
 
 // Configuration
 export { supabase, supabaseConfig, TABLES } from './config/supabase';
-export { testSupabaseConnection, checkDatabaseSetup } from './utils/test-connection';
 
 // Test results service (unified approach)
 export { 
@@ -19,9 +18,6 @@ export {
 // Export types
 export type { UserWithProfile, UsersListResponse, UsersFilters } from './admin/users-service';
 export type { AdminStats, AdminAction } from './types';
-
-// Additional exports
-export { quickSetupDatabase, createTestAdmin } from './utils/setup-database';
 export * from './types';
 
 // Export leaderboard services
@@ -36,20 +32,12 @@ export {
 } from './utils/leaderboard-service';
 export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-service';
 
-// Export dashboard stats service - SIÊU TỐI ƯU
+// Export dashboard stats service - PRODUCTION READY
 export { 
   getDashboardStats,
-  clearDashboardCache,
-  debugDashboardStats
+  clearDashboardCache
 } from './utils/dashboard-stats-service';
 export type { DashboardStats } from './utils/dashboard-stats-service';
-
-// Export data analysis service - KIỂM TRA CHÍNH XÁC
-export { 
-  analyzeCompleteData,
-  compareWithDashboard
-} from './utils/data-analysis-service';
-export type { DataAnalysisResult } from './utils/data-analysis-service';
 
 // Export other services
 export { updateUserProfile, getUserProfile } from './utils/user-profile-service';
