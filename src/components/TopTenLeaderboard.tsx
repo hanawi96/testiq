@@ -72,37 +72,68 @@ const handleProfileClick = (userId?: string, name?: string) => {
 };
 
 export default function TopTenLeaderboard({ initialData }: Props) {
-  const [topTen, setTopTen] = useState<TopTenEntry[]>(initialData || []);
-  const [loading, setLoading] = useState(!initialData?.length);
+  // ✅ SKELETON LOADING: Luôn bắt đầu với loading để có smooth effect
+  const [topTen, setTopTen] = useState<TopTenEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (initialData?.length) return;
-    
-    const loadTopTen = async () => {
-      setLoading(true);
-      try {
-        const backend = await import('../../backend');
-        const result = await backend.getLeaderboard(1, 10);
-        
-        if (result.data?.length) {
-          setTopTen(result.data.slice(0, 10));
+    const loadData = async () => {
+      if (initialData?.length) {
+        // Có initialData: hiển thị skeleton ngắn rồi show data
+        setTimeout(() => {
+          setTopTen(initialData);
+          setLoading(false);
+        }, 200); // Skeleton loading ngắn cho UX mượt mà
+      } else {
+        // Không có initialData: fetch từ client
+        try {
+          const backend = await import('../../backend');
+          const result = await backend.getLeaderboard(1, 10);
+          
+          if (result.data?.length) {
+            setTopTen(result.data.slice(0, 10));
+          }
+        } catch (error) {
+          console.error('Error loading top 10:', error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error loading top 10:', error);
-      } finally {
-        setLoading(false);
       }
     };
     
-    loadTopTen();
-  }, [initialData]);
+    loadData();
+  }, []);
 
   if (loading) {
     return (
       <div className="space-y-2">
-        {[...Array(10)].map((_, i) => (
-          <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-16"></div>
-        ))}
+        {/* Header skeleton */}
+        <div className="text-center mb-6">
+          <div className="w-48 h-6 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
+          <div className="w-64 h-4 bg-gray-200 rounded animate-pulse mx-auto"></div>
+        </div>
+
+        {/* Top 10 skeleton - 2 cols layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-20 relative" 
+                 style={{ animationDelay: `${i * 50}ms` }}>
+              {/* Skeleton rank badge */}
+              <div className="absolute -top-1 -left-1 w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
+              {/* Skeleton corner badge */}
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Call to action skeleton */}
+        <div className="mt-6 p-4 bg-gray-100 rounded-xl animate-pulse">
+          <div className="text-center space-y-2">
+            <div className="w-32 h-5 bg-gray-300 rounded mx-auto"></div>
+            <div className="w-48 h-4 bg-gray-300 rounded mx-auto"></div>
+            <div className="w-36 h-8 bg-gray-300 rounded mx-auto"></div>
+          </div>
+        </div>
       </div>
     );
   }
