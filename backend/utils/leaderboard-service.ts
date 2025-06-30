@@ -11,6 +11,7 @@ export interface LeaderboardEntry {
   user_id?: string;
   gender?: string;
   age?: number;
+  duration?: number; // Thời gian hoàn thành (giây)
 }
 
 export interface LeaderboardStats {
@@ -144,7 +145,8 @@ function transformToLeaderboardEntry(result: any, rank: number): LeaderboardEntr
           isAnonymous,
           user_id: result.user_id,
           gender: result.gender,
-          age: result.age
+          age: result.age,
+          duration: result.duration_seconds
         };
 }
 
@@ -203,7 +205,7 @@ async function fetchLeaderboardData(forceRefresh = false): Promise<any[]> {
   const result = await retryOperation(async () => {
     const { data, error } = await supabase
       .from('user_test_results')
-      .select('score, tested_at, name, country, gender, age, email, user_id')
+      .select('score, tested_at, name, country, gender, age, email, user_id, duration_seconds')
       .order('score', { ascending: false });
 
     if (error) throw error;

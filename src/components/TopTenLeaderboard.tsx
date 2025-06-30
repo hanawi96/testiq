@@ -10,6 +10,7 @@ interface TopTenEntry {
   user_id?: string;
   gender?: string;
   age?: number;
+  duration?: number; // Thời gian hoàn thành (giây)
 }
 
 interface Props {
@@ -60,6 +61,15 @@ const formatDate = (dateString: string) => {
   } catch {
     return 'Gần đây';
   }
+};
+
+// ✅ SMART: Format thời gian hoàn thành (compact cho top 10)
+const formatDuration = (seconds?: number): string => {
+  if (!seconds || seconds <= 0) return '';
+  
+  const minutes = Math.floor(seconds / 60);
+  if (minutes === 0) return `${seconds}s`;
+  return `${minutes}m`;
 };
 
 const handleProfileClick = (userId?: string, name?: string) => {
@@ -216,6 +226,12 @@ export default function TopTenLeaderboard({ initialData }: Props) {
                       <span className="mr-1">⏰</span>
                       <span className="truncate">{formatDate(entry.date)}</span>
                     </span>
+                    {entry.duration && (
+                      <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(entry.duration)}`}>
+                        <span className="mr-1">⏱️</span>
+                        <span className="truncate">{formatDuration(entry.duration)}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 

@@ -11,6 +11,7 @@ interface LocalRankingEntry {
   user_id?: string;
   gender?: string;
   age?: number;
+  duration?: number; // Thời gian hoàn thành (giây)
 }
 
 interface LocalRankingData {
@@ -63,6 +64,18 @@ const getGenderIcon = (gender?: string) => {
     case 'other': return '⚧️';
     default: return null;
   }
+};
+
+// ✅ SMART: Format thời gian hoàn thành
+const formatDuration = (seconds?: number): string => {
+  if (!seconds || seconds <= 0) return '';
+  
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  
+  if (minutes === 0) return `${remainingSeconds}s`;
+  if (remainingSeconds === 0) return `${minutes}m`;
+  return `${minutes}m${remainingSeconds}s`;
 };
 
 export default function LocalRankingView({ userId }: Props) {
@@ -264,6 +277,15 @@ export default function LocalRankingView({ userId }: Props) {
                           <span className="mr-1">⏰</span>
                           {formatDate(displayEntry.date)}
                         </span>
+                        {displayEntry.duration && (
+                          <>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(displayEntry.duration)}`}>
+                              <span className="mr-1">⏱️</span>
+                              {formatDuration(displayEntry.duration)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

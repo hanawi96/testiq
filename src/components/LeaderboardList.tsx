@@ -10,6 +10,7 @@ interface LeaderboardEntry {
   isAnonymous?: boolean;
   gender?: string;
   age?: number;
+  duration?: number; // Thời gian hoàn thành (giây)
 }
 
 interface LeaderboardData {
@@ -51,6 +52,18 @@ const getGenderIcon = (gender?: string) => {
 const formatAge = (age?: number): string => {
   if (!age) return '';
   return `${age}`;
+};
+
+// ✅ SMART: Format thời gian hoàn thành (compact)
+const formatDuration = (seconds?: number): string => {
+  if (!seconds || seconds <= 0) return '';
+  
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  
+  if (minutes === 0) return `${remainingSeconds}s`;
+  if (remainingSeconds === 0) return `${minutes}m`;
+  return `${minutes}m${remainingSeconds}s`;
 };
 
 // Lightweight skeleton
@@ -663,6 +676,15 @@ export default function LeaderboardList({ initialData }: Props) {
                             <span className="mr-1">⏰</span>
                             {formatDate(entry.date)}
                           </span>
+                          {entry.duration && (
+                            <>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(entry.duration)}`}>
+                                <span className="mr-1">⏱️</span>
+                                {formatDuration(entry.duration)}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

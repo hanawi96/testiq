@@ -10,6 +10,7 @@ interface LeaderboardEntry {
   isAnonymous?: boolean;
   gender?: string;
   age?: number;
+  duration?: number; // Thời gian hoàn thành (giây)
 }
 
 interface Props {
@@ -132,6 +133,18 @@ export default function ScalableLeaderboard({
     }
   }, []);
 
+  // ✅ SMART: Format thời gian hoàn thành
+  const formatDuration = useCallback((seconds?: number): string => {
+    if (!seconds || seconds <= 0) return '';
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes === 0) return `${remainingSeconds}s`;
+    if (remainingSeconds === 0) return `${minutes}m`;
+    return `${minutes}m${remainingSeconds}s`;
+  }, []);
+
   // 🚀 VIRTUAL SCROLLING for massive datasets (optional)
   const VirtualizedList = useMemo(() => {
     if (!enableVirtualScroll || data.length < 100) {
@@ -186,6 +199,7 @@ export default function ScalableLeaderboard({
             </div>
             <div className="text-sm text-gray-600">
               📍 {entry.location} • ⏰ {formatDate(entry.date)}
+              {entry.duration && ` • ⏱️ ${formatDuration(entry.duration)}`}
             </div>
           </div>
         </div>
