@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 interface TimerProps {
@@ -33,23 +33,20 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const getProgressPercentage = (): number => {
-    return ((initialTime - timeLeft) / initialTime) * 100;
-  };
-
-  const getColorClass = (): string => {
+  // ✅ SMART: Memoized calculations để trigger re-render
+  const progressData = useMemo(() => {
     const percentage = (timeLeft / initialTime) * 100;
-    if (percentage > 50) return 'text-green-600';
-    if (percentage > 20) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getRingColor = (): string => {
-    const percentage = (timeLeft / initialTime) * 100;
-    if (percentage > 50) return 'stroke-green-500';
-    if (percentage > 20) return 'stroke-yellow-500';
-    return 'stroke-red-500';
-  };
+    const circumference = 2 * Math.PI * 45;
+    const strokeOffset = circumference * (1 - percentage / 100);
+    
+    const colorClass = percentage > 50 ? 'text-green-600' : 
+                      percentage > 20 ? 'text-yellow-600' : 'text-red-600';
+    
+    const ringColor = percentage > 50 ? 'stroke-green-500' :
+                     percentage > 20 ? 'stroke-yellow-500' : 'stroke-red-500';
+    
+    return { percentage, strokeOffset, colorClass, ringColor, circumference };
+  }, [timeLeft, initialTime]);
 
   return (
     <div className="flex flex-col items-center space-y-2">
@@ -73,12 +70,12 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             stroke="currentColor"
             strokeWidth="8"
             fill="transparent"
-            strokeDasharray={`${2 * Math.PI * 45}`}
+            strokeDasharray={`${progressData.circumference}`}
             strokeLinecap="round"
-            className={getRingColor()}
-            initial={{ strokeDashoffset: 2 * Math.PI * 45 }}
+            className={progressData.ringColor}
+            initial={{ strokeDashoffset: 0 }}
             animate={{ 
-              strokeDashoffset: (2 * Math.PI * 45) - (getProgressPercentage() / 100) * (2 * Math.PI * 45)
+              strokeDashoffset: progressData.strokeOffset
             }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
           />
@@ -87,7 +84,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
         {/* Time display */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.span 
-            className={`font-bold text-sm ${getColorClass()}`}
+            className={`font-bold text-sm ${progressData.colorClass}`}
             animate={{ scale: timeLeft <= 60 && timeLeft % 2 === 0 ? 1.1 : 1 }}
             transition={{ duration: 0.2 }}
           >
@@ -103,7 +100,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
-          <p className={`text-xs font-medium ${getColorClass()}`}>
+          <p className={`text-xs font-medium ${progressData.colorClass}`}>
             {timeLeft <= 60 ? '⚠️ Sắp hết thời gian!' : '⏰ Còn ít thời gian'}
           </p>
         </motion.div>

@@ -234,7 +234,7 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
                   : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-lg'
               }`}
             >
-              🏁 Hoàn thành
+            Hoàn thành
             </button>
           ) : (
             <button
