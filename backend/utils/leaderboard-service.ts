@@ -9,6 +9,7 @@ export interface LeaderboardEntry {
   badge: string;
   isAnonymous: boolean;
   user_id?: string;
+  gender?: string;
 }
 
 export interface LeaderboardStats {
@@ -105,7 +106,8 @@ async function retryOperation<T>(
 }
 
 /**
- * Simple optimized leaderboard function with retry logic
+ * ULTRA-OPTIMIZED leaderboard function - No JOINs, all data from user_test_results
+ * 🚀 PERFORMANCE: Only select essential fields, use optimized indexes, smart caching
  */
 export async function getLeaderboard(
   page: number = 1, 
@@ -119,6 +121,7 @@ export async function getLeaderboard(
       console.log('🔄 Fetching leaderboard...');
       
       const result = await retryOperation(async () => {
+        // 🚀 ULTRA-OPTIMIZED: Select only essential fields for leaderboard display
         const { data: results, error } = await supabase
           .from('user_test_results')
           .select(`
@@ -127,7 +130,7 @@ export async function getLeaderboard(
             tested_at,
             name,
             country,
-            user_profiles!left(full_name, location)
+            gender
           `)
           .order('score', { ascending: false });
 
@@ -190,29 +193,22 @@ export async function getLeaderboard(
       pageResultsLength: pageResults.length
     });
     
-    // Transform to leaderboard format
+    // 🔄 Transform to leaderboard format - OPTIMIZED: All data from user_test_results
+    // ⚡ PERFORMANCE: No JOIN needed, simple field mapping, ultra-fast processing
     const leaderboard: LeaderboardEntry[] = pageResults.map((result: any, index) => {
       const globalRank = startIndex + index + 1;
       const isAnonymous = !result.user_id;
       
-      const name = isAnonymous 
-        ? (result.name || 'Anonymous User')
-        : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
-
-      // Fix location logic
-      const location = isAnonymous 
-        ? (result.country || 'Không rõ')
-        : (result.user_profiles?.location || 'Chưa cập nhật');
-      
       return {
         rank: globalRank,
-        name,
+        name: result.name || (isAnonymous ? 'Anonymous User' : `User_${result.user_id?.slice(-8) || 'Unknown'}`),
         score: result.score,
-        location,
+        location: result.country || 'Không rõ',
         date: result.tested_at,
         badge: getBadgeFromScore(result.score),
         isAnonymous,
-        user_id: result.user_id
+        user_id: result.user_id,
+        gender: result.gender
       };
     });
 
@@ -237,24 +233,17 @@ export async function getLeaderboard(
       const leaderboard: LeaderboardEntry[] = pageResults.map((result: any, index) => {
         const globalRank = startIndex + index + 1;
         const isAnonymous = !result.user_id;
-        const name = isAnonymous 
-          ? (result.name || 'Anonymous User')
-          : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
-        
-        // Fix location logic
-        const location = isAnonymous 
-          ? (result.country || 'Không rõ')
-          : (result.user_profiles?.location || 'Chưa cập nhật');
         
         return {
           rank: globalRank,
-          name,
+          name: result.name || (isAnonymous ? 'Anonymous User' : `User_${result.user_id?.slice(-8) || 'Unknown'}`),
           score: result.score,
-          location,
+          location: result.country || 'Không rõ',
           date: result.tested_at,
           badge: getBadgeFromScore(result.score),
           isAnonymous,
-          user_id: result.user_id
+          user_id: result.user_id,
+          gender: result.gender
         };
       });
 
@@ -306,24 +295,17 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
       
       const recentTop: LeaderboardEntry[] = recentResults.map((result: any, index) => {
         const isAnonymous = !result.user_id;
-        const name = isAnonymous 
-          ? (result.name || 'Anonymous User')
-          : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
-        
-        // Fix location logic
-        const location = isAnonymous 
-          ? (result.country || 'Không rõ')
-          : (result.user_profiles?.location || 'Chưa cập nhật');
         
         return {
           rank: index + 1,
-          name,
+          name: result.name || (isAnonymous ? 'Anonymous User' : `User_${result.user_id?.slice(-8) || 'Unknown'}`),
           score: result.score,
-          location,
+          location: result.country || 'Không rõ',
           date: result.tested_at,
           badge: getBadgeFromScore(result.score),
           isAnonymous,
-          user_id: result.user_id
+          user_id: result.user_id,
+          gender: result.gender
         };
       });
       
@@ -335,6 +317,7 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
       const dateThreshold = new Date();
       dateThreshold.setDate(dateThreshold.getDate() - days);
 
+      // 🚀 ULTRA-OPTIMIZED: Select only essential fields for recent performers
       const { data: results, error } = await supabase
         .from('user_test_results')
         .select(`
@@ -343,7 +326,7 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
           tested_at,
           name,
           country,
-          user_profiles!left(full_name, location)
+          gender
         `)
         .gte('tested_at', dateThreshold.toISOString())
         .order('score', { ascending: false })
@@ -355,24 +338,17 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
 
     const recentTop: LeaderboardEntry[] = (result || []).map((entry: any, index) => {
       const isAnonymous = !entry.user_id;
-      const name = isAnonymous 
-        ? (entry.name || 'Anonymous User')
-        : (entry.user_profiles?.full_name || `User_${entry.user_id.slice(-8)}`);
-      
-      // Fix location logic
-      const location = isAnonymous 
-        ? (entry.country || 'Không rõ')
-        : (entry.user_profiles?.location || 'Chưa cập nhật');
       
       return {
         rank: index + 1,
-        name,
+        name: entry.name || (isAnonymous ? 'Anonymous User' : `User_${entry.user_id?.slice(-8) || 'Unknown'}`),
         score: entry.score,
-        location,
+        location: entry.country || 'Không rõ',
         date: entry.tested_at,
         badge: getBadgeFromScore(entry.score),
         isAnonymous,
-        user_id: entry.user_id
+        user_id: entry.user_id,
+        gender: entry.gender
       };
     });
 
@@ -549,39 +525,33 @@ export async function getUserLocalRanking(userId: string): Promise<{
     const endIndex = Math.min(cachedData.allResults.length, userResultIndex + 6);
     const surroundingResults = cachedData.allResults.slice(startIndex, endIndex);
 
-    // Transform to leaderboard format
+    // Transform to leaderboard format - OPTIMIZED: All data from user_test_results
     const userEntry: LeaderboardEntry = {
       rank: userRank,
-      name: userResult.user_profiles?.full_name || `User_${userResult.user_id.slice(-8)}`,
+      name: userResult.name || `User_${userResult.user_id.slice(-8)}`,
       score: userResult.score,
-      location: userResult.user_profiles?.location || 'Chưa cập nhật',
+      location: userResult.country || 'Chưa cập nhật',
       date: userResult.tested_at,
       badge: getBadgeFromScore(userResult.score),
       isAnonymous: false,
-      user_id: userResult.user_id
+      user_id: userResult.user_id,
+      gender: userResult.gender
     };
 
     const surrounding: LeaderboardEntry[] = surroundingResults.map((result: any, index) => {
       const globalRank = startIndex + index + 1;
       const isAnonymous = !result.user_id;
       
-      const name = isAnonymous 
-        ? (result.name || 'Anonymous User')
-        : (result.user_profiles?.full_name || `User_${result.user_id.slice(-8)}`);
-
-      const location = isAnonymous 
-        ? (result.country || 'Không rõ')
-        : (result.user_profiles?.location || 'Chưa cập nhật');
-      
       return {
         rank: globalRank,
-        name,
+        name: result.name || (isAnonymous ? 'Anonymous User' : `User_${result.user_id?.slice(-8) || 'Unknown'}`),
         score: result.score,
-        location,
+        location: result.country || 'Không rõ',
         date: result.tested_at,
         badge: getBadgeFromScore(result.score),
         isAnonymous,
-        user_id: result.user_id
+        user_id: result.user_id,
+        gender: result.gender
       };
     });
 

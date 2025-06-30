@@ -99,7 +99,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
           age: parseInt(userInfo.age) || undefined,
           location: userInfo.location || undefined,
           country_code: userInfo.countryCode,
-          email: userInfo.email
+          email: userInfo.email,
+          gender: userInfo.gender
         });
         console.log('✅ User profile updated');
       } else {

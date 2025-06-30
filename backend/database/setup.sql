@@ -138,6 +138,52 @@ CREATE INDEX IF NOT EXISTS idx_test_results_created_at ON test_results(created_a
 CREATE INDEX IF NOT EXISTS idx_questions_is_active ON questions(is_active);
 CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
 
+-- 14. OPTIMIZED: Add indexes for user_test_results leaderboard queries
+CREATE INDEX IF NOT EXISTS idx_user_test_results_score_desc ON user_test_results(score DESC);
+CREATE INDEX IF NOT EXISTS idx_user_test_results_tested_at_desc ON user_test_results(tested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_test_results_score_tested_at ON user_test_results(score DESC, tested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_test_results_user_id_score ON user_test_results(user_id, score DESC);
+
+-- 15. OPTIMIZED: Add indexes for anonymous_players
+CREATE INDEX IF NOT EXISTS idx_anonymous_players_test_score_desc ON anonymous_players(test_score DESC);
+CREATE INDEX IF NOT EXISTS idx_anonymous_players_created_at_desc ON anonymous_players(created_at DESC);
+
+-- Migration: Add gender column to anonymous_players table
+-- This script is safe to run multiple times
+ALTER TABLE public.anonymous_players ADD COLUMN IF NOT EXISTS gender text;
+
+-- Migration: Add gender column to user_profiles table
+-- This script is safe to run multiple times
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS gender text;
+
+-- Verify the columns were added
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'anonymous_players' 
+        AND column_name = 'gender'
+        AND table_schema = 'public'
+    ) THEN
+        RAISE NOTICE 'Gender column successfully added to anonymous_players table';
+    ELSE
+        RAISE EXCEPTION 'Failed to add gender column to anonymous_players table';
+    END IF;
+    
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'user_profiles' 
+        AND column_name = 'gender'
+        AND table_schema = 'public'
+    ) THEN
+        RAISE NOTICE 'Gender column successfully added to user_profiles table';
+    ELSE
+        RAISE EXCEPTION 'Failed to add gender column to user_profiles table';
+    END IF;
+END $$;
+
 -- Setup complete! 
 -- Remember to:
 -- 1. Enable Email authentication in Supabase Auth settings

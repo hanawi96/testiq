@@ -12,6 +12,7 @@ interface TestResultData {
   age?: number | null;
   country?: string | null;
   country_code?: string | null;
+  gender?: string | null;
 }
 
 interface TestHistoryFilters {
@@ -34,7 +35,8 @@ export async function saveTestResult(data: TestResultData) {
       email: data.email,
       age: data.age,
       country: data.country,
-      country_code: data.country_code
+      country_code: data.country_code,
+      gender: data.gender
     });
     
     const testRecord = {
@@ -48,7 +50,8 @@ export async function saveTestResult(data: TestResultData) {
       email: data.email,
       age: data.age,
       country: data.country,
-      country_code: data.country_code
+      country_code: data.country_code,
+      gender: data.gender
     };
 
     const { data: result, error } = await supabase

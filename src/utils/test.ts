@@ -24,6 +24,7 @@ export interface Question {
   age: string;
   location: string;
   countryCode?: string;
+  gender?: string;
 }
   
   export interface TestResult {
@@ -200,7 +201,8 @@ export interface Question {
           email: result.userInfo?.email || user.email || null,
           age: result.userInfo?.age ? parseInt(result.userInfo.age) : null,
           country: result.userInfo?.location || null,
-          country_code: result.userInfo?.countryCode || null
+          country_code: result.userInfo?.countryCode || null,
+          gender: result.userInfo?.gender || null
         };
       } else {
         // Anonymous user - save with guest info if provided
@@ -220,6 +222,7 @@ export interface Question {
             age: parseInt(result.userInfo.age) || undefined,
             country_name: result.userInfo.location || undefined,
             country_code: result.userInfo.countryCode || undefined,
+            gender: result.userInfo.gender || undefined,
             test_result: {
               score: result.score,
               iq: result.iq,
@@ -266,7 +269,8 @@ export interface Question {
           email: result.userInfo.email,
           age: parseInt(result.userInfo.age) || undefined,
           country: result.userInfo.location || undefined,
-          country_code: result.userInfo.countryCode || undefined
+          country_code: result.userInfo.countryCode || undefined,
+          gender: result.userInfo.gender || undefined
         };
       }
 
@@ -277,7 +281,8 @@ export interface Question {
         email: testData.email,
         age: testData.age,
         country: testData.country,
-        country_code: testData.country_code
+        country_code: testData.country_code,
+        gender: testData.gender
       });
 
       const saveResult = await saveToSupabase(testData);
@@ -410,7 +415,8 @@ export interface Question {
             email: profile.email || user.email || '',
             age: profile.age?.toString() || '',
             location: profile.location || '',
-            countryCode: profile.country_code || ''
+            countryCode: profile.country_code || '',
+            gender: profile.gender || ''
           };
         } else {
           // Fallback to basic auth info
@@ -419,7 +425,8 @@ export interface Question {
             email: user.email || '',
             age: '',
             location: '',
-            countryCode: ''
+            countryCode: '',
+            gender: ''
           };
         }
       } else {
@@ -441,7 +448,8 @@ export interface Question {
           email: dbPlayer.email,
           age: dbPlayer.age?.toString() || '',
           location: dbPlayer.country_name || '',
-          countryCode: dbPlayer.country_code || ''
+          countryCode: dbPlayer.country_code || '',
+          gender: dbPlayer.gender || ''
         };
               
               // Update localStorage with latest database data
@@ -476,7 +484,8 @@ export interface Question {
           email: player.email,
           age: player.age?.toString() || '',
           location: player.country_name || '',
-          countryCode: player.country_code || ''
+          countryCode: player.country_code || '',
+          gender: player.gender || ''
         };
       }
       

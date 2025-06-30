@@ -8,6 +8,7 @@ interface LeaderboardEntry {
   date: string;
   badge: string;
   isAnonymous?: boolean;
+  gender?: string;
 }
 
 interface LeaderboardData {
@@ -29,6 +30,16 @@ const getBadgeInfo = (badge: string) => {
     case 'superior': return { label: 'Xuất sắc', color: 'blue', icon: '🏆', bg: 'from-blue-50 to-cyan-50' };
     case 'above': return { label: 'Trên TB', color: 'green', icon: '⭐', bg: 'from-green-50 to-emerald-50' };
     default: return { label: 'Tốt', color: 'orange', icon: '✨', bg: 'from-orange-50 to-amber-50' };
+  }
+};
+
+// Gender icon helper
+const getGenderIcon = (gender?: string) => {
+  switch(gender) {
+    case 'male': return '♂️';
+    case 'female': return '♀️';
+    case 'other': return '⚧️';
+    default: return null;
   }
 };
 
@@ -270,6 +281,11 @@ export default function LeaderboardList({ initialData }: Props) {
                       <div>
                         <div className="flex items-center space-x-2">
                           <h4 className="font-bold text-gray-900">{entry.name}</h4>
+                          {getGenderIcon(entry.gender) && (
+                            <span className="text-sm" title={`Giới tính: ${entry.gender === 'male' ? 'Nam' : entry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
+                              {getGenderIcon(entry.gender)}
+                            </span>
+                          )}
                           {isTopTier && (
                             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
                               Top {entry.rank <= 5 ? '5' : '10'}

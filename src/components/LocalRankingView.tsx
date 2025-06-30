@@ -9,6 +9,7 @@ interface LocalRankingEntry {
   badge: string;
   isAnonymous?: boolean;
   user_id?: string;
+  gender?: string;
 }
 
 interface LocalRankingData {
@@ -51,6 +52,15 @@ const formatDate = (dateString: string) => {
     return date.toLocaleDateString('vi-VN');
   } catch {
     return 'Gần đây';
+  }
+};
+
+const getGenderIcon = (gender?: string) => {
+  switch(gender) {
+    case 'male': return '♂️';
+    case 'female': return '♀️';
+    case 'other': return '⚧️';
+    default: return null;
   }
 };
 
@@ -217,6 +227,11 @@ export default function LocalRankingView({ userId }: Props) {
                         <h4 className={`font-bold ${isCurrentUser ? 'text-yellow-800' : 'text-gray-900'}`}>
                           {isCurrentUser ? `${entry.name} (Bạn)` : entry.name}
                         </h4>
+                        {getGenderIcon(entry.gender) && (
+                          <span className="text-sm" title={`Giới tính: ${entry.gender === 'male' ? 'Nam' : entry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
+                            {getGenderIcon(entry.gender)}
+                          </span>
+                        )}
                         {isCurrentUser && (
                           <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
                             Của bạn

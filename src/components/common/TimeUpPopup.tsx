@@ -85,7 +85,8 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
           age: parseInt(userInfo.age) || undefined,
           location: userInfo.location,
           country_code: userInfo.countryCode,
-          email: userInfo.email
+          email: userInfo.email,
+          gender: userInfo.gender
         });
         console.log('✅ User profile updated');
       } else {
