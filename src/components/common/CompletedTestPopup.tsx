@@ -39,7 +39,7 @@ export default function CompletedTestPopup({
               <h3 className="text-xl font-bold text-gray-900 mb-2">Test đã hoàn thành!</h3>
               <p className="text-gray-600 text-sm leading-relaxed">
                 Lần trước bạn đã hoàn thành <span className="font-semibold text-green-600">10/10 câu hỏi</span> nhưng chưa xem kết quả. 
-                Hãy nhập thông tin để xem kết quả của bạn.
+                Hãy nhập <span className="font-semibold text-blue-600">thông tin cá nhân</span> để xem kết quả của bạn.
               </p>
             </div>
 

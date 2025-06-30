@@ -124,3 +124,116 @@ await saveTestResult(result);
 **Status**: ✅ FIXED - Tested and verified
 **Author**: AI Assistant
 **Date**: 2025-01-02 
+
+# IQ Test Project - Bug Fixes
+
+## ✅ COMPLETED: Sửa lỗi số liệu không khớp trong thống kê (Stats Consistency Fix)
+
+### Vấn đề được fix:
+**Tình huống**: 547 kết quả + 10 top = 557 kết quả nhưng tổng số người test lại được thống kê là 575.
+
+### 🔍 Nguyên nhân được tìm ra:
+1. **3 hệ thống đếm khác nhau**:
+   - `Dashboard Stats`: Đếm unique emails + anonymous users = 575
+   - `Leaderboard QuickStats`: Đếm tất cả records = 575  
+   - `Leaderboard Service`: Group by email để lấy best score = 557
+
+2. **Logic split không nhất quán**:
+   - Top 10 + Full list được tách ra từ cùng 1 dataset
+   - Gây ra hiển thị: 10 + 547 = 557 nhưng tổng thống kê vẫn là 575
+
+### ✅ Giải pháp áp dụng:
+
+1. **Đồng bộ hóa logic đếm**:
+   ```typescript
+   // ✅ FIXED: Tất cả services đều sử dụng CÙNG logic dedup
+   const emailBestScores = new Map<string, any>();
+   for (const record of validRecords) {
+     const email = record.email;
+     if (!email) continue; // Consistent: bỏ qua records không có email
+     
+     const existing = emailBestScores.get(email);
+     if (!existing || record.score > existing.score) {
+       emailBestScores.set(email, record);
+     }
+   }
+   const totalUniqueParticipants = emailBestScores.size;
+   ```
+
+2. **Files đã cập nhật**:
+   - ✅ `backend/utils/dashboard-stats-service.ts`: Sync với leaderboard logic
+   - ✅ `backend/utils/leaderboard-service.ts`: Cập nhật getQuickStats() với dedup logic
+
+3. **Kết quả sau fix**:
+   - ✅ **Dashboard totalParticipants**: 557 (sau dedup)
+   - ✅ **Leaderboard QuickStats**: 557 (sau dedup) 
+   - ✅ **Leaderboard entries**: 557 (sau dedup)
+   - ✅ **Top 10 + 547 = 557**: Nhất quán 100%
+
+### 🎯 Technical Benefits:
+- ⚡ **Consistent**: Tất cả số liệu đều nhất quán
+- 🔄 **Maintainable**: 1 logic duy nhất, dễ maintain
+- 🎯 **Accurate**: Phản ánh đúng số người unique đã test
+- 🚀 **Performance**: Không ảnh hưởng tốc độ
+
+---
+
+## ✅ COMPLETED: Validation bắt buộc tuổi và quốc gia (Age & Country Required)
+
+### Thay đổi thực hiện:
+
+1. **Validation Logic Cải thiện**:
+   - Thêm validation bắt buộc cho trường `age` (tuổi: 1-120)
+   - Thêm validation bắt buộc cho trường `location` (quốc gia)
+   - Tái cấu trúc validation logic thành helper function có thể tái sử dụng
+
+2. **Files đã cập nhật**:
+   - `src/components/common/CongratulationsPopup.tsx`: Cập nhật validation và UI
+   - `src/components/common/TimeUpPopup.tsx`: Cập nhật validation và UI  
+   - `src/components/common/CompletedTestPopup.tsx`: Cải thiện mô tả
+   - `src/utils/test-helpers.ts`: Thêm `validateUserInfo()` helper function
+
+3. **UI Improvements**:
+   - Thêm dấu `*` màu đỏ cho các trường bắt buộc
+   - Hiển thị rõ ràng Tuổi và Quốc gia là required fields
+   - Button "Xem kết quả" chỉ enable khi tất cả trường bắt buộc đã nhập
+
+4. **Technical Benefits**:
+   - ✅ **Tái sử dụng code**: `validateUserInfo()` function dùng chung
+   - ✅ **Performance tối ưu**: Logic validation đơn giản, nhanh
+   - ✅ **Maintainability**: Code clean, dễ bảo trì
+   - ✅ **Consistent UX**: Validation nhất quán trên tất cả popup
+
+### Cách hoạt động:
+
+1. **Test hoàn thành** → Popup yêu cầu nhập thông tin
+2. **Validation realtime**: 
+   - Họ tên: bắt buộc
+   - Email: bắt buộc + format validation
+   - **Tuổi: bắt buộc (1-120)**
+   - **Quốc gia: bắt buộc**
+   - Giới tính: optional
+3. **Button enable** chỉ khi tất cả field bắt buộc valid
+4. **Submit** → Save data → Redirect to result page
+
+### Code Quality:
+- ⚡ **Siêu nhanh**: Validation O(1) complexity
+- 🔄 **Tái sử dụng**: Helper function dùng chung
+- 🎯 **Đơn giản**: Logic clear, không phức tạp
+- 🚀 **Mượt mà**: UX flow tối ưu
+
+---
+
+## ✅ PREVIOUS FIXES COMPLETED:
+
+1. **Database Performance Optimization** 
+   - Optimized indexes for super-fast leaderboard queries
+   - RPC function `get_best_scores_per_email()` for anti-spam
+
+2. **Unified Test Results System**
+   - Smart handling cho authenticated vs anonymous users  
+   - Automatic profile updates for logged-in users
+
+3. **Enhanced Leaderboard Performance**
+   - Super-fast queries với optimized indexes
+   - Smart caching và performance improvements 

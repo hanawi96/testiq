@@ -43,7 +43,7 @@ let cachedData: {
   lastFetch: 0 // Force refresh by setting lastFetch to 0
 };
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 10 * 1000; // 10 giây - near real-time updates
 const BROWSER_CACHE_KEY = 'leaderboard_stats_cache';
 
 // Browser cache helpers
@@ -515,10 +515,10 @@ export async function getQuickStats(): Promise<LeaderboardStats> {
       return cachedData.stats;
     }
 
-    // Fast stats-only query with timestamps for growth analysis
+    // 🔥 FIX: Fast stats với SAME dedup logic như leaderboard và dashboard
     const { data: results, error } = await supabase
       .from('user_test_results')
-      .select('score, tested_at')
+      .select('score, tested_at, email')
       .order('score', { ascending: false });
 
     if (error) throw error;
@@ -527,8 +527,21 @@ export async function getQuickStats(): Promise<LeaderboardStats> {
       return { totalParticipants: 0, highestScore: 0, averageScore: 0, geniusPercentage: 0 };
     }
 
-    // Ultra-fast calculation with advanced metrics
-    const scores = results.map(r => r.score).sort((a, b) => b - a);
+    // ✅ CONSISTENT: Sử dụng EXACT SAME dedup logic
+    const emailBestScores = new Map<string, any>();
+    for (const record of results) {
+      const email = record.email;
+      if (!email) continue; // Bỏ qua records không có email (consistent)
+      
+      const existing = emailBestScores.get(email);
+      if (!existing || record.score > existing.score) {
+        emailBestScores.set(email, record);
+      }
+    }
+
+    // ✅ FIXED: Sử dụng deduplicated data cho tất cả calculations
+    const uniqueResults = Array.from(emailBestScores.values());
+    const scores = uniqueResults.map(r => r.score).filter(s => s != null).sort((a, b) => b - a);
     const total = scores.reduce((a, b) => a + b, 0);
     const geniusCount = scores.filter(s => s >= 140).length;
     
@@ -543,19 +556,23 @@ export async function getQuickStats(): Promise<LeaderboardStats> {
     // Growth in last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentTests = results.filter(r => new Date(r.tested_at) >= thirtyDaysAgo);
-    const recentGrowth = results.length > 0 ? Math.round((recentTests.length / results.length) * 100 * 10) / 10 : 0;
+    const recentTests = uniqueResults.filter(r => new Date(r.tested_at) >= thirtyDaysAgo);
+    const recentGrowth = uniqueResults.length > 0 ? Math.round((recentTests.length / uniqueResults.length) * 100 * 10) / 10 : 0;
     
     const stats: LeaderboardStats = {
-      totalParticipants: scores.length,
-      highestScore: Math.max(...scores),
-      averageScore: Math.round(total / scores.length),
+      totalParticipants: scores.length, // ✅ FIXED: Số unique participants sau dedup
+      highestScore: scores.length > 0 ? Math.max(...scores) : 0,
+      averageScore: scores.length > 0 ? Math.round(total / scores.length) : 0,
       geniusPercentage: Math.round((geniusCount / scores.length) * 100 * 10) / 10,
       medianScore: Math.round(median),
       topPercentileScore,
       recentGrowth,
       averageImprovement: Math.round(Math.random() * 10 + 5) // Placeholder for now
     };
+
+    console.log('📊 QUICKSTATS (FIXED): Consistent dedup logic applied');
+    console.log(`   Total unique participants: ${stats.totalParticipants}`);
+    console.log(`   Raw records processed: ${results.length}`);
 
     // Multi-layer cache update
     cachedData.stats = stats;
@@ -1158,4 +1175,16 @@ export async function getMaterializedCacheStatus(): Promise<{
     console.error('❌ Failed to get cache status:', error);
     return { status: null, error };
   }
+}
+
+/**
+ * 🔄 Force refresh leaderboard - Clear cache và reload ngay
+ */
+export async function forceRefreshLeaderboard(): Promise<PaginatedLeaderboard> {
+  console.log('🔄 Force refreshing leaderboard...');
+  clearLeaderboardCache();
+  clearScalableCache();
+  const result = await getLeaderboard(1, 20, true);
+  console.log('✅ Force refresh leaderboard completed');
+  return result;
 } 

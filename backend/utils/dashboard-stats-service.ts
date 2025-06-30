@@ -29,7 +29,7 @@ let dashboardCache: {
   lastFetch: number;
 } = { data: null, lastFetch: 0 };
 
-const CACHE_DURATION = 10 * 60 * 1000; // 10 phút
+const CACHE_DURATION = 10 * 1000; // 10 giây - near real-time updates
 
 /**
  * Tính toán thống kê dashboard siêu tối ưu từ dữ liệu thật
@@ -40,10 +40,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     // Kiểm tra cache
     const now = Date.now();
     if (dashboardCache.data && (now - dashboardCache.lastFetch) < CACHE_DURATION) {
+      console.log('📋 Using cached dashboard stats');
       return dashboardCache.data;
     }
 
-    console.log('🔄 Tính toán dashboard stats...');
+    console.log('🔄 Tính toán dashboard stats fresh...');
 
     // Query tối ưu: lấy tất cả dữ liệu cần thiết trong 1 lần + email để đếm unique
     const { data: results, error } = await supabase
@@ -55,12 +56,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         country,
         country_code,
         tested_at,
-        email
+        email,
+        id
       `);
 
     if (error) throw error;
 
     if (!results?.length) {
+      console.log('⚠️ No data found, returning default stats');
       return getDefaultStats();
     }
 
@@ -73,7 +76,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       lastFetch: now
     };
 
-    console.log(`✅ Dashboard stats tính toán xong cho ${results.length} records`);
+    console.log(`✅ Dashboard stats calculated for ${results.length} records`);
+    console.log(`🏆 Top countries: ${stats.topCountriesByParticipants.map(c => `${c.country}:${c.participants}`).join(', ')}`);
+    
     return stats;
 
   } catch (error) {
@@ -106,7 +111,7 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
   const uniqueCountries = new Set<string>();
 
   // ✅ FIXED: Xử lý tất cả trong 1 vòng lặp - LOGIC ĐƠN GIẢN HÓA
-  for (const record of results) {
+  for (const [index, record] of results.entries()) {
     const { score, duration_seconds, age, country, country_code, email } = record;
     
     // Chỉ xử lý records có score hợp lệ
@@ -161,12 +166,12 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
       
       const stat = countryStats.get(countryKey)!;
       
-      // Đếm unique participants: ưu tiên email, fallback là tạo unique key
+      // 🔥 FIX: Đếm unique participants - STABLE & CONSISTENT
       if (email) {
         stat.emails.add(email);
       } else {
-        // Tạo unique key cho anonymous users không có email
-        const anonymousKey = `anonymous_${score}_${age || 'unknown'}_${Date.now() + Math.random()}`;
+        // Sử dụng ID record thay vì random để đảm bảo consistency
+        const anonymousKey = `anonymous_${record.id || `${score}_${age || 'unknown'}_${index}`}`;
         stat.emails.add(anonymousKey);
       }
       
@@ -178,17 +183,27 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
   // ✅ SUPER FIX: Đếm participants chính xác - BAO GỒM TẤT CẢ
   const validRecords = results.filter(r => r.score != null && r.score >= 0);
   
-  // Đếm unique participants từ emails + anonymous participants
-  const uniqueEmails = new Set(validRecords.filter(r => r.email).map(r => r.email));
-  const anonymousParticipants = validRecords.filter(r => !r.email).length;
+  // 🔥 FIX: Đếm unique participants theo logic SAME AS LEADERBOARD
+  // Sử dụng EXACT SAME logic như leaderboard service để đảm bảo consistency
+  const emailBestScores = new Map<string, any>();
+  for (const record of validRecords) {
+    const email = record.email;
+    if (!email) continue; // Bỏ qua records không có email (giống leaderboard)
+    
+    const existing = emailBestScores.get(email);
+    if (!existing || record.score > existing.score) {
+      emailBestScores.set(email, record);
+    }
+  }
   
-  // Tổng participants = unique emails + anonymous participants
-  const totalUniqueParticipants = uniqueEmails.size + anonymousParticipants;
+  // ✅ CONSISTENT: Số participants = số unique emails sau dedup (SAME AS LEADERBOARD)
+  const totalUniqueParticipants = emailBestScores.size;
   
-  console.log('👥 PARTICIPANTS CALCULATION:');
-  console.log('📧 Unique emails:', uniqueEmails.size);
-  console.log('🎭 Anonymous participants:', anonymousParticipants);
-  console.log('🎯 Total participants:', totalUniqueParticipants);
+  console.log('👥 PARTICIPANTS CALCULATION (FIXED):');
+  console.log('📧 Total valid records:', validRecords.length);
+  console.log('📧 Records with email:', validRecords.filter(r => r.email).length);
+  console.log('📧 Unique emails after dedup:', emailBestScores.size);
+  console.log('🎯 Total participants (SAME AS LEADERBOARD):', totalUniqueParticipants);
   
   const globalAverageIQ = validRecords.length > 0 ? Math.round(totalScore / validRecords.length) : 100;
   
@@ -417,4 +432,15 @@ export async function debugDashboardStats(): Promise<DashboardStats & { debug: a
   console.log(`🎯 DEBUG: Final stats - Countries: ${stats.totalCountries}, Participants: ${stats.totalParticipants} unique emails, AvgTime: ${stats.averageTestTime}`);
   
   return { ...stats, debug };
+}
+
+/**
+ * 🔄 Force refresh dashboard stats - Clear cache và reload ngay
+ */
+export async function forceRefreshDashboardStats(): Promise<DashboardStats> {
+  console.log('🔄 Force refreshing dashboard stats...');
+  clearDashboardCache();
+  const stats = await getDashboardStats();
+  console.log('✅ Force refresh completed');
+  return stats;
 } 

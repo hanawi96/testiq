@@ -65,6 +65,7 @@ export async function testAnonymousUserSave(userInfo?: UserInfo): Promise<{ succ
     // Create sample test result with user info
     const testUserInfo = userInfo || {
       name: 'Test Anonymous User',
+      email: 'test@example.com',
       age: '25',
       location: 'Ho Chi Minh City'
     };
@@ -122,4 +123,52 @@ export async function testUnifiedSaveSystem(): Promise<{
   console.log('Anonymous test result:', anonTest);
   
   return { authTest, anonTest };
+}
+
+// ✅ OPTIMIZED: Validation logic tối ưu, tái sử dụng được
+export function validateUserInfo(userInfo: UserInfo): boolean {
+  return !!(
+    userInfo.name?.trim() && 
+    userInfo.email?.trim() && 
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userInfo.email.trim()) &&
+    userInfo.age?.trim() && 
+    parseInt(userInfo.age) > 0 && 
+    parseInt(userInfo.age) <= 120 &&
+    userInfo.location?.trim()
+  );
+}
+
+// ✅ HELPER: Validation từng field riêng lẻ để hiển thị lỗi cụ thể
+export function validateField(field: keyof UserInfo, value: string): { isValid: boolean; error?: string } {
+  switch (field) {
+    case 'name':
+      return { 
+        isValid: !!value?.trim(), 
+        error: !value?.trim() ? 'Vui lòng nhập họ tên' : undefined 
+      };
+    
+    case 'email':
+      const emailValid = !!value?.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+      return { 
+        isValid: emailValid,
+        error: !value?.trim() ? 'Vui lòng nhập email' : !emailValid ? 'Email không hợp lệ' : undefined
+      };
+    
+    case 'age':
+      const age = parseInt(value);
+      const ageValid = !!value?.trim() && age > 0 && age <= 120;
+      return {
+        isValid: ageValid,
+        error: !value?.trim() ? 'Vui lòng nhập tuổi' : !ageValid ? 'Tuổi phải từ 1-120' : undefined
+      };
+    
+    case 'location':
+      return {
+        isValid: !!value?.trim(),
+        error: !value?.trim() ? 'Vui lòng chọn quốc gia' : undefined
+      };
+    
+    default:
+      return { isValid: true };
+  }
 } 

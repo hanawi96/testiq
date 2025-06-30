@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountrySelector from './CountrySelector';
+import { validateUserInfo } from '../../utils/test-helpers';
 
 interface UserInfo {
   name: string;
@@ -22,8 +23,8 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isFormValid = userInfo.name?.trim() && userInfo.email?.trim() && 
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userInfo.email?.trim() || '');
+  // ✅ SMART: Sử dụng validation function tái sử dụng được
+  const isFormValid = validateUserInfo(userInfo);
 
   // Initialize with preloaded data when popup opens
   useEffect(() => {
@@ -228,7 +229,7 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
                 <div className="flex gap-4">
                   <div className="w-[30%]">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tuổi
+                      Tuổi <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -241,22 +242,23 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
                       placeholder="Tuổi"
                       min="1"
                       max="120"
+                      required
                     />
                   </div>
                   
                   <div className="w-[70%]">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quốc gia
+                      Quốc gia <span className="text-red-500">*</span>
                     </label>
-                    <CountrySelector
-                      value={userInfo.location}
-                      onChange={(countryName, countryCode) => {
-                        handleInputChange('location', countryName);
-                        setUserInfo(prev => ({ ...prev, countryCode: countryCode || '' }));
-                      }}
-                      disabled={isSubmitting}
-                      placeholder="Chọn quốc gia"
-                    />
+                                          <CountrySelector
+                        value={userInfo.location}
+                        onChange={(countryName, countryCode) => {
+                          handleInputChange('location', countryName);
+                          setUserInfo(prev => ({ ...prev, countryCode: countryCode || '' }));
+                        }}
+                        disabled={isSubmitting}
+                        placeholder="Chọn quốc gia"
+                      />
                   </div>
                 </div>
 
