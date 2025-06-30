@@ -171,6 +171,9 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
                 <span className="text-2xl">⏰</span>
                 <h3 className="text-lg font-bold text-gray-800">Hết thời gian!</h3>
               </div>
+              <p className="text-gray-600 text-xs">
+                Nhập thông tin để hiển thị thành tích của bạn trên bảng xếp hạng
+              </p>
             </div>
             
             <div className="space-y-4">

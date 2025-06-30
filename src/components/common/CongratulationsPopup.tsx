@@ -190,6 +190,9 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
                   Hoàn thành test!
                 </h3>
               </div>
+              <p className="text-gray-600 text-sm">
+                Nhập thông tin để hiển thị thành tích của bạn trên bảng xếp hạng
+              </p>
             </div>
             
             <div className="space-y-4">
