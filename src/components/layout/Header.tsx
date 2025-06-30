@@ -226,6 +226,9 @@ export default function Header() {
               <a href="/test/eq" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
                 EQ Test
               </a>
+              <a href="/leaderboard" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
+                Bảng xếp hạng
+              </a>
               <a href="/blog" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
                 Blog
               </a>
@@ -638,6 +641,15 @@ export default function Header() {
                     transition={{ duration: 0.1 }}
                   >
                     💝 EQ Test
+                  </motion.a>
+                  <motion.a
+                    href="/leaderboard"
+                    onClick={closeMobileMenu}
+                    className="block py-3 px-4 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
+                    whileHover={{ x: 4 }}
+                    transition={{ duration: 0.1 }}
+                  >
+                    🏆 Bảng xếp hạng
                   </motion.a>
                   <motion.a
                     href="/blog"

@@ -8,6 +8,7 @@ interface UserInfo {
   age: string;
   location: string;
   countryCode?: string;
+  gender?: string;
 }
 
 interface CongratulationsPopupProps {
@@ -19,7 +20,7 @@ interface CongratulationsPopupProps {
 }
 
 export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false }: CongratulationsPopupProps) {
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
@@ -37,7 +38,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
             email: preloadedUserInfo.email || '',
             age: preloadedUserInfo.age || '',
             location: preloadedUserInfo.location || '',
-            countryCode: preloadedUserInfo.countryCode || ''
+            countryCode: preloadedUserInfo.countryCode || '',
+            gender: preloadedUserInfo.gender || ''
           });
           console.log('✅ Using pre-loaded user info for authenticated user');
           return;
@@ -53,7 +55,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
               email: savedInfo.email || '',
               age: savedInfo.age || '',
               location: savedInfo.location || '',
-              countryCode: savedInfo.countryCode || ''
+              countryCode: savedInfo.countryCode || '',
+              gender: savedInfo.gender || ''
             });
             console.log('✅ Loaded saved anonymous user info from localStorage');
           }
@@ -138,7 +141,7 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
     }, 500);
   };
 
-  const handleInputChange = (field: keyof UserInfo, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     setUserInfo(prev => ({ ...prev, [field]: value }));
     
     // If email changed and we're not authenticated, try to lookup user
@@ -180,13 +183,13 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, type: "spring", damping: 25 }}
           >
-            <div className="text-center mb-8">
-              <div className="text-7xl mb-4 animate-bounce">🎉</div>
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
-                Chúc mừng!
-              </h3>
-              <p className="text-gray-600 text-lg">Bạn đã hoàn thành xuất sắc bài test IQ</p>
-
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 mb-3">
+                <span className="text-3xl">🎉</span>
+                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Hoàn thành test!
+                </h3>
+              </div>
             </div>
             
             <div className="space-y-4">
@@ -237,8 +240,8 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="flex gap-4">
+                <div className="w-[30%]">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tuổi
                   </label>
@@ -256,7 +259,7 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
                   />
                 </div>
                 
-                <div>
+                <div className="w-[70%]">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Quốc gia
                   </label>
@@ -269,6 +272,36 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
                     disabled={isAnalyzing}
                     placeholder="Chọn quốc gia của bạn"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Giới tính
+                </label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'male', label: 'Nam', icon: '♂️' },
+                    { value: 'female', label: 'Nữ', icon: '♀️' },
+                    { value: 'other', label: 'Khác', icon: '⚧️' }
+                  ].map((option) => (
+                    <motion.button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleInputChange('gender', option.value)}
+                      disabled={isAnalyzing}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all duration-200 ${
+                        userInfo.gender === option.value
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                      } ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                      whileHover={!isAnalyzing ? { scale: 1.02 } : {}}
+                      whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
+                    >
+                      <span className="text-sm">{option.icon}</span>
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </motion.button>
+                  ))}
                 </div>
               </div>
             </div>
