@@ -100,9 +100,9 @@ export default function Header() {
   const handleLogout = async () => {
     try {
       await AuthService.signOut();
-      setUser(null);
-      setShowUserDropdown(false);
-      window.location.reload(); // Refresh to clear any cached data
+      
+      // 🚀 SIMPLE: Just reload page to clear all data
+      window.location.reload();
     } catch (err) {
       console.error('Header: Logout error:', err);
     }

@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface LoginFormProps {
   onSubmit: (data: { email: string; password: string }) => void;
   isLoading: boolean;
   error: string;
+  prefilledEmail?: string;
+  prefilledPassword?: string;
 }
 
-export default function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
+export default function LoginForm({ onSubmit, isLoading, error, prefilledEmail, prefilledPassword }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: prefilledEmail || '',
+    password: prefilledPassword || ''
   });
+
+  // 🚀 SMART: Auto-update credentials when prefilled values change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      email: prefilledEmail || prev.email,
+      password: prefilledPassword || prev.password
+    }));
+  }, [prefilledEmail, prefilledPassword]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -72,6 +83,8 @@ export default function LoginForm({ onSubmit, isLoading, error }: LoginFormProps
         </div>
       </div>
 
+
+
       {/* Error Message */}
       {error && (
         <motion.div
@@ -87,11 +100,18 @@ export default function LoginForm({ onSubmit, isLoading, error }: LoginFormProps
       <motion.button 
         type="submit" 
         disabled={isLoading}
-        className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-500/25 transition-all disabled:opacity-50"
+        className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-500/25 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
         whileHover={!isLoading ? { scale: 1.02 } : {}}
         whileTap={!isLoading ? { scale: 0.98 } : {}}
       >
-        {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+        {isLoading && (
+          <motion.div
+            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+        )}
+        <span>{isLoading ? 'Đang đăng nhập' : 'Đăng nhập'}</span>
       </motion.button>
     </form>
   );

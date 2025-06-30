@@ -16,10 +16,15 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
   const [mode, setMode] = useState<AuthMode>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [prefilledEmail, setPrefilledEmail] = useState(''); // Auto-fill email after register
+  const [prefilledPassword, setPrefilledPassword] = useState(''); // Auto-fill password after register
 
   const handleLoginSubmit = async (data: { email: string; password: string }) => {
     setIsLoading(true);
     setError('');
+    // 🚀 DON'T clear success message - keep it visible during login
+    setPrefilledPassword(''); // Clear prefilled password after login attempt
     
     try {
       console.log('LoginPopup: Attempting login for:', data.email);
@@ -46,23 +51,29 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
         return;
       }
 
-      console.log('LoginPopup: Login successful for user:', user.id);
-      onClose();
-      // Call auth success callback to refresh auth state
-      if (onAuthSuccess) {
-        onAuthSuccess();
-      }
+      console.log('✅ Login successful for user:', user.id);
+      
+      // 🚀 KEEP LOADING STATE: Don't reset loading until popup closes
+      setSuccessMessage('Đăng nhập thành công!');
+      
+      setTimeout(() => {
+        onClose();
+        window.location.reload();
+      }, 600); // Quick success + close + reload
+      
+      // Don't run finally block for successful login
+      return;
     } catch (err) {
       console.error('LoginPopup: Unexpected login error:', err);
       setError('Có lỗi xảy ra, vui lòng thử lại');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Only reset loading on error
     }
   };
 
   const handleRegisterSubmit = async (data: { email: string; password: string; confirmPassword: string }) => {
     setIsLoading(true);
     setError('');
+    setSuccessMessage(''); // Clear success message when trying to register
     
     try {
       console.log('LoginPopup: Starting registration for:', data.email);
@@ -92,13 +103,15 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
       console.log('LoginPopup: User email confirmed:', user.email_confirmed_at ? 'Yes' : 'No');
       setError('');
       
-      // Show appropriate success message based on email confirmation status
-      if (user.email_confirmed_at) {
-        alert('Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.');
-      } else {
-        alert('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản trước khi đăng nhập. Nếu không nhận được email, liên hệ admin để được hỗ trợ.');
-      }
+      // 🔥 IMPORTANT: Sign out after registration to prevent auto-login
+      console.log('LoginPopup: Signing out user to require manual login');
+      await AuthService.signOut();
+      
+      // Switch to login mode with success message + auto-fill credentials
       setMode('login');
+      setSuccessMessage('Đăng ký thành công, có thể đăng nhập ngay');
+      setPrefilledEmail(data.email); // Pre-fill email for easy login
+      setPrefilledPassword(data.password); // Pre-fill password for instant login
     } catch (err) {
       console.error('LoginPopup: Unexpected registration error:', err);
       setError('Có lỗi xảy ra khi đăng ký, vui lòng thử lại');
@@ -116,11 +129,17 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
   const switchMode = () => {
     setMode(mode === 'login' ? 'register' : 'login');
     setError('');
+    setSuccessMessage(''); // Clear success message when switching modes
+    setPrefilledEmail(''); // Clear prefilled email when switching manually
+    setPrefilledPassword(''); // Clear prefilled password when switching manually
   };
 
   const resetAndClose = () => {
     setMode('login');
     setError('');
+    setSuccessMessage(''); // Clear success message when closing
+    setPrefilledEmail(''); // Clear prefilled email when closing
+    setPrefilledPassword(''); // Clear prefilled password when closing
     onClose();
   };
 
@@ -170,9 +189,25 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-display">
                   {mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}
                 </h2>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">
-                  {mode === 'login' ? 'Chào mừng bạn quay trở lại!' : 'Tham gia cùng chúng tôi ngay hôm nay!'}
-                </p>
+                {/* Success message or simple subtitle */}
+                {successMessage ? (
+                  <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-5 h-5 bg-green-100 dark:bg-green-800/30 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <p className="text-green-800 dark:text-green-300 text-sm font-medium">
+                        {successMessage}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-400 mt-2">
+                    {mode === 'login' ? 'Nhập thông tin để tiếp tục' : 'Tham gia cùng chúng tôi ngay hôm nay!'}
+                  </p>
+                )}
               </div>
               
               {/* Form */}
@@ -189,6 +224,8 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
                       onSubmit={handleLoginSubmit}
                       isLoading={isLoading}
                       error={error}
+                      prefilledEmail={prefilledEmail}
+                      prefilledPassword={prefilledPassword}
                     />
                   ) : (
                     <RegisterForm 

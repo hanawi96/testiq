@@ -172,67 +172,8 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [dataReady, setDataReady] = useState(false);
   
-  // Optimistic UI - Start with best guess data
+  // 🚀 CLEAN INIT: Always start fresh, load from correct source based on auth
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
-    // Server-side safe initialization
-    if (typeof window === 'undefined') {
-      return initialProfile || {
-        name: 'Người dùng',
-        age: '',
-        location: '',
-        totalTests: 0,
-        averageScore: 0,
-        bestScore: 0,
-        testHistory: [],
-        isAuthenticated: false
-      };
-    }
-
-    // Client-side optimistic loading
-    let cachedData = null;
-    try {
-      const cached = sessionStorage.getItem('profile-cache');
-      if (cached) {
-        cachedData = JSON.parse(cached);
-        if (Date.now() - cachedData.timestamp < 60000) { // 1 minute cache
-          setDataReady(true);
-          setLoadingProgress(100);
-          return cachedData.data;
-        }
-      }
-    } catch (error) {
-      console.warn('Cache load failed:', error);
-    }
-
-    // Fallback to localStorage but non-blocking
-    setTimeout(() => {
-      try {
-        const localUserInfo = localStorage.getItem('anonymous-user-info');
-        const localHistory = localStorage.getItem('iq-test-history');
-        
-        if (localUserInfo || localHistory) {
-          const userInfo = localUserInfo ? JSON.parse(localUserInfo) : null;
-          const testHistory = localHistory ? JSON.parse(localHistory) : [];
-          
-          const optimisticData = {
-            name: userInfo?.name || 'Người dùng',
-            age: userInfo?.age || '',
-            location: userInfo?.location || '',
-            totalTests: testHistory.length,
-            averageScore: 0,
-            bestScore: 0,
-            testHistory: testHistory.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)),
-            isAuthenticated: false
-          };
-          
-          setUserProfile(optimisticData);
-          setLoadingProgress(50);
-        }
-      } catch (error) {
-        console.warn('Optimistic load failed:', error);
-      }
-    }, 0);
-
     return initialProfile || {
       name: 'Người dùng',
       age: '',
@@ -263,123 +204,151 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     return { average, best, joinDate };
   }, [userProfile.testHistory]);
 
-  // Progressive data loading with caching
+  // 💯 SMART DATA LOADING: Auth-first, then fallback (page reload on auth change)
   useEffect(() => {
     let isMounted = true;
     
-    const loadDataProgressively = async () => {
+    const loadDataSmartly = async () => {
       try {
-        setLoadingProgress(10);
+        setLoadingProgress(20);
 
-        // Phase 1: Load modules (fastest)
-        const [testUtilsPromise, backendPromise] = [
+        // 1️⃣ Load modules
+        const [testUtils, backend] = await Promise.all([
           import('../utils/test.ts'),
           import('../../backend').catch(() => null)
-        ];
-        
-        setLoadingProgress(30);
-
-        // Phase 2: Auth check (medium speed)
-        const authPromise = backendPromise
-          .then(backend => backend?.AuthService?.getCurrentUser?.())
-          .then(result => !!result?.user)
-          .catch(() => false);
-
-        const [testUtils, backend, isAuth] = await Promise.all([
-          testUtilsPromise,
-          backendPromise,
-          authPromise
         ]);
+        
+        setLoadingProgress(40);
+
+        // 2️⃣ Check authentication status
+        const isAuth = await (backend?.AuthService?.getCurrentUser?.()
+          .then(result => !!result?.user)
+          .catch(() => false)) || false;
 
         if (!isMounted) return;
-        
         setIsAuthenticated(isAuth);
         setLoadingProgress(60);
 
-        // Phase 3: Data loading (slower but cached)
-        let freshData = { ...userProfile };
+        // 3️⃣ Load data based on auth - PRIORITY: Database > localStorage
+        let profileData: UserProfile = {
+          name: 'Người dùng',
+          age: '',
+          location: '',
+          totalTests: 0,
+          averageScore: 0,
+          bestScore: 0,
+          testHistory: [],
+          isAuthenticated: isAuth
+        };
 
         if (isAuth && backend) {
-          // Authenticated path
+          // 🔥 AUTHENTICATED: Only use database data
+          console.log('🔐 Loading from DATABASE (authenticated user)');
           try {
+            // Get user data first, then profile
+            const currentUser = await backend.AuthService.getCurrentUser();
+            const userId = currentUser?.user?.id;
+            
+            if (!userId) {
+              throw new Error('No user ID found');
+            }
+            
             const [profileResult, historyResult] = await Promise.all([
-              backend.getUserProfile?.('current'),
+              backend.getUserProfile?.(userId),
               testUtils.getUserRealTestHistory?.()
             ]);
 
             if (profileResult?.success && profileResult.data) {
               const profile = profileResult.data;
-              freshData = {
-                ...freshData,
-                name: profile.full_name || freshData.name,
-                age: profile.age?.toString() || freshData.age,
-                location: profile.location || freshData.location,
-                totalTests: historyResult?.length || freshData.totalTests,
-                testHistory: historyResult || freshData.testHistory,
+              const user = currentUser?.user;
+              
+              profileData = {
+                name: profile.full_name || user?.email?.split('@')[0] || 'Người dùng',
+                age: profile.age?.toString() || '',
+                location: profile.location || '',
+                email: profile.email || user?.email || '',
+                totalTests: historyResult?.length || 0,
+                averageScore: 0,
+                bestScore: 0,
+                testHistory: historyResult || [],
                 isAuthenticated: true
               };
+              
+              console.log('💾 Database profile loaded:', {
+                name: profileData.name,
+                email: profileData.email,
+                tests: profileData.totalTests
+              });
+            } else {
+              // Fallback to basic auth info if no profile exists
+              const user = currentUser?.user;
+              profileData = {
+                name: user?.email?.split('@')[0] || 'Người dùng',
+                age: '',
+                location: '',
+                email: user?.email || '',
+                totalTests: historyResult?.length || 0,
+                averageScore: 0,
+                bestScore: 0,
+                testHistory: historyResult || [],
+                isAuthenticated: true
+              };
+              
+              console.log('📧 Using auth fallback data:', {
+                name: profileData.name,
+                email: profileData.email,
+                tests: profileData.totalTests
+              });
             }
           } catch (error) {
-            console.warn('Auth data load failed:', error);
+            console.error('❌ Database load failed:', error);
           }
         } else {
-          // Anonymous path - prefer cached/local data
+          // 📱 ANONYMOUS: Use localStorage only
+          console.log('📱 Loading from LOCALSTORAGE (anonymous user)');
           try {
             const [freshHistory, freshUserInfo] = await Promise.all([
               testUtils.getUserRealTestHistory?.() || [],
               testUtils.getAnonymousUserInfo?.() || null
             ]);
 
-            if (freshHistory?.length > 0 || freshUserInfo) {
-              freshData = {
-                ...freshData,
-                name: freshUserInfo?.name || freshData.name,
-                age: freshUserInfo?.age || freshData.age,
-                location: freshUserInfo?.location || freshData.location,
-                totalTests: freshHistory?.length || freshData.totalTests,
-                testHistory: freshHistory || freshData.testHistory,
-                isAuthenticated: false
-              };
-            }
+            profileData = {
+              name: freshUserInfo?.name || 'Người dùng',
+              age: freshUserInfo?.age || '',
+              location: freshUserInfo?.location || '',
+              totalTests: freshHistory?.length || 0,
+              averageScore: 0,
+              bestScore: 0,
+              testHistory: freshHistory || [],
+              isAuthenticated: false
+            };
           } catch (error) {
-            console.warn('Anonymous data load failed:', error);
+            console.warn('⚠️ LocalStorage load failed:', error);
           }
         }
 
         if (!isMounted) return;
-
-        // Only update if there are meaningful changes
-        const hasChanges = 
-          freshData.name !== userProfile.name ||
-          freshData.totalTests !== userProfile.totalTests ||
-          (freshData.testHistory?.length || 0) !== (userProfile.testHistory?.length || 0);
-
-        if (hasChanges) {
-          setUserProfile(freshData);
-          
-          // Cache for next time
-          try {
-            sessionStorage.setItem('profile-cache', JSON.stringify({
-              data: freshData,
-              timestamp: Date.now()
-            }));
-          } catch (error) {
-            console.warn('Cache save failed:', error);
-          }
-        }
-
+        
+        console.log('✅ Profile loaded:', {
+          source: isAuth ? 'DATABASE' : 'LOCALSTORAGE',
+          authenticated: isAuth,
+          name: profileData.name,
+          totalTests: profileData.totalTests,
+          testHistory: profileData.testHistory?.length || 0
+        });
+        setUserProfile(profileData);
         setLoadingProgress(100);
         setDataReady(true);
 
       } catch (error) {
-        console.error('Data loading failed:', error);
+        console.error('💥 Profile loading failed:', error);
         setLoadingProgress(100);
         setDataReady(true);
       }
     };
 
-    // Start loading with small delay to avoid blocking render
-    const timer = setTimeout(loadDataProgressively, 50);
+    // Start loading after smooth delay
+    const timer = setTimeout(loadDataSmartly, 300);
     
     return () => {
       isMounted = false;

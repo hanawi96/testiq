@@ -32,7 +32,7 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
   const itemsPerPage = 10;
 
-  // 🔥 SINGLE DATA LOADING - SIÊU ĐỠN GIẢN
+  // 🔥 SINGLE DATA LOADING - SIÊU ĐỠN GIẢN (page reload on auth change)
   useEffect(() => {
     let mounted = true;
     
@@ -71,7 +71,9 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
     // Delay để có hiệu ứng loading
     setTimeout(loadData, 800);
     
-    return () => { mounted = false; };
+    return () => { 
+      mounted = false; 
+    };
   }, []);
 
   // Helper functions

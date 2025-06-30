@@ -122,11 +122,18 @@ export default function RegisterForm({ onSubmit, isLoading, error }: RegisterFor
       <motion.button 
         type="submit" 
         disabled={isLoading}
-        className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-blue-700 focus:ring-4 focus:ring-green-500/25 transition-all disabled:opacity-50"
+        className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-blue-700 focus:ring-4 focus:ring-green-500/25 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
         whileHover={!isLoading ? { scale: 1.02 } : {}}
         whileTap={!isLoading ? { scale: 0.98 } : {}}
       >
-        {isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
+        {isLoading && (
+          <motion.div
+            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+        )}
+        <span>{isLoading ? 'Đang tạo tài khoản' : 'Tạo tài khoản'}</span>
       </motion.button>
     </form>
   );
