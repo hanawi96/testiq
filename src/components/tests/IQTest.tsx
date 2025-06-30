@@ -659,38 +659,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         </div>
       </div>
 
-      {/* Submit button center - Shows when all answered */}
-      {allAnswered && (
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-center mt-6">
-          <motion.button
-            onClick={submitTest}
-            disabled={isSubmitting}
-            className={`inline-flex items-center px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-200 ${
-              isSubmitting
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-lg'
-            }`}
-            whileHover={!isSubmitting ? { scale: 1.02 } : {}}
-            whileTap={!isSubmitting ? { scale: 0.98 } : {}}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="loading-spinner mr-2"></div>
-                Đang xử lý...
-              </>
-            ) : (
-              <>
-                <span className="mr-2">🏁</span>
-                Hoàn thành Test
-              </>
-            )}
-          </motion.button>
-          
-          <p className="text-sm text-gray-500 mt-3">
-            🎉 Tất cả câu hỏi đã được trả lời! Nhấn để xem kết quả.
-          </p>
-        </div>
-      )}
+
     </div>
   );
 }

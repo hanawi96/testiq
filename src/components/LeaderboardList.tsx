@@ -626,76 +626,78 @@ export default function LeaderboardList({ initialData }: Props) {
               return (
                 <div 
                   key={`${entry.rank}-${entry.score}`}
-                  className={`group bg-white rounded-xl p-4 border border-gray-200 transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
-                    isTopTier ? 'border-blue-200 bg-blue-50/30' : ''
+                  className={`relative group rounded-xl p-3 border transition-all duration-200 w-full hover:shadow-md active:scale-[0.98] ${
+                    isTopTier ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      {/* Rank Badge */}
-                      <div className="relative">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(entry.rank)} rounded-xl flex items-center justify-center`}>
-                          <span className="text-white font-bold text-sm">#{entry.rank}</span>
-                        </div>
-                        {isTopTier && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs">✨</span>
-                          </div>
+                                     {/* Rank Badge - Góc trái trên */}
+                   <div className="absolute -top-1 -left-1 z-10">
+                     <div className={`w-10 h-8 bg-gradient-to-br ${getRankColor(entry.rank)} rounded-full flex items-center justify-center border-2 border-white shadow-sm`}>
+                       <span className="text-white text-xs font-bold">{entry.rank}</span>
+                     </div>
+                   </div>
+
+                  {/* Top Tier Indicator (không phải special badge) */}
+                  {isTopTier && (
+                    <div className="absolute -top-1 -right-1 z-10">
+                      <div className="bg-blue-500 rounded-full p-1 shadow-sm border border-white">
+                        <span className="text-sm text-white">✨</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pl-6 pr-2">
+                    {/* User Info - Compact */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-bold text-gray-900 truncate text-sm">
+                          {entry.name}
+                        </h3>
+                        {getGenderIcon(entry.gender) && (
+                          <span className="text-xs opacity-70">{getGenderIcon(entry.gender)}</span>
+                        )}
+                        {entry.age && (
+                          <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                            {entry.age}
+                          </span>
                         )}
                       </div>
                       
-                      {/* User Info */}
-                      <div>
-                        <div className="flex items-center space-x-2 flex-wrap">
-                          <h4 className="font-bold text-gray-900">{entry.name}</h4>
-                          <div className="flex items-center space-x-1">
-                            {getGenderIcon(entry.gender) && (
-                              <span className="text-sm" title={`Giới tính: ${entry.gender === 'male' ? 'Nam' : entry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
-                                {getGenderIcon(entry.gender)}
-                              </span>
-                            )}
-                            {entry.age && (
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium" title={`${entry.age} tuổi`}>
-                                {formatAge(entry.age)}
-                              </span>
-                            )}
-                          </div>
-                          {isTopTier && (
-                            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                              Top {entry.rank <= 5 ? '5' : '10'}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1 flex-wrap">
-                          <span className="flex items-center">
-                            <span className="mr-1">📍</span>
-                            {entry.location}
+                      <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                        <span className="flex items-center">
+                          <span className="mr-1">📍</span>
+                          <span className="truncate max-w-16 md:max-w-20">{entry.location}</span>
+                        </span>
+                        <span className="flex items-center">
+                          <span className="mr-1">⏰</span>
+                          <span className="truncate">{formatDate(entry.date)}</span>
+                        </span>
+                        {entry.duration && (
+                          <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(entry.duration)}`}>
+                            <span className="mr-1">⏱️</span>
+                            <span className="truncate">{formatDuration(entry.duration)}</span>
                           </span>
-                          <span className="hidden sm:inline">•</span>
-                          <span className="flex items-center">
-                            <span className="mr-1">⏰</span>
-                            {formatDate(entry.date)}
-                          </span>
-                          {entry.duration && (
-                            <>
-                              <span className="hidden sm:inline">•</span>
-                              <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(entry.duration)}`}>
-                                <span className="mr-1">⏱️</span>
-                                {formatDuration(entry.duration)}
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                    
-                    {/* Score & Badge */}
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-gray-700 mb-1">
+
+                    {/* Score & Badges - Right aligned */}
+                    <div className="text-right flex-shrink-0 ml-3">
+                      <div className={`text-lg font-bold mb-1 ${
+                        isTopTier ? 'text-blue-600' : 'text-gray-700'
+                      }`}>
                         {entry.score}
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
-                        {badgeInfo.icon} {badgeInfo.label}
+                      
+                      <div className="flex flex-col items-end space-y-1">
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
+                          {badgeInfo.label}
+                        </span>
+                        {isTopTier && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
+                            Top {entry.rank <= 5 ? '5' : '10'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -761,11 +763,6 @@ export default function LeaderboardList({ initialData }: Props) {
                         } ${isLoading ? 'opacity-70' : ''}`}
                       >
                         {page}
-                        {/* Cache indicator */}
-                        {isCached && page !== currentPage && (
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full" 
-                               title="Cached" />
-                        )}
                         {/* Loading indicator */}
                         {isLoading && (
                           <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" 

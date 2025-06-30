@@ -209,68 +209,86 @@ export default function LocalRankingView({ userId }: Props) {
           const topUsers = aboveUsers.slice(-4);
           const bottomUsers = belowUsers.slice(0, 4);
           
-          const UserCard = ({ entry, isCurrentUser = false }: { entry: LocalRankingEntry, isCurrentUser?: boolean }) => {
+                     const UserCard = ({ entry, isCurrentUser = false }: { entry: LocalRankingEntry, isCurrentUser?: boolean }) => {
             const badgeInfo = getBadgeInfo(entry.badge);
             const isTopRank = entry.rank <= 10;
             
             return (
-              <div className={`relative rounded-lg p-3 sm:p-4 border transition-all duration-200 ${
+              <div className={`relative group rounded-xl p-3 border transition-all duration-200 w-full ${
                 isCurrentUser 
-                  ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 shadow-md ring-2 ring-yellow-200' 
-                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200 shadow-sm' 
+                  : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md active:scale-[0.98]'
               }`}>
+                                 {/* Rank Badge - Góc trái trên */}
+                 <div className="absolute -top-1 -left-1 z-10">
+                   <div className={`w-10 h-8 bg-gradient-to-br ${getRankColor(entry.rank, isCurrentUser)} rounded-full flex items-center justify-center border-2 border-white shadow-sm`}>
+                     <span className="text-white text-xs font-bold">{entry.rank}</span>
+                   </div>
+                 </div>
+
+                {/* Current User Indicator */}
                 {isCurrentUser && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">!</span>
+                  <div className="absolute -top-1 -right-1 z-10">
+                    <div className="bg-yellow-500 rounded-full p-1 shadow-sm border border-white">
+                      <span className="text-sm text-white">👑</span>
+                    </div>
                   </div>
                 )}
-                
-                                 <div className="flex items-center space-x-2 sm:space-x-3">
-                   {/* Responsive Rank */}
-                   <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br ${getRankColor(entry.rank, isCurrentUser)} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                     <span className="text-white font-bold text-xs sm:text-sm">#{entry.rank}</span>
-                   </div>
-                  
+
+                <div className="flex items-center justify-between pl-6 pr-2">
                   {/* User Info - Compact */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-1">
-                      <h4 className={`font-bold text-sm truncate ${isCurrentUser ? 'text-yellow-800' : 'text-gray-900'}`}>
-                        {isCurrentUser ? 'Bạn' : entry.name}
-                      </h4>
+                    <div className="flex items-center space-x-2">
+                      <h3 className={`font-bold truncate text-sm ${isCurrentUser ? 'text-yellow-800' : 'text-gray-900'}`}>
+                        {isCurrentUser ? `${entry.name} (Bạn)` : entry.name}
+                      </h3>
                       {getGenderIcon(entry.gender) && (
-                        <span className="text-xs">{getGenderIcon(entry.gender)}</span>
+                        <span className="text-xs opacity-70">{getGenderIcon(entry.gender)}</span>
                       )}
                       {entry.age && (
-                        <span className="text-xs bg-gray-200 text-gray-600 px-1 rounded text-center min-w-[20px]">
+                        <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
                           {entry.age}
                         </span>
                       )}
                     </div>
                     
-                                         <div className="flex items-center space-x-1 text-xs text-gray-500 mt-0.5">
-                       <span className="truncate max-w-[60px] sm:max-w-[80px]">{entry.location}</span>
-                       {entry.duration && (
-                         <>
-                           <span className="hidden sm:inline">•</span>
-                           <span className="text-blue-600" title={`Thời gian: ${formatDuration(entry.duration)}`}>
-                             <span className="sm:hidden">⏱️</span>
-                             <span className="hidden sm:inline">⏱️{formatDuration(entry.duration)}</span>
-                             <span className="sm:hidden">{formatDuration(entry.duration)}</span>
-                           </span>
-                         </>
-                       )}
-                     </div>
+                    <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                      <span className="flex items-center">
+                        <span className="mr-1">📍</span>
+                        <span className="truncate max-w-16 md:max-w-20">{entry.location}</span>
+                      </span>
+                      <span className="flex items-center">
+                        <span className="mr-1">⏰</span>
+                        <span className="truncate">{formatDate(entry.date)}</span>
+                      </span>
+                      {entry.duration && (
+                        <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(entry.duration)}`}>
+                          <span className="mr-1">⏱️</span>
+                          <span className="truncate">{formatDuration(entry.duration)}</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  
-                                     {/* Score - Responsive */}
-                   <div className="text-right flex-shrink-0">
-                     <div className={`text-lg sm:text-xl font-bold ${isCurrentUser ? 'text-yellow-600' : 'text-gray-700'}`}>
-                       {entry.score}
-                     </div>
-                     <div className={`text-xs px-1.5 py-0.5 rounded-full bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
-                       {badgeInfo.icon}
-                     </div>
-                   </div>
+
+                  {/* Score & Badges - Right aligned */}
+                  <div className="text-right flex-shrink-0 ml-3">
+                    <div className={`text-lg font-bold mb-1 ${
+                      isCurrentUser ? 'text-yellow-600' : isTopRank ? 'text-blue-600' : 'text-gray-700'
+                    }`}>
+                      {entry.score}
+                    </div>
+                    
+                    <div className="flex flex-col items-end space-y-1">
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
+                        {badgeInfo.label}
+                      </span>
+                      {isCurrentUser && (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-medium">
+                          Của bạn
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             );

@@ -188,8 +188,8 @@ export default function TopTenLeaderboard({ initialData }: Props) {
             >
               {/* Rank Badge - Special for top 10 */}
               <div className="absolute -top-1 -left-1 z-10">
-                <div className={`w-8 h-8 bg-gradient-to-br ${specialBadge.color} rounded-full flex items-center justify-center border-2 border-white shadow-sm`}>
-                  <span className="text-white text-xs font-bold">#{entry.rank}</span>
+                <div className={`w-10 h-8 bg-gradient-to-br ${specialBadge.color} rounded-full flex items-center justify-center border-2 border-white shadow-sm`}>
+                  <span className="text-white text-xs font-bold">{entry.rank}</span>
                 </div>
               </div>
 
