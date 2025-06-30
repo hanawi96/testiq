@@ -145,6 +145,14 @@ export interface Question {
   }
   
   export async function saveTestResult(result: TestResult): Promise<void> {
+    console.log('🚀 saveTestResult called with:', {
+      hasUserInfo: !!result.userInfo,
+      userInfo: result.userInfo ? {
+        name: result.userInfo.name || 'empty',
+        email: result.userInfo.email || 'empty'
+      } : 'null'
+    });
+
     // Save to localStorage as backup
     try {
       const results = getTestHistory();
@@ -205,51 +213,52 @@ export interface Question {
           gender: result.userInfo?.gender || null
         };
       } else {
-        // Anonymous user - save with guest info if provided
-        if (!result.userInfo) {
-          console.log('⚠️ No user info provided for anonymous test, skipping Supabase save');
-          return;
-        }
+        // Anonymous user - save với hoặc không có user info
+        console.log('💾 Saving test result for anonymous user - hasUserInfo:', !!result.userInfo);
         
-        console.log('💾 Saving test result for anonymous user');
-        
-        // Save to anonymous_players table for email-based lookup
-        try {
-          const { saveAnonymousPlayer } = await import('../../backend');
-          const anonymousPlayerData = {
-            name: result.userInfo.name,
-            email: result.userInfo.email,
-            age: parseInt(result.userInfo.age) || undefined,
-            country_name: result.userInfo.location || undefined,
-            country_code: result.userInfo.countryCode || undefined,
-            gender: result.userInfo.gender || undefined,
-            test_result: {
-              score: result.score,
-              iq: result.iq,
-              classification: result.classification,
-              percentile: result.percentile,
-              answers: result.answers,
-              categoryScores: result.categoryScores,
-              detailed: result.detailed,
-              timestamp: Date.now()
-            },
-            test_score: result.iq,
-            test_duration: result.timeSpent
-          };
-          
-          const playerResult = await saveAnonymousPlayer(anonymousPlayerData);
-          if (playerResult.success) {
-            console.log('✅ Anonymous player saved to database');
-            // Update localStorage with potentially updated data
-            saveAnonymousUserInfo(result.userInfo);
-          } else {
-            console.warn('⚠️ Failed to save to anonymous_players:', playerResult.error);
+        // Nếu có userInfo, save to anonymous_players table for email-based lookup
+        if (result.userInfo) {
+          console.log('📧 Attempting to save to anonymous_players table');
+          try {
+            const { saveAnonymousPlayer } = await import('../../backend');
+            const anonymousPlayerData = {
+              name: result.userInfo.name,
+              email: result.userInfo.email,
+              age: parseInt(result.userInfo.age) || undefined,
+              country_name: result.userInfo.location || undefined,
+              country_code: result.userInfo.countryCode || undefined,
+              gender: result.userInfo.gender || undefined,
+              test_result: {
+                score: result.score,
+                iq: result.iq,
+                classification: result.classification,
+                percentile: result.percentile,
+                answers: result.answers,
+                categoryScores: result.categoryScores,
+                detailed: result.detailed,
+                timestamp: Date.now()
+              },
+              test_score: result.iq,
+              test_duration: result.timeSpent
+            };
+            
+            const playerResult = await saveAnonymousPlayer(anonymousPlayerData);
+            if (playerResult.success) {
+              console.log('✅ Anonymous player saved to database');
+              // Update localStorage with potentially updated data
+              saveAnonymousUserInfo(result.userInfo);
+            } else {
+              console.warn('⚠️ Failed to save to anonymous_players:', playerResult.error);
+            }
+          } catch (error) {
+            console.warn('⚠️ Error saving to anonymous_players:', error);
           }
-        } catch (error) {
-          console.warn('⚠️ Error saving to anonymous_players:', error);
+        } else {
+          console.log('⚠️ No user info provided - saving with minimal data');
         }
         
-        // Also save to user_test_results for compatibility
+        // ALWAYS save to user_test_results (với hoặc không có user info)
+        console.log('📊 Saving to user_test_results table');
         testData = {
           user_id: null, // Anonymous user
           test_type: 'iq',
@@ -265,12 +274,13 @@ export interface Question {
             categoryScores: result.categoryScores,
             detailed: result.detailed
           },
-          name: result.userInfo.name,
-          email: result.userInfo.email,
-          age: parseInt(result.userInfo.age) || undefined,
-          country: result.userInfo.location || undefined,
-          country_code: result.userInfo.countryCode || undefined,
-          gender: result.userInfo.gender || undefined
+          // Use userInfo if available, otherwise null/default values
+          name: result.userInfo?.name || null,
+          email: result.userInfo?.email || null,
+          age: result.userInfo?.age ? parseInt(result.userInfo.age) : null,
+          country: result.userInfo?.location || null,
+          country_code: result.userInfo?.countryCode || null,
+          gender: result.userInfo?.gender || null
         };
       }
 
@@ -282,13 +292,14 @@ export interface Question {
         age: testData.age,
         country: testData.country,
         country_code: testData.country_code,
-        gender: testData.gender
+        gender: testData.gender,
+        score: testData.score
       });
 
       const saveResult = await saveToSupabase(testData);
       
       if (saveResult.success) {
-        console.log('✅ Test result saved to Supabase successfully');
+        console.log('✅ Test result saved to Supabase successfully - ID:', saveResult.data?.id);
       } else {
         console.error('❌ Failed to save to Supabase:', saveResult.error);
       }

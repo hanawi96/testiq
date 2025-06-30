@@ -105,9 +105,9 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
   let excellentCount = 0;
   const uniqueCountries = new Set<string>();
 
-  // ✅ FIXED: Xử lý tất cả trong 1 vòng lặp - LOGIC ĐƠN GIẢN
+  // ✅ FIXED: Xử lý tất cả trong 1 vòng lặp - LOGIC ĐƠN GIẢN HÓA
   for (const record of results) {
-    const { score, duration_seconds, age, country, country_code } = record;
+    const { score, duration_seconds, age, country, country_code, email } = record;
     
     // Chỉ xử lý records có score hợp lệ
     if (score == null || score < 0) continue;
@@ -142,30 +142,54 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
       else ageRanges[4]++;
     }
     
-    // ✅ FIXED: Thống kê quốc gia - ĐẾM UNIQUE EMAILS
-    if (country && country_code && record.email) {
-      uniqueCountries.add(country_code);
+    // ✅ SUPER FIX: Thống kê quốc gia - LOGIC ĐƠN GIẢN & CHÍNH XÁC
+    if (country || country_code) {
+      // Xác định country key và name
+      const countryKey = country_code || country || 'Unknown';
+      const countryName = country || country_code || 'Không rõ';
       
-      if (!countryStats.has(country_code)) {
-        countryStats.set(country_code, {
-          name: country,
+      uniqueCountries.add(countryKey);
+      
+      if (!countryStats.has(countryKey)) {
+        countryStats.set(countryKey, {
+          name: countryName,
           emails: new Set<string>(),
           totalScore: 0,
           scores: []
         });
       }
       
-      const stat = countryStats.get(country_code)!;
-      stat.emails.add(record.email); // Đếm unique emails
+      const stat = countryStats.get(countryKey)!;
+      
+      // Đếm unique participants: ưu tiên email, fallback là tạo unique key
+      if (email) {
+        stat.emails.add(email);
+      } else {
+        // Tạo unique key cho anonymous users không có email
+        const anonymousKey = `anonymous_${score}_${age || 'unknown'}_${Date.now() + Math.random()}`;
+        stat.emails.add(anonymousKey);
+      }
+      
       stat.totalScore += score;
       stat.scores.push(score);
     }
   }
 
-  // ✅ FIXED: Đếm unique emails thay vì tất cả records
+  // ✅ SUPER FIX: Đếm participants chính xác - BAO GỒM TẤT CẢ
   const validRecords = results.filter(r => r.score != null && r.score >= 0);
+  
+  // Đếm unique participants từ emails + anonymous participants
   const uniqueEmails = new Set(validRecords.filter(r => r.email).map(r => r.email));
-  const validParticipants = uniqueEmails.size; // Số người thật sự (unique emails)
+  const anonymousParticipants = validRecords.filter(r => !r.email).length;
+  
+  // Tổng participants = unique emails + anonymous participants
+  const totalUniqueParticipants = uniqueEmails.size + anonymousParticipants;
+  
+  console.log('👥 PARTICIPANTS CALCULATION:');
+  console.log('📧 Unique emails:', uniqueEmails.size);
+  console.log('🎭 Anonymous participants:', anonymousParticipants);
+  console.log('🎯 Total participants:', totalUniqueParticipants);
+  
   const globalAverageIQ = validRecords.length > 0 ? Math.round(totalScore / validRecords.length) : 100;
   
   // ✅ FIXED: Thời gian trung bình thông minh hơn
@@ -187,7 +211,7 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
 
   // ✅ FIXED: Top quốc gia theo IQ - ĐƠN GIẢN HÓA
   const topCountriesByIQ = Array.from(countryStats.entries())
-    .filter(([_, stat]) => stat.scores.length >= 5) // Tối thiểu 5 tests
+    .filter(([_, stat]) => stat.scores.length >= 3) // Giảm threshold từ 5 xuống 3
     .map(([code, stat]) => ({
       country: stat.name,
       flag: countryFlags[code] || '🏳️',
@@ -196,15 +220,20 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
     .sort((a, b) => b.avgIQ - a.avgIQ)
     .slice(0, 5);
 
-  // ✅ FIXED: Top quốc gia theo số người tham gia - ĐẾM UNIQUE EMAILS
+  // ✅ SUPER FIX: Top quốc gia theo số người tham gia - CHÍNH XÁC 100%
   const topCountriesByParticipants = Array.from(countryStats.entries())
     .map(([code, stat]) => ({
       country: stat.name,
       flag: countryFlags[code] || '🏳️',
-      participants: stat.emails.size // Số người thật (unique emails)
+      participants: stat.emails.size // Số người unique (emails + anonymous)
     }))
+    .filter(country => country.participants > 0) // Chỉ hiển thị quốc gia có người chơi
     .sort((a, b) => b.participants - a.participants)
     .slice(0, 5);
+
+  console.log('🔥 DEBUG: Country stats generated:');
+  console.log('📊 Total countries:', countryStats.size);
+  console.log('🏆 Top countries by participants:', topCountriesByParticipants);
 
   // Phân bố tuổi (phần trăm) - dùng total records để tính %
   const ageDistribution = [
@@ -226,7 +255,7 @@ function calculateOptimizedStats(results: any[]): DashboardStats {
 
   return {
     totalCountries: uniqueCountries.size,
-    totalParticipants: validParticipants,
+    totalParticipants: totalUniqueParticipants,
     globalAverageIQ,
     averageTestTime,
     geniusBadges: geniusCount,
@@ -275,7 +304,47 @@ function getDefaultStats(): DashboardStats {
  */
 export function clearDashboardCache(): void {
   dashboardCache = { data: null, lastFetch: 0 };
-  console.log('🧹 Dashboard cache cleared');
+  console.log('🧹 Dashboard cache cleared - will force fresh calculation');
+}
+
+/**
+ * 🚀 INSTANT TEST: Ngay lập tức test và hiển thị kết quả
+ */
+export async function testTopCountriesData(): Promise<void> {
+  try {
+    console.log('\n🔬 TESTING TOP COUNTRIES DATA...');
+    
+    // Clear cache to force fresh calculation
+    clearDashboardCache();
+    
+    // Get fresh stats
+    const stats = await getDashboardStats();
+    
+    console.log('\n✅ RESULTS:');
+    console.log('📊 Total Countries:', stats.totalCountries);
+    console.log('👥 Total Participants:', stats.totalParticipants);
+    console.log('\n🏆 TOP 5 COUNTRIES BY PARTICIPANTS:');
+    
+    if (stats.topCountriesByParticipants.length > 0) {
+      stats.topCountriesByParticipants.forEach((country, index) => {
+        console.log(`${index + 1}. ${country.flag} ${country.country}: ${country.participants} người`);
+      });
+    } else {
+      console.log('❌ NO DATA - Kiểm tra database connection và dữ liệu');
+    }
+    
+    console.log('\n🌟 TOP 5 COUNTRIES BY IQ:');
+    if (stats.topCountriesByIQ.length > 0) {
+      stats.topCountriesByIQ.forEach((country, index) => {
+        console.log(`${index + 1}. ${country.flag} ${country.country}: ${country.avgIQ} IQ`);
+      });
+    } else {
+      console.log('❌ NO IQ DATA');
+    }
+    
+  } catch (error) {
+    console.error('❌ TEST ERROR:', error);
+  }
 }
 
 /**

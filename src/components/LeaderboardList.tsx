@@ -472,7 +472,7 @@ export default function LeaderboardList({ initialData }: Props) {
           {/* Header */}
           <div className="bg-gray-50 border-b border-gray-200">
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
                     <span className="text-lg">🏆</span>

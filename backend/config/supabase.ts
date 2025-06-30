@@ -22,19 +22,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       'apikey': supabaseAnonKey,
       'Authorization': `Bearer ${supabaseAnonKey}`,
-      'Cache-Control': 'max-age=300', // 5 minutes cache
-    },
-    fetch: (url, options = {}) => {
-      // Add timeout and retry logic
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      
-      return fetch(url, {
-        ...options,
-        signal: controller.signal,
-      }).finally(() => {
-        clearTimeout(timeoutId);
-      });
     },
   },
   db: {

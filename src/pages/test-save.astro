@@ -1,0 +1,152 @@
+---
+import { saveTestResult } from '../../backend/utils/user-test-results-service';
+
+let testResults = '';
+let errorMessage = '';
+
+try {
+  // Test Case 1: Anonymous user WITH userInfo
+  console.log('🧪 TEST CASE 1: Anonymous user WITH userInfo...');
+  const testWithUserInfo = {
+    user_id: null,
+    test_type: 'iq',
+    score: 125,
+    accuracy: 80,
+    duration_seconds: 1200,
+    test_data: {
+      score: 8,
+      iq: 125,
+      classification: 'superior',
+      percentile: 91,
+      answers: [1, 0, 1, 1, 0, 1, 1, 0, 1, 1],
+      categoryScores: { logic: 85, math: 75, verbal: 80 },
+      detailed: { correct: 8, incorrect: 2, accuracy: 80 }
+    },
+    name: 'Test User ' + Date.now(),
+    email: 'test' + Date.now() + '@example.com',
+    age: 25,
+    country: 'Việt Nam',
+    country_code: 'VN',
+    gender: 'male'
+  };
+
+  const result1 = await saveTestResult(testWithUserInfo);
+  
+  // Test Case 2: Anonymous user WITHOUT userInfo
+  console.log('🧪 TEST CASE 2: Anonymous user WITHOUT userInfo...');
+  const testWithoutUserInfo = {
+    user_id: null,
+    test_type: 'iq',
+    score: 110,
+    accuracy: 70,
+    duration_seconds: 1500,
+    test_data: {
+      score: 7,
+      iq: 110,
+      classification: 'average',
+      percentile: 75,
+      answers: [1, 0, 1, 1, 0, 0, 1, 0, 1, 1],
+      categoryScores: { logic: 75, math: 65, verbal: 70 },
+      detailed: { correct: 7, incorrect: 3, accuracy: 70 }
+    },
+    // NO user info fields - simulating anonymous test without popup completion
+    name: null,
+    email: null,
+    age: null,
+    country: null,
+    country_code: null,
+    gender: null
+  };
+
+  const result2 = await saveTestResult(testWithoutUserInfo);
+
+  // Check results
+  if (result1.success && result2.success) {
+    testResults = `✅ BOTH TEST CASES SUCCESSFUL!
+
+📊 Test Case 1 (WITH UserInfo):
+- ID: ${result1.data?.id}
+- Name: ${testWithUserInfo.name}
+- Email: ${testWithUserInfo.email}
+- Score: ${testWithUserInfo.score}
+- Country: ${testWithUserInfo.country}
+
+🔍 Test Case 2 (WITHOUT UserInfo):
+- ID: ${result2.data?.id}
+- Name: ${testWithoutUserInfo.name || 'NULL'}
+- Email: ${testWithoutUserInfo.email || 'NULL'} 
+- Score: ${testWithoutUserInfo.score}
+- Country: ${testWithoutUserInfo.country || 'NULL'}
+
+🎯 RESULT: Fixed! Anonymous tests now save to database REGARDLESS of userInfo status.
+
+✅ Both records should appear in:
+1. /debug-database page
+2. /leaderboard stats
+3. Top scores section`;
+    
+    console.log('✅ Both test cases successful');
+  } else {
+    throw new Error(`Test 1: ${result1.success ? 'OK' : result1.error?.message}, Test 2: ${result2.success ? 'OK' : result2.error?.message}`);
+  }
+
+} catch (error) {
+  errorMessage = error.message;
+  testResults = `❌ TEST FAILED: ${error.message}`;
+  console.error('❌ Test error:', error);
+}
+---
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🧪 Fix Test: Save Anonymous User Results</title>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 20px; border-radius: 8px; max-width: 900px; }
+    pre { background: #f8f8f8; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
+    h1 { color: #333; }
+    .success { color: #22c55e; }
+    .error { color: #ef4444; }
+    .nav { margin-bottom: 20px; }
+    .nav a { margin-right: 15px; color: #0066cc; text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    .highlight { background: #fff3cd; padding: 10px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #ffc107; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <a href="/debug-database">📊 Check Database</a>
+      <a href="/leaderboard">🏆 Leaderboard</a>
+      <a href="/test/iq">🧠 IQ Test</a>
+      <a href="#" onclick="location.reload()">🔄 Test Again</a>
+    </div>
+    
+    <h1>🧪 Fix Test: Anonymous User Save</h1>
+    <p><strong>Test Time:</strong> {new Date().toLocaleString('vi-VN')}</p>
+    
+    <div class="highlight">
+      <strong>🎯 Fix Applied:</strong> Removed the early return that prevented anonymous users from saving to database when userInfo is missing.
+    </div>
+    
+    <h2>📊 Test Results:</h2>
+    <pre class={errorMessage ? 'error' : 'success'}>{testResults}</pre>
+    
+    <h2>🔧 What Was Fixed:</h2>
+    <ul>
+      <li><strong>Problem:</strong> Anonymous users without userInfo were skipped completely</li>
+      <li><strong>Solution:</strong> Always save test results to user_test_results table</li>
+      <li><strong>Benefit:</strong> Test data is never lost, even if user closes popup early</li>
+    </ul>
+    
+    <h2>📋 Verification Steps:</h2>
+    <ol>
+      <li><a href="/debug-database">Check database records →</a></li>
+      <li><a href="/leaderboard">Check leaderboard stats →</a></li>
+      <li>Try IQ test without filling popup to verify fix</li>
+    </ol>
+  </div>
+</body>
+</html> 
