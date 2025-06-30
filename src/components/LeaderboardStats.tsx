@@ -99,25 +99,6 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
     loadData();
   }, [initialStats]);
 
-  // Debug function để force refresh
-  const forceRefresh = async () => {
-    console.log('🔄 Force refreshing dashboard stats...');
-    setIsLoading(true);
-    
-    try {
-      const { getDashboardStats, clearDashboardCache } = await import('../../backend/utils/dashboard-stats-service');
-      clearDashboardCache();
-      const freshStats = await getDashboardStats();
-      
-      console.log('✅ Force refresh completed:', freshStats.topCountriesByParticipants);
-      setStats(freshStats);
-    } catch (error) {
-      console.error('❌ Force refresh error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const StatCard = ({ icon, value, label, subtitle, gradient }: {
     icon: string;
     value: string | number;
@@ -143,19 +124,6 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Debug button - chỉ hiển thị trong development */}
-      {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
-        <div className="text-center">
-          <button 
-            onClick={forceRefresh}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
-            disabled={isLoading}
-          >
-            🔄 Force Refresh Stats (Debug)
-          </button>
-        </div>
-      )}
-      
       {/* Modern Minimalist Stats */}
       <div className="backdrop-blur-sm bg-white/70 border border-gray-200/50 rounded-2xl p-5 shadow-sm">
         {/* Top Stats - Clean 4-grid */}
