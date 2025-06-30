@@ -24,7 +24,7 @@ export type { AdminStats, AdminAction } from './types';
 export { quickSetupDatabase, createTestAdmin } from './utils/setup-database';
 export * from './types';
 
-// Export new services
+// Export leaderboard services
 export { 
   getLeaderboard, 
   getRecentTopPerformers, 
@@ -35,6 +35,23 @@ export {
   getCacheStatus 
 } from './utils/leaderboard-service';
 export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-service';
+
+// Export dashboard stats service - SIÊU TỐI ƯU
+export { 
+  getDashboardStats,
+  clearDashboardCache,
+  debugDashboardStats
+} from './utils/dashboard-stats-service';
+export type { DashboardStats } from './utils/dashboard-stats-service';
+
+// Export data analysis service - KIỂM TRA CHÍNH XÁC
+export { 
+  analyzeCompleteData,
+  compareWithDashboard
+} from './utils/data-analysis-service';
+export type { DataAnalysisResult } from './utils/data-analysis-service';
+
+// Export other services
 export { updateUserProfile, getUserProfile } from './utils/user-profile-service';
 export type { UserProfileData } from './utils/user-profile-service';
 export { findAnonymousPlayerByEmail, saveAnonymousPlayer } from './utils/anonymous-players-service';

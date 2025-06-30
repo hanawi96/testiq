@@ -1,0 +1,291 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+// Demo thuật toán với dữ liệu mẫu
+const demoData = [
+  // Singapore - High IQ, good sample size
+  { country: 'Singapore', code: 'SG', scores: [142, 145, 138, 149, 144, 140, 147, 143, 146, 141, 145, 142, 148, 144, 143, 146, 145, 147, 144, 143, 142, 145, 146, 144, 143] },
+  
+  // Hàn Quốc - High IQ, large sample
+  { country: 'Hàn Quốc', code: 'KR', scores: [140, 142, 138, 144, 141, 139, 143, 140, 142, 141, 144, 139, 143, 140, 142, 138, 145, 141, 143, 140, 142, 144, 139, 141, 143, 140, 142, 144, 139, 141] },
+  
+  // Monaco - Very high IQ but tiny sample (outlier case)
+  { country: 'Monaco', code: 'MC', scores: [155, 148, 152] }, // Sẽ bị loại do sample size nhỏ
+  
+  // Việt Nam - Good IQ, good sample size
+  { country: 'Việt Nam', code: 'VN', scores: [125, 128, 122, 130, 126, 124, 129, 127, 125, 128, 123, 131, 126, 124, 127, 129, 125, 128, 126, 124, 130, 127, 125, 128, 126, 124, 129, 127, 125, 128] },
+  
+  // Thử nghiệm - Sample có outliers
+  { country: 'Test Country', code: 'TC', scores: [110, 112, 108, 114, 111, 109, 113, 110, 112, 108, 50, 111, 109, 113, 110, 112, 180, 114, 111, 109, 113, 110, 112, 108, 114] } // Có outliers: 50, 180
+];
+
+function removeOutliers(scores: number[]): number[] {
+  if (scores.length < 10) return scores;
+
+  const sorted = [...scores].sort((a, b) => a - b);
+  const q1Index = Math.floor(sorted.length * 0.25);
+  const q3Index = Math.floor(sorted.length * 0.75);
+  
+  const q1 = sorted[q1Index];
+  const q3 = sorted[q3Index];
+  const iqr = q3 - q1;
+  
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+  
+  return scores.filter(score => score >= lowerBound && score <= upperBound);
+}
+
+function calculateVariance(scores: number[]): number {
+  const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  const squaredDiffs = scores.map(score => Math.pow(score - mean, 2));
+  return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / scores.length;
+}
+
+function calculateConfidenceScore(scores: number[], totalSamples: number): number {
+  const sampleSizeRatio = Math.min(scores.length / (totalSamples * 0.05), 1);
+  const sampleConfidence = sampleSizeRatio * 0.5;
+  
+  const variance = calculateVariance(scores);
+  const normalizedVariance = Math.min(variance / 400, 1);
+  const varianceConfidence = (1 - normalizedVariance) * 0.5;
+  
+  return Math.min(sampleConfidence + varianceConfidence, 1);
+}
+
+// Tính toán demo
+const totalSamples = demoData.reduce((sum, country) => sum + country.scores.length, 0);
+const MIN_SAMPLE_SIZE = Math.max(25, Math.ceil(totalSamples * 0.001));
+
+const processedCountries = demoData.map(country => {
+  const originalAvg = Math.round(country.scores.reduce((sum, s) => sum + s, 0) / country.scores.length);
+  const cleanedScores = removeOutliers(country.scores);
+  const cleanedAvg = cleanedScores.length > 0 ? 
+    Math.round(cleanedScores.reduce((sum, s) => sum + s, 0) / cleanedScores.length) : originalAvg;
+  
+  const confidence = calculateConfidenceScore(cleanedScores, totalSamples);
+  const meetsMinSize = country.scores.length >= MIN_SAMPLE_SIZE;
+  
+  const populationWeight = Math.min(1.0, country.scores.length / (totalSamples * 0.05));
+  const weightedAvg = Math.round(cleanedAvg * (0.7 + 0.3 * populationWeight));
+  
+  const compositeScore = weightedAvg + (confidence * 3);
+  
+  return {
+    ...country,
+    originalAvg,
+    cleanedScores,
+    cleanedAvg,
+    confidence,
+    meetsMinSize,
+    populationWeight,
+    weightedAvg,
+    compositeScore,
+    outliers: country.scores.filter(s => !cleanedScores.includes(s))
+  };
+});
+
+const validCountries = processedCountries
+  .filter(c => c.meetsMinSize && c.cleanedScores.length >= MIN_SAMPLE_SIZE * 0.7)
+  .sort((a, b) => b.compositeScore - a.compositeScore);
+---
+
+<AdminLayout title="Algorithm Demo - Top 5 Countries by IQ">
+  <div class="max-w-7xl mx-auto p-6">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">🧮 Demo Thuật toán Top 5 Quốc gia IQ</h1>
+      <p class="text-gray-600">Minh họa cách tính toán thống kê một cách hợp lý và chính xác</p>
+    </div>
+
+    <!-- Thông tin tổng quan -->
+    <div class="bg-blue-50 rounded-xl p-6 mb-8">
+      <h2 class="text-xl font-semibold text-blue-900 mb-4">📊 Tổng quan thuật toán</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold text-blue-800 mb-2">🔍 Các bước thực hiện:</h3>
+          <ol class="list-decimal list-inside space-y-1 text-blue-700">
+            <li>Filter minimum sample size ({MIN_SAMPLE_SIZE} tests)</li>
+            <li>Remove outliers (IQR method)</li>
+            <li>Calculate confidence score</li>
+            <li>Apply population weight factor</li>
+            <li>Sort by composite score</li>
+          </ol>
+        </div>
+        <div>
+          <h3 class="font-semibold text-blue-800 mb-2">📈 Thống kê mẫu:</h3>
+          <div class="space-y-1 text-blue-700">
+            <div>Tổng samples: <strong>{totalSamples}</strong></div>
+            <div>Min sample size: <strong>{MIN_SAMPLE_SIZE}</strong></div>
+            <div>Quốc gia hợp lệ: <strong>{validCountries.length}</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kết quả chi tiết -->
+    <div class="space-y-6">
+      {processedCountries.map((country, idx) => (
+        <div class={`rounded-xl p-6 border-2 ${
+          country.meetsMinSize && validCountries.includes(country) 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold flex items-center gap-2">
+              <span class="text-2xl">{country.code === 'SG' ? '🇸🇬' : country.code === 'KR' ? '🇰🇷' : country.code === 'VN' ? '🇻🇳' : country.code === 'MC' ? '🇲🇨' : '🏳️'}</span>
+              {country.country}
+            </h3>
+            <div class="text-right">
+              {country.meetsMinSize && validCountries.includes(country) ? (
+                <div class="text-green-600 font-semibold">✅ HỢP LỆ</div>
+              ) : (
+                <div class="text-red-600 font-semibold">❌ LOẠI BỎ</div>
+              )}
+              {validCountries.includes(country) && (
+                <div class="text-sm text-gray-600">Rank: #{validCountries.indexOf(country) + 1}</div>
+              )}
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Sample Size -->
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-sm text-gray-600 mb-1">Sample Size</div>
+              <div class="text-lg font-bold">{country.scores.length}</div>
+              <div class="text-xs text-gray-500">
+                Min: {MIN_SAMPLE_SIZE} 
+                {country.scores.length >= MIN_SAMPLE_SIZE ? '✅' : '❌'}
+              </div>
+            </div>
+
+            <!-- Original Average -->
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-sm text-gray-600 mb-1">Original Avg</div>
+              <div class="text-lg font-bold">{country.originalAvg}</div>
+              <div class="text-xs text-gray-500">
+                Raw: {country.scores.join(', ').slice(0, 30)}...
+              </div>
+            </div>
+
+            <!-- Cleaned Average -->
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-sm text-gray-600 mb-1">Cleaned Avg</div>
+              <div class="text-lg font-bold text-blue-600">{country.cleanedAvg}</div>
+              <div class="text-xs text-gray-500">
+                {country.outliers.length > 0 ? (
+                  <span>Removed outliers: {country.outliers.join(', ')}</span>
+                ) : (
+                  <span>No outliers detected</span>
+                )}
+              </div>
+            </div>
+
+            <!-- Final Score -->
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-sm text-gray-600 mb-1">Final Weighted</div>
+              <div class="text-lg font-bold text-green-600">{country.weightedAvg}</div>
+              <div class="text-xs text-gray-500">
+                Composite: {country.compositeScore.toFixed(1)}
+              </div>
+            </div>
+          </div>
+
+          <!-- Chi tiết tính toán -->
+          <div class="mt-4 bg-white p-4 rounded-lg">
+            <div class="text-sm text-gray-600 mb-2">📊 Chi tiết tính toán:</div>
+            <div class="grid md:grid-cols-3 gap-4 text-xs">
+              <div>
+                <strong>Confidence:</strong> {(country.confidence * 100).toFixed(1)}%
+                <br/>
+                <span class="text-gray-500">Based on sample size & variance</span>
+              </div>
+              <div>
+                <strong>Population Weight:</strong> {(country.populationWeight * 100).toFixed(1)}%
+                <br/>
+                <span class="text-gray-500">Representation factor</span>
+              </div>
+              <div>
+                <strong>Variance:</strong> {calculateVariance(country.cleanedScores).toFixed(1)}
+                <br/>
+                <span class="text-gray-500">Score consistency</span>
+              </div>
+            </div>
+          </div>
+
+          {!country.meetsMinSize && (
+            <div class="mt-4 bg-red-100 p-3 rounded-lg">
+              <div class="text-red-800 text-sm">
+                ⚠️ <strong>Lý do loại bỏ:</strong> Sample size quá nhỏ ({country.scores.length} < {MIN_SAMPLE_SIZE})
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+
+    <!-- Top 5 kết quả cuối cùng -->
+    <div class="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">🏆 Top 5 Quốc gia IQ Cao Nhất</h2>
+      <div class="space-y-3">
+        {validCountries.slice(0, 5).map((country, idx) => (
+          <div class="flex items-center justify-between bg-white p-4 rounded-lg">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl font-bold text-gray-400">#{idx + 1}</span>
+              <span class="text-2xl">{country.code === 'SG' ? '🇸🇬' : country.code === 'KR' ? '🇰🇷' : country.code === 'VN' ? '🇻🇳' : '🏳️'}</span>
+              <span class="font-semibold text-gray-800">{country.country}</span>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-blue-600">{country.weightedAvg}</div>
+              <div class="text-sm text-gray-500">
+                Sample: {country.cleanedScores.length} | Confidence: {(country.confidence * 100).toFixed(0)}%
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Giải thích thuật toán -->
+    <div class="mt-8 bg-gray-50 rounded-xl p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">🔬 Giải thích thuật toán</h2>
+      <div class="grid md:grid-cols-2 gap-6 text-sm text-gray-700">
+        <div>
+          <h3 class="font-semibold mb-2">1. 📏 Minimum Sample Size</h3>
+          <p>Yêu cầu ít nhất {MIN_SAMPLE_SIZE} tests để đảm bảo tính thống kê có ý nghĩa. Công thức: max(25, 0.1% tổng samples)</p>
+          
+          <h3 class="font-semibold mb-2 mt-4">2. 🎯 Remove Outliers (IQR)</h3>
+          <p>Sử dụng phương pháp IQR để loại bỏ điểm số bất thường:</p>
+          <ul class="list-disc list-inside ml-4">
+            <li>Q1 = 25th percentile, Q3 = 75th percentile</li>
+            <li>IQR = Q3 - Q1</li>
+            <li>Outliers: < Q1 - 1.5×IQR hoặc > Q3 + 1.5×IQR</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">3. 📊 Confidence Score</h3>
+          <p>Tính dựa trên 2 factors:</p>
+          <ul class="list-disc list-inside ml-4">
+            <li>Sample size confidence (0-0.5)</li>
+            <li>Low variance confidence (0-0.5)</li>
+          </ul>
+          
+          <h3 class="font-semibold mb-2 mt-4">4. ⚖️ Population Weight</h3>
+          <p>Weighted average: 70% pure average + 30% population-weighted để cân bằng giữa chất lượng và đại diện.</p>
+          
+          <h3 class="font-semibold mb-2 mt-4">5. 🏆 Composite Score</h3>
+          <p>Final ranking = Weighted IQ + (Confidence × 3) để ưu tiên quốc gia có độ tin cậy cao.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="mt-8 flex gap-4">
+      <a href="/admin" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+        ← Quay lại Admin
+      </a>
+      <a href="/admin/dashboard-test" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        Test Real Data →
+      </a>
+    </div>
+  </div>
+</AdminLayout> 

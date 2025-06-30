@@ -1,0 +1,217 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+// Test dashboard stats server-side
+let testResults = {
+  success: false,
+  stats: null,
+  error: null,
+  loadTime: 0
+};
+
+try {
+  console.log('🔄 Testing dashboard stats service...');
+  const startTime = Date.now();
+  
+  const { getDashboardStats } = await import('../../../backend/utils/dashboard-stats-service');
+  const stats = await getDashboardStats();
+  
+  const loadTime = Date.now() - startTime;
+  
+  testResults = {
+    success: true,
+    stats,
+    error: null,
+    loadTime
+  };
+  
+  console.log(`✅ Dashboard stats test successful in ${loadTime}ms`);
+  console.log('Stats:', {
+    totalParticipants: stats.totalParticipants,
+    totalCountries: stats.totalCountries,
+    globalAverageIQ: stats.globalAverageIQ
+  });
+  
+} catch (error) {
+  console.error('❌ Dashboard stats test failed:', error);
+  testResults = {
+    success: false,
+    stats: null,
+    error: error.message,
+    loadTime: 0
+  };
+}
+---
+
+<AdminLayout title="Dashboard Stats Test">
+  <div class="max-w-6xl mx-auto p-6">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">🔬 Dashboard Stats Test</h1>
+      <p class="text-gray-600">Kiểm tra service tính toán thống kê từ dữ liệu thật</p>
+    </div>
+
+    <!-- Test Results -->
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+        {testResults.success ? '✅' : '❌'} 
+        Test Results
+      </h2>
+      
+      {testResults.success ? (
+        <div class="space-y-4">
+          <div class="text-green-600 font-medium">
+            ✅ Service hoạt động thành công trong {testResults.loadTime}ms
+          </div>
+          
+          <!-- Stats Overview -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-blue-50 p-4 rounded-lg">
+              <div class="text-2xl font-bold text-blue-600">{testResults.stats.totalCountries}</div>
+              <div class="text-sm text-blue-800">Quốc gia</div>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg">
+              <div class="text-2xl font-bold text-green-600">{testResults.stats.totalParticipants.toLocaleString('vi-VN')}</div>
+              <div class="text-sm text-green-800">Người tham gia</div>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-lg">
+              <div class="text-2xl font-bold text-purple-600">{testResults.stats.globalAverageIQ}</div>
+              <div class="text-sm text-purple-800">IQ trung bình</div>
+            </div>
+            <div class="bg-orange-50 p-4 rounded-lg">
+              <div class="text-2xl font-bold text-orange-600">{testResults.stats.averageTestTime}</div>
+              <div class="text-sm text-orange-800">Thời gian TB</div>
+            </div>
+          </div>
+
+          <!-- Badges -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-semibold mb-2">🏆 Badges</h3>
+            <div class="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div class="text-lg font-bold text-amber-600">{testResults.stats.geniusBadges.toLocaleString('vi-VN')}</div>
+                <div class="text-sm text-amber-800">Genius (≥140)</div>
+              </div>
+              <div>
+                <div class="text-lg font-bold text-blue-600">{testResults.stats.smartBadges.toLocaleString('vi-VN')}</div>
+                <div class="text-sm text-blue-800">Smart (≥130)</div>
+              </div>
+              <div>
+                <div class="text-lg font-bold text-green-600">{testResults.stats.excellentBadges.toLocaleString('vi-VN')}</div>
+                <div class="text-sm text-green-800">Excellent (≥115)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Countries by IQ -->
+          {testResults.stats.topCountriesByIQ.length > 0 && (
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="font-semibold mb-2">🌟 Top 5 quốc gia IQ cao nhất</h3>
+              <div class="space-y-2">
+                {testResults.stats.topCountriesByIQ.map((country, idx) => (
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="text-lg">{country.flag}</span>
+                      <span class="font-medium">{country.country}</span>
+                    </div>
+                    <span class="font-bold text-blue-600">{country.avgIQ}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <!-- Top Countries by Participants -->
+          {testResults.stats.topCountriesByParticipants.length > 0 && (
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="font-semibold mb-2">🔥 Top 5 quốc gia nhiều người chơi</h3>
+              <div class="space-y-2">
+                {testResults.stats.topCountriesByParticipants.map((country, idx) => (
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="text-lg">{country.flag}</span>
+                      <span class="font-medium">{country.country}</span>
+                    </div>
+                    <span class="font-bold text-green-600">{country.participants.toLocaleString('vi-VN')}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <!-- IQ Distribution -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-semibold mb-2">📈 Phân bố IQ</h3>
+            <div class="space-y-2">
+              {testResults.stats.iqDistribution.map((item) => {
+                const percentage = testResults.stats.totalParticipants > 0 ? 
+                  ((item.count / testResults.stats.totalParticipants) * 100).toFixed(1) : 0;
+                const maxCount = Math.max(...testResults.stats.iqDistribution.map(d => d.count));
+                const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                
+                return (
+                  <div class="flex items-center justify-between">
+                    <span class="font-medium text-gray-700 w-20">{item.range}</span>
+                    <div class="flex items-center gap-2 flex-1 mx-3">
+                      <div class="bg-gray-200 rounded-full h-2 flex-1">
+                        <div 
+                          class="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full"
+                          style={`width: ${width}%`}
+                        />
+                      </div>
+                    </div>
+                    <span class="text-gray-600 w-24">{item.count.toLocaleString('vi-VN')} ({percentage}%)</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <!-- Age Distribution -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-semibold mb-2">👶 Phân bố tuổi</h3>
+            <div class="space-y-2">
+              {testResults.stats.ageDistribution.map((item) => (
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-gray-700 w-20">{item.age} tuổi</span>
+                  <div class="flex items-center gap-2 flex-1 mx-3">
+                    <div class="bg-gray-200 rounded-full h-2 flex-1">
+                      <div 
+                        class="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full"
+                        style={`width: ${item.percentage}%`}
+                      />
+                    </div>
+                  </div>
+                  <span class="text-gray-600 w-12">{item.percentage}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div class="text-red-600">
+          ❌ Test thất bại: {testResults.error}
+        </div>
+      )}
+    </div>
+
+    <!-- Performance Info -->
+    <div class="bg-blue-50 rounded-lg p-4">
+      <h3 class="font-semibold text-blue-900 mb-2">⚡ Performance</h3>
+      <div class="text-blue-800">
+        <p>✅ Service tải dữ liệu trong: <strong>{testResults.loadTime}ms</strong></p>
+        <p>🚀 Sử dụng 1 query duy nhất với thuật toán tối ưu</p>
+        <p>💾 Cache 10 phút để tăng tốc độ</p>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="mt-8 flex gap-4">
+      <a href="/admin" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+        ← Quay lại Admin
+      </a>
+      <a href="/leaderboard" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        Xem Leaderboard →
+      </a>
+    </div>
+  </div>
+</AdminLayout> 

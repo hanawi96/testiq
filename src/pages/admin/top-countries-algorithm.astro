@@ -1,0 +1,341 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+// Demo data minh họa
+const mockCountries = [
+  { name: 'Singapore', code: 'SG', flag: '🇸🇬', scores: [142, 145, 138, 149, 144, 140, 147, 143, 146, 141, 145, 142, 148, 144, 143, 146, 145, 147, 144, 143, 142, 145, 146, 144, 143] },
+  { name: 'Hàn Quốc', code: 'KR', flag: '🇰🇷', scores: [140, 142, 138, 144, 141, 139, 143, 140, 142, 141, 144, 139, 143, 140, 142, 138, 145, 141, 143, 140, 142, 144, 139, 141, 143, 140, 142, 144, 139, 141] },
+  { name: 'Monaco', code: 'MC', flag: '🇲🇨', scores: [155, 148, 152] }, // Sample quá nhỏ
+  { name: 'Việt Nam', code: 'VN', flag: '🇻🇳', scores: [125, 128, 122, 130, 126, 124, 129, 127, 125, 128, 123, 131, 126, 124, 127, 129, 125, 128, 126, 124, 130, 127, 125, 128, 126] },
+  { name: 'Test Country', code: 'TC', flag: '🏳️', scores: [110, 112, 108, 114, 111, 109, 113, 110, 112, 108, 50, 111, 109, 113, 110, 112, 180, 114, 111, 109, 113, 110, 112, 108, 114] }
+];
+
+// Tính toán demo với data mẫu
+const totalSamples = mockCountries.reduce((sum, c) => sum + c.scores.length, 0);
+const minSampleSize = Math.max(25, Math.ceil(totalSamples * 0.001));
+
+function removeOutliers(scores: number[]): { cleaned: number[]; outliers: number[] } {
+  if (scores.length < 10) return { cleaned: scores, outliers: [] };
+  
+  const sorted = [...scores].sort((a, b) => a - b);
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+  
+  const cleaned = scores.filter(s => s >= lowerBound && s <= upperBound);
+  const outliers = scores.filter(s => s < lowerBound || s > upperBound);
+  
+  return { cleaned, outliers };
+}
+
+function calculateVariance(scores: number[]): number {
+  const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
+}
+
+const processedCountries = mockCountries.map(country => {
+  const originalAvg = Math.round(country.scores.reduce((sum, s) => sum + s, 0) / country.scores.length);
+  const { cleaned, outliers } = removeOutliers(country.scores);
+  const cleanedAvg = cleaned.length > 0 ? Math.round(cleaned.reduce((sum, s) => sum + s, 0) / cleaned.length) : originalAvg;
+  
+  // Confidence calculation
+  const sampleSizeRatio = Math.min(cleaned.length / (totalSamples * 0.05), 1);
+  const variance = calculateVariance(cleaned);
+  const normalizedVariance = Math.min(variance / 400, 1);
+  const confidence = Math.min((sampleSizeRatio * 0.5) + ((1 - normalizedVariance) * 0.5), 1);
+  
+  // Population weight
+  const populationWeight = Math.min(1.0, country.scores.length / (totalSamples * 0.05));
+  const weightedAvg = Math.round(cleanedAvg * (0.7 + 0.3 * populationWeight));
+  
+  const compositeScore = weightedAvg + (confidence * 3);
+  const meetsMinSize = country.scores.length >= minSampleSize;
+  const validAfterCleaning = cleaned.length >= minSampleSize * 0.7;
+  
+  return {
+    ...country,
+    originalAvg,
+    cleaned,
+    outliers,
+    cleanedAvg,
+    confidence,
+    populationWeight,
+    weightedAvg,
+    compositeScore,
+    meetsMinSize,
+    validAfterCleaning,
+    variance
+  };
+}).sort((a, b) => b.compositeScore - a.compositeScore);
+
+const validCountries = processedCountries.filter(c => c.meetsMinSize && c.validAfterCleaning);
+---
+
+<AdminLayout title="Top Countries Algorithm Demo">
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">🧮 Thuật toán Top 5 Quốc gia IQ</h1>
+      <p class="text-gray-600">Chi tiết cách tính toán Top 5 quốc gia IQ cao nhất một cách hợp lý và chính xác</p>
+    </div>
+
+    <!-- Algorithm Overview -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8">
+      <h2 class="text-xl font-semibold text-blue-900 mb-4">📊 6 Bước Thuật toán</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-lg">
+          <div class="text-blue-600 font-bold mb-2">1. 📏 Sample Size Filter</div>
+          <div class="text-sm text-gray-600">Min {minSampleSize} tests cho statistical significance</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg">
+          <div class="text-green-600 font-bold mb-2">2. 🎯 Remove Outliers</div>
+          <div class="text-sm text-gray-600">IQR method để loại bỏ điểm bất thường</div>
+        </div>
+        <div class="bg-purple-600 text-white p-4 rounded-lg">
+          <div class="font-bold mb-2">3. 📈 Confidence Score</div>
+          <div class="text-xs opacity-90">Sample size + variance analysis</div>
+        </div>
+        <div class="bg-orange-500 text-white p-4 rounded-lg">
+          <div class="font-bold mb-2">4. ⚖️ Population Weight</div>
+          <div class="text-xs opacity-90">70% pure + 30% population-weighted</div>
+        </div>
+        <div class="bg-red-500 text-white p-4 rounded-lg">
+          <div class="font-bold mb-2">5. 🏆 Composite Score</div>
+          <div class="text-xs opacity-90">IQ + confidence bonus</div>
+        </div>
+        <div class="bg-gray-700 text-white p-4 rounded-lg">
+          <div class="font-bold mb-2">6. 🔢 Final Ranking</div>
+          <div class="text-xs opacity-90">Sort by composite score</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Analysis -->
+    <div class="space-y-6">
+      {processedCountries.map((country, idx) => (
+        <div class={`rounded-xl p-6 border-2 ${
+          country.meetsMinSize && country.validAfterCleaning 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <!-- Country Header -->
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">{country.flag}</span>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900">{country.name}</h3>
+                <div class="text-sm text-gray-500">Code: {country.code}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              {country.meetsMinSize && country.validAfterCleaning ? (
+                <div>
+                  <div class="text-green-600 font-bold text-lg">✅ HỢP LỆ</div>
+                  <div class="text-sm text-gray-600">Rank: #{validCountries.indexOf(country) + 1}</div>
+                </div>
+              ) : (
+                <div class="text-red-600 font-bold text-lg">❌ LOẠI BỎ</div>
+              )}
+            </div>
+          </div>
+
+          <!-- Step by Step Analysis -->
+          <div class="grid lg:grid-cols-2 gap-6">
+            <!-- Left Column: Raw Data & Processing -->
+            <div class="space-y-4">
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-semibold text-gray-800 mb-2">📊 Raw Data Analysis</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-600">Sample Size:</span>
+                    <span class="font-bold ml-2">{country.scores.length}</span>
+                    <span class="ml-1">{country.scores.length >= minSampleSize ? '✅' : '❌'}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Original Avg:</span>
+                    <span class="font-bold ml-2">{country.originalAvg}</span>
+                  </div>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">
+                  Scores: {country.scores.slice(0, 10).join(', ')}{country.scores.length > 10 ? '...' : ''}
+                </div>
+              </div>
+
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-semibold text-gray-800 mb-2">🎯 Outlier Removal</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-600">Cleaned Avg:</span>
+                    <span class="font-bold ml-2 text-blue-600">{country.cleanedAvg}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Valid Samples:</span>
+                    <span class="font-bold ml-2">{country.cleaned.length}</span>
+                  </div>
+                </div>
+                {country.outliers.length > 0 && (
+                  <div class="mt-2 text-xs text-red-600">
+                    Outliers removed: {country.outliers.join(', ')}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <!-- Right Column: Advanced Metrics -->
+            <div class="space-y-4">
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-semibold text-gray-800 mb-2">📈 Statistical Metrics</h4>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Confidence Score:</span>
+                    <span class="font-bold text-purple-600">{(country.confidence * 100).toFixed(1)}%</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Population Weight:</span>
+                    <span class="font-bold text-orange-600">{(country.populationWeight * 100).toFixed(1)}%</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Variance:</span>
+                    <span class="font-bold text-gray-600">{country.variance.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-semibold text-gray-800 mb-2">🏆 Final Results</h4>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Weighted IQ:</span>
+                    <span class="font-bold text-green-600 text-lg">{country.weightedAvg}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Composite Score:</span>
+                    <span class="font-bold text-blue-600">{country.compositeScore.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Failure Reason -->
+          {(!country.meetsMinSize || !country.validAfterCleaning) && (
+            <div class="mt-4 bg-red-100 border border-red-200 p-3 rounded-lg">
+              <div class="text-red-800 text-sm font-semibold">
+                ⚠️ Lý do loại bỏ:
+              </div>
+              <ul class="text-red-700 text-sm mt-1 list-disc list-inside">
+                {!country.meetsMinSize && (
+                  <li>Sample size quá nhỏ ({country.scores.length} < {minSampleSize})</li>
+                )}
+                {!country.validAfterCleaning && (
+                  <li>Sau remove outliers còn quá ít samples ({country.cleaned.length} < {Math.round(minSampleSize * 0.7)})</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+
+    <!-- Final Top 5 Results -->
+    <div class="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">🏆 Top 5 Kết quả cuối cùng</h2>
+      <div class="space-y-3">
+        {validCountries.slice(0, 5).map((country, idx) => (
+          <div class="bg-white rounded-lg p-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-4">
+              <div class="text-2xl font-bold text-gray-400">#{idx + 1}</div>
+              <span class="text-3xl">{country.flag}</span>
+              <div>
+                <div class="font-bold text-gray-900">{country.name}</div>
+                <div class="text-sm text-gray-500">
+                  {country.cleaned.length} samples | Confidence: {(country.confidence * 100).toFixed(0)}%
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-bold text-blue-600">{country.weightedAvg}</div>
+              <div class="text-sm text-gray-500">Composite: {country.compositeScore.toFixed(1)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Algorithm Explanation -->
+    <div class="mt-8 bg-gray-50 rounded-xl p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">🔬 Chi tiết thuật toán</h2>
+      <div class="grid md:grid-cols-2 gap-6 text-sm">
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">1. 📏 Minimum Sample Size</h3>
+            <p class="text-gray-700">
+              Công thức: <code class="bg-gray-200 px-1 rounded">max(25, 0.1% tổng samples)</code><br/>
+              Trong demo này: {minSampleSize} tests minimum
+            </p>
+          </div>
+          
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">2. 🎯 IQR Outlier Removal</h3>
+            <p class="text-gray-700">
+              Q1 = 25th percentile, Q3 = 75th percentile<br/>
+              IQR = Q3 - Q1<br/>
+              Outliers: &lt; Q1 - 1.5×IQR hoặc &gt; Q3 + 1.5×IQR
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">3. 📊 Confidence Score</h3>
+            <p class="text-gray-700">
+              Sample Size Factor (0-0.5) + Low Variance Factor (0-0.5)<br/>
+              Càng nhiều sample và variance thấp = confidence cao
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">4. ⚖️ Population Weighting</h3>
+            <p class="text-gray-700">
+              Weighted Avg = CleanedAvg × (0.7 + 0.3 × PopulationWeight)<br/>
+              Cân bằng giữa chất lượng và đại diện
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">5. 🏆 Composite Scoring</h3>
+            <p class="text-gray-700">
+              Final Score = Weighted IQ + (Confidence × 3)<br/>
+              Ưu tiên quốc gia có độ tin cậy cao
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-gray-800 mb-2">6. 📋 Why This Approach?</h3>
+            <p class="text-gray-700">
+              • Statistical significance<br/>
+              • Robust against outliers<br/>
+              • Confidence-weighted results<br/>
+              • Balanced representation
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="mt-8 flex gap-4">
+      <a href="/admin" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+        ← Admin Dashboard
+      </a>
+      <a href="/admin/dashboard-test" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        Test với dữ liệu thật →
+      </a>
+      <a href="/leaderboard" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+        Xem Leaderboard →
+      </a>
+    </div>
+  </div>
+</AdminLayout> 

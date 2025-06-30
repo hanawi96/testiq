@@ -5,73 +5,31 @@ import LeaderboardStats from '../components/LeaderboardStats.tsx';
 import LocalRankingWrapper from '../components/LocalRankingWrapper.tsx';
 import TopTenLeaderboard from '../components/TopTenLeaderboard.tsx';
 
-// Ultra-fast SSR data loading with smart fallbacks
-let initialData = { topTenData: [], stats: null, leaderboardData: null };
+// ✅ FIXED: Clear cache để dùng logic mới
+import { clearDashboardCache } from '../../backend/utils/dashboard-stats-service';
+clearDashboardCache();
+
+// Load dữ liệu dashboard stats tối ưu
+import { getDashboardStats } from '../../backend/utils/dashboard-stats-service';
+import { getLeaderboard } from '../../backend/utils/leaderboard-service';
+
+let dashboardStats;
+let leaderboardData;
 
 try {
-  console.log('🔄 Fetching leaderboard...');
-  const backend = await import('../../backend');
-  
-  // Single optimized call for all data
+  // Load song song để tối ưu hiệu suất
   const [statsResult, leaderboardResult] = await Promise.all([
-    backend.getQuickStats().catch(() => null),
-    backend.getLeaderboard(1, 30).catch(() => null) // Get first 30 (top 10 + 20 for list)
+    getDashboardStats(),
+    getLeaderboard()
   ]);
-  
-  const stats = statsResult || { 
-    totalParticipants: 156, 
-    highestScore: 145, 
-    averageScore: 98, 
-    geniusPercentage: 2.5 
-  };
-  
-  let topTenData = [];
-  let leaderboardData = null;
-  
-  if (leaderboardResult?.data?.length > 0) {
-    // Split data: top 10 for display, rest for list component
-    const allData = leaderboardResult.data.map((entry, index) => ({
-      ...entry,
-      rank: index + 1
-    }));
-    
-    topTenData = allData.slice(0, 10);
-    leaderboardData = {
-      data: allData.filter(entry => entry.rank > 10), // List starts from rank 11
-      stats,
-      totalPages: leaderboardResult.totalPages || 1
-    };
-  } else {
-    // Smart fallback with real stats - top 10 data
-    topTenData = [
-      { rank: 1, name: 'Nguyễn Văn A', score: stats.highestScore, location: 'Hà Nội', date: '2024-01-15', badge: 'genius', age: 28, gender: 'male', user_id: 'demo1' },
-      { rank: 2, name: 'Trần Thị B', score: stats.highestScore - 7, location: 'TP.HCM', date: '2024-01-14', badge: 'superior', age: 24, gender: 'female', user_id: 'demo2' },
-      { rank: 3, name: 'Lê Văn C', score: stats.highestScore - 13, location: 'Đà Nẵng', date: '2024-01-13', badge: 'superior', age: 35, gender: 'male', user_id: 'demo3' },
-      { rank: 4, name: 'Phạm Thị D', score: stats.highestScore - 18, location: 'Hải Phòng', date: '2024-01-12', badge: 'above', age: 29, gender: 'female', user_id: 'demo4' },
-      { rank: 5, name: 'Hoàng Văn E', score: stats.highestScore - 22, location: 'Cần Thơ', date: '2024-01-11', badge: 'above', age: 31, gender: 'male', user_id: 'demo5' },
-      { rank: 6, name: 'Vũ Thị F', score: stats.highestScore - 26, location: 'Nha Trang', date: '2024-01-10', badge: 'above', age: 26, gender: 'female', user_id: 'demo6' },
-      { rank: 7, name: 'Đặng Văn G', score: stats.highestScore - 30, location: 'Huế', date: '2024-01-09', badge: 'good', age: 33, gender: 'male', user_id: 'demo7' },
-      { rank: 8, name: 'Bùi Thị H', score: stats.highestScore - 34, location: 'Vũng Tàu', date: '2024-01-08', badge: 'good', age: 27, gender: 'female', user_id: 'demo8' },
-      { rank: 9, name: 'Mai Văn I', score: stats.highestScore - 38, location: 'Quy Nhon', date: '2024-01-07', badge: 'good', age: 30, gender: 'male', user_id: 'demo9' },
-      { rank: 10, name: 'Lý Thị K', score: stats.highestScore - 42, location: 'Vinh', date: '2024-01-06', badge: 'good', age: 25, gender: 'female', user_id: 'demo10' }
-    ];
-  }
-  
-  initialData = { topTenData, stats, leaderboardData };
-      console.log('✅ Cached', initialData.topTenData.length, 'results');
-  
+
+  dashboardStats = statsResult;
+  leaderboardData = leaderboardResult;
+
 } catch (error) {
-  console.error('Failed to load leaderboard data:', error);
-  // Complete fallback
-  initialData = {
-    topTenData: [
-      { rank: 1, name: 'Nguyễn Văn A', score: 145, location: 'Hà Nội', date: '2024-01-15', badge: 'genius', age: 28, gender: 'male', user_id: 'demo1' },
-      { rank: 2, name: 'Trần Thị B', score: 138, location: 'TP.HCM', date: '2024-01-14', badge: 'superior', age: 24, gender: 'female', user_id: 'demo2' },
-      { rank: 3, name: 'Lê Văn C', score: 132, location: 'Đà Nẵng', date: '2024-01-13', badge: 'superior', age: 35, gender: 'male', user_id: 'demo3' }
-    ],
-    stats: { totalParticipants: 156, highestScore: 145, averageScore: 98, geniusPercentage: 2.5 },
-    leaderboardData: null
-  };
+  console.error('❌ Lỗi load data leaderboard:', error);
+  dashboardStats = null;
+  leaderboardData = [];
 }
 
 const getBadgeInfo = (badge: string) => {
@@ -115,14 +73,14 @@ const getGenderIcon = (gender?: string) => {
       <p class="text-lg text-gray-600 mb-8">Khám phá những tài năng xuất sắc nhất</p>
 
       <!-- Optimized Stats Component -->
-      <LeaderboardStats client:load initialStats={initialData.stats} />
+      <LeaderboardStats client:load initialStats={dashboardStats} />
     </div>
   </section>
 
   <!-- Top 10 Leaderboard Section -->
   <section class="bg-white py-8">
     <div class="max-w-6xl mx-auto px-4">
-      <TopTenLeaderboard client:load initialData={initialData.topTenData} />
+      <TopTenLeaderboard client:load initialData={leaderboardData} />
     </div>
   </section>
 
@@ -137,7 +95,7 @@ const getGenderIcon = (gender?: string) => {
   <section id="full-leaderboard" class="py-8 bg-gray-50 border-t border-gray-200">
     <div class="max-w-6xl mx-auto px-4">
       <!-- Pass initial data to avoid duplicate loading -->
-      <LeaderboardList client:load initialData={initialData.leaderboardData} />
+      <LeaderboardList client:load initialData={leaderboardData} />
     </div>
   </section>
 </BaseLayout>

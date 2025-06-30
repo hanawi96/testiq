@@ -1,0 +1,378 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+// Thực hiện phân tích dữ liệu server-side
+let analysisResults = {
+  success: false,
+  analysis: null,
+  dashboard: null,
+  differences: null,
+  error: null,
+  loadTime: 0
+};
+
+try {
+  console.log('🔍 Bắt đầu phân tích dữ liệu...');
+  const startTime = Date.now();
+  
+  const { compareWithDashboard } = await import('../../../backend/utils/data-analysis-service');
+  const results = await compareWithDashboard();
+  
+  const loadTime = Date.now() - startTime;
+  
+  analysisResults = {
+    success: true,
+    analysis: results.analysis,
+    dashboard: results.dashboard,
+    differences: results.differences,
+    error: null,
+    loadTime
+  };
+  
+  console.log(`✅ Phân tích hoàn tất trong ${loadTime}ms`);
+  console.log('📊 Kết quả:', {
+    totalRecords: results.analysis.totalRecords,
+    validRecords: results.analysis.validRecords,
+    differences: results.differences.issues.length
+  });
+  
+} catch (error) {
+  console.error('❌ Lỗi phân tích dữ liệu:', error);
+  analysisResults = {
+    success: false,
+    analysis: null,
+    dashboard: null,
+    differences: null,
+    error: error.message,
+    loadTime: 0
+  };
+}
+---
+
+<AdminLayout title="Data Analysis - Algorithm Verification">
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">🔍 Phân tích dữ liệu & Kiểm tra thuật toán</h1>
+      <p class="text-gray-600">Kiểm tra tính chính xác của thuật toán dashboard statistics</p>
+    </div>
+
+    {analysisResults.success ? (
+      <div class="space-y-8">
+        <!-- Status Overview -->
+        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900">✅ Phân tích thành công</h2>
+            <div class="text-sm text-gray-600">Thời gian: {analysisResults.loadTime}ms</div>
+          </div>
+          
+          <div class="grid md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-2xl font-bold text-blue-600">{analysisResults.analysis.totalRecords}</div>
+              <div class="text-sm text-gray-600">Tổng Records</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-2xl font-bold text-green-600">{analysisResults.analysis.validRecords}</div>
+              <div class="text-sm text-gray-600">Records hợp lệ</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-2xl font-bold text-orange-600">{analysisResults.analysis.countryAnalysis.totalUniqueCountries}</div>
+              <div class="text-sm text-gray-600">Quốc gia</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg">
+              <div class="text-2xl font-bold text-purple-600">{analysisResults.differences.issues.length}</div>
+              <div class="text-sm text-gray-600">Issues phát hiện</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparison Results -->
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">⚖️ So sánh kết quả Dashboard vs Analysis</h2>
+          
+          <div class="grid md:grid-cols-3 gap-6">
+            <!-- Total Participants -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="font-semibold text-gray-800 mb-2">👥 Tổng số người tham gia</h3>
+              <div class="space-y-2">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Analysis:</span>
+                  <span class="font-bold text-blue-600">{analysisResults.differences.totalParticipants.analysis}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Dashboard:</span>
+                  <span class="font-bold text-green-600">{analysisResults.differences.totalParticipants.dashboard}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Chênh lệch:</span>
+                  <span class={`font-bold ${analysisResults.differences.totalParticipants.diff === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {analysisResults.differences.totalParticipants.diff === 0 ? '✅ Khớp' : `❌ ${analysisResults.differences.totalParticipants.diff}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Countries -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="font-semibold text-gray-800 mb-2">🌍 Số quốc gia</h3>
+              <div class="space-y-2">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Analysis:</span>
+                  <span class="font-bold text-blue-600">{analysisResults.differences.totalCountries.analysis}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Dashboard:</span>
+                  <span class="font-bold text-green-600">{analysisResults.differences.totalCountries.dashboard}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Chênh lệch:</span>
+                  <span class={`font-bold ${analysisResults.differences.totalCountries.diff === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {analysisResults.differences.totalCountries.diff === 0 ? '✅ Khớp' : `❌ ${analysisResults.differences.totalCountries.diff}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Average IQ -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="font-semibold text-gray-800 mb-2">🧠 IQ trung bình</h3>
+              <div class="space-y-2">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Analysis:</span>
+                  <span class="font-bold text-blue-600">{analysisResults.differences.globalAverageIQ.analysis}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Dashboard:</span>
+                  <span class="font-bold text-green-600">{analysisResults.differences.globalAverageIQ.dashboard}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Chênh lệch:</span>
+                  <span class={`font-bold ${analysisResults.differences.globalAverageIQ.diff <= 1 ? 'text-green-600' : 'text-red-600'}`}>
+                    {analysisResults.differences.globalAverageIQ.diff <= 1 ? '✅ Chấp nhận được' : `❌ ${analysisResults.differences.globalAverageIQ.diff} điểm`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Issues Found -->
+          {analysisResults.differences.issues.length > 0 && (
+            <div class="mt-6 bg-red-50 border border-red-200 p-4 rounded-lg">
+              <h3 class="font-semibold text-red-800 mb-2">⚠️ Vấn đề phát hiện:</h3>
+              <ul class="list-disc list-inside text-red-700 space-y-1">
+                {analysisResults.differences.issues.map((issue, idx) => (
+                  <li key={idx}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {analysisResults.differences.issues.length === 0 && (
+            <div class="mt-6 bg-green-50 border border-green-200 p-4 rounded-lg">
+              <div class="text-green-800 font-semibold">✅ Không phát hiện vấn đề nghiêm trọng!</div>
+              <div class="text-green-700 text-sm">Thuật toán dashboard hoạt động chính xác.</div>
+            </div>
+          )}
+        </div>
+
+        <!-- Data Quality Analysis -->
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- User Test Results Analysis -->
+          <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">📊 Phân tích User Test Results</h2>
+            
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-blue-50 p-3 rounded-lg">
+                  <div class="text-lg font-bold text-blue-600">{analysisResults.analysis.userTestResults.authenticatedUsers}</div>
+                  <div class="text-sm text-blue-800">Users đăng nhập</div>
+                </div>
+                <div class="bg-orange-50 p-3 rounded-lg">
+                  <div class="text-lg font-bold text-orange-600">{analysisResults.analysis.userTestResults.anonymousUsers}</div>
+                  <div class="text-sm text-orange-800">Users anonymous</div>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Có dữ liệu quốc gia:</span>
+                  <span class="font-semibold">{analysisResults.analysis.userTestResults.withCountryData}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Có dữ liệu tuổi:</span>
+                  <span class="font-semibold">{analysisResults.analysis.userTestResults.withAgeData}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Có dữ liệu giới tính:</span>
+                  <span class="font-semibold">{analysisResults.analysis.userTestResults.withGenderData}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Có thời gian test:</span>
+                  <span class="font-semibold">{analysisResults.analysis.userTestResults.withDurationData}</span>
+                </div>
+              </div>
+
+              <div class="bg-gray-50 p-3 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Khoảng điểm số:</div>
+                <div class="font-semibold">
+                  {analysisResults.analysis.userTestResults.scoreRange.min} - {analysisResults.analysis.userTestResults.scoreRange.max} 
+                  (TB: {analysisResults.analysis.userTestResults.scoreRange.avg})
+                </div>
+              </div>
+
+              {analysisResults.analysis.userTestResults.durationRange.avg > 0 && (
+                <div class="bg-gray-50 p-3 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Khoảng thời gian (giây):</div>
+                  <div class="font-semibold">
+                    {analysisResults.analysis.userTestResults.durationRange.min} - {analysisResults.analysis.userTestResults.durationRange.max} 
+                    (TB: {analysisResults.analysis.userTestResults.durationRange.avg})
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <!-- Data Issues -->
+          <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">⚠️ Vấn đề dữ liệu</h2>
+            
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Scores null:</span>
+                <span class={`font-semibold ${analysisResults.analysis.dataIssues.nullScores > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {analysisResults.analysis.dataIssues.nullScores === 0 ? '✅ 0' : `❌ ${analysisResults.analysis.dataIssues.nullScores}`}
+                </span>
+              </div>
+              
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Scores không hợp lệ:</span>
+                <span class={`font-semibold ${analysisResults.analysis.dataIssues.invalidScores > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {analysisResults.analysis.dataIssues.invalidScores === 0 ? '✅ 0' : `❌ ${analysisResults.analysis.dataIssues.invalidScores}`}
+                </span>
+              </div>
+              
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Thiếu dữ liệu quốc gia:</span>
+                <span class={`font-semibold ${analysisResults.analysis.dataIssues.nullCountries > 50 ? 'text-orange-600' : 'text-green-600'}`}>
+                  {analysisResults.analysis.dataIssues.nullCountries}
+                </span>
+              </div>
+              
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Duration không hợp lệ:</span>
+                <span class={`font-semibold ${analysisResults.analysis.dataIssues.invalidDurations > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {analysisResults.analysis.dataIssues.invalidDurations === 0 ? '✅ 0' : `❌ ${analysisResults.analysis.dataIssues.invalidDurations}`}
+                </span>
+              </div>
+              
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Records trùng lặp:</span>
+                <span class={`font-semibold ${analysisResults.analysis.dataIssues.duplicateRecords > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                  {analysisResults.analysis.dataIssues.duplicateRecords === 0 ? '✅ 0' : `⚠️ ${analysisResults.analysis.dataIssues.duplicateRecords}`}
+                </span>
+              </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+              <div class="text-sm text-gray-600">Tỷ lệ dữ liệu hợp lệ:</div>
+              <div class="text-lg font-bold text-green-600">
+                {((analysisResults.analysis.validRecords / analysisResults.analysis.totalRecords) * 100).toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Countries Analysis -->
+        {analysisResults.analysis.countryAnalysis.topCountriesByCount.length > 0 && (
+          <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">🌍 Top 10 quốc gia (theo số lượng tests)</h2>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b">
+                    <th class="text-left py-2">Quốc gia</th>
+                    <th class="text-center py-2">Số tests</th>
+                    <th class="text-center py-2">IQ TB</th>
+                    <th class="text-center py-2">IQ Min-Max</th>
+                    <th class="text-center py-2">Thời gian TB</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analysisResults.analysis.countryAnalysis.topCountriesByCount.map((country, idx) => (
+                    <tr key={idx} class="border-b hover:bg-gray-50">
+                      <td class="py-2">
+                        <div class="font-medium">{country.country}</div>
+                        <div class="text-xs text-gray-500">{country.country_code}</div>
+                      </td>
+                      <td class="text-center py-2 font-semibold">{country.count}</td>
+                      <td class="text-center py-2 font-semibold text-blue-600">{country.avgScore}</td>
+                      <td class="text-center py-2 text-gray-600">{country.minScore} - {country.maxScore}</td>
+                      <td class="text-center py-2 text-gray-600">
+                        {country.avgDuration > 0 ? `${Math.round(country.avgDuration/60)}m` : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <!-- Score Distribution -->
+        {analysisResults.analysis.scoreAnalysis.distribution.length > 0 && (
+          <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">📈 Phân bố điểm số</h2>
+            
+            <div class="space-y-3">
+              {analysisResults.analysis.scoreAnalysis.distribution.map((item, idx) => (
+                <div key={idx} class="flex items-center justify-between">
+                  <span class="font-medium text-gray-700 w-20">{item.range}</span>
+                  <div class="flex items-center gap-2 flex-1 mx-3">
+                    <div class="bg-gray-200 rounded-full h-2 flex-1">
+                      <div 
+                        class="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full"
+                        style={`width: ${item.percentage}%`}
+                      />
+                    </div>
+                  </div>
+                  <span class="text-gray-600 w-24 text-right">{item.count} ({item.percentage}%)</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    ) : (
+      <!-- Error State -->
+      <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="text-red-600 text-2xl">❌</div>
+          <h2 class="text-xl font-semibold text-red-800">Lỗi phân tích dữ liệu</h2>
+        </div>
+        <div class="text-red-700 mb-4">
+          {analysisResults.error}
+        </div>
+        <a href="/admin/dashboard-test" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+          Thử kiểm tra Dashboard Test →
+        </a>
+      </div>
+    )}
+
+    <!-- Navigation -->
+    <div class="mt-8 flex gap-4">
+      <a href="/admin" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+        ← Admin Dashboard
+      </a>
+      <a href="/admin/dashboard-test" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        Dashboard Test
+      </a>
+      <a href="/admin/top-countries-algorithm" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+        Algorithm Demo
+      </a>
+      <a href="/leaderboard" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+        Xem Leaderboard →
+      </a>
+    </div>
+  </div>
+</AdminLayout> 
