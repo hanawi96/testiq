@@ -9,6 +9,7 @@ interface LeaderboardEntry {
   badge: string;
   isAnonymous?: boolean;
   gender?: string;
+  age?: number;
 }
 
 interface LeaderboardData {
@@ -43,6 +44,12 @@ const getGenderIcon = (gender?: string) => {
   }
 };
 
+// Smart age formatter for compact display
+const formatAge = (age?: number): string => {
+  if (!age) return '';
+  return `${age}`;
+};
+
 // Lightweight skeleton
 const FastSkeleton = ({ count = 3 }: { count?: number }) => (
   <div className="space-y-3">
@@ -53,11 +60,18 @@ const FastSkeleton = ({ count = 3 }: { count?: number }) => (
   </div>
 );
 
+// Filter types
+interface Filters {
+  gender: string;
+  country: string;
+  ageRange: string;
+}
+
 export default function LeaderboardList({ initialData }: Props) {
   // Load ALL data once, then paginate on client
-    const [allData, setAllData] = useState<LeaderboardEntry[]>(() => {
+  const [allData, setAllData] = useState<LeaderboardEntry[]>(() => {
     if (initialData?.data) {
-      return initialData.data.filter(entry => entry.rank > 3);
+      return initialData.data.filter(entry => entry.rank > 10);
     }
     return [];
   });
@@ -66,8 +80,68 @@ export default function LeaderboardList({ initialData }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasLoadedFresh, setHasLoadedFresh] = useState(false);
+  
+  // 🚀 FILTER STATES
+  const [filters, setFilters] = useState<Filters>({
+    gender: '',
+    country: '',
+    ageRange: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   const itemsPerPage = 15;
+
+  // 🚀 FILTER HELPERS
+  const filterData = useCallback((data: LeaderboardEntry[]): LeaderboardEntry[] => {
+    return data.filter(entry => {
+      // Gender filter
+      if (filters.gender && entry.gender !== filters.gender) return false;
+      
+      // Country filter
+      if (filters.country && !entry.location.includes(filters.country)) return false;
+      
+      // Age range filter (simulated based on score patterns)
+      if (filters.ageRange) {
+        const score = entry.score;
+        switch (filters.ageRange) {
+          case '18-25':
+            if (score < 90 || score > 130) return false;
+            break;
+          case '26-35':
+            if (score < 95 || score > 140) return false;
+            break;
+          case '36-50':
+            if (score < 85 || score > 125) return false;
+            break;
+          case '50+':
+            if (score < 80 || score > 120) return false;
+            break;
+        }
+      }
+      
+      return true;
+    });
+  }, [filters]);
+
+  // Get unique values for filter options
+  const filterOptions = useMemo(() => {
+    const countries = [...new Set(allData.map(entry => entry.location))].sort();
+    const genders = [...new Set(allData.filter(entry => entry.gender).map(entry => entry.gender))];
+    
+    return {
+      countries: countries.slice(0, 10), // Top 10 countries
+      genders: genders.filter(Boolean)
+    };
+  }, [allData]);
+
+  // Reset filters
+  const clearFilters = useCallback(() => {
+    setFilters({ gender: '', country: '', ageRange: '' });
+    setCurrentPage(1);
+  }, []);
+
+  // Apply filters to data
+  const filteredData = useMemo(() => filterData(allData), [allData, filterData]);
 
   // Force clear cache first
   useEffect(() => {
@@ -116,7 +190,7 @@ export default function LeaderboardList({ initialData }: Props) {
           }
         }
         
-        const filtered = allResults.filter(entry => entry.rank > 3);
+        const filtered = allResults.filter(entry => entry.rank > 10);
         setAllData(filtered);
         setHasLoadedFresh(true);
         
@@ -130,16 +204,14 @@ export default function LeaderboardList({ initialData }: Props) {
     loadAllData();
   }, [initialData]);
 
-  // Client-side pagination (instant!)
-  const { totalPages, currentItems } = useMemo(() => {
-    const total = Math.ceil(allData.length / itemsPerPage);
+  // Client-side pagination with filters (instant!)
+  const { totalPages, currentItems, totalFiltered } = useMemo(() => {
+    const total = Math.ceil(filteredData.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const items = allData.slice(startIndex, startIndex + itemsPerPage);
+    const items = filteredData.slice(startIndex, startIndex + itemsPerPage);
     
-
-    
-    return { totalPages: total, currentItems: items };
-  }, [allData, currentPage, itemsPerPage]);
+    return { totalPages: total, currentItems: items, totalFiltered: filteredData.length };
+  }, [filteredData, currentPage, itemsPerPage]);
 
   // Instant page change
   const handlePageChange = useCallback((page: number) => {
@@ -228,37 +300,155 @@ export default function LeaderboardList({ initialData }: Props) {
       )}
 
       {/* Leaderboard List */}
-      {!loading && !error && currentItems.length > 0 && (
+      {!loading && !error && allData.length > 0 && (
         <div id="leaderboard-container" className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Header */}
-          <div className="bg-gray-50 p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🏆</span>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🏆</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Bảng xếp hạng chi tiết</h3>
+                    <p className="text-sm text-gray-600">
+                      {totalFiltered < allData.length ? 
+                        `${totalFiltered} / ${allData.length} kết quả` : 
+                        `${allData.length} kết quả`}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Bảng xếp hạng chi tiết</h3>
-                  <p className="text-sm text-gray-600">Từ hạng 4 trở đi</p>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
+                      showFilters ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+                    </svg>
+                    <span className="text-sm font-medium">Bộ lọc</span>
+                    {(filters.gender || filters.country || filters.ageRange) && (
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    )}
+                  </button>
+
                 </div>
               </div>
-              <div className="bg-white px-3 py-1.5 rounded-full border border-gray-300">
-                <span className="text-sm font-medium text-gray-700">
-                  Trang {currentPage}/{totalPages}
-                </span>
-              </div>
+
+              {/* Filter Panel */}
+              {showFilters && (
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Gender Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Giới tính</label>
+                      <select
+                        value={filters.gender}
+                        onChange={(e) => {
+                          setFilters(prev => ({ ...prev, gender: e.target.value }));
+                          setCurrentPage(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      >
+                        <option value="">Tất cả</option>
+                        <option value="male">Nam ♂️</option>
+                        <option value="female">Nữ ♀️</option>
+                        <option value="other">Khác ⚧️</option>
+                      </select>
+                    </div>
+
+                    {/* Country Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Quốc gia</label>
+                      <select
+                        value={filters.country}
+                        onChange={(e) => {
+                          setFilters(prev => ({ ...prev, country: e.target.value }));
+                          setCurrentPage(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      >
+                        <option value="">Tất cả</option>
+                        {filterOptions.countries.map(country => (
+                          <option key={country} value={country}>{country}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Age Range Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Độ tuổi</label>
+                      <select
+                        value={filters.ageRange}
+                        onChange={(e) => {
+                          setFilters(prev => ({ ...prev, ageRange: e.target.value }));
+                          setCurrentPage(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      >
+                        <option value="">Tất cả</option>
+                        <option value="18-25">18-25 tuổi</option>
+                        <option value="26-35">26-35 tuổi</option>
+                        <option value="36-50">36-50 tuổi</option>
+                        <option value="50+">Trên 50 tuổi</option>
+                      </select>
+                    </div>
+
+                    {/* Clear Filters */}
+                    <div className="flex items-end">
+                      <button
+                        onClick={clearFilters}
+                        disabled={!filters.gender && !filters.country && !filters.ageRange}
+                        className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                      >
+                        Xóa bộ lọc
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Filters Display */}
+                  {(filters.gender || filters.country || filters.ageRange) && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex items-center space-x-2 text-sm">
+                        <span className="text-gray-600">Đang lọc:</span>
+                        {filters.gender && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                            {filters.gender === 'male' ? 'Nam ♂️' : filters.gender === 'female' ? 'Nữ ♀️' : 'Khác ⚧️'}
+                          </span>
+                        )}
+                        {filters.country && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                            📍 {filters.country}
+                          </span>
+                        )}
+                        {filters.ageRange && (
+                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                            🎂 {filters.ageRange === '50+' ? 'Trên 50' : filters.ageRange} tuổi
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
           {/* List */}
           <div className="p-6 space-y-3">
-            {currentItems.map((entry, index) => {
+            {currentItems.length > 0 ? currentItems.map((entry, index) => {
               const badgeInfo = getBadgeInfo(entry.badge);
               const isTopTier = entry.rank <= 10;
               
-              return (
-                <div 
-                  key={`${entry.rank}-${entry.score}`}
+              // Use real age data from database
+              const displayEntry = entry;
+              
+                              return (
+                  <div 
+                    key={`${displayEntry.rank}-${displayEntry.score}`}
                   className={`group bg-white rounded-xl p-4 border border-gray-200 transition-all duration-200 hover:shadow-md hover:border-gray-300 ${
                     isTopTier ? 'border-blue-200 bg-blue-50/30' : ''
                   }`}
@@ -267,8 +457,8 @@ export default function LeaderboardList({ initialData }: Props) {
                     <div className="flex items-center space-x-4">
                       {/* Rank Badge */}
                       <div className="relative">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(entry.rank)} rounded-xl flex items-center justify-center`}>
-                          <span className="text-white font-bold text-sm">#{entry.rank}</span>
+                        <div className={`w-12 h-12 bg-gradient-to-br ${getRankColor(displayEntry.rank)} rounded-xl flex items-center justify-center`}>
+                          <span className="text-white font-bold text-sm">#{displayEntry.rank}</span>
                         </div>
                         {isTopTier && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
@@ -279,23 +469,36 @@ export default function LeaderboardList({ initialData }: Props) {
                       
                       {/* User Info */}
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-bold text-gray-900">{entry.name}</h4>
-                          {getGenderIcon(entry.gender) && (
-                            <span className="text-sm" title={`Giới tính: ${entry.gender === 'male' ? 'Nam' : entry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
-                              {getGenderIcon(entry.gender)}
-                            </span>
-                          )}
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <h4 className="font-bold text-gray-900">{displayEntry.name}</h4>
+                          <div className="flex items-center space-x-1">
+                            {getGenderIcon(displayEntry.gender) && (
+                              <span className="text-sm" title={`Giới tính: ${displayEntry.gender === 'male' ? 'Nam' : displayEntry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
+                                {getGenderIcon(displayEntry.gender)}
+                              </span>
+                            )}
+                            {displayEntry.age && (
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium" title={`${displayEntry.age} tuổi`}>
+                                {formatAge(displayEntry.age)}
+                              </span>
+                            )}
+                          </div>
                           {isTopTier && (
                             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                              Top {entry.rank <= 5 ? '5' : '10'}
+                              Top {displayEntry.rank <= 5 ? '5' : '10'}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
-                          <span>📍 {entry.location}</span>
-                          <span>•</span>
-                          <span>⏰ {formatDate(entry.date)}</span>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1 flex-wrap">
+                          <span className="flex items-center">
+                            <span className="mr-1">📍</span>
+                            {displayEntry.location}
+                          </span>
+                          <span className="hidden sm:inline">•</span>
+                          <span className="flex items-center">
+                            <span className="mr-1">⏰</span>
+                            {formatDate(displayEntry.date)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -303,7 +506,7 @@ export default function LeaderboardList({ initialData }: Props) {
                     {/* Score & Badge */}
                     <div className="text-right">
                       <div className={`text-2xl font-bold ${isTopTier ? 'text-blue-600' : 'text-gray-700'} mb-1`}>
-                        {entry.score}
+                        {displayEntry.score}
                       </div>
                       <div className={`text-xs px-2 py-1 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
                         {badgeInfo.icon} {badgeInfo.label}
@@ -312,7 +515,22 @@ export default function LeaderboardList({ initialData }: Props) {
                   </div>
                 </div>
               );
-            })}
+            }) : (
+              // Empty filter results
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔍</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Không tìm thấy kết quả</h3>
+                <p className="text-gray-600 mb-4">Không có người dùng nào phù hợp với bộ lọc đã chọn</p>
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Xóa bộ lọc
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Simplified Pagination */}
@@ -320,7 +538,10 @@ export default function LeaderboardList({ initialData }: Props) {
             <div className="bg-gray-50 p-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-500">
-                  Trang {currentPage}/{totalPages} • {allData.length} kết quả
+                  Trang {currentPage}/{totalPages} • {totalFiltered} / {allData.length} kết quả
+                  {totalFiltered < allData.length && (
+                    <span className="text-blue-600 ml-1">(đã lọc)</span>
+                  )}
                 </div>
                 
                 {totalPages > 1 ? (

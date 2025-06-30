@@ -10,6 +10,7 @@ export interface LeaderboardEntry {
   isAnonymous: boolean;
   user_id?: string;
   gender?: string;
+  age?: number;
 }
 
 export interface LeaderboardStats {
@@ -130,7 +131,8 @@ export async function getLeaderboard(
             tested_at,
             name,
             country,
-            gender
+            gender,
+            age
           `)
           .order('score', { ascending: false });
 
@@ -208,7 +210,8 @@ export async function getLeaderboard(
         badge: getBadgeFromScore(result.score),
         isAnonymous,
         user_id: result.user_id,
-        gender: result.gender
+        gender: result.gender,
+        age: result.age
       };
     });
 
@@ -243,7 +246,8 @@ export async function getLeaderboard(
           badge: getBadgeFromScore(result.score),
           isAnonymous,
           user_id: result.user_id,
-          gender: result.gender
+          gender: result.gender,
+          age: result.age
         };
       });
 
@@ -305,7 +309,8 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
           badge: getBadgeFromScore(result.score),
           isAnonymous,
           user_id: result.user_id,
-          gender: result.gender
+          gender: result.gender,
+          age: result.age
         };
       });
       
@@ -326,7 +331,8 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
           tested_at,
           name,
           country,
-          gender
+          gender,
+          age
         `)
         .gte('tested_at', dateThreshold.toISOString())
         .order('score', { ascending: false })
@@ -348,7 +354,8 @@ export async function getRecentTopPerformers(days: number = 7, limit: number = 5
         badge: getBadgeFromScore(entry.score),
         isAnonymous,
         user_id: entry.user_id,
-        gender: entry.gender
+        gender: entry.gender,
+        age: entry.age
       };
     });
 
@@ -535,7 +542,8 @@ export async function getUserLocalRanking(userId: string): Promise<{
       badge: getBadgeFromScore(userResult.score),
       isAnonymous: false,
       user_id: userResult.user_id,
-      gender: userResult.gender
+      gender: userResult.gender,
+      age: userResult.age
     };
 
     const surrounding: LeaderboardEntry[] = surroundingResults.map((result: any, index) => {
@@ -551,7 +559,8 @@ export async function getUserLocalRanking(userId: string): Promise<{
         badge: getBadgeFromScore(result.score),
         isAnonymous,
         user_id: result.user_id,
-        gender: result.gender
+        gender: result.gender,
+        age: result.age
       };
     });
 

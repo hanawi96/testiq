@@ -3,9 +3,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import LeaderboardList from '../components/LeaderboardList.tsx';
 import LeaderboardStats from '../components/LeaderboardStats.tsx';
 import LocalRankingWrapper from '../components/LocalRankingWrapper.tsx';
+import TopTenLeaderboard from '../components/TopTenLeaderboard.tsx';
 
 // Ultra-fast SSR data loading with smart fallbacks
-let initialData = { topPerformers: [], stats: null, leaderboardData: null };
+let initialData = { topTenData: [], stats: null, leaderboardData: null };
 
 try {
   console.log('🔄 Fetching leaderboard...');
@@ -14,7 +15,7 @@ try {
   // Single optimized call for all data
   const [statsResult, leaderboardResult] = await Promise.all([
     backend.getQuickStats().catch(() => null),
-    backend.getLeaderboard(1, 23).catch(() => null) // Get first 23 (top 3 + 20 for list)
+    backend.getLeaderboard(1, 30).catch(() => null) // Get first 30 (top 10 + 20 for list)
   ]);
   
   const stats = statsResult || { 
@@ -24,45 +25,49 @@ try {
     geniusPercentage: 2.5 
   };
   
-  let topPerformers = [];
+  let topTenData = [];
   let leaderboardData = null;
   
   if (leaderboardResult?.data?.length > 0) {
-    // Split data: top 3 for display, rest for list component
+    // Split data: top 10 for display, rest for list component
     const allData = leaderboardResult.data.map((entry, index) => ({
       ...entry,
-      rank: index + 1,
-      avatar: entry.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
-      improvement: `+${Math.floor(Math.random() * 15) + 3} điểm`,
-      testCount: Math.floor(Math.random() * 20) + 5
+      rank: index + 1
     }));
     
-    topPerformers = allData.slice(0, 3);
+    topTenData = allData.slice(0, 10);
     leaderboardData = {
-      data: allData,
+      data: allData.filter(entry => entry.rank > 10), // List starts from rank 11
       stats,
       totalPages: leaderboardResult.totalPages || 1
     };
   } else {
-    // Smart fallback with real stats
-    topPerformers = [
-      { rank: 1, name: 'Nguyễn Văn A', score: stats.highestScore, location: 'Hà Nội', date: '2024-01-15', badge: 'genius', avatar: 'NV', improvement: '+12 điểm', testCount: 8 },
-      { rank: 2, name: 'Trần Thị B', score: stats.highestScore - 7, location: 'TP.HCM', date: '2024-01-14', badge: 'superior', avatar: 'TT', improvement: '+8 điểm', testCount: 6 },
-      { rank: 3, name: 'Lê Văn C', score: stats.highestScore - 13, location: 'Đà Nẵng', date: '2024-01-13', badge: 'superior', avatar: 'LV', improvement: '+15 điểm', testCount: 10 }
+    // Smart fallback with real stats - top 10 data
+    topTenData = [
+      { rank: 1, name: 'Nguyễn Văn A', score: stats.highestScore, location: 'Hà Nội', date: '2024-01-15', badge: 'genius', age: 28, gender: 'male', user_id: 'demo1' },
+      { rank: 2, name: 'Trần Thị B', score: stats.highestScore - 7, location: 'TP.HCM', date: '2024-01-14', badge: 'superior', age: 24, gender: 'female', user_id: 'demo2' },
+      { rank: 3, name: 'Lê Văn C', score: stats.highestScore - 13, location: 'Đà Nẵng', date: '2024-01-13', badge: 'superior', age: 35, gender: 'male', user_id: 'demo3' },
+      { rank: 4, name: 'Phạm Thị D', score: stats.highestScore - 18, location: 'Hải Phòng', date: '2024-01-12', badge: 'above', age: 29, gender: 'female', user_id: 'demo4' },
+      { rank: 5, name: 'Hoàng Văn E', score: stats.highestScore - 22, location: 'Cần Thơ', date: '2024-01-11', badge: 'above', age: 31, gender: 'male', user_id: 'demo5' },
+      { rank: 6, name: 'Vũ Thị F', score: stats.highestScore - 26, location: 'Nha Trang', date: '2024-01-10', badge: 'above', age: 26, gender: 'female', user_id: 'demo6' },
+      { rank: 7, name: 'Đặng Văn G', score: stats.highestScore - 30, location: 'Huế', date: '2024-01-09', badge: 'good', age: 33, gender: 'male', user_id: 'demo7' },
+      { rank: 8, name: 'Bùi Thị H', score: stats.highestScore - 34, location: 'Vũng Tàu', date: '2024-01-08', badge: 'good', age: 27, gender: 'female', user_id: 'demo8' },
+      { rank: 9, name: 'Mai Văn I', score: stats.highestScore - 38, location: 'Quy Nhon', date: '2024-01-07', badge: 'good', age: 30, gender: 'male', user_id: 'demo9' },
+      { rank: 10, name: 'Lý Thị K', score: stats.highestScore - 42, location: 'Vinh', date: '2024-01-06', badge: 'good', age: 25, gender: 'female', user_id: 'demo10' }
     ];
   }
   
-  initialData = { topPerformers, stats, leaderboardData };
-  console.log('✅ Cached', initialData.topPerformers.length, 'results');
+  initialData = { topTenData, stats, leaderboardData };
+      console.log('✅ Cached', initialData.topTenData.length, 'results');
   
 } catch (error) {
   console.error('Failed to load leaderboard data:', error);
   // Complete fallback
   initialData = {
-    topPerformers: [
-      { rank: 1, name: 'Nguyễn Văn A', score: 145, location: 'Hà Nội', date: '2024-01-15', badge: 'genius', avatar: 'NV', improvement: '+12 điểm', testCount: 8 },
-      { rank: 2, name: 'Trần Thị B', score: 138, location: 'TP.HCM', date: '2024-01-14', badge: 'superior', avatar: 'TT', improvement: '+8 điểm', testCount: 6 },
-      { rank: 3, name: 'Lê Văn C', score: 132, location: 'Đà Nẵng', date: '2024-01-13', badge: 'superior', avatar: 'LV', improvement: '+15 điểm', testCount: 10 }
+    topTenData: [
+      { rank: 1, name: 'Nguyễn Văn A', score: 145, location: 'Hà Nội', date: '2024-01-15', badge: 'genius', age: 28, gender: 'male', user_id: 'demo1' },
+      { rank: 2, name: 'Trần Thị B', score: 138, location: 'TP.HCM', date: '2024-01-14', badge: 'superior', age: 24, gender: 'female', user_id: 'demo2' },
+      { rank: 3, name: 'Lê Văn C', score: 132, location: 'Đà Nẵng', date: '2024-01-13', badge: 'superior', age: 35, gender: 'male', user_id: 'demo3' }
     ],
     stats: { totalParticipants: 156, highestScore: 145, averageScore: 98, geniusPercentage: 2.5 },
     leaderboardData: null
@@ -114,109 +119,23 @@ const getGenderIcon = (gender?: string) => {
     </div>
   </section>
 
-  <!-- Streamlined Top 3 Section -->
-  <section class="bg-white py-12">
+  <!-- Top 10 Leaderboard Section -->
+  <section class="bg-white py-8">
     <div class="max-w-6xl mx-auto px-4">
-      <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Top 3 xuất sắc nhất</h2>
-        <p class="text-gray-600">Những người dẫn đầu bảng xếp hạng IQ</p>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-6">
-        {initialData.topPerformers.map((performer, index) => {
-          const badgeInfo = getBadgeInfo(performer.badge);
-          const isFirst = index === 0;
-          
-          return (
-            <div class={`group relative bg-gradient-to-br ${
-              isFirst ? 'from-yellow-50 to-orange-50 border-2 border-yellow-200' : 
-              'from-gray-50 to-blue-50 border border-gray-200'
-            } rounded-2xl p-6 hover:shadow-lg transition-all duration-200`}>
-              
-              {/* Rank Badge */}
-              <div class="absolute -top-3 left-6">
-                <div class={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                  performer.rank === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 
-                  performer.rank === 2 ? 'bg-gradient-to-br from-gray-400 to-gray-600' : 
-                  'bg-gradient-to-br from-amber-500 to-amber-700'
-                }`}>
-                  #{performer.rank}
-                </div>
-              </div>
-
-              {/* User Info */}
-              <div class="flex items-center space-x-4 mb-4">
-                <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center">
-                  <span class="text-white font-bold text-lg">{performer.avatar}</span>
-                </div>
-                <div class="flex-1">
-                  <div class="flex items-center space-x-2">
-                    <h3 class="text-lg font-bold text-gray-900">{performer.name}</h3>
-                    {getGenderIcon(performer.gender) && (
-                      <span class="text-sm" title={`Giới tính: ${performer.gender === 'male' ? 'Nam' : performer.gender === 'female' ? 'Nữ' : 'Khác'}`}>
-                        {getGenderIcon(performer.gender)}
-                      </span>
-                    )}
-                  </div>
-                  <div class="flex items-center text-sm text-gray-500">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                    <span>{performer.location}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-gray-600">Điểm IQ</span>
-                  <span class="text-2xl font-bold text-indigo-600">{performer.score}</span>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-gray-600">Cải thiện</span>
-                  <span class="text-green-600 font-medium">{performer.improvement}</span>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-gray-600">Số test</span>
-                  <span class="text-gray-900 font-medium">{performer.testCount}</span>
-                </div>
-              </div>
-
-              {/* Badge */}
-              <div class="mt-4 pt-4 border-t border-gray-200">
-                <span class={`inline-flex px-3 py-1 rounded-full text-xs font-medium text-white ${badgeInfo.color}`}>
-                  {badgeInfo.label}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <TopTenLeaderboard client:load initialData={initialData.topTenData} />
     </div>
   </section>
 
   <!-- Local Ranking Section for Logged-in Users -->
-  <section class="py-12 bg-white border-t border-gray-200">
+  <section class="py-8 bg-white border-t border-gray-200">
     <div class="max-w-6xl mx-auto px-4">
-      <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Vị trí của bạn</h2>
-        <p class="text-gray-600">Xem vị trí cá nhân và những người xung quanh bạn</p>
-      </div>
-             <LocalRankingWrapper client:load />
+      <LocalRankingWrapper client:load />
     </div>
   </section>
 
   <!-- Optimized Full Leaderboard -->
-  <section id="full-leaderboard" class="py-12 bg-gray-50">
+  <section id="full-leaderboard" class="py-8 bg-gray-50 border-t border-gray-200">
     <div class="max-w-6xl mx-auto px-4">
-      <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Bảng xếp hạng toàn bộ</h2>
-        <p class="text-gray-600">Danh sách chi tiết tất cả người tham gia</p>
-      </div>
       <!-- Pass initial data to avoid duplicate loading -->
       <LeaderboardList client:load initialData={initialData.leaderboardData} />
     </div>

@@ -10,6 +10,7 @@ interface LocalRankingEntry {
   isAnonymous?: boolean;
   user_id?: string;
   gender?: string;
+  age?: number;
 }
 
 interface LocalRankingData {
@@ -191,6 +192,9 @@ export default function LocalRankingView({ userId }: Props) {
             const badgeInfo = getBadgeInfo(entry.badge);
             const isTopRank = entry.rank <= 10;
             
+            // Use real age data from database
+            const displayEntry = entry;
+            
             return (
               <div 
                 key={`${entry.rank}-${entry.user_id || entry.name}`}
@@ -223,15 +227,22 @@ export default function LocalRankingView({ userId }: Props) {
                     
                     {/* User Info */}
                     <div className="flex-1">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 flex-wrap">
                         <h4 className={`font-bold ${isCurrentUser ? 'text-yellow-800' : 'text-gray-900'}`}>
-                          {isCurrentUser ? `${entry.name} (Bạn)` : entry.name}
+                          {isCurrentUser ? `${displayEntry.name} (Bạn)` : displayEntry.name}
                         </h4>
-                        {getGenderIcon(entry.gender) && (
-                          <span className="text-sm" title={`Giới tính: ${entry.gender === 'male' ? 'Nam' : entry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
-                            {getGenderIcon(entry.gender)}
-                          </span>
-                        )}
+                        <div className="flex items-center space-x-1">
+                          {getGenderIcon(displayEntry.gender) && (
+                            <span className="text-sm" title={`Giới tính: ${displayEntry.gender === 'male' ? 'Nam' : displayEntry.gender === 'female' ? 'Nữ' : 'Khác'}`}>
+                              {getGenderIcon(displayEntry.gender)}
+                            </span>
+                          )}
+                          {displayEntry.age && (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium" title={`${displayEntry.age} tuổi`}>
+                              {displayEntry.age}
+                            </span>
+                          )}
+                        </div>
                         {isCurrentUser && (
                           <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
                             Của bạn
@@ -239,14 +250,20 @@ export default function LocalRankingView({ userId }: Props) {
                         )}
                         {isTopRank && !isCurrentUser && (
                           <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                            Top {entry.rank <= 5 ? '5' : '10'}
+                            Top {displayEntry.rank <= 5 ? '5' : '10'}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
-                        <span>📍 {entry.location}</span>
-                        <span>•</span>
-                        <span>⏰ {formatDate(entry.date)}</span>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1 flex-wrap">
+                        <span className="flex items-center">
+                          <span className="mr-1">📍</span>
+                          {displayEntry.location}
+                        </span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="flex items-center">
+                          <span className="mr-1">⏰</span>
+                          {formatDate(displayEntry.date)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -257,7 +274,7 @@ export default function LocalRankingView({ userId }: Props) {
                       isCurrentUser ? 'text-yellow-600' : 
                       isTopRank ? 'text-blue-600' : 'text-gray-700'
                     }`}>
-                      {entry.score}
+                      {displayEntry.score}
                     </div>
                     <div className={`text-xs px-2 py-1 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
                       {badgeInfo.icon} {badgeInfo.label}
