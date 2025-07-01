@@ -38,7 +38,50 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   
-  const { fireSingle } = useConfetti();
+  // ✅ GAMIFICATION: XP & Combo System
+  const [totalXP, setTotalXP] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
+  const [recentXPGain, setRecentXPGain] = useState(0);
+  const [showXPAnimation, setShowXPAnimation] = useState(false);
+  
+  // ✅ SMART: Arrow key navigation for answer selection
+  const [highlightedAnswer, setHighlightedAnswer] = useState<number | null>(null);
+  
+    const { fireSingle } = useConfetti();
+
+  // ✅ SMART: Calculate XP based on difficulty + streak multiplier
+  const calculateXP = useCallback((questionIndex: number, isCorrect: boolean) => {
+    if (!isCorrect) return 0;
+    
+    const question = questions[questionIndex];
+    const baseXP = {
+      'easy': 10,
+      'medium': 20, 
+      'hard': 40,
+      'expert': 80
+    }[question.difficulty] || 10;
+    
+    // Streak multiplier: 1x, 1.5x, 2x, 2.5x, 3x (max)
+    const streakMultiplier = Math.min(1 + (currentStreak * 0.5), 3);
+    
+    return Math.round(baseXP * streakMultiplier);
+  }, [questions, currentStreak]);
+
+  // ✅ SMART: Handle XP gain with animation
+  const gainXP = useCallback((amount: number) => {
+    if (amount <= 0) return;
+    
+    setTotalXP(prev => prev + amount);
+    setRecentXPGain(amount);
+    setShowXPAnimation(true);
+    
+    // Hide animation after 2 seconds
+    setTimeout(() => {
+      setShowXPAnimation(false);
+      setRecentXPGain(0);
+    }, 2000);
+  }, []);
 
 
 
@@ -66,30 +109,36 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         ctx.resume();
       }
 
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      
-      const configs = {
-        correct: { frequency: 800, duration: 0.15, type: 'sine' as OscillatorType },
-        wrong: { frequency: 800, duration: 0.15, type: 'sine' as OscillatorType },
-        warning: { frequency: 600, duration: 0.1, type: 'triangle' as OscillatorType },
-        complete: { frequency: 1000, duration: 0.4, type: 'sine' as OscillatorType }
-      };
-      
-      const config = configs[type];
-      console.log(`🔊 Playing ${type} sound:`, config);
-      
-      oscillator.frequency.setValueAtTime(config.frequency, ctx.currentTime);
-      oscillator.type = config.type;
-      
-      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + config.duration);
-      
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + config.duration);
+      if (type === 'complete') {
+        // ✅ SPECIAL: Celebration sound sequence
+        playCelebrationSound(ctx);
+      } else {
+        // Normal single tone sounds
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        const configs = {
+          correct: { frequency: 800, duration: 0.15, type: 'sine' as OscillatorType },
+          wrong: { frequency: 800, duration: 0.15, type: 'sine' as OscillatorType },
+          warning: { frequency: 600, duration: 0.1, type: 'triangle' as OscillatorType },
+          complete: { frequency: 1000, duration: 0.4, type: 'sine' as OscillatorType }
+        };
+        
+        const config = configs[type];
+        console.log(`🔊 Playing ${type} sound:`, config);
+        
+        oscillator.frequency.setValueAtTime(config.frequency, ctx.currentTime);
+        oscillator.type = config.type;
+        
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + config.duration);
+        
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + config.duration);
+      }
       
       console.log('✅ Sound should be playing now');
       
@@ -97,6 +146,42 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       console.error('❌ Error playing sound:', error);
     }
   }, [audioContext]);
+
+  // ✅ CELEBRATION: Special multi-tone success sound
+  const playCelebrationSound = useCallback((ctx: AudioContext) => {
+    console.log('🎉 Playing celebration sound sequence!');
+    
+    // Victory melody: C-E-G-C (Do-Mi-Sol-Do) in higher octave
+    const melody = [
+      { freq: 523, duration: 0.2 }, // C5
+      { freq: 659, duration: 0.2 }, // E5
+      { freq: 784, duration: 0.2 }, // G5
+      { freq: 1047, duration: 0.4 } // C6
+    ];
+    
+    let startTime = ctx.currentTime;
+    
+    melody.forEach((note, index) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.setValueAtTime(note.freq, startTime);
+      oscillator.type = 'sine';
+      
+      // Volume envelope for musical effect
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + note.duration);
+      
+      startTime += note.duration * 0.8; // Slight overlap for smooth transition
+    });
+  }, []);
 
   // Pre-load user profile on component mount for instant popup display
   useEffect(() => {
@@ -173,6 +258,16 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setShowCompletedTestPopup(false);
     setSavedProgress(0);
     setSavedTimeRemaining(0);
+    
+    // ✅ Reset gamification state
+    setTotalXP(0);
+    setCurrentStreak(0);
+    setMaxStreak(0);
+    setRecentXPGain(0);
+    setShowXPAnimation(false);
+    
+    // ✅ Reset navigation state
+    setHighlightedAnswer(null);
   }, [questions.length]);
 
   // Don't check on mount, only when user clicks start button
@@ -293,11 +388,29 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setAnswers(newAnswers);
     setJustAnswered(true);
     
-    // ✅ SMART: Instant sound feedback
+    // ✅ SMART: Instant feedback + Gamification
     const question = questions[currentQuestion];
     if (question) {
       const isCorrect = answerIndex === question.correct;
       console.log(`🎯 Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
+      
+      // ✅ GAMIFICATION: Update streak and XP
+      if (isCorrect) {
+        const newStreak = currentStreak + 1;
+        setCurrentStreak(newStreak);
+        setMaxStreak(prev => Math.max(prev, newStreak));
+        
+        // Calculate and gain XP
+        const xpGained = calculateXP(currentQuestion, true);
+        gainXP(xpGained);
+        
+        console.log(`🎮 Streak: ${newStreak}, XP gained: +${xpGained}, Total XP: ${totalXP + xpGained}`);
+      } else {
+        // Reset streak on wrong answer
+        setCurrentStreak(0);
+        console.log(`💔 Streak reset`);
+      }
+      
       playSound(isCorrect ? 'correct' : 'wrong');
       
       // ✅ Haptic feedback for mobile
@@ -321,7 +434,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       });
       console.log('💾 Saved state after answer selection');
     }
-  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound]);
+  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound, currentStreak, calculateXP, gainXP, totalXP]);
 
   // Navigate to next question (smart navigation)
   const nextQuestion = useCallback(() => {
@@ -330,6 +443,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     if (nextUnanswered !== -1) {
       setCurrentQuestion(nextUnanswered);
       setJustAnswered(false);
+      setHighlightedAnswer(null); // Clear highlight
     }
   }, [currentQuestion, findNextUnanswered]);
 
@@ -338,6 +452,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1);
       setJustAnswered(false);
+      setHighlightedAnswer(null); // Clear highlight
     }
   }, [currentQuestion]);
 
@@ -345,6 +460,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const jumpToQuestion = useCallback((questionIndex: number) => {
     setCurrentQuestion(questionIndex);
     setJustAnswered(false);
+    setHighlightedAnswer(null); // Clear highlight
   }, []);
 
   // Submit test - shows congratulations popup
@@ -360,15 +476,22 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     // ✅ Play completion sound
     playSound('complete');
     
-    // Clear saved state when submitting
-    clearTestState();
+    // ✅ SMART: Mark as completed but keep state for "view result" option
+    const currentState = loadTestState();
+    if (currentState) {
+      const completedState = {
+        ...currentState,
+        isCompleted: true, // Add completion flag
+        completedAt: Date.now() // Track when completed
+      };
+      localStorage.setItem('iq_test_state', JSON.stringify(completedState));
+      console.log('💾 Marked test as completed, keeping state for result viewing');
+    }
     
-    // Show congratulations popup after brief delay
-    setTimeout(() => {
-      console.log('submitTest: showing congratulations popup');
-      setShowCongratulationsPopup(true);
-      setIsSubmitting(false);
-    }, 500);
+    // ✅ INSTANT: Show popup immediately 
+    console.log('submitTest: showing congratulations popup');
+    setShowCongratulationsPopup(true);
+    setIsSubmitting(false);
   }, [isSubmitting, allAnswered, playSound]);
 
   // Handle confetti trigger when popup opens
@@ -416,8 +539,9 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     // Save to Supabase and localStorage
     await saveTestResult(resultWithUserInfo);
     
-    // Clear saved state after successful completion
+    // ✅ SMART: Clear saved state only when user actually views result
     clearTestState();
+    console.log('🗑️ Cleared test state after user viewed result');
     
     onComplete(resultWithUserInfo);
   }, [answers, questions, startTime, onComplete]);
@@ -449,10 +573,12 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     }
   }, [justAnswered, answers, currentQuestion, findNextUnanswered]);
 
-  // Keyboard navigation
+  // ✅ SMART: Enhanced keyboard navigation with arrow key answer selection
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (!isActive || showCongratulationsPopup || showTimeUpPopup) return;
+      
+      const optionsCount = questions[currentQuestion]?.options.length || 0;
       
       switch (e.key) {
         case '1':
@@ -460,34 +586,71 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         case '3':
         case '4':
           const answerIndex = parseInt(e.key) - 1;
-          if (answerIndex < questions[currentQuestion].options.length) {
+          if (answerIndex < optionsCount) {
             handleAnswerSelect(answerIndex);
+            setHighlightedAnswer(null); // Clear highlight after selection
           }
           break;
+          
+        case 'ArrowUp':
         case 'ArrowLeft':
           e.preventDefault();
-          previousQuestion();
+          setHighlightedAnswer(prev => {
+            if (prev === null) return 0;
+            return prev > 0 ? prev - 1 : optionsCount - 1; // Wrap to bottom
+          });
           break;
+          
+        case 'ArrowDown':
         case 'ArrowRight':
           e.preventDefault();
-          if (answers[currentQuestion] !== null) {
-            nextQuestion();
-          }
+          setHighlightedAnswer(prev => {
+            if (prev === null) return 0;
+            return prev < optionsCount - 1 ? prev + 1 : 0; // Wrap to top
+          });
           break;
+          
         case 'Enter':
           e.preventDefault();
-          if (allAnswered) {
+          if (highlightedAnswer !== null) {
+            // Select highlighted answer
+            handleAnswerSelect(highlightedAnswer);
+            setHighlightedAnswer(null);
+          } else if (allAnswered) {
             submitTest();
           } else if (answers[currentQuestion] !== null) {
             nextQuestion();
           }
           break;
+          
+        
+          
+                  case 'PageUp':
+          case 'KeyQ': // Q for previous question
+            e.preventDefault();
+            previousQuestion();
+            setHighlightedAnswer(null);
+            break;
+            
+          case 'PageDown':
+          case 'KeyE': // E for next question
+            e.preventDefault();
+            if (answers[currentQuestion] !== null) {
+              nextQuestion();
+              setHighlightedAnswer(null);
+            }
+            break;
+            
+          case 'Escape':
+            e.preventDefault();
+            setHighlightedAnswer(null); // Clear highlight on Escape
+            break;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isActive, currentQuestion, answers, handleAnswerSelect, nextQuestion, previousQuestion, submitTest, questions, showCongratulationsPopup, showTimeUpPopup, allAnswered]);
+  }, [isActive, currentQuestion, answers, handleAnswerSelect, nextQuestion, previousQuestion, submitTest, questions, showCongratulationsPopup, showTimeUpPopup, allAnswered, highlightedAnswer]);
 
   // Progress calculation
   const answeredQuestions = answers.filter(a => a !== null).length;
@@ -522,6 +685,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         <CongratulationsPopup 
           isOpen={showCongratulationsPopup}
           onComplete={handlePopupComplete}
+          onClose={() => setShowCongratulationsPopup(false)}
           onConfettiTrigger={handleConfettiTrigger}
           preloadedUserInfo={preloadedUserInfo}
           isAuthenticatedUser={isAuthenticatedUser}
@@ -585,6 +749,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       <CongratulationsPopup 
         isOpen={showCongratulationsPopup}
         onComplete={handlePopupComplete}
+        onClose={() => setShowCongratulationsPopup(false)}
         onConfettiTrigger={handleConfettiTrigger}
         preloadedUserInfo={preloadedUserInfo}
         isAuthenticatedUser={isAuthenticatedUser}
@@ -610,8 +775,23 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       />
 
       
-      {/* Header with timer and progress */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+      {/* Header with timer, progress and gamification */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100 relative overflow-hidden">
+        {/* XP Animation */}
+        <AnimatePresence>
+          {showXPAnimation && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+              animate={{ opacity: 1, y: -10, scale: 1 }}
+              exit={{ opacity: 0, y: -30, scale: 1.2 }}
+              transition={{ duration: 2, ease: "easeOut" }}
+              className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg z-10"
+            >
+              +{recentXPGain} XP
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <ProgressBar 
@@ -631,15 +811,38 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           </div>
         </div>
         
-        {/* Quick stats */}
-        <div className="flex items-center justify-center space-x-6 mt-4 text-sm text-gray-600">
-          <div className="flex items-center">
-            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-            Đã trả lời: {answeredQuestions}/{questions.length}
-          </div>
-          <div className="flex items-center">
-            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-            Tiến độ: {Math.round(progress)}%
+        {/* Gamification Stats */}
+        <div className="flex items-center justify-end mt-4">
+          {/* Gamification stats */}
+          <div className="flex items-center space-x-4">
+            {/* Total XP */}
+            <div className="flex items-center bg-gradient-to-r from-purple-100 to-indigo-100 px-3 py-2 rounded-lg">
+              <span className="text-lg mr-2">⭐</span>
+              <div className="text-sm">
+                <div className="font-bold text-purple-700">{totalXP} XP</div>
+                <div className="text-xs text-purple-600">Tổng điểm</div>
+              </div>
+            </div>
+
+            {/* Current Streak */}
+            <div className="flex items-center bg-gradient-to-r from-orange-100 to-red-100 px-3 py-2 rounded-lg">
+              <span className="text-lg mr-2">🔥</span>
+              <div className="text-sm">
+                <div className="font-bold text-orange-700">{currentStreak}</div>
+                <div className="text-xs text-orange-600">Streak</div>
+              </div>
+            </div>
+
+            {/* Max Streak */}
+            {maxStreak > 0 && (
+              <div className="flex items-center bg-gradient-to-r from-green-100 to-emerald-100 px-3 py-2 rounded-lg">
+                <span className="text-lg mr-2">🏆</span>
+                <div className="text-sm">
+                  <div className="font-bold text-green-700">{maxStreak}</div>
+                  <div className="text-xs text-green-600">Cao nhất</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -658,6 +861,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
             question={questions[currentQuestion]}
             selectedAnswer={answers[currentQuestion]}
             onAnswerSelect={handleAnswerSelect}
+            highlightedAnswer={highlightedAnswer}
           />
         </motion.div>
       </AnimatePresence>
@@ -668,7 +872,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           <motion.button
             onClick={previousQuestion}
             disabled={currentQuestion === 0}
-            className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+            className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${
               currentQuestion === 0
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -676,30 +880,99 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
             whileHover={currentQuestion > 0 ? { scale: 1.02 } : {}}
             whileTap={currentQuestion > 0 ? { scale: 0.98 } : {}}
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Quay lại
           </motion.button>
 
           <div className="flex items-center space-x-3">
-            {/* Question indicators */}
-            <div className="flex space-x-2">
-              {questions.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => jumpToQuestion(index)}
-                  className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
-                    index === currentQuestion
-                      ? 'bg-primary-600 text-white'
-                      : answers[index] !== null
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              ))}
+            {/* Smart Question Navigator */}
+            <div className="flex items-center space-x-2">
+              {/* Show range navigation for 60+ questions */}
+              {questions.length > 10 ? (
+                <div className="flex items-center space-x-1">
+                  {/* Previous range button */}
+                  {currentQuestion >= 5 && (
+                    <button
+                      onClick={() => jumpToQuestion(Math.max(0, currentQuestion - 5))}
+                      className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
+                    >
+                      ‹‹
+                    </button>
+                  )}
+                  
+                  {/* Dynamic visible range */}
+                  {(() => {
+                    const total = questions.length;
+                    const current = currentQuestion;
+                    let start, end;
+                    
+                    // Smart range calculation
+                    if (current <= 2) {
+                      start = 0; end = Math.min(5, total);
+                    } else if (current >= total - 3) {
+                      start = Math.max(0, total - 5); end = total;
+                    } else {
+                      start = current - 2; end = current + 3;
+                    }
+                    
+                    const visibleQuestions = [];
+                    for (let i = start; i < end; i++) {
+                      visibleQuestions.push(i);
+                    }
+                    
+                    return visibleQuestions.map(index => (
+                      <button
+                        key={index}
+                        onClick={() => jumpToQuestion(index)}
+                        className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
+                          index === currentQuestion
+                            ? 'bg-primary-600 text-white shadow-md'
+                            : answers[index] !== null
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                      >
+                        {index + 1}
+                      </button>
+                    ));
+                  })()}
+                  
+                  {/* Progress indicator */}
+                  <div className="mx-2 px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600 font-medium">
+                    {currentQuestion + 1}/{questions.length}
+                  </div>
+                  
+                  {/* Next range button */}
+                  {currentQuestion < questions.length - 6 && (
+                    <button
+                      onClick={() => jumpToQuestion(Math.min(questions.length - 1, currentQuestion + 5))}
+                      className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
+                    >
+                      ››
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* Original design for <= 10 questions */
+                <div className="flex space-x-2">
+                  {questions.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => jumpToQuestion(index)}
+                      className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
+                        index === currentQuestion
+                          ? 'bg-primary-600 text-white'
+                          : answers[index] !== null
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -739,7 +1012,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
         
         {/* Keyboard shortcuts hint */}
         <div className="mt-4 text-center text-xs text-gray-500">
-          💡 Phím tắt: 1-4 (chọn đáp án) • ← → (điều hướng) • Enter (hoàn thành khi đủ câu)
+          💡 Phím tắt: 1-4 hoặc ↑ ↓ ← → (chọn đáp án) • Enter (xác nhận)
         </div>
       </div>
 

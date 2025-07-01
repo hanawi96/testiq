@@ -1,0 +1,911 @@
+{
+    "meta": {
+      "title": "Demo Test IQ 60 Câu",
+      "description": "Test navigation với 60 câu hỏi IQ đầy đủ",
+      "timeLimit": 1500,
+      "totalQuestions": 60,
+      "difficulty": "standard"
+    },
+    "questions": [
+      {
+        "id": 1,
+        "type": "logical_sequence",
+        "question": "Tìm số tiếp theo trong dãy: 2, 4, 8, 16, ?",
+        "options": [
+          { "id": "a", "text": "24" },
+          { "id": "b", "text": "32" },
+          { "id": "c", "text": "30" },
+          { "id": "d", "text": "28" }
+        ],
+        "correct": "b",
+        "explanation": "Đây là cấp số nhân với công bội 2.",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 2,
+        "type": "pattern_recognition",
+        "question": "Tìm số tiếp theo: 1, 4, 9, 16, 25, ?",
+        "options": [
+          { "id": "a", "text": "30" },
+          { "id": "b", "text": "35" },
+          { "id": "c", "text": "36" },
+          { "id": "d", "text": "40" }
+        ],
+        "correct": "c",
+        "explanation": "Dãy số chính phương: 1², 2², 3², 4², 5², 6²",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 3,
+        "type": "analogy",
+        "question": "Mắt là gì đối với nhìn như tai là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "nghe" },
+          { "id": "b", "text": "âm thanh" },
+          { "id": "c", "text": "nói" },
+          { "id": "d", "text": "tai nghe" }
+        ],
+        "correct": "a",
+        "explanation": "Mắt là cơ quan để nhìn, tai là cơ quan để nghe.",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 4,
+        "type": "logical_reasoning",
+        "question": "Tìm số tiếp theo: 3, 6, 12, 24, ?",
+        "options": [
+          { "id": "a", "text": "36" },
+          { "id": "b", "text": "48" },
+          { "id": "c", "text": "42" },
+          { "id": "d", "text": "50" }
+        ],
+        "correct": "b",
+        "explanation": "Mỗi số gấp đôi số trước: 24×2=48",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 5,
+        "type": "pattern_completion",
+        "question": "Trong dãy A, C, F, J, O, ?, chữ cái tiếp theo là gì?",
+        "options": [
+          { "id": "a", "text": "U" },
+          { "id": "b", "text": "T" },
+          { "id": "c", "text": "S" },
+          { "id": "d", "text": "V" }
+        ],
+        "correct": "a",
+        "explanation": "Khoảng cách tăng dần: +2, +3, +4, +5, +6",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 6,
+        "type": "mathematical_reasoning",
+        "question": "Nếu x + 3 = 7, thì x² = ?",
+        "options": [
+          { "id": "a", "text": "12" },
+          { "id": "b", "text": "16" },
+          { "id": "c", "text": "20" },
+          { "id": "d", "text": "25" }
+        ],
+        "correct": "b",
+        "explanation": "x = 4, do đó x² = 16",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 7,
+        "type": "spatial_reasoning",
+        "question": "Một hình vuông được chia thành 4 phần bằng nhau. Nếu tô màu 3 phần, tỷ lệ % diện tích được tô là?",
+        "options": [
+          { "id": "a", "text": "60%" },
+          { "id": "b", "text": "70%" },
+          { "id": "c", "text": "75%" },
+          { "id": "d", "text": "80%" }
+        ],
+        "correct": "c",
+        "explanation": "3/4 = 0.75 = 75%",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 8,
+        "type": "logical_sequence",
+        "question": "Tìm số tiếp theo: 1, 1, 2, 3, 5, 8, ?",
+        "options": [
+          { "id": "a", "text": "11" },
+          { "id": "b", "text": "13" },
+          { "id": "c", "text": "15" },
+          { "id": "d", "text": "16" }
+        ],
+        "correct": "b",
+        "explanation": "Dãy Fibonacci: 5 + 8 = 13",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 9,
+        "type": "analogy",
+        "question": "Xe hơi là gì đối với đường như tàu thủy là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "biển" },
+          { "id": "b", "text": "nước" },
+          { "id": "c", "text": "cảng" },
+          { "id": "d", "text": "bờ" }
+        ],
+        "correct": "b",
+        "explanation": "Xe chạy trên đường, tàu chạy trên nước",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 10,
+        "type": "pattern_recognition",
+        "question": "Tìm quy luật: 2, 5, 11, 23, ?",
+        "options": [
+          { "id": "a", "text": "47" },
+          { "id": "b", "text": "45" },
+          { "id": "c", "text": "43" },
+          { "id": "d", "text": "41" }
+        ],
+        "correct": "a",
+        "explanation": "Mỗi số = số trước × 2 + 1",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 11,
+        "type": "logical_deduction",
+        "question": "An cao hơn Bình. Cường thấp hơn Bình. Ai cao nhất?",
+        "options": [
+          { "id": "a", "text": "An" },
+          { "id": "b", "text": "Bình" },
+          { "id": "c", "text": "Cường" },
+          { "id": "d", "text": "Không xác định" }
+        ],
+        "correct": "a",
+        "explanation": "An > Bình > Cường",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 12,
+        "type": "numerical_sequence",
+        "question": "Tìm số còn thiếu: 100, 81, 64, 49, ?",
+        "options": [
+          { "id": "a", "text": "36" },
+          { "id": "b", "text": "25" },
+          { "id": "c", "text": "16" },
+          { "id": "d", "text": "9" }
+        ],
+        "correct": "a",
+        "explanation": "Dãy số chính phương giảm: 10², 9², 8², 7², 6²",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 13,
+        "type": "mathematical_reasoning",
+        "question": "Nếu 3x - 6 = 12, thì x = ?",
+        "options": [
+          { "id": "a", "text": "4" },
+          { "id": "b", "text": "6" },
+          { "id": "c", "text": "8" },
+          { "id": "d", "text": "10" }
+        ],
+        "correct": "b",
+        "explanation": "3x = 18, x = 6",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 14,
+        "type": "pattern_completion",
+        "question": "Hoàn thành: O, T, T, F, F, S, S, ?",
+        "options": [
+          { "id": "a", "text": "E" },
+          { "id": "b", "text": "N" },
+          { "id": "c", "text": "T" },
+          { "id": "d", "text": "O" }
+        ],
+        "correct": "a",
+        "explanation": "Chữ cái đầu của số đếm: One, Two, Three, Four, Five, Six, Seven, Eight",
+        "difficulty": "hard",
+        "points": 20
+      },
+      {
+        "id": 15,
+        "type": "spatial_reasoning",
+        "question": "Một hộp có 12 viên bi, 3 đỏ, 4 xanh, 5 vàng. Xác suất lấy được bi đỏ là?",
+        "options": [
+          { "id": "a", "text": "1/4" },
+          { "id": "b", "text": "1/3" },
+          { "id": "c", "text": "3/12" },
+          { "id": "d", "text": "25%" }
+        ],
+        "correct": "a",
+        "explanation": "3/12 = 1/4 = 25%",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 16,
+        "type": "logical_sequence",
+        "question": "Tìm số tiếp theo: 5, 10, 20, 40, ?",
+        "options": [
+          { "id": "a", "text": "60" },
+          { "id": "b", "text": "70" },
+          { "id": "c", "text": "80" },
+          { "id": "d", "text": "90" }
+        ],
+        "correct": "c",
+        "explanation": "Mỗi số gấp đôi: 40 × 2 = 80",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 17,
+        "type": "analogy",
+        "question": "Sách là gì đối với đọc như đàn piano là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "chơi" },
+          { "id": "b", "text": "nhạc" },
+          { "id": "c", "text": "nghe" },
+          { "id": "d", "text": "ca sĩ" }
+        ],
+        "correct": "a",
+        "explanation": "Sách để đọc, đàn piano để chơi",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 18,
+        "type": "pattern_recognition",
+        "question": "Nếu A=1, B=2, C=3... thì từ HELLO có giá trị bằng?",
+        "options": [
+          { "id": "a", "text": "52" },
+          { "id": "b", "text": "50" },
+          { "id": "c", "text": "48" },
+          { "id": "d", "text": "46" }
+        ],
+        "correct": "a",
+        "explanation": "H=8, E=5, L=12, L=12, O=15. Tổng = 52",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 19,
+        "type": "mathematical_reasoning",
+        "question": "25% của 80 bằng bao nhiêu?",
+        "options": [
+          { "id": "a", "text": "15" },
+          { "id": "b", "text": "20" },
+          { "id": "c", "text": "25" },
+          { "id": "d", "text": "30" }
+        ],
+        "correct": "b",
+        "explanation": "25% × 80 = 0.25 × 80 = 20",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 20,
+        "type": "logical_deduction",
+        "question": "Tất cả chim đều có cánh. Một số động vật có cánh là dơi. Kết luận nào đúng?",
+        "options": [
+          { "id": "a", "text": "Tất cả dơi đều là chim" },
+          { "id": "b", "text": "Một số chim là dơi" },
+          { "id": "c", "text": "Dơi không phải là chim" },
+          { "id": "d", "text": "Không thể kết luận" }
+        ],
+        "correct": "d",
+        "explanation": "Từ các tiền đề không thể kết luận chắc chắn",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 21,
+        "type": "numerical_sequence",
+        "question": "Tìm số tiếp theo: 7, 14, 28, 56, ?",
+        "options": [
+          { "id": "a", "text": "84" },
+          { "id": "b", "text": "98" },
+          { "id": "c", "text": "112" },
+          { "id": "d", "text": "120" }
+        ],
+        "correct": "c",
+        "explanation": "Mỗi số gấp đôi: 56 × 2 = 112",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 22,
+        "type": "pattern_completion",
+        "question": "Trong dãy 1, 4, 2, 8, 3, 12, 4, ?, số tiếp theo là?",
+        "options": [
+          { "id": "a", "text": "14" },
+          { "id": "b", "text": "16" },
+          { "id": "c", "text": "18" },
+          { "id": "d", "text": "20" }
+        ],
+        "correct": "b",
+        "explanation": "Hai dãy xen kẽ: 1,2,3,4... và 4,8,12,16...",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 23,
+        "type": "spatial_reasoning",
+        "question": "Một hình tròn được chia thành 8 phần bằng nhau. Nếu 3 phần được tô màu, góc được tô là bao nhiêu độ?",
+        "options": [
+          { "id": "a", "text": "135°" },
+          { "id": "b", "text": "120°" },
+          { "id": "c", "text": "90°" },
+          { "id": "d", "text": "45°" }
+        ],
+        "correct": "a",
+        "explanation": "3/8 × 360° = 135°",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 24,
+        "type": "analogy",
+        "question": "Bác sĩ là gì đối với bệnh viện như giáo viên là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "học sinh" },
+          { "id": "b", "text": "trường học" },
+          { "id": "c", "text": "sách" },
+          { "id": "d", "text": "lớp học" }
+        ],
+        "correct": "b",
+        "explanation": "Bác sĩ làm việc ở bệnh viện, giáo viên làm việc ở trường học",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 25,
+        "type": "logical_sequence",
+        "question": "Tìm số tiếp theo: 2, 6, 18, 54, ?",
+        "options": [
+          { "id": "a", "text": "108" },
+          { "id": "b", "text": "126" },
+          { "id": "c", "text": "162" },
+          { "id": "d", "text": "180" }
+        ],
+        "correct": "c",
+        "explanation": "Mỗi số nhân với 3: 54 × 3 = 162",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 26,
+        "type": "mathematical_reasoning",
+        "question": "Nếu 2x + 5 = 15, thì 3x = ?",
+        "options": [
+          { "id": "a", "text": "12" },
+          { "id": "b", "text": "15" },
+          { "id": "c", "text": "18" },
+          { "id": "d", "text": "20" }
+        ],
+        "correct": "b",
+        "explanation": "2x = 10, x = 5, vậy 3x = 15",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 27,
+        "type": "pattern_recognition",
+        "question": "Hoàn thành: 1A, 3C, 5E, 7G, ?",
+        "options": [
+          { "id": "a", "text": "9I" },
+          { "id": "b", "text": "8H" },
+          { "id": "c", "text": "9H" },
+          { "id": "d", "text": "8I" }
+        ],
+        "correct": "a",
+        "explanation": "Số lẻ tăng 2, chữ cái nhảy 2 bước: 9I",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 28,
+        "type": "logical_deduction",
+        "question": "Trong một nhóm 5 người, mỗi người bắt tay với mọi người khác một lần. Tổng số cái bắt tay là?",
+        "options": [
+          { "id": "a", "text": "8" },
+          { "id": "b", "text": "10" },
+          { "id": "c", "text": "12" },
+          { "id": "d", "text": "15" }
+        ],
+        "correct": "b",
+        "explanation": "C(5,2) = 5×4/2 = 10 cái bắt tay",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 29,
+        "type": "numerical_sequence",
+        "question": "Tìm số tiếp theo: 1, 8, 27, 64, ?",
+        "options": [
+          { "id": "a", "text": "100" },
+          { "id": "b", "text": "125" },
+          { "id": "c", "text": "144" },
+          { "id": "d", "text": "216" }
+        ],
+        "correct": "b",
+        "explanation": "Dãy lập phương: 1³, 2³, 3³, 4³, 5³ = 125",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 30,
+        "type": "spatial_reasoning",
+        "question": "Nếu một hình lập phương có cạnh 3cm, thể tích của nó là?",
+        "options": [
+          { "id": "a", "text": "9 cm³" },
+          { "id": "b", "text": "18 cm³" },
+          { "id": "c", "text": "27 cm³" },
+          { "id": "d", "text": "36 cm³" }
+        ],
+        "correct": "c",
+        "explanation": "Thể tích = 3³ = 27 cm³",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 31,
+        "type": "analogy",
+        "question": "Cá là gì đối với nước như chim là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "không khí" },
+          { "id": "b", "text": "cây" },
+          { "id": "c", "text": "tổ" },
+          { "id": "d", "text": "mặt đất" }
+        ],
+        "correct": "a",
+        "explanation": "Cá sống trong nước, chim bay trong không khí",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 32,
+        "type": "pattern_completion",
+        "question": "Tìm quy luật: AZ, BY, CX, DW, ?",
+        "options": [
+          { "id": "a", "text": "EV" },
+          { "id": "b", "text": "EW" },
+          { "id": "c", "text": "FV" },
+          { "id": "d", "text": "FW" }
+        ],
+        "correct": "a",
+        "explanation": "Chữ đầu tăng, chữ sau giảm: E-V",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 33,
+        "type": "mathematical_reasoning",
+        "question": "60% của 150 bằng bao nhiêu?",
+        "options": [
+          { "id": "a", "text": "80" },
+          { "id": "b", "text": "85" },
+          { "id": "c", "text": "90" },
+          { "id": "d", "text": "95" }
+        ],
+        "correct": "c",
+        "explanation": "60% × 150 = 0.6 × 150 = 90",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 34,
+        "type": "logical_sequence",
+        "question": "Tìm số tiếp theo: 4, 9, 16, 25, 36, ?",
+        "options": [
+          { "id": "a", "text": "45" },
+          { "id": "b", "text": "48" },
+          { "id": "c", "text": "49" },
+          { "id": "d", "text": "54" }
+        ],
+        "correct": "c",
+        "explanation": "Dãy số chính phương: 2², 3², 4², 5², 6², 7² = 49",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 35,
+        "type": "pattern_recognition",
+        "question": "Nếu APPLE = 50, ORANGE = 60, thì BANANA = ?",
+        "options": [
+          { "id": "a", "text": "40" },
+          { "id": "b", "text": "45" },
+          { "id": "c", "text": "50" },
+          { "id": "d", "text": "55" }
+        ],
+        "correct": "a",
+        "explanation": "Có quy luật tính theo số chữ cái và vị trí",
+        "difficulty": "hard",
+        "points": 20
+      },
+      {
+        "id": 36,
+        "type": "logical_deduction",
+        "question": "An có nhiều sách hơn Bình. Bình có ít sách hơn Cường. Ai có ít sách nhất?",
+        "options": [
+          { "id": "a", "text": "An" },
+          { "id": "b", "text": "Bình" },
+          { "id": "c", "text": "Cường" },
+          { "id": "d", "text": "Không xác định" }
+        ],
+        "correct": "d",
+        "explanation": "Không đủ thông tin để so sánh An và Cường",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 37,
+        "type": "numerical_sequence",
+        "question": "Tìm số tiếp theo: 10, 20, 40, 80, ?",
+        "options": [
+          { "id": "a", "text": "120" },
+          { "id": "b", "text": "140" },
+          { "id": "c", "text": "160" },
+          { "id": "d", "text": "180" }
+        ],
+        "correct": "c",
+        "explanation": "Mỗi số gấp đôi: 80 × 2 = 160",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 38,
+        "type": "spatial_reasoning",
+        "question": "Một hình chữ nhật có chiều dài 8m, chiều rộng 6m. Diện tích là?",
+        "options": [
+          { "id": "a", "text": "42 m²" },
+          { "id": "b", "text": "48 m²" },
+          { "id": "c", "text": "52 m²" },
+          { "id": "d", "text": "56 m²" }
+        ],
+        "correct": "b",
+        "explanation": "Diện tích = 8 × 6 = 48 m²",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 39,
+        "type": "analogy",
+        "question": "Tháng là gì đối với năm như ngày là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "tuần" },
+          { "id": "b", "text": "tháng" },
+          { "id": "c", "text": "giờ" },
+          { "id": "d", "text": "phút" }
+        ],
+        "correct": "b",
+        "explanation": "Tháng là đơn vị nhỏ hơn của năm, ngày là đơn vị nhỏ hơn của tháng",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 40,
+        "type": "pattern_completion",
+        "question": "Hoàn thành: 2, 3, 5, 7, 11, 13, ?",
+        "options": [
+          { "id": "a", "text": "15" },
+          { "id": "b", "text": "17" },
+          { "id": "c", "text": "19" },
+          { "id": "d", "text": "21" }
+        ],
+        "correct": "b",
+        "explanation": "Dãy số nguyên tố: 2, 3, 5, 7, 11, 13, 17",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 41,
+        "type": "mathematical_reasoning",
+        "question": "Nếu x/4 = 12, thì x = ?",
+        "options": [
+          { "id": "a", "text": "36" },
+          { "id": "b", "text": "42" },
+          { "id": "c", "text": "48" },
+          { "id": "d", "text": "52" }
+        ],
+        "correct": "c",
+        "explanation": "x = 12 × 4 = 48",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 42,
+        "type": "logical_sequence",
+        "question": "Tìm số tiếp theo: 1, 3, 7, 15, 31, ?",
+        "options": [
+          { "id": "a", "text": "57" },
+          { "id": "b", "text": "61" },
+          { "id": "c", "text": "63" },
+          { "id": "d", "text": "67" }
+        ],
+        "correct": "c",
+        "explanation": "Mỗi số = số trước × 2 + 1: 31 × 2 + 1 = 63",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 43,
+        "type": "pattern_recognition",
+        "question": "Trong dãy M, N, O, P, Q, ?, chữ cái tiếp theo là?",
+        "options": [
+          { "id": "a", "text": "R" },
+          { "id": "b", "text": "S" },
+          { "id": "c", "text": "T" },
+          { "id": "d", "text": "U" }
+        ],
+        "correct": "a",
+        "explanation": "Dãy liên tiếp trong bảng chữ cái: M, N, O, P, Q, R",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 44,
+        "type": "spatial_reasoning",
+        "question": "Một hình tam giác có độ dài các cạnh 3, 4, 5. Diện tích là?",
+        "options": [
+          { "id": "a", "text": "5" },
+          { "id": "b", "text": "6" },
+          { "id": "c", "text": "7" },
+          { "id": "d", "text": "8" }
+        ],
+        "correct": "b",
+        "explanation": "Tam giác vuông: Diện tích = (3 × 4)/2 = 6",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 45,
+        "type": "analogy",
+        "question": "Ngón tay là gì đối với bàn tay như bánh xe là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "xe hơi" },
+          { "id": "b", "text": "đường" },
+          { "id": "c", "text": "lốp xe" },
+          { "id": "d", "text": "động cơ" }
+        ],
+        "correct": "a",
+        "explanation": "Ngón tay là bộ phận của bàn tay, bánh xe là bộ phận của xe hơi",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 46,
+        "type": "logical_deduction",
+        "question": "Tất cả học sinh đều có sách. Một số người có sách là giáo viên. Kết luận nào đúng?",
+        "options": [
+          { "id": "a", "text": "Tất cả giáo viên đều là học sinh" },
+          { "id": "b", "text": "Một số học sinh là giáo viên" },
+          { "id": "c", "text": "Học sinh và giáo viên đều có sách" },
+          { "id": "d", "text": "Không thể kết luận" }
+        ],
+        "correct": "d",
+        "explanation": "Không đủ thông tin để kết luận chắc chắn",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 47,
+        "type": "numerical_sequence",
+        "question": "Tìm số tiếp theo: 6, 12, 24, 48, ?",
+        "options": [
+          { "id": "a", "text": "84" },
+          { "id": "b", "text": "96" },
+          { "id": "c", "text": "108" },
+          { "id": "d", "text": "120" }
+        ],
+        "correct": "b",
+        "explanation": "Mỗi số gấp đôi: 48 × 2 = 96",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 48,
+        "type": "mathematical_reasoning",
+        "question": "30% của 200 bằng bao nhiêu?",
+        "options": [
+          { "id": "a", "text": "50" },
+          { "id": "b", "text": "60" },
+          { "id": "c", "text": "70" },
+          { "id": "d", "text": "80" }
+        ],
+        "correct": "b",
+        "explanation": "30% × 200 = 0.3 × 200 = 60",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 49,
+        "type": "pattern_completion",
+        "question": "Hoàn thành: Z, Y, X, W, V, ?",
+        "options": [
+          { "id": "a", "text": "T" },
+          { "id": "b", "text": "U" },
+          { "id": "c", "text": "S" },
+          { "id": "d", "text": "R" }
+        ],
+        "correct": "b",
+        "explanation": "Dãy giảm dần: Z, Y, X, W, V, U",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 50,
+        "type": "logical_sequence",
+        "question": "Tìm số tiếp theo: 3, 9, 27, 81, ?",
+        "options": [
+          { "id": "a", "text": "162" },
+          { "id": "b", "text": "216" },
+          { "id": "c", "text": "243" },
+          { "id": "d", "text": "324" }
+        ],
+        "correct": "c",
+        "explanation": "Lũy thừa của 3: 3¹, 3², 3³, 3⁴, 3⁵ = 243",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 51,
+        "type": "spatial_reasoning",
+        "question": "Một hình vuông có chu vi 20cm. Diện tích của nó là?",
+        "options": [
+          { "id": "a", "text": "20 cm²" },
+          { "id": "b", "text": "25 cm²" },
+          { "id": "c", "text": "30 cm²" },
+          { "id": "d", "text": "35 cm²" }
+        ],
+        "correct": "b",
+        "explanation": "Cạnh = 20/4 = 5cm, Diện tích = 5² = 25 cm²",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 52,
+        "type": "analogy",
+        "question": "Muối là gì đối với mặn như đường là gì đối với ?",
+        "options": [
+          { "id": "a", "text": "ngọt" },
+          { "id": "b", "text": "đắng" },
+          { "id": "c", "text": "chua" },
+          { "id": "d", "text": "cay" }
+        ],
+        "correct": "a",
+        "explanation": "Muối có vị mặn, đường có vị ngọt",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 53,
+        "type": "pattern_recognition",
+        "question": "Tìm quy luật: 11, 22, 33, 44, ?",
+        "options": [
+          { "id": "a", "text": "50" },
+          { "id": "b", "text": "55" },
+          { "id": "c", "text": "60" },
+          { "id": "d", "text": "66" }
+        ],
+        "correct": "b",
+        "explanation": "Cộng thêm 11 mỗi lần: 44 + 11 = 55",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 54,
+        "type": "mathematical_reasoning",
+        "question": "Nếu 5x - 10 = 25, thì x = ?",
+        "options": [
+          { "id": "a", "text": "5" },
+          { "id": "b", "text": "6" },
+          { "id": "c", "text": "7" },
+          { "id": "d", "text": "8" }
+        ],
+        "correct": "c",
+        "explanation": "5x = 35, x = 7",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 55,
+        "type": "logical_deduction",
+        "question": "An nhanh hơn Bình. Cường chậm hơn Bình. Thứ tự từ nhanh đến chậm là?",
+        "options": [
+          { "id": "a", "text": "An, Bình, Cường" },
+          { "id": "b", "text": "Bình, An, Cường" },
+          { "id": "c", "text": "Cường, Bình, An" },
+          { "id": "d", "text": "An, Cường, Bình" }
+        ],
+        "correct": "a",
+        "explanation": "An > Bình > Cường",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 56,
+        "type": "numerical_sequence",
+        "question": "Tìm số tiếp theo: 50, 45, 40, 35, ?",
+        "options": [
+          { "id": "a", "text": "25" },
+          { "id": "b", "text": "30" },
+          { "id": "c", "text": "32" },
+          { "id": "d", "text": "28" }
+        ],
+        "correct": "b",
+        "explanation": "Giảm 5 mỗi lần: 35 - 5 = 30",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 57,
+        "type": "pattern_completion",
+        "question": "Hoàn thành: MON, TUE, WED, THU, ?",
+        "options": [
+          { "id": "a", "text": "FRI" },
+          { "id": "b", "text": "SAT" },
+          { "id": "c", "text": "SUN" },
+          { "id": "d", "text": "DAY" }
+        ],
+        "correct": "a",
+        "explanation": "Thứ trong tuần: Monday, Tuesday, Wednesday, Thursday, Friday",
+        "difficulty": "easy",
+        "points": 10
+      },
+      {
+        "id": 58,
+        "type": "spatial_reasoning",
+        "question": "Một hình tròn có bán kính 5cm. Chu vi của nó xấp xỉ? (π ≈ 3.14)",
+        "options": [
+          { "id": "a", "text": "15.7 cm" },
+          { "id": "b", "text": "31.4 cm" },
+          { "id": "c", "text": "78.5 cm" },
+          { "id": "d", "text": "25.12 cm" }
+        ],
+        "correct": "b",
+        "explanation": "Chu vi = 2πr = 2 × 3.14 × 5 = 31.4 cm",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 59,
+        "type": "mathematical_reasoning",
+        "question": "Nếu 4x + 8 = 32, thì x² = ?",
+        "options": [
+          { "id": "a", "text": "25" },
+          { "id": "b", "text": "36" },
+          { "id": "c", "text": "49" },
+          { "id": "d", "text": "64" }
+        ],
+        "correct": "b",
+        "explanation": "4x = 24, x = 6, x² = 36",
+        "difficulty": "medium",
+        "points": 15
+      },
+      {
+        "id": 60,
+        "type": "abstract_reasoning",
+        "question": "Nếu tất cả Blorgs đều là Flims, và không có Flims nào là Graks, thì điều gì chắc chắn đúng?",
+        "options": [
+          { "id": "a", "text": "Tất cả Graks đều là Blorgs" },
+          { "id": "b", "text": "Không có Blorgs nào là Graks" },
+          { "id": "c", "text": "Một số Flims là Graks" },
+          { "id": "d", "text": "Tất cả Flims đều là Blorgs" }
+        ],
+        "correct": "b",
+        "explanation": "Vì tất cả Blorgs là Flims và không có Flims nào là Graks, nên không có Blorgs nào có thể là Graks",
+        "difficulty": "hard",
+        "points": 20
+      }
+    ]
+  } 

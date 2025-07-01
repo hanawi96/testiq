@@ -4,6 +4,8 @@ interface TestState {
   timeElapsed: number; // seconds elapsed
   startTime: number; // timestamp when test started
   totalTime: number; // total time limit in seconds
+  isCompleted?: boolean; // Flag for completed but not viewed tests
+  completedAt?: number; // Timestamp when test was completed
 }
 
 const TEST_STATE_KEY = 'iq_test_state';
@@ -66,6 +68,12 @@ export function hasInProgressTest(): boolean {
 export function isTestCompleted(): boolean {
   const state = loadTestState();
   if (!state) return false;
+  
+  // ✅ SMART: Check completion flag first, then answer count
+  if (state.isCompleted) {
+    console.log(`✅ Test marked as completed with flag`);
+    return true;
+  }
   
   const answeredCount = state.answers.filter(a => a !== null).length;
   const isCompleted = answeredCount === state.answers.length;

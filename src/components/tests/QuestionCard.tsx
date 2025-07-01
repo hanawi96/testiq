@@ -8,6 +8,7 @@ interface QuestionCardProps {
   onAnswerSelect: (answerIndex: number) => void;
   showExplanation?: boolean;
   isReviewMode?: boolean;
+  highlightedAnswer?: number | null;
 }
 
 export default function QuestionCard({
@@ -15,7 +16,8 @@ export default function QuestionCard({
   selectedAnswer,
   onAnswerSelect,
   showExplanation = false,
-  isReviewMode = false
+  isReviewMode = false,
+  highlightedAnswer = null
 }: QuestionCardProps) {
   
   const getDifficultyColor = (difficulty: string) => {
@@ -98,8 +100,9 @@ export default function QuestionCard({
             const isSelected = selectedAnswer === index;
             const isCorrect = isReviewMode && index === question.correct;
             const isWrong = isReviewMode && isSelected && index !== question.correct;
+            const isHighlighted = highlightedAnswer === index;
             
-            let buttonClass = 'w-full p-4 text-left border-2 rounded-xl transition-colors duration-200 focus:outline-none';
+            let buttonClass = 'w-full p-4 text-left border-2 rounded-xl transition-all duration-150 focus:outline-none';
             
             if (isReviewMode) {
               if (isCorrect) {
@@ -111,6 +114,8 @@ export default function QuestionCard({
               }
             } else if (isSelected) {
               buttonClass += ' bg-primary-50 border-primary-300 text-primary-800';
+            } else if (isHighlighted) {
+              buttonClass += ' bg-blue-50 border-blue-300 text-blue-800 shadow-md';
             } else {
               buttonClass += ' bg-white border-gray-200 text-gray-700 hover:bg-gray-50';
             }

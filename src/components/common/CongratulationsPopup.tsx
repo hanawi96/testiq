@@ -15,12 +15,13 @@ interface UserInfo {
 interface CongratulationsPopupProps {
   isOpen: boolean;
   onComplete: (userInfo: UserInfo) => Promise<void>;
+  onClose?: () => void;
   onConfettiTrigger?: () => void;
   preloadedUserInfo?: UserInfo | null;
   isAuthenticatedUser?: boolean;
 }
 
-export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false }: CongratulationsPopupProps) {
+export default function CongratulationsPopup({ isOpen, onComplete, onClose, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false }: CongratulationsPopupProps) {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
@@ -177,14 +178,29 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
         >
           <motion.div
-            className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100"
-            initial={{ scale: 0.8, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            transition={{ duration: 0.3, type: "spring", damping: 25 }}
+            className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100 relative"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
           >
+            {/* Close Button */}
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100"
+                disabled={isAnalyzing}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            )}
+
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 mb-3">
                 <span className="text-3xl">🎉</span>
@@ -192,7 +208,7 @@ export default function CongratulationsPopup({ isOpen, onComplete, onConfettiTri
                   Hoàn thành test!
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-sm text-green-600">
                 Nhập thông tin để hiển thị thành tích của bạn trên bảng xếp hạng
               </p>
             </div>
