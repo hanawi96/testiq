@@ -34,6 +34,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
   const [showProgressPopup, setShowProgressPopup] = useState(false);
   const [showCompletedTestPopup, setShowCompletedTestPopup] = useState(false);
+  const [isTimeUp, setIsTimeUp] = useState(false); // ✅ Track khi test đã hết thời gian
   const [savedProgress, setSavedProgress] = useState(0);
   const [savedTimeRemaining, setSavedTimeRemaining] = useState(0);
   const [preloadedUserInfo, setPreloadedUserInfo] = useState<UserInfo | null>(null);
@@ -224,6 +225,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setShowCompletedTestPopup(false);
     setSavedProgress(0);
     setSavedTimeRemaining(0);
+    setIsTimeUp(false); // ✅ Reset time up state
     
 
     
@@ -320,6 +322,35 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setStartTime(Date.now());
   }, [resetTest]);
 
+  // ✅ OPTIMIZED: Centralized fresh test restart logic for reusability
+  const restartFreshTest = useCallback(() => {
+    console.log('🔄 Starting fresh test from scratch');
+    
+    // ✅ STEP 1: Stop all audio immediately - siêu nhanh
+    if (audioContext) {
+      try {
+        audioContext.close();
+        setAudioContext(null);
+        console.log('🔇 Audio context stopped and cleared');
+      } catch (error) {
+        console.warn('⚠️ Error stopping audio:', error);
+      }
+    }
+    
+    // ✅ STEP 2: Clear states and storage
+    clearTestState(); // Clear any saved progress
+    resetTest(); // Reset all test state (includes setShowTimeUpPopup(false))
+    
+    // ✅ STEP 3: Reset time elapsed để Timer component reset đúng
+    setTimeElapsed(0);
+    
+    // ✅ STEP 4: Start fresh
+    setIsActive(true); // Activate test
+    setStartTime(Date.now()); // Set new start time
+    
+    console.log('✅ Fresh test started - all audio stopped, all states reset');
+  }, [resetTest, audioContext]);
+
   // View result from completed saved test
   const viewSavedResult = useCallback(() => {
     setShowProgressPopup(false);
@@ -333,15 +364,19 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   }, []);
 
   const handleCompletedTestRestart = useCallback(() => {
-    clearTestState();
     setShowCompletedTestPopup(false);
-    resetTest();
-    setIsActive(true);
-    setStartTime(Date.now());
-  }, [resetTest]);
+    // ✅ OPTIMIZED: Use centralized restart logic - tái sử dụng code
+    restartFreshTest();
+  }, [restartFreshTest]);
 
   // Handle answer selection
   const handleAnswerSelect = useCallback((answerIndex: number) => {
+    // ✅ CRITICAL: Prevent answer selection if time is up
+    if (isTimeUp) {
+      console.log('⏰ Cannot select answer - time is up!');
+      return;
+    }
+    
     console.log(`🎯 handleAnswerSelect called: questionIndex=${currentQuestion}, answerIndex=${answerIndex}`);
     
     const newAnswers = [...answers];
@@ -378,7 +413,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       });
       console.log('💾 Saved state after answer selection');
     }
-  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound]);
+  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound, isTimeUp]);
 
   // Navigate to next question (smart navigation)
   const nextQuestion = useCallback(() => {
@@ -490,16 +525,82 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     onComplete(resultWithUserInfo);
   }, [answers, questions, startTime, onComplete]);
 
+  // ✅ SMART: Alarm bell sound for time up
+  const playAlarmBell = useCallback(() => {
+    console.log('🔔 playAlarmBell called - audioContext:', audioContext);
+    
+    // ✅ SMART: Create audio context on-demand like playSound does
+    let ctx = audioContext;
+    if (!ctx) {
+      console.log('🔔 Creating audio context on-demand for alarm...');
+      try {
+        ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(ctx); // Update state for future calls
+        console.log('🔔 Audio context created for alarm:', ctx.state);
+      } catch (error) {
+        console.error('❌ Failed to create audio context for alarm:', error);
+        return;
+      }
+    }
+
+    try {
+      // Resume context if suspended
+      if (ctx.state === 'suspended') {
+        console.log('🔔 Resuming suspended audio context for alarm...');
+        ctx.resume();
+      }
+
+      console.log('🔔 Starting to play alarm bell sounds');
+      // Create a more prominent alarm bell sound
+      const bellFrequencies = [800, 1000, 800, 1000, 800]; // Alternating bell tones
+      let delay = 0;
+      
+      bellFrequencies.forEach((frequency, index) => {
+        setTimeout(() => {
+          console.log(`🔔 Playing bell ${index + 1}/5 at ${frequency}Hz`);
+          const oscillator = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          
+          oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+          oscillator.type = 'triangle'; // Bell-like sound
+          
+          // Bell envelope: sharp attack, quick decay
+          gainNode.gain.setValueAtTime(0, ctx.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          
+          oscillator.start(ctx.currentTime);
+          oscillator.stop(ctx.currentTime + 0.3);
+        }, delay);
+        
+        delay += 200; // 200ms between each bell sound
+      });
+      
+      console.log('🔔 Alarm bell sequence initiated');
+    } catch (error) {
+      console.error('❌ Error playing alarm bell:', error);
+    }
+  }, [audioContext]);
+
   // Handle time up - shows time up popup
   const handleTimeUp = useCallback(() => {
+    console.log('🔔 IQTest: handleTimeUp called');
     setIsActive(false);
+    setIsTimeUp(true); // ✅ Mark test as timed out - no more interactions allowed
     
-    // ✅ Play warning sound for time up
-    playSound('warning');
+    // ✅ Play alarm bell sound for time up
+    console.log('🔔 IQTest: About to play alarm bell');
+    playAlarmBell();
     
     clearTestState(); // Clear saved state when time is up
     setShowTimeUpPopup(true);
-  }, [playSound]);
+    console.log('🔔 IQTest: Time up popup shown');
+  }, [playAlarmBell]);
+
+
 
   // Smart auto-advance logic + Auto show review popup when all answered
   useEffect(() => {
@@ -534,7 +635,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   // ✅ SMART: Enhanced keyboard navigation with arrow key answer selection
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!isActive || showCongratulationsPopup || showTimeUpPopup) return;
+      if (!isActive || showCongratulationsPopup || showTimeUpPopup || isTimeUp) return;
       
       const optionsCount = questions[currentQuestion]?.options.length || 0;
       
@@ -608,7 +709,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isActive, currentQuestion, answers, handleAnswerSelect, nextQuestion, previousQuestion, submitTest, questions, showCongratulationsPopup, showTimeUpPopup, allAnswered, highlightedAnswer]);
+  }, [isActive, currentQuestion, answers, handleAnswerSelect, nextQuestion, previousQuestion, submitTest, questions, showCongratulationsPopup, showTimeUpPopup, allAnswered, highlightedAnswer, isTimeUp]);
 
   // Progress calculation
   const answeredQuestions = answers.filter(a => a !== null).length;
@@ -644,6 +745,20 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           isOpen={showCongratulationsPopup}
           onComplete={handlePopupComplete}
           onClose={() => setShowCongratulationsPopup(false)}
+          onReview={() => {
+            setShowCongratulationsPopup(false);
+            // ✅ FIX: Load saved state and enter review mode
+            const savedState = loadTestState();
+            if (savedState) {
+              setCurrentQuestion(savedState.currentQuestion);
+              setAnswers(savedState.answers);
+              setTimeElapsed(savedState.timeElapsed);
+              setStartTime(Date.now() - (savedState.timeElapsed * 1000));
+              setIsActive(true);
+              setIsReviewMode(true);
+              console.log('✅ Entering review mode from saved state');
+            }
+          }}
           onConfettiTrigger={handleConfettiTrigger}
           preloadedUserInfo={preloadedUserInfo}
           isAuthenticatedUser={isAuthenticatedUser}
@@ -726,6 +841,11 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       <TimeUpPopup 
         isOpen={showTimeUpPopup}
         onComplete={handlePopupComplete}
+        onRetakeTest={() => {
+          setShowTimeUpPopup(false);
+          // ✅ OPTIMIZED: Use centralized restart logic - siêu nhanh, siêu mượt
+          restartFreshTest();
+        }}
         preloadedUserInfo={preloadedUserInfo}
         isAuthenticatedUser={isAuthenticatedUser}
       />

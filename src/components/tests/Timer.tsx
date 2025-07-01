@@ -10,22 +10,41 @@ interface TimerProps {
 
 export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0 }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(initialTime - timeElapsed);
+  const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
 
+  // ✅ FIX: Reset timer khi timeElapsed thay đổi (restart test)
+  useEffect(() => {
+    const newTimeLeft = initialTime - timeElapsed;
+    console.log('🔄 Timer reset - initialTime:', initialTime, 'timeElapsed:', timeElapsed, 'newTimeLeft:', newTimeLeft);
+    setTimeLeft(newTimeLeft);
+    
+    // ✅ CRITICAL: Reset trigger flag khi restart
+    if (timeElapsed === 0) {
+      setHasTriggeredTimeUp(false);
+      console.log('🔄 Timer trigger flag reset');
+    }
+  }, [initialTime, timeElapsed]);
+
+  // ✅ SMART: Timer interval - chỉ update state
   useEffect(() => {
     if (!isActive) return;
 
     const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          onTimeUp();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isActive, onTimeUp]);
+  }, [isActive]);
+
+  // ✅ SMART: Separate effect để handle time up - tránh setState trong render
+  useEffect(() => {
+    console.log('🔍 Timer effect - timeLeft:', timeLeft, 'isActive:', isActive, 'hasTriggered:', hasTriggeredTimeUp);
+    if (timeLeft === 0 && isActive && !hasTriggeredTimeUp) {
+      console.log('⏰ Timer: Calling onTimeUp() - first time only');
+      setHasTriggeredTimeUp(true);
+      onTimeUp();
+    }
+  }, [timeLeft, isActive, onTimeUp, hasTriggeredTimeUp]);
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);

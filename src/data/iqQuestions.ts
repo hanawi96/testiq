@@ -95,7 +95,7 @@ export const iqQuestions: Question[] = [
 ];
 
 export const testConfig = {
-  timeLimit: 600, // 10 phút = 600 giây (cho 10 câu demo)
+  timeLimit: 10, // 10 giây để test chức năng chuông báo
   title: 'Demo Test IQ 10 Câu',
   description: 'Test demo với 10 câu hỏi IQ đa dạng để kiểm tra các chức năng'
 }; 

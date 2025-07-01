@@ -15,11 +15,12 @@ interface UserInfo {
 interface TimeUpPopupProps {
   isOpen: boolean;
   onComplete: (userInfo: UserInfo) => void;
+  onRetakeTest?: () => void;
   preloadedUserInfo?: UserInfo | null;
   isAuthenticatedUser?: boolean;
 }
 
-export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isAuthenticatedUser = false }: TimeUpPopupProps) {
+export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloadedUserInfo, isAuthenticatedUser = false }: TimeUpPopupProps) {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -162,16 +163,18 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4"
+            className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 relative"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
+
+
             <div className="text-center mb-4">
               <div className="inline-flex items-center gap-2 mb-2">
                 <span className="text-2xl">⏰</span>
-                <h3 className="text-lg font-bold text-gray-800">Hết thời gian!</h3>
+                <h3 className="text-lg font-bold text-red-600">Hết thời gian!</h3>
               </div>
               <p className="text-gray-600 text-xs">
                 Nhập thông tin để hiển thị thành tích của bạn trên bảng xếp hạng
@@ -219,11 +222,7 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
                     placeholder={isAuthenticatedUser ? "Email đã được xác thực" : "Nhập email của bạn"}
                     title={isAuthenticatedUser ? "Email không thể thay đổi với tài khoản đã đăng nhập" : ""}
                   />
-                  {isAuthenticatedUser && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      💡 Email không thể thay đổi vì bạn đã đăng nhập
-                    </p>
-                  )}
+                  
                 </div>
                 
                 <div className="flex gap-4">
@@ -277,13 +276,14 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
                         type="button"
                         onClick={() => handleInputChange('gender', option.value)}
                         disabled={isSubmitting}
-                        className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 transition-all duration-200 ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 transition-all duration-75 ${
                           userInfo.gender === option.value
                             ? 'border-blue-500 bg-blue-50 text-blue-700'
                             : 'border-gray-200 hover:border-gray-300 text-gray-600'
                         } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
                         whileHover={!isSubmitting ? { scale: 1.02 } : {}}
                         whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+                        transition={{ duration: 0.1, ease: "easeOut" }}
                       >
                         <span className="text-xs">{option.icon}</span>
                         <span className="text-xs font-medium">{option.label}</span>
@@ -293,44 +293,64 @@ export default function TimeUpPopup({ isOpen, onComplete, preloadedUserInfo, isA
                 </div>
               </div>
             
-            <motion.button
-              onClick={handleSubmit}
-              disabled={!isFormValid || isSubmitting}
-              className={`w-full mt-6 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                isFormValid && !isSubmitting
-                  ? 'bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-lg'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
-              whileHover={isFormValid && !isSubmitting ? { scale: 1.02 } : {}}
-              whileTap={isFormValid && !isSubmitting ? { scale: 0.98 } : {}}
-            >
-              {isSubmitting ? (
-                <div className="flex items-center justify-center">
-                  <svg 
-                    className="w-5 h-5 mr-2 animate-spin" 
-                    viewBox="0 0 24 24" 
-                    fill="none"
-                  >
-                    <circle 
-                      cx="12" 
-                      cy="12" 
-                      r="10" 
-                      stroke="currentColor" 
-                      strokeWidth="4" 
-                      className="opacity-25"
-                    />
-                    <path 
-                      fill="currentColor" 
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      className="opacity-75"
-                    />
-                  </svg>
-                  Đang xử lý...
-                </div>
-              ) : (
-                'Xem kết quả'
+            <div className="flex gap-3 mt-6">
+              {/* Test lại button - 30% width */}
+              {onRetakeTest && (
+                <motion.button
+                  onClick={onRetakeTest}
+                  disabled={isSubmitting}
+                  className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                    isSubmitting
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-lg'
+                  }`}
+                  whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+                  whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+                >
+                Test lại
+                </motion.button>
               )}
-            </motion.button>
+
+              {/* Xem kết quả button - 70% width */}
+              <motion.button
+                onClick={handleSubmit}
+                disabled={!isFormValid || isSubmitting}
+                className={`${onRetakeTest ? 'w-[70%]' : 'w-full'} px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                  isFormValid && !isSubmitting
+                    ? 'bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-lg'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+                whileHover={isFormValid && !isSubmitting ? { scale: 1.02 } : {}}
+                whileTap={isFormValid && !isSubmitting ? { scale: 0.98 } : {}}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center">
+                    <svg 
+                      className="w-4 h-4 mr-2 animate-spin" 
+                      viewBox="0 0 24 24" 
+                      fill="none"
+                    >
+                      <circle 
+                        cx="12" 
+                        cy="12" 
+                        r="10" 
+                        stroke="currentColor" 
+                        strokeWidth="4" 
+                        className="opacity-25"
+                      />
+                      <path 
+                        fill="currentColor" 
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        className="opacity-75"
+                      />
+                    </svg>
+                    Đang xử lý...
+                  </div>
+                ) : (
+                  'Xem kết quả'
+                )}
+              </motion.button>
+            </div>
           </motion.div>
         </motion.div>
       )}
