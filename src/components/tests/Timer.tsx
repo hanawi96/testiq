@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface TimerProps {
@@ -10,23 +10,30 @@ interface TimerProps {
 
 export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0 }: TimerProps) {
   const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
+  const prevTimeElapsed = useRef(timeElapsed);
+  const circleRef = useRef<SVGCircleElement>(null);
+  
+  // Tạo một key duy nhất cho component khi reset để Framer Motion tạo component hoàn toàn mới
+  const resetKey = timeElapsed === 0 && prevTimeElapsed.current > 0 ? Date.now() : 'timer';
 
   // ✅ SINGLE SOURCE OF TRUTH: Calculate timeLeft from timeElapsed prop
   const timeLeft = Math.max(0, initialTime - timeElapsed);
+  
+  // Update previous timeElapsed để theo dõi reset
+  useEffect(() => {
+    prevTimeElapsed.current = timeElapsed;
+  }, [timeElapsed]);
 
   // ✅ Reset trigger flag khi restart
   useEffect(() => {
     if (timeElapsed === 0) {
       setHasTriggeredTimeUp(false);
-      console.log('🔄 Timer trigger flag reset');
     }
   }, [timeElapsed]);
 
-  // ✅ SMART: Separate effect để handle time up - tránh setState trong render
+  // ✅ SMART: Separate effect để handle time up
   useEffect(() => {
-    console.log('🔍 Timer effect - timeLeft:', timeLeft, 'isActive:', isActive, 'hasTriggered:', hasTriggeredTimeUp);
     if (timeLeft === 0 && isActive && !hasTriggeredTimeUp && timeElapsed > 0) {
-      console.log('⏰ Timer: Calling onTimeUp() - first time only');
       setHasTriggeredTimeUp(true);
       onTimeUp();
     }
@@ -38,7 +45,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // ✅ SMART: Memoized calculations để trigger re-render
+  // ✅ SMART: Memoized calculations để tránh tính lại
   const progressData = useMemo(() => {
     const percentage = (timeLeft / initialTime) * 100;
     const circumference = 2 * Math.PI * 45;
@@ -50,18 +57,11 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     const ringColor = percentage > 50 ? 'stroke-green-500' :
                      percentage > 20 ? 'stroke-yellow-500' : 'stroke-red-500';
     
-    // ✅ DEBUG: Log progress calculation
-    console.log('🔵 Timer Progress Debug:', {
-      timeLeft,
-      initialTime,
-      timeElapsed,
-      percentage: percentage.toFixed(2) + '%',
-      strokeOffset: strokeOffset.toFixed(2),
-      circumference: circumference.toFixed(2)
-    });
-    
     return { percentage, strokeOffset, colorClass, ringColor, circumference };
-  }, [timeLeft, initialTime, timeElapsed]);
+  }, [timeLeft, initialTime]);
+
+  // Xác định xem có phải đang reset timer không
+  const isReset = timeElapsed === 0 && prevTimeElapsed.current > 0;
 
   return (
     <div className="flex flex-col items-center space-y-2">
@@ -79,6 +79,8 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           />
           {/* Progress circle */}
           <motion.circle
+            key={resetKey} /* Key đặc biệt để buộc render lại hoàn toàn khi reset */
+            ref={circleRef}
             cx="50"
             cy="50"
             r="45"
@@ -88,19 +90,13 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             strokeDasharray={`${progressData.circumference}`}
             strokeLinecap="round"
             className={progressData.ringColor}
-            initial={{ strokeDashoffset: progressData.strokeOffset }}
+            initial={{ strokeDashoffset: 0 }} /* Bắt đầu từ 0 - không animation khi tạo mới */
             animate={{ 
               strokeDashoffset: progressData.strokeOffset
             }}
             transition={{ 
-              duration: timeElapsed <= 1 ? 0 : 0.5, 
-              ease: "easeInOut" 
-            }}
-            onAnimationStart={() => {
-              console.log('🎬 Animation START - timeElapsed:', timeElapsed, 'strokeOffset:', progressData.strokeOffset.toFixed(2));
-            }}
-            onAnimationComplete={() => {
-              console.log('🏁 Animation COMPLETE - timeElapsed:', timeElapsed, 'strokeOffset:', progressData.strokeOffset.toFixed(2));
+              type: "tween", /* Sử dụng tween thay vì spring để mượt hơn */
+              duration: timeElapsed < 2 ? 0 : 0.3, /* Tắt animation khi mới bắt đầu */
             }}
           />
         </svg>
@@ -108,8 +104,9 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
         {/* Time display */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.span 
+            key={`time-${resetKey}`} /* Tạo key mới cho text */
             className={`font-bold text-sm ${progressData.colorClass}`}
-            animate={{ scale: timeLeft <= 60 && timeLeft % 2 === 0 ? 1.1 : 1 }}
+            animate={{ scale: timeLeft <= 60 && timeLeft % 2 === 0 && !isReset ? 1.1 : 1 }}
             transition={{ duration: 0.2 }}
           >
             {formatTime(timeLeft)}
@@ -117,9 +114,10 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
         </div>
       </div>
       
-      {/* Warning message */}
-      {timeLeft <= 300 && (
+      {/* Warning message - chỉ hiện khi không reset và thời gian thấp */}
+      {timeLeft <= 300 && !isReset && (
         <motion.div
+          key={`warning-${resetKey}`} /* Key mới cho warning */
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center"

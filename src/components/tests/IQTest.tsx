@@ -378,44 +378,52 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       try {
         audioContext.close();
         setAudioContext(null);
-        console.log('🔇 Audio context stopped and cleared');
       } catch (error) {
         console.warn('⚠️ Error stopping audio:', error);
       }
     }
     
-    // ✅ STEP 2: Clear states and storage
+    // ✅ STEP 2: Clear states and storage - KHÔNG DÙNG BATCH
     clearTestState(); // Clear any saved progress
     
-    // ✅ STEP 3: Batch state updates để tránh re-render nhiều lần
-    // Sử dụng hàm batch update để cập nhật state một lần duy nhất
-    setShowTimeUpPopup(false);
-    setIsTimeUp(false);
-    setShowCompletedTestPopup(false);
-    setShowCongratulationsPopup(false);
-    setShowProgressPopup(false);
-    setIsReviewMode(false);
-    setAnswers(new Array(questions.length).fill(null));
-    setCurrentQuestion(0);
-    setTimeElapsed(0);
-    setIsSubmitting(false);
-    setJustAnswered(false);
-    setHighlightedAnswer(null);
-    setConfettiTriggered(false);
-    setShowConfetti(false);
+    // ✅ STEP 3: Tạm dừng tất cả các hiệu ứng
+    setIsActive(false);
     
-    // ✅ STEP 4: Sử dụng requestAnimationFrame để đảm bảo DOM đã update hoàn toàn
+    // ✅ STEP 4: Sử dụng requestAnimationFrame để đảm bảo tất cả thay đổi đã được áp dụng
     requestAnimationFrame(() => {
-      setIsActive(true);
-      setStartTime(Date.now());
+      // Sau đó đặt các giá trị khác về ban đầu
+      setTimeElapsed(0);
+      setCurrentQuestion(0);
+      setAnswers(new Array(questions.length).fill(null));
       
-      // Sau khi tất cả đã render xong, bật lại animation
+      // Gọi setTimeout để đảm bảo React đã render với state mới
       setTimeout(() => {
-        document.body.classList.remove('disable-animations');
-      }, 100);
-      
-      console.log('✅ Fresh test started - all states reset, startTime:', Date.now());
+        // Bật lại hoạt động và tạo thời gian bắt đầu mới
+        setShowTimeUpPopup(false);
+        setIsTimeUp(false);
+        setShowCompletedTestPopup(false);
+        setShowCongratulationsPopup(false);
+        setShowProgressPopup(false);
+        setIsReviewMode(false);
+        setIsSubmitting(false);
+        setJustAnswered(false);
+        setHighlightedAnswer(null);
+        setConfettiTriggered(false);
+        setShowConfetti(false);
+        
+        // Gọi thêm một requestAnimationFrame để đảm bảo tất cả state đã được áp dụng
+        requestAnimationFrame(() => {
+          setStartTime(Date.now());
+          setIsActive(true);
+          
+          // Sau khi tất cả đã render xong, bật lại animation
+          setTimeout(() => {
+            document.body.classList.remove('disable-animations');
+          }, 100);
+        });
+      }, 50);
     });
+    
   }, [questions.length]);
 
   // View result from completed saved test
