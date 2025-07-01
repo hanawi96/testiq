@@ -68,14 +68,17 @@ export default function Header() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
+      
+      // ✅ SMART: Only close dropdowns if click is truly outside AND not already handled by stopPropagation
       if (!target.closest('.user-dropdown') && !target.closest('.language-dropdown')) {
         setShowUserDropdown(false);
         setShowLanguageDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    // ✅ Use 'click' instead of 'mousedown' for better compatibility with stopPropagation
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   const checkAuthState = async () => {
@@ -299,9 +302,12 @@ export default function Header() {
               </motion.button>
 
               {/* Language Selector - Always visible */}
-              <div className="relative">
+              <div className="relative language-dropdown">
                 <motion.button
-                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowLanguageDropdown(!showLanguageDropdown);
+                  }}
                   className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -347,8 +353,6 @@ export default function Header() {
                           className={`w-full flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left ${
                             currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
                           }`}
-                          whileHover={{ x: 4 }}
-                          transition={{ duration: 0.1 }}
                         >
                           <span className="text-lg sm:text-xl">{language.flag}</span>
                           <div className="flex flex-col">
@@ -383,7 +387,10 @@ export default function Header() {
               ) : user || getAnonymousUserInfo() ? (
                 <div className="hidden lg:flex items-center relative user-dropdown">
                   <motion.button
-                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowUserDropdown(!showUserDropdown);
+                    }}
                     className="flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50 transition-all duration-300 font-medium"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -875,7 +882,8 @@ export default function Header() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setShowLanguageDropdown(false);
               setShowMobileMenu(false);
               setShowUserDropdown(false);

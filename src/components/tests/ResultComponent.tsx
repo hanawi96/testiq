@@ -626,7 +626,7 @@ export default function ResultComponent({ results, userInfo: propUserInfo, onRet
   }, []);
 
     const HeroSection = useMemo(() => () => (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 text-center relative overflow-hidden shadow-sm">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10"></div>
       <div className="relative z-10">
         {/* Personalized greeting - Always render to prevent flicker */}
