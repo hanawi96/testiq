@@ -50,8 +50,18 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     const ringColor = percentage > 50 ? 'stroke-green-500' :
                      percentage > 20 ? 'stroke-yellow-500' : 'stroke-red-500';
     
+    // ✅ DEBUG: Log progress calculation
+    console.log('🔵 Timer Progress Debug:', {
+      timeLeft,
+      initialTime,
+      timeElapsed,
+      percentage: percentage.toFixed(2) + '%',
+      strokeOffset: strokeOffset.toFixed(2),
+      circumference: circumference.toFixed(2)
+    });
+    
     return { percentage, strokeOffset, colorClass, ringColor, circumference };
-  }, [timeLeft, initialTime]);
+  }, [timeLeft, initialTime, timeElapsed]);
 
   return (
     <div className="flex flex-col items-center space-y-2">
@@ -78,11 +88,20 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             strokeDasharray={`${progressData.circumference}`}
             strokeLinecap="round"
             className={progressData.ringColor}
-            initial={{ strokeDashoffset: 0 }}
+            initial={{ strokeDashoffset: progressData.strokeOffset }}
             animate={{ 
               strokeDashoffset: progressData.strokeOffset
             }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            transition={{ 
+              duration: timeElapsed <= 1 ? 0 : 0.5, 
+              ease: "easeInOut" 
+            }}
+            onAnimationStart={() => {
+              console.log('🎬 Animation START - timeElapsed:', timeElapsed, 'strokeOffset:', progressData.strokeOffset.toFixed(2));
+            }}
+            onAnimationComplete={() => {
+              console.log('🏁 Animation COMPLETE - timeElapsed:', timeElapsed, 'strokeOffset:', progressData.strokeOffset.toFixed(2));
+            }}
           />
         </svg>
         

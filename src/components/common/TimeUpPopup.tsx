@@ -191,7 +191,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                     value={userInfo.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     disabled={isSubmitting}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    className={`w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                       isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
                     }`}
                     placeholder="Nhập họ tên của bạn"
@@ -212,7 +212,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                     value={userInfo.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     disabled={isSubmitting || isAuthenticatedUser}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors ${
+                    className={`w-full px-3 py-3 border rounded-lg focus:ring-2 transition-colors ${
                       isAuthenticatedUser 
                         ? 'bg-blue-50 border-blue-200 text-blue-800 cursor-not-allowed' 
                         : isSubmitting 
@@ -235,7 +235,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                       value={userInfo.age}
                       onChange={(e) => handleInputChange('age', e.target.value)}
                       disabled={isSubmitting}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      className={`w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
                       }`}
                       placeholder="Tuổi"

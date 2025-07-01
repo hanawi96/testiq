@@ -226,6 +226,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setSavedProgress(0);
     setSavedTimeRemaining(0);
     setIsTimeUp(false); // ✅ Reset time up state
+    setIsReviewMode(false); // ✅ CRITICAL: Reset review mode
     
 
     
@@ -353,14 +354,23 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     resetTest(); // Reset all test state (includes setShowTimeUpPopup(false))
     
     // ✅ STEP 3: Reset time elapsed để Timer component reset đúng
+    console.log('🕐 BEFORE setTimeElapsed(0) - current timeElapsed:', timeElapsed);
     setTimeElapsed(0);
+    console.log('🕐 AFTER setTimeElapsed(0) - should be 0');
     
-    // ✅ STEP 4: Start fresh
-    setIsActive(true); // Activate test
-    setStartTime(Date.now()); // Set new start time
+    // ✅ STEP 4: Start fresh - dùng requestAnimationFrame để đảm bảo DOM đã update
+    setIsActive(false); // Tạm thời dừng
+    
+    // ✅ Sử dụng requestAnimationFrame để đảm bảo state reset hoàn toàn
+    requestAnimationFrame(() => {
+      const newStartTime = Date.now();
+      setStartTime(newStartTime); // Set new start time
+      setIsActive(true); // Activate test
+      console.log('⏰ Timer activated after requestAnimationFrame - startTime:', newStartTime);
+    });
     
     console.log('✅ Fresh test started - all audio stopped, all states reset');
-  }, [resetTest, audioContext]);
+  }, [resetTest, audioContext, timeElapsed]);
 
   // View result from completed saved test
   const viewSavedResult = useCallback(() => {
@@ -916,6 +926,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           
           <div className="ml-8">
             <Timer 
+              key={`timer-${startTime}`}
               initialTime={timeLimit}
               onTimeUp={handleTimeUp}
               isActive={isActive}
