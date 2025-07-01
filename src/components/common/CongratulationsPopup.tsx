@@ -15,7 +15,6 @@ interface UserInfo {
   interface CongratulationsPopupProps {
     isOpen: boolean;
     onComplete: (userInfo: UserInfo) => Promise<void>;
-    onClose?: () => void;
     onReview?: () => void;
     onConfettiTrigger?: () => void;
     preloadedUserInfo?: UserInfo | null;
@@ -23,7 +22,7 @@ interface UserInfo {
     remainingTimeSeconds?: number; // ✅ Thời gian còn lại (giây)
   }
 
-  export default function CongratulationsPopup({ isOpen, onComplete, onClose, onReview, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false, remainingTimeSeconds }: CongratulationsPopupProps) {
+  export default function CongratulationsPopup({ isOpen, onComplete, onReview, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false, remainingTimeSeconds }: CongratulationsPopupProps) {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
@@ -90,8 +89,6 @@ interface UserInfo {
       setHasTriggeredConfetti(false);
     }
   }, [isOpen, hasTriggeredConfetti, onConfettiTrigger]);
-
-
 
   const handleSubmit = async () => {
     if (!isFormValid || isAnalyzing) return;
@@ -197,20 +194,6 @@ interface UserInfo {
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            {/* Close Button */}
-            {onClose && (
-              <button 
-                onClick={onClose}
-                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100"
-                disabled={isAnalyzing}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            )}
-
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 mb-3">
                 <span className="text-3xl">🎉</span>

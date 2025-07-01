@@ -6,6 +6,7 @@ import type { Question, TestResult } from '../utils/test';
 interface IQTestWrapperProps {
   questions: Question[];
   timeLimit: number;
+  startImmediately?: boolean;
 }
 
 // Convert TestResult to ResultData format
@@ -82,10 +83,8 @@ function getClassificationDescription(classification: string): string {
   return descriptions[classification] || 'Mức trung bình';
 }
 
-export default function IQTestWrapper({ questions, timeLimit }: IQTestWrapperProps) {
+export default function IQTestWrapper({ questions, timeLimit, startImmediately = false }: IQTestWrapperProps) {
   const [result, setResult] = useState<TestResult | null>(null);
-  // Khởi động test ngay lập tức
-  const [showTest] = useState(true);
 
   const handleComplete = useCallback((testResult: TestResult) => {
     setResult(testResult);
@@ -112,12 +111,12 @@ export default function IQTestWrapper({ questions, timeLimit }: IQTestWrapperPro
     );
   }
 
-  // Hiển thị test ngay lập tức
   return (
     <IQTest
       questions={questions}
       timeLimit={timeLimit}
       onComplete={handleComplete}
+      startImmediately={startImmediately}
     />
   );
 } 

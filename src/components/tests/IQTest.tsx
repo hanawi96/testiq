@@ -13,17 +13,26 @@ import type { Question, TestResult } from '../../utils/test';
 import { generateTestResult, saveTestResult } from '../../utils/test';
 import { saveTestState, loadTestState, clearTestState, hasInProgressTest, isTestCompleted, calculateRemainingTime } from '../../utils/test-state';
 
+// CSS cho việc tắt animations
+const disableAnimationsStyle = `
+.disable-animations * {
+  animation: none !important;
+  transition: none !important;
+}
+`;
+
 interface IQTestProps {
   questions: Question[];
   timeLimit: number; // in seconds
   onComplete: (result: TestResult) => void;
+  startImmediately?: boolean; // Thêm prop này để bắt đầu test ngay lập tức
 }
 
-export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps) {
+export default function IQTest({ questions, timeLimit, onComplete, startImmediately = false }: IQTestProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
-  const [isActive, setIsActive] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
+  const [isActive, setIsActive] = useState(startImmediately);
+  const [startTime, setStartTime] = useState<number | null>(startImmediately ? Date.now() : null);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiTriggered, setConfettiTriggered] = useState(false);
@@ -41,16 +50,33 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   
-
-  
   // ✅ SMART: Arrow key navigation for answer selection
   const [highlightedAnswer, setHighlightedAnswer] = useState<number | null>(null);
   
-    const { fireSingle } = useConfetti();
-
-
-
-
+  const { fireSingle } = useConfetti();
+  
+  // Bắt đầu test ngay lập tức nếu startImmediately=true
+  useEffect(() => {
+    if (startImmediately) {
+      console.log('🚀 Starting test immediately because startImmediately=true');
+      if (hasInProgressTest()) {
+        // Nếu có test đang làm dở
+        const savedState = loadTestState();
+        if (savedState) {
+          if (isTestCompleted()) {
+            console.log('🎉 Test completed but not submitted - showing completed test popup');
+            setShowCompletedTestPopup(true);
+          } else {
+            console.log('📝 Found in-progress test - loading saved state');
+            setCurrentQuestion(savedState.currentQuestion);
+            setAnswers(savedState.answers);
+            setTimeElapsed(savedState.timeElapsed);
+            setStartTime(Date.now() - (savedState.timeElapsed * 1000));
+          }
+        }
+      }
+    }
+  }, [startImmediately]);
 
   const playSound = useCallback((type: 'correct' | 'wrong' | 'warning' | 'complete') => {
     console.log(`🔊 playSound called with type: ${type}`);
@@ -228,8 +254,6 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setIsTimeUp(false); // ✅ Reset time up state
     setIsReviewMode(false); // ✅ CRITICAL: Reset review mode
     
-
-    
     // ✅ Reset navigation state
     setHighlightedAnswer(null);
   }, [questions.length]);
@@ -338,6 +362,17 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const restartFreshTest = useCallback(() => {
     console.log('🔄 Starting fresh test from scratch');
     
+    // Ngăn nhảy footer bằng cách tạm thời tắt animation popup
+    document.body.classList.add('disable-animations');
+    
+    // Thêm style tag nếu chưa có
+    if (!document.getElementById('disable-animations-style')) {
+      const styleTag = document.createElement('style');
+      styleTag.id = 'disable-animations-style';
+      styleTag.innerHTML = disableAnimationsStyle;
+      document.head.appendChild(styleTag);
+    }
+    
     // ✅ STEP 1: Stop all audio immediately - siêu nhanh
     if (audioContext) {
       try {
@@ -351,26 +386,37 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     
     // ✅ STEP 2: Clear states and storage
     clearTestState(); // Clear any saved progress
-    resetTest(); // Reset all test state (includes setShowTimeUpPopup(false))
     
-    // ✅ STEP 3: Reset time elapsed để Timer component reset đúng
-    console.log('🕐 BEFORE setTimeElapsed(0) - current timeElapsed:', timeElapsed);
+    // ✅ STEP 3: Batch state updates để tránh re-render nhiều lần
+    // Sử dụng hàm batch update để cập nhật state một lần duy nhất
+    setShowTimeUpPopup(false);
+    setIsTimeUp(false);
+    setShowCompletedTestPopup(false);
+    setShowCongratulationsPopup(false);
+    setShowProgressPopup(false);
+    setIsReviewMode(false);
+    setAnswers(new Array(questions.length).fill(null));
+    setCurrentQuestion(0);
     setTimeElapsed(0);
-    console.log('🕐 AFTER setTimeElapsed(0) - should be 0');
+    setIsSubmitting(false);
+    setJustAnswered(false);
+    setHighlightedAnswer(null);
+    setConfettiTriggered(false);
+    setShowConfetti(false);
     
-    // ✅ STEP 4: Start fresh - dùng requestAnimationFrame để đảm bảo DOM đã update
-    setIsActive(false); // Tạm thời dừng
-    
-    // ✅ Sử dụng requestAnimationFrame để đảm bảo state reset hoàn toàn
+    // ✅ STEP 4: Sử dụng requestAnimationFrame để đảm bảo DOM đã update hoàn toàn
     requestAnimationFrame(() => {
-      const newStartTime = Date.now();
-      setStartTime(newStartTime); // Set new start time
-      setIsActive(true); // Activate test
-      console.log('⏰ Timer activated after requestAnimationFrame - startTime:', newStartTime);
+      setIsActive(true);
+      setStartTime(Date.now());
+      
+      // Sau khi tất cả đã render xong, bật lại animation
+      setTimeout(() => {
+        document.body.classList.remove('disable-animations');
+      }, 100);
+      
+      console.log('✅ Fresh test started - all states reset, startTime:', Date.now());
     });
-    
-    console.log('✅ Fresh test started - all audio stopped, all states reset');
-  }, [resetTest, audioContext, timeElapsed]);
+  }, [questions.length]);
 
   // View result from completed saved test
   const viewSavedResult = useCallback(() => {
@@ -621,8 +667,6 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     console.log('🔔 IQTest: Time up popup shown');
   }, [playAlarmBell]);
 
-
-
   // Smart auto-advance logic + Auto show review popup when all answered
   useEffect(() => {
     if (justAnswered && answers[currentQuestion] !== null) {
@@ -735,8 +779,6 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   // Progress calculation
   const answeredQuestions = answers.filter(a => a !== null).length;
   const progress = (answeredQuestions / questions.length) * 100;
-
-
 
   console.log('🔄 Render check:', { isActive, startTime, showProgressPopup, showCongratulationsPopup });
   
@@ -856,8 +898,6 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   return (
     <div className="max-w-4xl mx-auto py-20">
       <Confetti trigger={showConfetti} type="light" />
-      
-
       
       {/* Congratulations Popup */}
       <CongratulationsPopup 
