@@ -8,6 +8,7 @@ import CongratulationsPopup, { type UserInfo } from '../common/CongratulationsPo
 import TimeUpPopup from '../common/TimeUpPopup';
 import TestProgressPopup from '../common/TestProgressPopup';
 import CompletedTestPopup from '../common/CompletedTestPopup';
+
 import type { Question, TestResult } from '../../utils/test';
 import { generateTestResult, saveTestResult } from '../../utils/test';
 import { saveTestState, loadTestState, clearTestState, hasInProgressTest, isTestCompleted, calculateRemainingTime } from '../../utils/test-state';
@@ -29,6 +30,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [justAnswered, setJustAnswered] = useState(false);
   const [showCongratulationsPopup, setShowCongratulationsPopup] = useState(false);
+  const [isReviewMode, setIsReviewMode] = useState(false);
   const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
   const [showProgressPopup, setShowProgressPopup] = useState(false);
   const [showCompletedTestPopup, setShowCompletedTestPopup] = useState(false);
@@ -38,50 +40,14 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   
-  // ✅ GAMIFICATION: XP & Combo System
-  const [totalXP, setTotalXP] = useState(0);
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [maxStreak, setMaxStreak] = useState(0);
-  const [recentXPGain, setRecentXPGain] = useState(0);
-  const [showXPAnimation, setShowXPAnimation] = useState(false);
+
   
   // ✅ SMART: Arrow key navigation for answer selection
   const [highlightedAnswer, setHighlightedAnswer] = useState<number | null>(null);
   
     const { fireSingle } = useConfetti();
 
-  // ✅ SMART: Calculate XP based on difficulty + streak multiplier
-  const calculateXP = useCallback((questionIndex: number, isCorrect: boolean) => {
-    if (!isCorrect) return 0;
-    
-    const question = questions[questionIndex];
-    const baseXP = {
-      'easy': 10,
-      'medium': 20, 
-      'hard': 40,
-      'expert': 80
-    }[question.difficulty] || 10;
-    
-    // Streak multiplier: 1x, 1.5x, 2x, 2.5x, 3x (max)
-    const streakMultiplier = Math.min(1 + (currentStreak * 0.5), 3);
-    
-    return Math.round(baseXP * streakMultiplier);
-  }, [questions, currentStreak]);
 
-  // ✅ SMART: Handle XP gain with animation
-  const gainXP = useCallback((amount: number) => {
-    if (amount <= 0) return;
-    
-    setTotalXP(prev => prev + amount);
-    setRecentXPGain(amount);
-    setShowXPAnimation(true);
-    
-    // Hide animation after 2 seconds
-    setTimeout(() => {
-      setShowXPAnimation(false);
-      setRecentXPGain(0);
-    }, 2000);
-  }, []);
 
 
 
@@ -259,12 +225,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setSavedProgress(0);
     setSavedTimeRemaining(0);
     
-    // ✅ Reset gamification state
-    setTotalXP(0);
-    setCurrentStreak(0);
-    setMaxStreak(0);
-    setRecentXPGain(0);
-    setShowXPAnimation(false);
+
     
     // ✅ Reset navigation state
     setHighlightedAnswer(null);
@@ -388,28 +349,11 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setAnswers(newAnswers);
     setJustAnswered(true);
     
-    // ✅ SMART: Instant feedback + Gamification
+    // ✅ SMART: Instant feedback
     const question = questions[currentQuestion];
     if (question) {
       const isCorrect = answerIndex === question.correct;
       console.log(`🎯 Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
-      
-      // ✅ GAMIFICATION: Update streak and XP
-      if (isCorrect) {
-        const newStreak = currentStreak + 1;
-        setCurrentStreak(newStreak);
-        setMaxStreak(prev => Math.max(prev, newStreak));
-        
-        // Calculate and gain XP
-        const xpGained = calculateXP(currentQuestion, true);
-        gainXP(xpGained);
-        
-        console.log(`🎮 Streak: ${newStreak}, XP gained: +${xpGained}, Total XP: ${totalXP + xpGained}`);
-      } else {
-        // Reset streak on wrong answer
-        setCurrentStreak(0);
-        console.log(`💔 Streak reset`);
-      }
       
       playSound(isCorrect ? 'correct' : 'wrong');
       
@@ -434,7 +378,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       });
       console.log('💾 Saved state after answer selection');
     }
-  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound, currentStreak, calculateXP, gainXP, totalXP]);
+  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound]);
 
   // Navigate to next question (smart navigation)
   const nextQuestion = useCallback(() => {
@@ -557,21 +501,35 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     setShowTimeUpPopup(true);
   }, [playSound]);
 
-  // Smart auto-advance logic
+  // Smart auto-advance logic + Auto show review popup when all answered
   useEffect(() => {
     if (justAnswered && answers[currentQuestion] !== null) {
       const timer = setTimeout(() => {
-        const nextUnanswered = findNextUnanswered(currentQuestion + 1);
-        console.log('auto-advance: currentQuestion =', currentQuestion, ', nextUnanswered =', nextUnanswered, ', answers =', answers.map((a, i) => `${i}:${a}`));
-        if (nextUnanswered !== -1) {
-          setCurrentQuestion(nextUnanswered);
+        if (isReviewMode) {
+          // In review mode: simply go to next question (regardless of answered status)
+          const nextQuestion = currentQuestion + 1;
+          if (nextQuestion < questions.length) {
+            setCurrentQuestion(nextQuestion);
+          }
           setJustAnswered(false);
+        } else {
+          // Normal mode: find next unanswered question
+          const nextUnanswered = findNextUnanswered(currentQuestion + 1);
+          console.log('auto-advance: currentQuestion =', currentQuestion, ', nextUnanswered =', nextUnanswered, ', answers =', answers.map((a, i) => `${i}:${a}`));
+          if (nextUnanswered !== -1) {
+            setCurrentQuestion(nextUnanswered);
+            setJustAnswered(false);
+          } else {
+            // All questions answered - auto submit
+            setJustAnswered(false);
+            submitTest();
+          }
         }
       }, 100);
       
       return () => clearTimeout(timer);
     }
-  }, [justAnswered, answers, currentQuestion, findNextUnanswered]);
+      }, [justAnswered, answers, currentQuestion, findNextUnanswered, submitTest, isReviewMode]);
 
   // ✅ SMART: Enhanced keyboard navigation with arrow key answer selection
   useEffect(() => {
@@ -728,12 +686,11 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <span className="mr-2">🚀</span>
             Bắt Đầu Test Ngay
           </motion.button>
           
           <p className="text-sm text-gray-500 mt-4">
-            💡 Mẹo: Sử dụng phím số 1-4 để chọn đáp án nhanh chóng
+            Mẹo: Sử dụng phím số 1-4 để chọn đáp án nhanh chóng
           </p>
         </motion.div>
         </div>
@@ -745,11 +702,21 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
     <div className="max-w-4xl mx-auto py-20">
       <Confetti trigger={showConfetti} type="light" />
       
+
+      
       {/* Congratulations Popup */}
       <CongratulationsPopup 
         isOpen={showCongratulationsPopup}
         onComplete={handlePopupComplete}
-        onClose={() => setShowCongratulationsPopup(false)}
+        onClose={() => {
+          setShowCongratulationsPopup(false);
+          setIsReviewMode(true); // Enable review mode but stay at current question
+        }}
+        onReview={() => {
+          setShowCongratulationsPopup(false);
+          setIsReviewMode(true); // Enable review mode and jump to question 1
+          setCurrentQuestion(0);
+        }}
         onConfettiTrigger={handleConfettiTrigger}
         preloadedUserInfo={preloadedUserInfo}
         isAuthenticatedUser={isAuthenticatedUser}
@@ -775,22 +742,9 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
       />
 
       
-      {/* Header with timer, progress and gamification */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100 relative overflow-hidden">
-        {/* XP Animation */}
-        <AnimatePresence>
-          {showXPAnimation && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.8 }}
-              animate={{ opacity: 1, y: -10, scale: 1 }}
-              exit={{ opacity: 0, y: -30, scale: 1.2 }}
-              transition={{ duration: 2, ease: "easeOut" }}
-              className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg z-10"
-            >
-              +{recentXPGain} XP
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Header with timer and progress */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-100 relative overflow-hidden">
+
 
         <div className="flex items-center justify-between">
           <div className="flex-1">
@@ -811,40 +765,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           </div>
         </div>
         
-        {/* Gamification Stats */}
-        <div className="flex items-center justify-end mt-4">
-          {/* Gamification stats */}
-          <div className="flex items-center space-x-4">
-            {/* Total XP */}
-            <div className="flex items-center bg-gradient-to-r from-purple-100 to-indigo-100 px-3 py-2 rounded-lg">
-              <span className="text-lg mr-2">⭐</span>
-              <div className="text-sm">
-                <div className="font-bold text-purple-700">{totalXP} XP</div>
-                <div className="text-xs text-purple-600">Tổng điểm</div>
-              </div>
-            </div>
 
-            {/* Current Streak */}
-            <div className="flex items-center bg-gradient-to-r from-orange-100 to-red-100 px-3 py-2 rounded-lg">
-              <span className="text-lg mr-2">🔥</span>
-              <div className="text-sm">
-                <div className="font-bold text-orange-700">{currentStreak}</div>
-                <div className="text-xs text-orange-600">Streak</div>
-              </div>
-            </div>
-
-            {/* Max Streak */}
-            {maxStreak > 0 && (
-              <div className="flex items-center bg-gradient-to-r from-green-100 to-emerald-100 px-3 py-2 rounded-lg">
-                <span className="text-lg mr-2">🏆</span>
-                <div className="text-sm">
-                  <div className="font-bold text-green-700">{maxStreak}</div>
-                  <div className="text-xs text-green-600">Cao nhất</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Question */}
@@ -857,36 +778,40 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           transition={{ duration: 0.1 }}
           className="mb-6"
         >
-          <QuestionCard
-            question={questions[currentQuestion]}
-            selectedAnswer={answers[currentQuestion]}
-            onAnswerSelect={handleAnswerSelect}
-            highlightedAnswer={highlightedAnswer}
-          />
+          {questions[currentQuestion] && (
+            <QuestionCard
+              question={questions[currentQuestion]}
+              selectedAnswer={answers[currentQuestion]}
+              onAnswerSelect={handleAnswerSelect}
+              highlightedAnswer={highlightedAnswer}
+            />
+          )}
         </motion.div>
       </AnimatePresence>
 
       {/* Navigation */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
         <div className="flex items-center justify-between">
+          {/* Professional Previous Button */}
           <motion.button
             onClick={previousQuestion}
             disabled={currentQuestion === 0}
-            className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${
+            className={`group flex items-center justify-center w-11 h-11 rounded-lg border transition-all duration-200 ${
               currentQuestion === 0
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
+                : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 active:bg-gray-100'
             }`}
             whileHover={currentQuestion > 0 ? { scale: 1.02 } : {}}
             whileTap={currentQuestion > 0 ? { scale: 0.98 } : {}}
+            title={currentQuestion > 0 ? "Câu hỏi trước" : "Đã ở câu đầu tiên"}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </motion.button>
 
-          <div className="flex items-center space-x-3">
-            {/* Smart Question Navigator */}
+          {/* Centered Smart Question Navigator */}
+          <div className="flex-1 flex justify-center">
             <div className="flex items-center space-x-2">
               {/* Show range navigation for 60+ questions */}
               {questions.length > 10 ? (
@@ -896,6 +821,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
                     <button
                       onClick={() => jumpToQuestion(Math.max(0, currentQuestion - 5))}
                       className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
+                      title="Nhảy về 5 câu trước"
                     >
                       ‹‹
                     </button>
@@ -927,11 +853,12 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
                         onClick={() => jumpToQuestion(index)}
                         className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
                           index === currentQuestion
-                            ? 'bg-primary-600 text-white shadow-md'
+                            ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200'
                             : answers[index] !== null
-                            ? 'bg-green-500 text-white'
+                            ? 'bg-green-500 text-white hover:bg-green-600'
                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                         }`}
+                        title={`Câu ${index + 1}${answers[index] !== null ? ' (đã trả lời)' : ''}`}
                       >
                         {index + 1}
                       </button>
@@ -939,7 +866,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
                   })()}
                   
                   {/* Progress indicator */}
-                  <div className="mx-2 px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600 font-medium">
+                  <div className="mx-2 px-3 py-1.5 bg-gray-100 rounded-full text-xs text-gray-600 font-medium border">
                     {currentQuestion + 1}/{questions.length}
                   </div>
                   
@@ -948,6 +875,7 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
                     <button
                       onClick={() => jumpToQuestion(Math.min(questions.length - 1, currentQuestion + 5))}
                       className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
+                      title="Nhảy tới 5 câu sau"
                     >
                       ››
                     </button>
@@ -962,11 +890,12 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
                       onClick={() => jumpToQuestion(index)}
                       className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
                         index === currentQuestion
-                          ? 'bg-primary-600 text-white'
+                          ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200'
                           : answers[index] !== null
-                          ? 'bg-green-500 text-white'
+                          ? 'bg-green-500 text-white hover:bg-green-600'
                           : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
+                      title={`Câu ${index + 1}${answers[index] !== null ? ' (đã trả lời)' : ''}`}
                     >
                       {index + 1}
                     </button>
@@ -976,15 +905,15 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
             </div>
           </div>
 
-          {/* Smart Complete Button - Shows when all answered */}
-          {allAnswered ? (
+          {/* Show Complete button in review mode when all answered */}
+          {isReviewMode && allAnswered ? (
             <motion.button
               onClick={submitTest}
               disabled={isSubmitting}
-              className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+              className={`flex items-center px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                 isSubmitting
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-lg'
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  : 'bg-green-600 text-white hover:bg-green-700 border border-green-600 hover:border-green-700 shadow-sm hover:shadow-md'
               }`}
               whileHover={!isSubmitting ? { scale: 1.02 } : {}}
               whileTap={!isSubmitting ? { scale: 0.98 } : {}}
@@ -996,23 +925,18 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
                 </>
               ) : (
                 <>
-                  <span className="mr-2">🏁</span>
-                  Hoàn thành
+                  Xem kết quả
                 </>
               )}
             </motion.button>
           ) : (
-            <div className="w-32 text-center">
-              <p className="text-xs text-orange-600 font-medium">
-                Còn {questions.length - answeredQuestions} câu
-              </p>
-            </div>
+            <div className="invisible w-[120px]"></div>
           )}
         </div>
         
         {/* Keyboard shortcuts hint */}
         <div className="mt-4 text-center text-xs text-gray-500">
-          💡 Phím tắt: 1-4 hoặc ↑ ↓ ← → (chọn đáp án) • Enter (xác nhận)
+          Phím tắt: 1-4 hoặc ↑ ↓ ← → (chọn đáp án) • Enter (xác nhận)
         </div>
       </div>
 

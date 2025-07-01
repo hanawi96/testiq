@@ -54,7 +54,7 @@ export default function QuestionCard({
 
   return (
     <motion.div
-      className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
@@ -102,22 +102,22 @@ export default function QuestionCard({
             const isWrong = isReviewMode && isSelected && index !== question.correct;
             const isHighlighted = highlightedAnswer === index;
             
-            let buttonClass = 'w-full p-4 text-left border-2 rounded-xl transition-all duration-150 focus:outline-none';
+            let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-transparent';
             
             if (isReviewMode) {
               if (isCorrect) {
-                buttonClass += ' bg-green-50 border-green-300 text-green-800';
+                buttonClass += ' bg-green-50 text-green-800';
               } else if (isWrong) {
-                buttonClass += ' bg-red-50 border-red-300 text-red-800';
+                buttonClass += ' bg-red-50 text-red-800';
               } else {
-                buttonClass += ' bg-gray-50 border-gray-200 text-gray-600';
+                buttonClass += ' bg-gray-50 text-gray-600';
               }
             } else if (isSelected) {
-              buttonClass += ' bg-primary-50 border-primary-300 text-primary-800';
+              buttonClass += ' bg-primary-50 text-primary-800';
             } else if (isHighlighted) {
-              buttonClass += ' bg-blue-50 border-blue-300 text-blue-800 shadow-md';
+              buttonClass += ' bg-blue-50 text-blue-800';
             } else {
-              buttonClass += ' bg-white border-gray-200 text-gray-700 hover:bg-gray-50';
+              buttonClass += ' bg-white text-gray-700 hover:bg-gray-50';
             }
 
             return (

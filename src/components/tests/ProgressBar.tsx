@@ -78,31 +78,7 @@ export default function ProgressBar({
         )}
       </div>
       
-      {/* Status message */}
-      <motion.div
-        className="mt-2 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        {current === total ? (
-          <span className="text-green-600 font-medium text-sm">
-            ✅ Hoàn thành!
-          </span>
-        ) : current > total * 0.8 ? (
-          <span className="text-blue-600 font-medium text-sm">
-            🏁 Sắp đến đích rồi!
-          </span>
-        ) : current > total * 0.5 ? (
-          <span className="text-yellow-600 font-medium text-sm">
-            💪 Đang tiến bộ tốt!
-          </span>
-        ) : (
-          <span className="text-gray-600 text-sm">
-            🚀 Cố lên nhé!
-          </span>
-        )}
-      </motion.div>
+
     </div>
   );
 }

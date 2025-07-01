@@ -56,6 +56,20 @@ import SEO from '../components/SEO.astro';
     /* Critical above-the-fold styles */
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     .hero-section { min-height: 100vh; }
+    
+    /* Loading spinner */
+    .loading-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
