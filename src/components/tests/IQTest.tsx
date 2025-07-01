@@ -235,13 +235,24 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
 
   // Don't check on mount, only when user clicks start button
 
+  // ✅ Update timeElapsed every second for precise timing sync
+  useEffect(() => {
+    if (!isActive || !startTime) return;
+
+    const updateInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setTimeElapsed(elapsed);
+    }, 1000); // Update every second for sync
+
+    return () => clearInterval(updateInterval);
+  }, [isActive, startTime]);
+
   // Save state periodically when test is active
   useEffect(() => {
     if (!isActive || !startTime) return;
 
     const saveInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      setTimeElapsed(elapsed);
       
       saveTestState({
         currentQuestion,
@@ -753,15 +764,34 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
               setCurrentQuestion(savedState.currentQuestion);
               setAnswers(savedState.answers);
               setTimeElapsed(savedState.timeElapsed);
-              setStartTime(Date.now() - (savedState.timeElapsed * 1000));
-              setIsActive(true);
               setIsReviewMode(true);
+              
+              // ✅ FIX: Check if there's still time left before resuming timer
+              const remainingTime = timeLimit - savedState.timeElapsed;
+              if (remainingTime > 0) {
+                // ✅ CRITICAL: Set startTime để timer đếm từ thời điểm hiện tại
+                setStartTime(Date.now() - (savedState.timeElapsed * 1000));
+                setIsActive(true); // Resume timer only if time left
+                console.log('⏰ Timer resumed - remaining time:', remainingTime, 'seconds, adjusted startTime');
+              } else {
+                setIsTimeUp(true); // Mark as time up if no time left
+                console.log('⏰ Time already up - not resuming timer');
+              }
+              
               console.log('✅ Entering review mode from saved state');
             }
           }}
           onConfettiTrigger={handleConfettiTrigger}
           preloadedUserInfo={preloadedUserInfo}
           isAuthenticatedUser={isAuthenticatedUser}
+          remainingTimeSeconds={(() => {
+            const savedState = loadTestState();
+            if (savedState) {
+              const remaining = timeLimit - savedState.timeElapsed;
+              return remaining > 0 ? remaining : undefined;
+            }
+            return undefined;
+          })()}
         />
         
         <div className="max-w-4xl mx-auto text-center py-20">
@@ -831,10 +861,19 @@ export default function IQTest({ questions, timeLimit, onComplete }: IQTestProps
           setShowCongratulationsPopup(false);
           setIsReviewMode(true); // Enable review mode and jump to question 1
           setCurrentQuestion(0);
+          // ✅ FIX: Keep timer running if there's still time left
+          if (!isTimeUp && startTime) {
+            // ✅ CRITICAL: Adjust startTime để timer đếm đúng từ thời điểm hiện tại
+            const currentElapsed = timeElapsed;
+            setStartTime(Date.now() - (currentElapsed * 1000));
+            setIsActive(true); // Resume timer
+            console.log('⏰ Timer resumed - adjusted startTime for review mode, elapsed:', currentElapsed);
+          }
         }}
         onConfettiTrigger={handleConfettiTrigger}
         preloadedUserInfo={preloadedUserInfo}
         isAuthenticatedUser={isAuthenticatedUser}
+        remainingTimeSeconds={!isTimeUp ? Math.max(0, timeLimit - timeElapsed) : undefined}
       />
       
       {/* Time Up Popup */}

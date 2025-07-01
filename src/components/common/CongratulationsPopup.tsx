@@ -20,15 +20,22 @@ interface UserInfo {
     onConfettiTrigger?: () => void;
     preloadedUserInfo?: UserInfo | null;
     isAuthenticatedUser?: boolean;
+    remainingTimeSeconds?: number; // ✅ Thời gian còn lại (giây)
   }
 
-  export default function CongratulationsPopup({ isOpen, onComplete, onClose, onReview, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false }: CongratulationsPopupProps) {
+  export default function CongratulationsPopup({ isOpen, onComplete, onClose, onReview, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false, remainingTimeSeconds }: CongratulationsPopupProps) {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
-
   // ✅ SMART: Sử dụng validation function tái sử dụng được
   const isFormValid = validateUserInfo(userInfo);
+
+  // ✅ Format thời gian còn lại
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   // Load saved user info on component mount
   useEffect(() => {
@@ -83,6 +90,8 @@ interface UserInfo {
       setHasTriggeredConfetti(false);
     }
   }, [isOpen, hasTriggeredConfetti, onConfettiTrigger]);
+
+
 
   const handleSubmit = async () => {
     if (!isFormValid || isAnalyzing) return;
@@ -327,22 +336,7 @@ interface UserInfo {
             </div>
             
                           <div className="flex gap-3 mt-8">
-                {/* Xem lại button - 30% width */}
-                <motion.button
-                  onClick={onReview}
-                  disabled={isAnalyzing}
-                  className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-                  isAnalyzing
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                }`}
-                whileHover={!isAnalyzing ? { scale: 1.02 } : {}}
-                whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
-              >
-                Xem lại
-              </motion.button>
-              
-              {/* Xem kết quả button - 70% width */}
+              {/* Xem kết quả button - 70% width - moved to left */}
               <motion.button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isAnalyzing}
@@ -381,7 +375,39 @@ interface UserInfo {
                   'Xem kết quả'
                 )}
               </motion.button>
+              
+              {/* Xem lại button - 30% width - moved to right with green background */}
+              <motion.button
+                onClick={onReview}
+                disabled={isAnalyzing}
+                className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                isAnalyzing
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-lg'
+              }`}
+              whileHover={!isAnalyzing ? { scale: 1.02 } : {}}
+              whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
+            >
+              Xem lại
+            </motion.button>
             </div>
+
+            {/* ✅ Thông báo thời gian còn lại */}
+            {remainingTimeSeconds && remainingTimeSeconds > 0 && onReview && (
+              <motion.div
+                className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="flex items-center gap-2 text-blue-700">
+                  <span className="text-lg">✅</span>
+                  <p className="text-sm font-medium">
+                    Bạn đã hoàn thành bài test, thời lượng vẫn còn <span className="font-bold text-blue-800">{formatTime(remainingTimeSeconds)}</span>, hãy xem lại bài test để kiểm tra kết quả cho chắc chắn nếu muốn.
+                  </p>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         </motion.div>
       )}
