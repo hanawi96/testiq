@@ -4,4 +4,7 @@
  
 export * from './useIQSounds';
 export * from './useIQKeyboardNavigation';
-export * from './useIQSaveProgress'; 
+export * from './useIQSaveProgress';
+export * from './useIQQuestionManager';
+export * from './useIQPopups';
+export * from './useIQTimer'; 

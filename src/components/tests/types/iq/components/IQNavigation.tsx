@@ -15,6 +15,7 @@ interface IQNavigationProps {
   isSubmitting: boolean;
   isReviewMode: boolean;
   allAnswered: boolean;
+  isDataLoaded?: boolean;
 }
 
 const IQNavigation: React.FC<IQNavigationProps> = ({
@@ -27,9 +28,13 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
   onSubmit,
   isSubmitting,
   isReviewMode,
-  allAnswered
+  allAnswered,
+  isDataLoaded = true
 }) => {
   const currentAnswer = answers[currentQuestion];
+  
+  // Thêm class skeleton loading khi dữ liệu chưa tải
+  const skeletonClass = !isDataLoaded ? 'animate-pulse' : '';
   
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -37,14 +42,14 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
         {/* Professional Previous Button */}
         <motion.button
           onClick={onPrevious}
-          disabled={currentQuestion === 0}
+          disabled={currentQuestion === 0 || !isDataLoaded}
           className={`group flex items-center justify-center w-11 h-11 rounded-lg border transition-all duration-200 ${
-            currentQuestion === 0
+            currentQuestion === 0 || !isDataLoaded
               ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
               : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 active:bg-gray-100'
           }`}
-          whileHover={currentQuestion > 0 ? { scale: 1.02 } : {}}
-          whileTap={currentQuestion > 0 ? { scale: 0.98 } : {}}
+          whileHover={currentQuestion > 0 && isDataLoaded ? { scale: 1.02 } : {}}
+          whileTap={currentQuestion > 0 && isDataLoaded ? { scale: 0.98 } : {}}
           title={currentQuestion > 0 ? "Câu hỏi trước" : "Đã ở câu đầu tiên"}
         >
           <svg className="w-5 h-5 transition-transform duration-200 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +59,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
 
         {/* Centered Smart Question Navigator */}
         <div className="flex-1 flex justify-center">
-          <div className="flex items-center space-x-2">
+          <div className={`flex items-center space-x-2 ${skeletonClass}`}>
             {/* Show range navigation for 60+ questions */}
             {totalQuestions > 10 ? (
               <div className="flex items-center space-x-1">
@@ -64,6 +69,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                     onClick={() => onJumpToQuestion(Math.max(0, currentQuestion - 5))}
                     className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
                     title="Nhảy về 5 câu trước"
+                    disabled={!isDataLoaded}
                   >
                     ‹‹
                   </button>
@@ -89,26 +95,40 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                     visibleQuestions.push(i);
                   }
                   
-                  return visibleQuestions.map(index => (
-                    <button
-                      key={index}
-                      onClick={() => onJumpToQuestion(index)}
-                      className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
-                        index === currentQuestion
-                          ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200'
-                          : answers[index] !== null
-                          ? 'bg-green-500 text-white hover:bg-green-600'
-                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                      }`}
-                      title={`Câu ${index + 1}${answers[index] !== null ? ' (đã trả lời)' : ''}`}
-                    >
-                      {index + 1}
-                    </button>
-                  ));
+                  return visibleQuestions.map(index => {
+                    // Xác định class dựa trên trạng thái và isDataLoaded
+                    let buttonClass = 'w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ';
+                    
+                    if (!isDataLoaded) {
+                      // Khi dữ liệu chưa tải, tất cả các nút đều có màu xám với hiệu ứng loading
+                      buttonClass += 'bg-gray-200 text-gray-400';
+                    } else {
+                      // Khi dữ liệu đã tải, áp dụng màu sắc dựa trên trạng thái
+                      if (index === currentQuestion) {
+                        buttonClass += 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200';
+                      } else if (answers[index] !== null) {
+                        buttonClass += 'bg-green-500 text-white hover:bg-green-600';
+                      } else {
+                        buttonClass += 'bg-gray-200 text-gray-600 hover:bg-gray-300';
+                      }
+                    }
+                    
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => onJumpToQuestion(index)}
+                        className={buttonClass}
+                        title={`Câu ${index + 1}${answers[index] !== null ? ' (đã trả lời)' : ''}`}
+                        disabled={!isDataLoaded} // Vô hiệu hóa nút khi dữ liệu chưa tải
+                      >
+                        {index + 1}
+                      </button>
+                    );
+                  });
                 })()}
                 
                 {/* Progress indicator */}
-                <div className="mx-2 px-3 py-1.5 bg-gray-100 rounded-full text-xs text-gray-600 font-medium border">
+                <div className={`mx-2 px-3 py-1.5 bg-gray-100 rounded-full text-xs text-gray-600 font-medium border ${!isDataLoaded ? 'opacity-70' : ''}`}>
                   {currentQuestion + 1}/{totalQuestions}
                 </div>
                 
@@ -118,6 +138,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                     onClick={() => onJumpToQuestion(Math.min(totalQuestions - 1, currentQuestion + 5))}
                     className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
                     title="Nhảy tới 5 câu sau"
+                    disabled={!isDataLoaded}
                   >
                     ››
                   </button>
@@ -126,22 +147,36 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
             ) : (
               /* Original design for <= 10 questions */
               <div className="flex space-x-2">
-                {Array.from({ length: totalQuestions }).map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => onJumpToQuestion(index)}
-                    className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ${
-                      index === currentQuestion
-                        ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200'
-                        : answers[index] !== null
-                        ? 'bg-green-500 text-white hover:bg-green-600'
-                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                    }`}
-                    title={`Câu ${index + 1}${answers[index] !== null ? ' (đã trả lời)' : ''}`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {Array.from({ length: totalQuestions }).map((_, index) => {
+                  // Xác định class dựa trên trạng thái và isDataLoaded
+                  let buttonClass = 'w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 ';
+                  
+                  if (!isDataLoaded) {
+                    // Khi dữ liệu chưa tải, tất cả các nút đều có màu xám với hiệu ứng loading
+                    buttonClass += 'bg-gray-200 text-gray-400';
+                  } else {
+                    // Khi dữ liệu đã tải, áp dụng màu sắc dựa trên trạng thái
+                    if (index === currentQuestion) {
+                      buttonClass += 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200';
+                    } else if (answers[index] !== null) {
+                      buttonClass += 'bg-green-500 text-white hover:bg-green-600';
+                    } else {
+                      buttonClass += 'bg-gray-200 text-gray-600 hover:bg-gray-300';
+                    }
+                  }
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => onJumpToQuestion(index)}
+                      className={buttonClass}
+                      title={`Câu ${index + 1}${answers[index] !== null ? ' (đã trả lời)' : ''}`}
+                      disabled={!isDataLoaded} // Vô hiệu hóa nút khi dữ liệu chưa tải
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -151,14 +186,14 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
         {isReviewMode && allAnswered ? (
           <motion.button
             onClick={onSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isDataLoaded}
             className={`flex items-center px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-              isSubmitting
+              isSubmitting || !isDataLoaded
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                 : 'bg-green-600 text-white hover:bg-green-700 border border-green-600 hover:border-green-700 shadow-sm hover:shadow-md'
             }`}
-            whileHover={!isSubmitting ? { scale: 1.02 } : {}}
-            whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+            whileHover={!isSubmitting && isDataLoaded ? { scale: 1.02 } : {}}
+            whileTap={!isSubmitting && isDataLoaded ? { scale: 0.98 } : {}}
           >
             {isSubmitting ? (
               <>
@@ -177,7 +212,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
       </div>
       
       {/* Keyboard shortcuts hint */}
-      <div className="mt-4 text-center text-xs text-gray-500">
+      <div className={`mt-4 text-center text-xs text-gray-500 ${!isDataLoaded ? 'opacity-70' : ''}`}>
         Phím tắt: 1-4 hoặc ↑ ↓ ← → (chọn đáp án) • Enter (xác nhận)
       </div>
     </div>

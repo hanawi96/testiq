@@ -104,12 +104,13 @@ const AnswerOptions = memo(({
         
         if (isReviewMode) {
           if (isSelected) {
-            buttonClass += ' bg-primary-50 text-primary-800';
+            buttonClass += ' bg-gray-50 text-gray-600';
           } else {
             buttonClass += ' bg-gray-50 text-gray-600';
           }
         } else if (isSelected) {
-          buttonClass += ' bg-primary-50 text-primary-800';
+          // Đáp án được chọn có màu nền xanh lá cây
+          buttonClass += ' bg-green-50 text-green-800';
         } else if (isHighlighted) {
           buttonClass += ' bg-blue-50 text-blue-800';
         } else {
@@ -124,15 +125,21 @@ const AnswerOptions = memo(({
             disabled={isReviewMode}
             style={{ borderWidth: '1px', borderStyle: 'solid', borderColor: '#e5e7eb' }}
           >
-            <div className="flex items-center space-x-3">
-              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
-                ${isSelected 
-                  ? 'border-primary-400 bg-primary-100 text-primary-600'
-                  : 'border-gray-300 text-gray-500'
-                }`}>
-                {String.fromCharCode(65 + index)}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
+                  ${isSelected 
+                    ? 'border-green-500 bg-green-100 text-green-600'
+                    : 'border-gray-300 text-gray-500'
+                  }`}>
+                  {String.fromCharCode(65 + index)}
+                </div>
+                <span className="flex-1 font-medium">{option}</span>
               </div>
-              <span className="flex-1 font-medium">{option}</span>
+              {/* Hiển thị biểu tượng dấu "V" ở bên phải khi đáp án được chọn */}
+              {isSelected && (
+                <span className="text-green-600 font-bold">✓</span>
+              )}
             </div>
           </button>
         );

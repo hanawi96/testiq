@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import React, { useCallback, useEffect } from 'react';
 import Confetti, { useConfetti } from '../../../common/effects/Confetti';
 import CongratulationsPopup, { type UserInfo } from '../../../common/popups/CongratulationsPopup';
 import TimeUpPopup from '../../../common/popups/TimeUpPopup';
@@ -10,11 +9,18 @@ import CompletedTestPopup from '../../../common/popups/CompletedTestPopup';
 import { IQQuestion, IQNavigation, IQProgressHeader } from './components';
 
 // Import hooks đã tách
-import { useIQSounds, useIQKeyboardNavigation, useIQSaveProgress } from './hooks';
+import { 
+  useIQSounds, 
+  useIQKeyboardNavigation,
+  useIQSaveProgress,
+  useIQQuestionManager,
+  useIQPopups,
+  useIQTimer
+} from './hooks';
 
 import type { Question, TestResult } from '../../../../utils/test';
 import { generateTestResult, saveTestResult } from '../../../../utils/test';
-import { saveTestState, loadTestState, clearTestState, hasInProgressTest, isTestCompleted } from '../../../../utils/test-state';
+import { loadTestState, clearTestState, isTestCompleted } from '../../../../utils/test-state';
 
 // CSS cho việc tắt animations
 const disableAnimationsStyle = `
@@ -32,234 +38,262 @@ interface IQTestProps {
 }
 
 export default function IQTest({ questions, timeLimit, onComplete, startImmediately = false }: IQTestProps) {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
-  const [isActive, setIsActive] = useState(startImmediately);
-  const [startTime, setStartTime] = useState<number | null>(startImmediately ? Date.now() : null);
-  const [timeElapsed, setTimeElapsed] = useState(0);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [confettiTriggered, setConfettiTriggered] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [justAnswered, setJustAnswered] = useState(false);
-  const [showCongratulationsPopup, setShowCongratulationsPopup] = useState(false);
-  const [isReviewMode, setIsReviewMode] = useState(false);
-  const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
-  const [showProgressPopup, setShowProgressPopup] = useState(false);
-  const [showCompletedTestPopup, setShowCompletedTestPopup] = useState(false);
-  const [isTimeUp, setIsTimeUp] = useState(false); // ✅ Track khi test đã hết thời gian
-  const [savedProgress, setSavedProgress] = useState(0);
-  const [savedTimeRemaining, setSavedTimeRemaining] = useState(0);
-  const [preloadedUserInfo, setPreloadedUserInfo] = useState<UserInfo | null>(null);
-  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
+  // ===== HOOKS =====
   
-  // ✅ SMART: Arrow key navigation for answer selection
-  const [highlightedAnswer, setHighlightedAnswer] = useState<number | null>(null);
-  
-  const { fireSingle } = useConfetti();
+  // Hook âm thanh
   const { playSound } = useIQSounds();
   
-  // Bắt đầu test ngay lập tức nếu startImmediately=true
-  useEffect(() => {
-    if (startImmediately) {
-      console.log('🚀 Starting test immediately because startImmediately=true');
-      if (hasInProgressTest()) {
-        // Nếu có test đang làm dở
-        const savedState = loadTestState();
-        if (savedState) {
-          if (isTestCompleted()) {
-            console.log('🎉 Test completed but not submitted - showing completed test popup');
-            setShowCompletedTestPopup(true);
-          } else {
-            console.log('📝 Found in-progress test - loading saved state');
-            setCurrentQuestion(savedState.currentQuestion);
-            setAnswers(savedState.answers);
-            setTimeElapsed(savedState.timeElapsed);
-            setStartTime(Date.now() - (savedState.timeElapsed * 1000));
-          }
-        }
-      }
-    }
-  }, [startImmediately]);
+  // Hook quản lý popups
+  const { 
+    showConfetti,
+    setShowConfetti,
+    confettiTriggered,
+    showCongratulationsPopup,
+    setShowCongratulationsPopup,
+    showTimeUpPopup, 
+    setShowTimeUpPopup,
+    showProgressPopup,
+    setShowProgressPopup,
+    showCompletedTestPopup,
+    setShowCompletedTestPopup,
+    isTimeUp,
+    setIsTimeUp,
+    savedProgress,
+    setSavedProgress,
+    savedTimeRemaining,
+    setSavedTimeRemaining,
+    preloadedUserInfo,
+    isAuthenticatedUser,
+    handleTimeUp,
+    handleConfettiTrigger,
+    resetPopupStates
+  } = useIQPopups({ playSound });
+  
+  // Hook quản lý thời gian
+  const {
+    isActive,
+    setIsActive,
+    timeElapsed,
+    startTime,
+    setStartTime,
+    startTimer,
+    pauseTimer,
+    resetTimer
+  } = useIQTimer({
+    timeLimit,
+    onTimeUp: handleTimeUp,
+    isActive: startImmediately
+  });
+  
+  // Hook quản lý câu hỏi và trả lời
+  const {
+    currentQuestion,
+    setCurrentQuestion,
+    answers,
+    setAnswers,
+    justAnswered,
+    setJustAnswered,
+    highlightedAnswer,
+    setHighlightedAnswer,
+    allAnswered,
+    handleAnswerSelect,
+    nextQuestion,
+    previousQuestion,
+    jumpToQuestion,
+    resetQuestionState,
+    findNextUnanswered
+  } = useIQQuestionManager({
+    questions,
+    playSound,
+    isTimeUp
+  });
+  
+  // Hook quản lý lưu tiến trình
+  const {
+    saveProgress,
+    checkSavedProgress,
+    clearProgress
+  } = useIQSaveProgress({ questions, timeLimit });
+  
+  // Hook điều hướng bàn phím
+  useIQKeyboardNavigation({
+    onAnswerSelect: handleAnswerSelect,
+    totalAnswers: questions[currentQuestion]?.options.length || 4,
+    onNextQuestion: nextQuestion,
+    onPrevQuestion: previousQuestion,
+    isActive: isActive && !isTimeUp && !showCongratulationsPopup && !showTimeUpPopup
+  });
+  
+  // Hook hiệu ứng confetti
+  const { fireSingle } = useConfetti();
+  
+  // State khác
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isReviewMode, setIsReviewMode] = React.useState(false);
+  const [isDataLoaded, setIsDataLoaded] = React.useState(!startImmediately);
 
-  // Pre-load user profile on component mount for instant popup display
-  useEffect(() => {
-    const preloadUserProfile = async () => {
-      try {
-        const { getCurrentUserInfo } = await import('../../../../utils/test');
-        const { AuthService } = await import('../../../../../backend');
-        
-        // Check if user is authenticated
-        const { user } = await AuthService.getCurrentUser();
-        const isAuthenticated = !!user;
-        setIsAuthenticatedUser(isAuthenticated);
-        
-        const userInfo = await getCurrentUserInfo();
-        
-        if (userInfo) {
-          setPreloadedUserInfo(userInfo);
-          console.log('✅ User info pre-loaded successfully:', {
-            name: userInfo.name,
-            email: userInfo.email ? '✅ with email' : '❌ no email',
-            age: userInfo.age || 'not set',
-            location: userInfo.location || 'not set',
-            type: isAuthenticated ? '🔐 Authenticated User (email disabled)' : '👤 Anonymous User',
-            emailFieldStatus: isAuthenticated ? '🔒 DISABLED - Cannot be changed' : '✏️ EDITABLE - Can be changed'
-          });
-        } else {
-          console.log('📝 No user info found - user will need to enter info manually');
-        }
-      } catch (error) {
-        console.warn('⚠️ Could not pre-load user info:', error);
-      }
-    };
+  // ===== SIDE EFFECTS =====
 
-    preloadUserProfile();
-  }, []);
-
-  // Smart navigation: find next unanswered question
-  const findNextUnanswered = useCallback((fromIndex: number = 0): number => {
-    // First, search from fromIndex to end
-    for (let i = fromIndex; i < answers.length; i++) {
-      if (answers[i] === null) return i;
-    }
-    // If not found and fromIndex > 0, search from beginning
-    if (fromIndex > 0) {
-      for (let i = 0; i < fromIndex; i++) {
-        if (answers[i] === null) return i;
-      }
-    }
-    return -1; // All answered
-  }, [answers]);
-
-  // Check if all questions are answered
-  const allAnswered = answers.every(a => a !== null);
-
-  // Reset confetti trigger when test restarts
-  const resetConfetti = useCallback(() => {
-    setConfettiTriggered(false);
-    setShowConfetti(false);
-  }, []);
-
-  // Reset test state
-  const resetTest = useCallback(() => {
-    setCurrentQuestion(0);
-    setAnswers(new Array(questions.length).fill(null));
-    setIsActive(false);
-    setStartTime(null);
-    setTimeElapsed(0);
-    setShowConfetti(false);
-    setIsSubmitting(false);
-    setJustAnswered(false);
-    setShowCongratulationsPopup(false);
-    setShowTimeUpPopup(false);
-    setShowProgressPopup(false);
-    setShowCompletedTestPopup(false);
-    setSavedProgress(0);
-    setSavedTimeRemaining(0);
-    setIsTimeUp(false); // ✅ Reset time up state
-    setIsReviewMode(false); // ✅ CRITICAL: Reset review mode
-    
-    // ✅ Reset navigation state
-    setHighlightedAnswer(null);
-  }, [questions.length]);
-
-  // ✅ Update timeElapsed every second for precise timing sync
-  useEffect(() => {
-    if (!isActive || !startTime) return;
-
-    const updateInterval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      setTimeElapsed(elapsed);
-    }, 1000); // Update every second for sync
-
-    return () => clearInterval(updateInterval);
-  }, [isActive, startTime]);
-
-  // Save state periodically when test is active
+  // Lưu tiến độ tự động khi test đang hoạt động
   useEffect(() => {
     if (!isActive || !startTime) return;
 
     const saveInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       
-      saveTestState({
+      saveProgress(
         currentQuestion,
         answers,
-        timeElapsed: elapsed,
-        startTime,
-        totalTime: timeLimit
-      });
-    }, 2000); // Save every 2 seconds
+        elapsed
+      );
+    }, 2000); // Lưu mỗi 2 giây
 
     return () => clearInterval(saveInterval);
-  }, [isActive, startTime, currentQuestion, answers, timeLimit]);
+  }, [isActive, startTime, currentQuestion, answers, saveProgress]);
+  
+  // Bắt đầu test ngay lập tức nếu startImmediately=true
+  useEffect(() => {
+    if (startImmediately) {
+      console.log('🚀 Starting test immediately because startImmediately=true');
+      
+      const savedProgress = checkSavedProgress();
+      
+      if (savedProgress.hasCompletedSavedTest) {
+        console.log('🎉 Test completed but not submitted - showing completed test popup');
+        setShowCompletedTestPopup(true);
+        setIsDataLoaded(true);
+      } 
+      else if (savedProgress.hasIncompleteSavedTest && savedProgress.savedProgress) {
+        console.log('📝 Found in-progress test - loading saved state, question:', savedProgress.savedProgress.currentQuestion + 1);
+        setCurrentQuestion(savedProgress.savedProgress.currentQuestion);
+        setAnswers(savedProgress.savedProgress.answers);
+        startTimer(savedProgress.savedProgress.timeElapsed);
+        setIsDataLoaded(true);
+      } 
+      else {
+        setIsDataLoaded(true);
+      }
+    }
+  }, [startImmediately, checkSavedProgress, setCurrentQuestion, setAnswers, startTimer]);
+
+  // Smart auto-advance logic + Auto show review popup when all answered
+  useEffect(() => {
+    if (justAnswered && answers[currentQuestion] !== null) {
+      const timer = setTimeout(() => {
+        if (isReviewMode) {
+          // In review mode: simply go to next question (regardless of answered status)
+          const nextQuestion = currentQuestion + 1;
+          if (nextQuestion < questions.length) {
+            setCurrentQuestion(nextQuestion);
+            
+            // Save state immediately when auto-advancing in review mode
+            if (isActive && startTime) {
+              saveProgress(
+                nextQuestion,
+                answers,
+                Math.floor((Date.now() - startTime) / 1000)
+              );
+              console.log('💾 Saved state after auto-advancing to question', nextQuestion + 1);
+            }
+          }
+          setJustAnswered(false);
+        } else {
+          // Normal mode: find next unanswered question
+          const nextUnanswered = findNextUnanswered(currentQuestion + 1);
+          console.log('auto-advance: currentQuestion =', currentQuestion, ', nextUnanswered =', nextUnanswered);
+          if (nextUnanswered !== -1) {
+            setCurrentQuestion(nextUnanswered);
+            
+            // Save state immediately when auto-advancing
+            if (isActive && startTime) {
+              saveProgress(
+                nextUnanswered,
+                answers,
+                Math.floor((Date.now() - startTime) / 1000)
+              );
+              console.log('💾 Saved state after auto-advancing to question', nextUnanswered + 1);
+            }
+            
+            setJustAnswered(false);
+          } else {
+            // All questions answered - auto submit
+            setJustAnswered(false);
+            
+            // ✅ FIX: Đợi một frame để đảm bảo tiến trình đã được cập nhật trước khi hiển thị popup
+            requestAnimationFrame(() => {
+              submitTest();
+            });
+          }
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [justAnswered, answers, currentQuestion, findNextUnanswered, isReviewMode, questions.length, isActive, startTime, saveProgress]);
+
+  // ===== CALLBACKS =====
+
+  // Reset confetti
+  const resetConfetti = useCallback(() => {
+    setShowConfetti(false);
+    setIsDataLoaded(true);
+  }, []);
 
   // Start the test - check for saved progress first
   const startTest = useCallback(() => {
     console.log('🚀 User clicked start test button');
     
-    // Check for saved progress when user clicks start
-    if (hasInProgressTest()) {
-      const savedState = loadTestState();
-      console.log('💾 Found saved state:', savedState);
-      if (savedState) {
-        const completedCount = savedState.answers.filter(a => a !== null).length;
-        const remainingTime = Math.max(0, savedState.totalTime - savedState.timeElapsed);
-        
-        // Check if test is completed but not submitted
-        if (isTestCompleted()) {
-          // All questions answered - show completed test popup
-          console.log('🎉 Test completed but not submitted - showing completed test popup');
-          setShowCompletedTestPopup(true);
-          return;
-        } else {
-          // Test in progress - show continue popup
-          console.log('📝 Test in progress - showing continue option');
-          setSavedProgress(completedCount);
-          setSavedTimeRemaining(remainingTime);
-          // Keep in start screen state but show popup
-          setShowProgressPopup(true);
-          return;
-        }
-      }
-    }
+    const savedProgress = checkSavedProgress();
     
-    // No saved progress, start fresh
-    console.log('🆕 Starting fresh test');
-    setIsActive(true);
-    setStartTime(Date.now());
-    resetConfetti(); // Reset confetti state when starting new test
-  }, [resetConfetti]);
+    if (savedProgress.hasCompletedSavedTest) {
+      console.log('🎉 Test completed but not submitted - showing completed test popup');
+      setShowCompletedTestPopup(true);
+    }
+    else if (savedProgress.hasIncompleteSavedTest && savedProgress.savedProgress) {
+      console.log('📝 Test in progress - showing continue option');
+      const completedCount = savedProgress.savedProgress.answers.filter((a: number | null) => a !== null).length;
+      const remainingTime = Math.max(0, timeLimit - savedProgress.savedProgress.timeElapsed);
+      
+      setSavedProgress(completedCount);
+      setSavedTimeRemaining(remainingTime);
+      setShowProgressPopup(true);
+    }
+    else {
+      console.log('🆕 Starting fresh test');
+      startTimer();
+      setIsDataLoaded(true);
+      resetConfetti();
+    }
+  }, [checkSavedProgress, resetConfetti, startTimer, timeLimit, setShowCompletedTestPopup, setSavedProgress, setSavedTimeRemaining, setShowProgressPopup]);
 
   // Continue test from saved state
   const continueTest = useCallback(() => {
-    const savedState = loadTestState();
-    if (!savedState) {
-      // No saved state, start fresh
-      setIsActive(true);
-      setStartTime(Date.now());
+    const savedProgress = checkSavedProgress();
+    
+    if (!savedProgress.hasIncompleteSavedTest || !savedProgress.savedProgress) {
+      startTimer();
       setShowProgressPopup(false);
+      setIsDataLoaded(true);
       return;
     }
 
-    setCurrentQuestion(savedState.currentQuestion);
-    setAnswers(savedState.answers);
-    setTimeElapsed(savedState.timeElapsed);
-    setStartTime(Date.now() - (savedState.timeElapsed * 1000));
-    setIsActive(true);
+    console.log('✅ Continuing test from saved state, question:', savedProgress.savedProgress.currentQuestion + 1);
+    setCurrentQuestion(savedProgress.savedProgress.currentQuestion);
+    setAnswers(savedProgress.savedProgress.answers);
+    startTimer(savedProgress.savedProgress.timeElapsed);
     setShowProgressPopup(false);
-    console.log('✅ Continuing test from saved state');
-  }, []);
+    setIsDataLoaded(true);
+  }, [checkSavedProgress, setCurrentQuestion, setAnswers, startTimer, setShowProgressPopup]);
 
   // Restart test (clear saved state and start fresh)
   const restartTest = useCallback(() => {
-    clearTestState();
+    clearProgress();
     setShowProgressPopup(false);
-    resetTest();
-    // Start fresh test immediately
-    setIsActive(true);
-    setStartTime(Date.now());
-  }, [resetTest]);
+    resetQuestionState();
+    resetPopupStates();
+    startTimer(0);
+    setIsDataLoaded(true);
+  }, [clearProgress, resetQuestionState, resetPopupStates, startTimer, setShowProgressPopup]);
 
   // ✅ OPTIMIZED: Centralized fresh test restart logic for reusability
   const restartFreshTest = useCallback(() => {
@@ -280,37 +314,29 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     playSound('complete');
     
     // ✅ STEP 2: Clear states and storage - KHÔNG DÙNG BATCH
-    clearTestState(); // Clear any saved progress
+    clearProgress(); // Clear any saved progress
     
     // ✅ STEP 3: Tạm dừng tất cả các hiệu ứng
-    setIsActive(false);
+    pauseTimer();
     
     // ✅ STEP 4: Sử dụng requestAnimationFrame để đảm bảo tất cả thay đổi đã được áp dụng
     requestAnimationFrame(() => {
-      // Sau đó đặt các giá trị khác về ban đầu
-      setTimeElapsed(0);
-      setCurrentQuestion(0);
-      setAnswers(new Array(questions.length).fill(null));
+      // Reset timer
+      resetTimer();
+      // Reset question state
+      resetQuestionState();
       
       // Gọi setTimeout để đảm bảo React đã render với state mới
       setTimeout(() => {
-        // Bật lại hoạt động và tạo thời gian bắt đầu mới
-        setShowTimeUpPopup(false);
-        setIsTimeUp(false);
-        setShowCompletedTestPopup(false);
-        setShowCongratulationsPopup(false);
-        setShowProgressPopup(false);
+        // Reset popup state
+        resetPopupStates();
         setIsReviewMode(false);
         setIsSubmitting(false);
-        setJustAnswered(false);
-        setHighlightedAnswer(null);
-        setConfettiTriggered(false);
-        setShowConfetti(false);
         
         // Gọi thêm một requestAnimationFrame để đảm bảo tất cả state đã được áp dụng
         requestAnimationFrame(() => {
-          setStartTime(Date.now());
-          setIsActive(true);
+          startTimer(0);
+          setIsDataLoaded(true);
           
           // Sau khi tất cả đã render xong, bật lại animation
           setTimeout(() => {
@@ -320,7 +346,10 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       }, 50);
     });
     
-  }, [questions.length, playSound]);
+  }, [
+    playSound, clearProgress, pauseTimer, resetTimer, 
+    resetQuestionState, resetPopupStates, startTimer
+  ]);
 
   // View result from completed saved test
   const viewSavedResult = useCallback(() => {
@@ -336,92 +365,18 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   const handleCompletedTestRestart = useCallback(() => {
     setShowCompletedTestPopup(false);
-    // ✅ OPTIMIZED: Use centralized restart logic - tái sử dụng code
     restartFreshTest();
   }, [restartFreshTest]);
 
-  // Handle answer selection
-  const handleAnswerSelect = useCallback((answerIndex: number) => {
-    // ✅ CRITICAL: Prevent answer selection if time is up
-    if (isTimeUp) {
-      console.log('⏰ Cannot select answer - time is up!');
-      return;
-    }
-    
-    console.log(`🎯 handleAnswerSelect called: questionIndex=${currentQuestion}, answerIndex=${answerIndex}`);
-    
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = answerIndex;
-    setAnswers(newAnswers);
-    setJustAnswered(true);
-    
-    // ✅ SMART: Instant feedback
-    const question = questions[currentQuestion];
-    if (question) {
-      const isCorrect = answerIndex === question.correct;
-      console.log(`🎯 Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
-      
-      playSound(isCorrect ? 'correct' : 'wrong');
-      
-      // ✅ Haptic feedback for mobile
-      if (navigator.vibrate) {
-        console.log(`📱 Vibrating: ${isCorrect ? 50 : 100}ms`);
-        navigator.vibrate(isCorrect ? 50 : 100);
-      }
-    } else {
-      console.error('❌ Question not found!');
-    }
-    
-    // Save state immediately when answer is selected (if test is active)
-    if (isActive && startTime) {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      saveTestState({
-        currentQuestion,
-        answers: newAnswers,
-        timeElapsed: elapsed,
-        startTime,
-        totalTime: timeLimit
-      });
-      console.log('💾 Saved state after answer selection');
-    }
-  }, [answers, currentQuestion, isActive, startTime, timeLimit, questions, playSound, isTimeUp]);
-
-  // Navigate to next question (smart navigation)
-  const nextQuestion = useCallback(() => {
-    const nextUnanswered = findNextUnanswered(currentQuestion + 1);
-    console.log('nextQuestion: currentQuestion =', currentQuestion, ', nextUnanswered =', nextUnanswered);
-    if (nextUnanswered !== -1) {
-      setCurrentQuestion(nextUnanswered);
-      setJustAnswered(false);
-      setHighlightedAnswer(null); // Clear highlight
-    }
-  }, [currentQuestion, findNextUnanswered]);
-
-  // Navigate to previous question
-  const previousQuestion = useCallback(() => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(prev => prev - 1);
-      setJustAnswered(false);
-      setHighlightedAnswer(null); // Clear highlight
-    }
-  }, [currentQuestion]);
-
-  // Jump to specific question
-  const jumpToQuestion = useCallback((questionIndex: number) => {
-    setCurrentQuestion(questionIndex);
-    setJustAnswered(false);
-    setHighlightedAnswer(null); // Clear highlight
-  }, []);
-
   // Submit test - shows congratulations popup
-  const submitTest = useCallback(async () => {
+  const submitTest = useCallback(() => {
     if (isSubmitting || !allAnswered) return;
     
     console.log('submitTest: starting submission process');
     setIsSubmitting(true);
     
     // ✅ STOP TIMER IMMEDIATELY when user clicks Complete
-    setIsActive(false);
+    pauseTimer();
     
     // ✅ Play completion sound
     playSound('complete');
@@ -431,37 +386,27 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     if (currentState) {
       const completedState = {
         ...currentState,
-        isCompleted: true, // Add completion flag
-        completedAt: Date.now() // Track when completed
+        isCompleted: true,
+        completedAt: Date.now()
       };
       localStorage.setItem('iq_test_state', JSON.stringify(completedState));
       console.log('💾 Marked test as completed, keeping state for result viewing');
     }
     
-    // ✅ INSTANT: Show popup immediately 
-    console.log('submitTest: showing congratulations popup');
-    setShowCongratulationsPopup(true);
-    setIsSubmitting(false);
-  }, [isSubmitting, allAnswered, playSound]);
-
-  // Handle confetti trigger when popup opens
-  const handleConfettiTrigger = useCallback(() => {
-    if (!confettiTriggered) {
-      console.log('🎉 Triggering confetti once');
-      setShowConfetti(true);
-      setConfettiTriggered(true);
-      
-      // Reset confetti state after animation
+    // ✅ FIX: Đảm bảo thanh tiến trình cập nhật đến 100% trước khi hiển thị popup
+    // Sử dụng requestAnimationFrame và setTimeout để tạo độ trễ nhỏ cho phép render
+    requestAnimationFrame(() => {
+      // Độ trễ nhỏ để đảm bảo thanh tiến trình đã được cập nhật
       setTimeout(() => {
-        setShowConfetti(false);
-      }, 1000);
-    }
-  }, [confettiTriggered]);
+        console.log('submitTest: showing congratulations popup');
+        setShowCongratulationsPopup(true);
+        setIsSubmitting(false);
+      }, 50);
+    });
+  }, [isSubmitting, allAnswered, pauseTimer, playSound]);
 
   // Handle popup completion
   const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {
-    // Timer already stopped in submitTest, no need to stop again
-    
     // Check if we're completing from saved state
     const savedState = loadTestState();
     let timeSpent, filledAnswers;
@@ -491,148 +436,16 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     await saveTestResult(resultWithUserInfo);
     
     // ✅ SMART: Clear saved state only when user actually views result
-    clearTestState();
+    clearProgress();
     console.log('🗑️ Cleared test state after user viewed result');
     
     onComplete(resultWithUserInfo);
-  }, [answers, questions, startTime, onComplete, isTimeUp]);
+  }, [answers, questions, startTime, onComplete, clearProgress]);
 
-  // Handle time up - shows time up popup
-  const handleTimeUp = useCallback(() => {
-    console.log('🔔 IQTest: handleTimeUp called');
-    setIsActive(false);
-    setIsTimeUp(true); // ✅ Mark test as timed out - no more interactions allowed
-    
-    // ✅ Play alarm bell sound for time up
-    console.log('🔔 IQTest: About to play alarm bell');
-    
-    // Phát âm thanh cảnh báo nhiều lần để chắc chắn người dùng nghe thấy
-    playSound('warning');
-    
-    // Thêm timeout để phát lại âm thanh sau một khoảng thời gian
-    setTimeout(() => {
-      playSound('warning');
-    }, 1000);
-    
-    clearTestState(); // Clear saved state when time is up
-    setShowTimeUpPopup(true);
-    console.log('🔔 IQTest: Time up popup shown');
-  }, [playSound]);
+  // ===== RENDERING =====
 
-  // Smart auto-advance logic + Auto show review popup when all answered
-  useEffect(() => {
-    if (justAnswered && answers[currentQuestion] !== null) {
-      const timer = setTimeout(() => {
-        if (isReviewMode) {
-          // In review mode: simply go to next question (regardless of answered status)
-          const nextQuestion = currentQuestion + 1;
-          if (nextQuestion < questions.length) {
-            setCurrentQuestion(nextQuestion);
-          }
-          setJustAnswered(false);
-        } else {
-          // Normal mode: find next unanswered question
-          const nextUnanswered = findNextUnanswered(currentQuestion + 1);
-          console.log('auto-advance: currentQuestion =', currentQuestion, ', nextUnanswered =', nextUnanswered, ', answers =', answers.map((a, i) => `${i}:${a}`));
-          if (nextUnanswered !== -1) {
-            setCurrentQuestion(nextUnanswered);
-            setJustAnswered(false);
-          } else {
-            // All questions answered - auto submit
-            setJustAnswered(false);
-            submitTest();
-          }
-        }
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-      }, [justAnswered, answers, currentQuestion, findNextUnanswered, submitTest, isReviewMode, questions.length]);
-
-  // ✅ SMART: Enhanced keyboard navigation with arrow key answer selection
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (!isActive || showCongratulationsPopup || showTimeUpPopup || isTimeUp) return;
-      
-      const optionsCount = questions[currentQuestion]?.options.length || 0;
-      
-      switch (e.key) {
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-          const answerIndex = parseInt(e.key) - 1;
-          if (answerIndex < optionsCount) {
-            handleAnswerSelect(answerIndex);
-            setHighlightedAnswer(null); // Clear highlight after selection
-          }
-          break;
-          
-        case 'ArrowUp':
-        case 'ArrowLeft':
-          e.preventDefault();
-          setHighlightedAnswer(prev => {
-            if (prev === null) return 0;
-            return prev > 0 ? prev - 1 : optionsCount - 1; // Wrap to bottom
-          });
-          break;
-          
-        case 'ArrowDown':
-        case 'ArrowRight':
-          e.preventDefault();
-          setHighlightedAnswer(prev => {
-            if (prev === null) return 0;
-            return prev < optionsCount - 1 ? prev + 1 : 0; // Wrap to top
-          });
-          break;
-          
-        case 'Enter':
-          e.preventDefault();
-          if (highlightedAnswer !== null) {
-            // Select highlighted answer
-            handleAnswerSelect(highlightedAnswer);
-            setHighlightedAnswer(null);
-          } else if (allAnswered) {
-            submitTest();
-          } else if (answers[currentQuestion] !== null) {
-            nextQuestion();
-          }
-          break;
-          
-        case 'PageUp':
-        case 'KeyQ': // Q for previous question
-          e.preventDefault();
-          previousQuestion();
-          setHighlightedAnswer(null);
-          break;
-            
-        case 'PageDown':
-        case 'KeyE': // E for next question
-          e.preventDefault();
-          if (answers[currentQuestion] !== null) {
-            nextQuestion();
-            setHighlightedAnswer(null);
-          }
-          break;
-            
-        case 'Escape':
-          e.preventDefault();
-          setHighlightedAnswer(null); // Clear highlight on Escape
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isActive, currentQuestion, answers, handleAnswerSelect, nextQuestion, previousQuestion, submitTest, questions, showCongratulationsPopup, showTimeUpPopup, allAnswered, highlightedAnswer, isTimeUp]);
-
-  // Progress calculation
-  const answeredQuestions = answers.filter(a => a !== null).length;
-  const progress = (answeredQuestions / questions.length) * 100;
-
-  console.log('🔄 Render check:', { isActive, startTime, showProgressPopup, showCongratulationsPopup });
-  
-  if (!isActive && startTime === null) {
+  // START SCREEN RENDERING
+  if (!isActive && !startTime) {
     return (
       <>
         {/* Test Progress Popup - shows on start screen */}
@@ -664,18 +477,14 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
             if (savedState) {
               setCurrentQuestion(savedState.currentQuestion);
               setAnswers(savedState.answers);
-              setTimeElapsed(savedState.timeElapsed);
+              startTimer(savedState.timeElapsed);
               setIsReviewMode(true);
               
               // ✅ FIX: Check if there's still time left before resuming timer
               const remainingTime = timeLimit - savedState.timeElapsed;
-              if (remainingTime > 0) {
-                // ✅ CRITICAL: Set startTime để timer đếm từ thời điểm hiện tại
-                setStartTime(Date.now() - (savedState.timeElapsed * 1000));
-                setIsActive(true); // Resume timer only if time left
-                console.log('⏰ Timer resumed - remaining time:', remainingTime, 'seconds, adjusted startTime');
-              } else {
-                setIsTimeUp(true); // Mark as time up if no time left
+              if (remainingTime <= 0) {
+                setIsTimeUp(true);
+                pauseTimer();
                 console.log('⏰ Time already up - not resuming timer');
               }
               
@@ -740,6 +549,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     );
   }
 
+  // TEST SCREEN RENDERING
   return (
     <div className="max-w-4xl mx-auto py-20">
       <Confetti trigger={showConfetti} type="light" />
@@ -752,13 +562,11 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           setShowCongratulationsPopup(false);
           setIsReviewMode(true); // Enable review mode and jump to question 1
           setCurrentQuestion(0);
+          
           // ✅ FIX: Keep timer running if there's still time left
-          if (!isTimeUp && startTime) {
-            // ✅ CRITICAL: Adjust startTime để timer đếm đúng từ thời điểm hiện tại
-            const currentElapsed = timeElapsed;
-            setStartTime(Date.now() - (currentElapsed * 1000));
-            setIsActive(true); // Resume timer
-            console.log('⏰ Timer resumed - adjusted startTime for review mode, elapsed:', currentElapsed);
+          if (!isTimeUp) {
+            startTimer(timeElapsed);
+            console.log('⏰ Timer resumed for review mode');
           }
         }}
         onConfettiTrigger={handleConfettiTrigger}
@@ -773,7 +581,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         onComplete={handlePopupComplete}
         onRetakeTest={() => {
           setShowTimeUpPopup(false);
-          // ✅ OPTIMIZED: Use centralized restart logic - siêu nhanh, siêu mượt
           restartFreshTest();
         }}
         preloadedUserInfo={preloadedUserInfo}
@@ -800,6 +607,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           timeLimit={timeLimit}
           isActive={isActive}
           onTimeUp={handleTimeUp}
+          answers={answers}
         />
       </div>
 
@@ -815,7 +623,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         showAnimation={true}
       />
 
-      {/* Navigation */}
+      {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
       <IQNavigation 
         currentQuestion={currentQuestion}
         totalQuestions={questions.length}
@@ -827,6 +635,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         isSubmitting={isSubmitting}
         isReviewMode={isReviewMode}
         allAnswered={allAnswered}
+        isDataLoaded={isDataLoaded}
       />
     </div>
   );

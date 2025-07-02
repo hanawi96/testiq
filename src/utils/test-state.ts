@@ -6,13 +6,18 @@ interface TestState {
   totalTime: number; // total time limit in seconds
   isCompleted?: boolean; // Flag for completed but not viewed tests
   completedAt?: number; // Timestamp when test was completed
+  lastSavedAt?: number; // Timestamp when test was last saved
 }
 
 const TEST_STATE_KEY = 'iq_test_state';
 
 export function saveTestState(state: TestState): void {
   try {
-    localStorage.setItem(TEST_STATE_KEY, JSON.stringify(state));
+    const stateWithTimestamp = {
+      ...state,
+      lastSavedAt: Date.now()
+    };
+    localStorage.setItem(TEST_STATE_KEY, JSON.stringify(stateWithTimestamp));
   } catch (error) {
     console.warn('Failed to save test state:', error);
   }
@@ -86,4 +91,28 @@ export function calculateRemainingTime(state: TestState): number {
   const totalElapsed = state.timeElapsed + Math.floor((Date.now() - state.startTime) / 1000);
   const remaining = state.totalTime - totalElapsed;
   return Math.max(0, remaining);
+}
+
+/**
+ * Tính toán chính xác thời gian đã trôi qua dựa trên thời điểm lưu trạng thái cuối
+ * và thời gian đã trôi qua được lưu trữ
+ */
+export function getAccurateTimeElapsed(): number {
+  const state = loadTestState();
+  if (!state) return 0;
+  
+  // Nếu test đã hoàn thành, trả về thời gian đã lưu
+  if (state.isCompleted) {
+    return state.timeElapsed;
+  }
+  
+  // Nếu có timestamp của lần lưu cuối, tính thêm thời gian từ lúc đó đến hiện tại
+  if (state.lastSavedAt) {
+    const additionalTime = Math.floor((Date.now() - state.lastSavedAt) / 1000);
+    const totalElapsed = state.timeElapsed + additionalTime;
+    console.log(`⏱️ Accurate time calculation: ${state.timeElapsed}s saved + ${additionalTime}s additional = ${totalElapsed}s total`);
+    return totalElapsed;
+  }
+  
+  return state.timeElapsed;
 } 

@@ -13,6 +13,7 @@ interface IQProgressHeaderProps {
   timeLimit: number;
   isActive: boolean;
   onTimeUp: () => void;
+  answers?: (number | null)[]; // Thêm prop answers để tính toán số câu đã trả lời chính xác
 }
 
 const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
@@ -21,10 +22,13 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
   timeElapsed,
   timeLimit,
   isActive,
-  onTimeUp
+  onTimeUp,
+  answers = []
 }) => {
-  // Tính toán số câu đã trả lời
-  const answeredCount = currentQuestion;
+  // Tính toán số câu đã trả lời dựa trên mảng answers thay vì currentQuestion
+  const answeredCount = answers.length > 0 
+    ? answers.filter(answer => answer !== null).length 
+    : currentQuestion;
 
   return (
     <div className="mb-6">

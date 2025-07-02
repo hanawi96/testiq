@@ -13,6 +13,9 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   const prevTimeElapsed = useRef(timeElapsed);
   const circleRef = useRef<SVGCircleElement>(null);
   
+  // Đảm bảo thời gian hiển thị luôn được cập nhật
+  const [currentTimeLeft, setCurrentTimeLeft] = useState(Math.max(0, initialTime - timeElapsed));
+  
   // Tạo một key duy nhất cho component khi reset để Framer Motion tạo component hoàn toàn mới
   const resetKey = timeElapsed === 0 && prevTimeElapsed.current > 0 ? Date.now() : 'timer';
 
@@ -22,7 +25,9 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   // Update previous timeElapsed để theo dõi reset
   useEffect(() => {
     prevTimeElapsed.current = timeElapsed;
-  }, [timeElapsed]);
+    // Cập nhật thời gian hiện tại khi prop thay đổi
+    setCurrentTimeLeft(Math.max(0, initialTime - timeElapsed));
+  }, [timeElapsed, initialTime]);
 
   // ✅ Reset trigger flag khi restart
   useEffect(() => {
@@ -47,6 +52,18 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     }
   }, [timeLeft, isActive, onTimeUp, hasTriggeredTimeUp, timeElapsed]);
 
+  // Hiệu ứng cập nhật thời gian hiển thị nếu đang hoạt động
+  useEffect(() => {
+    if (!isActive || timeLeft <= 0) return;
+    
+    // Tạo interval để cập nhật thời gian còn lại
+    const interval = setInterval(() => {
+      setCurrentTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft]);
+
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -55,7 +72,8 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
 
   // ✅ SMART: Memoized calculations để tránh tính lại
   const progressData = useMemo(() => {
-    const percentage = (timeLeft / initialTime) * 100;
+    // Sử dụng currentTimeLeft thay vì timeLeft để đảm bảo animation mượt
+    const percentage = (currentTimeLeft / initialTime) * 100;
     const circumference = 2 * Math.PI * 45;
     const strokeOffset = circumference * (1 - percentage / 100);
     
@@ -66,7 +84,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
                      percentage > 20 ? 'stroke-yellow-500' : 'stroke-red-500';
     
     return { percentage, strokeOffset, colorClass, ringColor, circumference };
-  }, [timeLeft, initialTime]);
+  }, [currentTimeLeft, initialTime]);
 
   // Xác định xem có phải đang reset timer không
   const isReset = timeElapsed === 0 && prevTimeElapsed.current > 0;
@@ -114,16 +132,16 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           <motion.span 
             key={`time-${resetKey}`} /* Tạo key mới cho text */
             className={`font-bold text-sm ${progressData.colorClass}`}
-            animate={{ scale: timeLeft <= 60 && timeLeft % 2 === 0 && !isReset ? 1.1 : 1 }}
+            animate={{ scale: currentTimeLeft <= 60 && currentTimeLeft % 2 === 0 && !isReset ? 1.1 : 1 }}
             transition={{ duration: 0.2 }}
           >
-            {formatTime(timeLeft)}
+            {formatTime(currentTimeLeft)}
           </motion.span>
         </div>
       </div>
       
       {/* Warning message - chỉ hiện khi không reset và thời gian thấp */}
-      {timeLeft <= 300 && !isReset && (
+      {currentTimeLeft <= 300 && !isReset && (
         <motion.div
           key={`warning-${resetKey}`} /* Key mới cho warning */
           initial={{ opacity: 0, y: 10 }}
@@ -131,7 +149,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           className="text-center"
         >
           <p className={`text-xs font-medium ${progressData.colorClass}`}>
-            {timeLeft <= 60 ? '⚠️ Sắp hết thời gian!' : '⏰ Còn ít thời gian'}
+            {currentTimeLeft <= 60 ? '⚠️ Sắp hết thời gian!' : '⏰ Còn ít thời gian'}
           </p>
         </motion.div>
       )}
