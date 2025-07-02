@@ -53,13 +53,7 @@ export default function QuestionCard({
   };
 
   return (
-    <motion.div
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      layout
-    >
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary-50 to-blue-50 p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
@@ -83,16 +77,11 @@ export default function QuestionCard({
 
       {/* Question content */}
       <div className="p-6">
-        <motion.div
-          className="mb-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.05 }}
-        >
+        <div className="mb-6">
           <p className="text-lg leading-relaxed text-gray-800 font-medium whitespace-pre-wrap">
             {question.question}
           </p>
-        </motion.div>
+        </div>
 
         {/* Answer options */}
         <div className="space-y-3">
@@ -100,7 +89,7 @@ export default function QuestionCard({
             const isSelected = selectedAnswer === index;
             const isHighlighted = highlightedAnswer === index;
             
-            let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-transparent';
+            let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-transparent transition-colors duration-150';
             
             if (isReviewMode) {
               if (isSelected) {
@@ -117,17 +106,14 @@ export default function QuestionCard({
             }
 
             return (
-              <motion.button
+              <button
                 key={index}
                 className={buttonClass}
                 onClick={() => !isReviewMode && onAnswerSelect(index)}
                 disabled={isReviewMode}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.05 + index * 0.02 }}
               >
                 <div className="flex items-center space-x-3">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
                     ${isSelected 
                       ? 'border-primary-400 bg-primary-100 text-primary-600'
                       : 'border-gray-300 text-gray-500'
@@ -136,7 +122,7 @@ export default function QuestionCard({
                   </div>
                   <span className="flex-1 font-medium">{option}</span>
                 </div>
-              </motion.button>
+              </button>
             );
           })}
         </div>
@@ -162,6 +148,6 @@ export default function QuestionCard({
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </div>
   );
 }

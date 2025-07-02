@@ -16,6 +16,7 @@ interface IQQuestionProps {
   showAnimation: boolean;
 }
 
+// Tạo component bọc ngoài để xử lý animation khi chuyển câu hỏi
 const IQQuestion: React.FC<IQQuestionProps> = ({
   question,
   currentAnswer,
@@ -26,15 +27,31 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
   showAnimation
 }) => {
   return (
-    <QuestionCard
-      question={question}
-      selectedAnswer={currentAnswer}
-      onAnswerSelect={onAnswerSelect}
-      highlightedAnswer={highlightedAnswer}
-      isReviewMode={answersDisabled}
-    />
+    <motion.div
+      key={`question-container-${question.id}`}
+      initial={showAnimation ? { opacity: 0 } : { opacity: 1 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      <QuestionCard
+        question={question}
+        selectedAnswer={currentAnswer}
+        onAnswerSelect={onAnswerSelect}
+        highlightedAnswer={highlightedAnswer}
+        isReviewMode={answersDisabled}
+      />
+    </motion.div>
   );
 };
 
-// Memo để tránh re-render không cần thiết
-export default memo(IQQuestion); 
+// Sử dụng memo để tránh re-render không cần thiết
+// Chỉ re-render khi các props thực sự thay đổi
+export default memo(IQQuestion, (prevProps, nextProps) => {
+  // Chỉ re-render khi các props quan trọng thay đổi
+  return (
+    prevProps.question.id === nextProps.question.id &&
+    prevProps.currentAnswer === nextProps.currentAnswer &&
+    prevProps.highlightedAnswer === nextProps.highlightedAnswer &&
+    prevProps.answersDisabled === nextProps.answersDisabled
+  );
+}); 
