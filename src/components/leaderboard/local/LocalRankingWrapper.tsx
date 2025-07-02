@@ -8,7 +8,7 @@ export default function LocalRankingWrapper() {
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
-        const backend = await import('../../backend');
+        const backend = await import('@/backend');
         const { user } = await backend.AuthService.getCurrentUser();
         if (user && user.id && user.email) {
           setCurrentUser({ id: user.id, email: user.email });

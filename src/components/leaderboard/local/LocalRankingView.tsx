@@ -91,7 +91,7 @@ export default function LocalRankingView({ userId }: Props) {
       setError('');
       
       try {
-        const backend = await import('../../backend');
+        const backend = await import('@/backend');
         const result = await backend.getUserLocalRanking(userId);
         
         if (result.error || !result.data) {

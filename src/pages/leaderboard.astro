@@ -1,9 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import LeaderboardList from '../components/LeaderboardList.tsx';
-import LeaderboardStats from '../components/LeaderboardStats.tsx';
-import LocalRankingWrapper from '../components/LocalRankingWrapper.tsx';
-import TopTenLeaderboard from '../components/TopTenLeaderboard.tsx';
+import LeaderboardList from '../components/leaderboard/global/LeaderboardList.tsx';
+import LeaderboardStats from '../components/leaderboard/global/LeaderboardStats.tsx';
+import LocalRankingWrapper from '../components/leaderboard/local/LocalRankingWrapper.tsx';
+import TopTenLeaderboard from '../components/leaderboard/global/TopTenLeaderboard.tsx';
 
 // ✅ SUPER OPTIMIZED: Load tất cả data song song trong 1 lần
 import { getLeaderboard } from '../../backend/utils/leaderboard-service';

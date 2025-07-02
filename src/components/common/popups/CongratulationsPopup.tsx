@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import CountrySelector from './CountrySelector';
-import { validateUserInfo } from '../../utils/test-helpers';
+import CountrySelector from '../selectors/CountrySelector';
+import { validateUserInfo } from '@/utils/test-helpers';
 
 interface UserInfo {
   name: string;
@@ -56,7 +56,7 @@ interface UserInfo {
 
         // For anonymous users, load from localStorage
         try {
-          const { getAnonymousUserInfo } = await import('../../utils/test');
+          const { getAnonymousUserInfo } = await import('@/utils/test');
           const savedInfo = getAnonymousUserInfo();
           if (savedInfo) {
             setUserInfo({
@@ -97,7 +97,7 @@ interface UserInfo {
     
     // Save anonymous user info to localStorage (for non-authenticated users)
     try {
-      const { AuthService, updateUserProfile } = await import('../../../backend');
+      const { AuthService, updateUserProfile } = await import('@/backend');
       const { user } = await AuthService.getCurrentUser();
       
       if (user) {
@@ -114,7 +114,7 @@ interface UserInfo {
         console.log('✅ User profile updated');
       } else {
         // Anonymous user - save to localStorage
-        const { saveAnonymousUserInfo } = await import('../../utils/test');
+        const { saveAnonymousUserInfo } = await import('@/utils/test');
         saveAnonymousUserInfo(userInfo);
         console.log('💾 Anonymous user info saved to localStorage');
       }
@@ -165,7 +165,7 @@ interface UserInfo {
     if (!email?.trim() || isAuthenticatedUser) return;
     
     try {
-      const { getAnonymousUserByEmail } = await import('../../utils/test');
+      const { getAnonymousUserByEmail } = await import('@/utils/test');
       const userData = await getAnonymousUserByEmail(email);
       
       if (userData) {

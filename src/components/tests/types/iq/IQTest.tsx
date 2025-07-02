@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Timer from './Timer';
-import ProgressBar from './ProgressBar';
-import QuestionCard from './QuestionCard';
-import Confetti, { useConfetti } from '../common/Confetti';
-import CongratulationsPopup, { type UserInfo } from '../common/CongratulationsPopup';
-import TimeUpPopup from '../common/TimeUpPopup';
-import TestProgressPopup from '../common/TestProgressPopup';
-import CompletedTestPopup from '../common/CompletedTestPopup';
+import Timer from '../../core/Timer';
+import ProgressBar from '../../core/ProgressBar';
+import QuestionCard from '../../core/QuestionCard';
+import Confetti, { useConfetti } from '../../../common/effects/Confetti';
+import CongratulationsPopup, { type UserInfo } from '../../../common/popups/CongratulationsPopup';
+import TimeUpPopup from '../../../common/popups/TimeUpPopup';
+import TestProgressPopup from '../../../common/popups/TestProgressPopup';
+import CompletedTestPopup from '../../../common/popups/CompletedTestPopup';
 
-import type { Question, TestResult } from '../../utils/test';
-import { generateTestResult, saveTestResult } from '../../utils/test';
-import { saveTestState, loadTestState, clearTestState, hasInProgressTest, isTestCompleted, calculateRemainingTime } from '../../utils/test-state';
+import type { Question, TestResult } from '../../../../utils/test';
+import { generateTestResult, saveTestResult } from '../../../../utils/test';
+import { saveTestState, loadTestState, clearTestState, hasInProgressTest, isTestCompleted, calculateRemainingTime } from '../../../../utils/test-state';
 
 // CSS cho việc tắt animations
 const disableAnimationsStyle = `
@@ -180,8 +180,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   useEffect(() => {
     const preloadUserProfile = async () => {
       try {
-        const { getCurrentUserInfo } = await import('../../utils/test');
-        const { AuthService } = await import('../../../backend');
+        const { getCurrentUserInfo } = await import('../../../../utils/test');
+        const { AuthService } = await import('../../../../../backend');
         
         // Check if user is authenticated
         const { user } = await AuthService.getCurrentUser();

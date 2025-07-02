@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoginPopup from '../common/LoginPopup';
-import { AuthService } from '../../../backend';
+import LoginPopup from '../../auth/login/LoginPopup';
+import { AuthService } from '../../../../backend';
 
 export default function Header() {
   const [showLoginPopup, setShowLoginPopup] = useState(false);

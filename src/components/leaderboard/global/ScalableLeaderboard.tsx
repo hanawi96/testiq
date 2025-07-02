@@ -69,7 +69,7 @@ export default function ScalableLeaderboard({
     setLoading(true);
     try {
       // 🚀 Use scalable backend function
-      const backend = await import('../../backend');
+      const backend = await import('@/backend');
       const result = await backend.getScalableLeaderboard(page, paginationConfig.pageSize);
       
       if (result.data) {

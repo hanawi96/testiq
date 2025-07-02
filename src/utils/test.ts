@@ -180,7 +180,7 @@ export interface Question {
     // Save to Supabase
     try {
       // Dynamic import to avoid build issues
-      const { saveTestResult: saveToSupabase, AuthService } = await import('../../backend');
+      const { saveTestResult: saveToSupabase, AuthService } = await import('@/backend');
       
       // Check if user is authenticated
       const { user } = await AuthService.getCurrentUser();
@@ -220,7 +220,7 @@ export interface Question {
         if (result.userInfo) {
           console.log('📧 Attempting to save to anonymous_players table');
           try {
-            const { saveAnonymousPlayer } = await import('../../backend');
+            const { saveAnonymousPlayer } = await import('@/backend');
             const anonymousPlayerData = {
               name: result.userInfo.name,
               email: result.userInfo.email,
@@ -354,7 +354,7 @@ export interface Question {
   // Get real user test history - Smart source selection
   export async function getUserRealTestHistory(): Promise<TestResult[]> {
     try {
-      const { AuthService, getUserTestResults } = await import('../../backend');
+      const { AuthService, getUserTestResults } = await import('@/backend');
       const { user } = await AuthService.getCurrentUser();
       
       if (user) {
@@ -411,7 +411,7 @@ export interface Question {
   // Smart User Info Getter - For instant popup population
   export async function getCurrentUserInfo(): Promise<UserInfo | null> {
     try {
-      const { AuthService, getUserProfile } = await import('../../backend');
+      const { AuthService, getUserProfile } = await import('@/backend');
       const { user } = await AuthService.getCurrentUser();
       
       if (user) {
@@ -448,7 +448,7 @@ export interface Question {
         // If we have email in localStorage, try to lookup from database
         if (localInfo?.email) {
           try {
-            const { findAnonymousPlayerByEmail } = await import('../../backend');
+            const { findAnonymousPlayerByEmail } = await import('@/backend');
             const dbResult = await findAnonymousPlayerByEmail(localInfo.email);
             
             if (dbResult.success && dbResult.data) {
@@ -485,7 +485,7 @@ export interface Question {
     if (!email?.trim()) return null;
     
     try {
-      const { findAnonymousPlayerByEmail } = await import('../../backend');
+      const { findAnonymousPlayerByEmail } = await import('@/backend');
       const result = await findAnonymousPlayerByEmail(email.trim());
       
       if (result.success && result.data) {

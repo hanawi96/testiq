@@ -75,7 +75,7 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
 
         // Load data từ client
         console.log('🔄 Loading fresh dashboard stats from client...');
-        const { getDashboardStats, clearDashboardCache } = await import('../../backend/utils/dashboard-stats-service');
+        const { getDashboardStats, clearDashboardCache } = await import('@/backend/utils/dashboard-stats-service');
         
         // Clear cache để đảm bảo dữ liệu mới nhất
         clearDashboardCache();

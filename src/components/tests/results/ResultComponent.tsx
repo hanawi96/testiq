@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DetailedAnalysis from './DetailedAnalysis';
-import Confetti, { useConfetti } from '../common/Confetti';
+import Confetti, { useConfetti } from '../../common/effects/Confetti';
 
 interface ResultData {
   score: number;
@@ -281,7 +281,7 @@ export default function ResultComponent({ results, userInfo: propUserInfo, onRet
         } else {
           // Only fallback to localStorage if no URL params
           const [testUtils] = await Promise.all([
-            import('../../utils/test')
+            import('../../../utils/test')
           ]);
           
           const anonymousInfo = testUtils.getAnonymousUserInfo();
@@ -297,7 +297,7 @@ export default function ResultComponent({ results, userInfo: propUserInfo, onRet
         
         // Load test history
         const [testUtils] = await Promise.all([
-          import('../../utils/test')
+          import('../../../utils/test')
         ]);
         const history = await testUtils.getUserRealTestHistory();
         setRealTestHistory(history);

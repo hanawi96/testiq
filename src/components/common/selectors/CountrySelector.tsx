@@ -69,7 +69,7 @@ export default function CountrySelector({ value, onChange, disabled = false, pla
   useEffect(() => {
     const loadCountries = async () => {
       try {
-        const backend = await import('../../../backend');
+        const backend = await import('@/backend');
         const result = await backend.getCountriesWithVietnamFirst();
         
         if (result.data && result.data.length > 0) {

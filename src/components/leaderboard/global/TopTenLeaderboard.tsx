@@ -97,7 +97,7 @@ export default function TopTenLeaderboard({ initialData }: Props) {
       } else {
         // Không có initialData: fetch từ client
         try {
-          const backend = await import('../../backend');
+          const backend = await import('@/backend');
           const result = await backend.getLeaderboard(1, 10);
           
           if (result.data?.length) {

@@ -7,7 +7,7 @@ import { saveTestResult } from './test';
 export async function testAuthenticatedUserSave(): Promise<{ success: boolean; message: string }> {
   try {
     // Dynamic import to avoid build issues
-    const { AuthService } = await import('../../backend');
+    const { AuthService } = await import('@/backend');
     
     // Check if user is authenticated
     const { user } = await AuthService.getCurrentUser();

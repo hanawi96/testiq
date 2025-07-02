@@ -214,8 +214,8 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
         // 1️⃣ Load modules
         const [testUtils, backend] = await Promise.all([
-          import('../utils/test.ts'),
-          import('../../backend').catch(() => null)
+          import('@/utils/test'),
+          import('@/backend').catch(() => null)
         ]);
         
         setLoadingProgress(40);

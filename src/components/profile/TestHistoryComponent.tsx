@@ -41,7 +41,7 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
         setIsLoading(true);
         
         // Import utils
-        const testUtils = await import('../utils/test');
+        const testUtils = await import('@/utils/test');
         
         // Get data - CHỈ 1 NGUỒN DUY NHẤT
         const rawHistory = await testUtils.getUserRealTestHistory() || [];

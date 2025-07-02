@@ -231,7 +231,7 @@ const seoDescription = `${userName ? userName + ' đạt' : 'Đạt'} ${testScor
   async function renderResultComponent(resultData) {
     try {
       // Dynamic import ResultComponent
-      const { default: ResultComponent } = await import('../components/tests/ResultComponent.tsx');
+      const { default: ResultComponent } = await import('@/components/tests/results/ResultComponent.tsx');
       
       const container = document.getElementById('result-container');
       if (!container) return;

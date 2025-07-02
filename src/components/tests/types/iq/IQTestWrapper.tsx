@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import IQTest from './tests/IQTest';
-import ResultComponent from './tests/ResultComponent';
-import type { Question, TestResult } from '../utils/test';
+import IQTest from './IQTest';
+import ResultComponent from '../../results/ResultComponent';
+import type { Question, TestResult } from '../../../../utils/test';
 
 interface IQTestWrapperProps {
   questions: Question[];

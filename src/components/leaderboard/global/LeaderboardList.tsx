@@ -236,7 +236,7 @@ export default function LeaderboardList({ initialData }: Props) {
       setLoading(true);
       
       try {
-        const backend = await import('../../backend');
+        const backend = await import('@/backend');
         if (!backend) throw new Error('Không thể kết nối server');
 
         // Load additional pages if needed

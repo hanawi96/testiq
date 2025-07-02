@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginForm from './LoginForm';
-import RegisterForm from './RegisterForm';
-import { AuthService } from '../../../backend';
+import RegisterForm from '../register/RegisterForm';
+import { AuthService } from '../../../../backend';
 
 interface LoginPopupProps {
   isOpen: boolean;
