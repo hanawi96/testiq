@@ -122,9 +122,9 @@ export default function QuestionCard({
                 className={buttonClass}
                 onClick={() => !isReviewMode && onAnswerSelect(index)}
                 disabled={isReviewMode}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + index * 0.02 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.05 + index * 0.02 }}
               >
                 <div className="flex items-center space-x-3">
                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold
