@@ -54,7 +54,18 @@ import SEO from '../components/seo/SEO.astro';
   <!-- Critical CSS inline -->
   <style>
     /* Critical above-the-fold styles */
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      margin: 0;
+    }
+    
+    main {
+      flex: 1;
+    }
+    
     .hero-section { min-height: 100vh; }
     
     /* Loading spinner */
@@ -83,12 +94,12 @@ import SEO from '../components/seo/SEO.astro';
   <HeaderWrapper />
 
   <!-- Main Content -->
-  <main id="main-content" role="main">
+  <main id="main-content" role="main" class="flex-1">
     <slot />
   </main>
 
   <!-- Footer -->
-  <footer class="relative bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-white overflow-hidden">
+  <footer class="relative bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-white overflow-hidden mt-auto">
     <!-- Background Pattern -->
     <div class="absolute inset-0 opacity-5">
       <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 20px 20px;"></div>

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { testConfig } from '../../data/iqQuestions';
+import { testConfig, iqQuestions } from '../../data/iqQuestions';
+import IQTestWrapper from '../../components/tests/types/iq/IQTestWrapper.tsx';
 
 // Simple locale function
 const getLocale = (lang: string) => ({
@@ -16,45 +17,89 @@ const locale = getLocale('vi');
   title={`${testConfig.title} - ${locale.meta.site_name}`}
   description={testConfig.description}
 >
-  <div class="max-w-4xl mx-auto text-center py-20">
-    <div class="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4 font-display">
-          Test IQ Chuyên Nghiệp
-        </h1>
-        <p class="text-xl text-gray-600 mb-6">
-          Đánh giá trí tuệ với nhiều câu hỏi trong {Math.floor(testConfig.timeLimit / 60)} phút
-        </p>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div class="bg-blue-50 p-6 rounded-2xl">
-            <div class="text-3xl mb-2">🧠</div>
-            <h3 class="font-semibold text-gray-900 mb-1">Tư duy logic</h3>
-            <p class="text-sm text-gray-600">Kiểm tra khả năng suy luận và phân tích</p>
-          </div>
-          <div class="bg-green-50 p-6 rounded-2xl">
-            <div class="text-3xl mb-2">⏱️</div>
-            <h3 class="font-semibold text-gray-900 mb-1">Tốc độ xử lý</h3>
-            <p class="text-sm text-gray-600">Đo lường khả năng phản xạ nhanh</p>
-          </div>
-          <div class="bg-purple-50 p-6 rounded-2xl">
-            <div class="text-3xl mb-2">📊</div>
-            <h3 class="font-semibold text-gray-900 mb-1">Phân tích chi tiết</h3>
-            <p class="text-sm text-gray-600">Báo cáo kết quả chuyên sâu</p>
+  <div id="intro-container">
+    <div class="max-w-4xl mx-auto text-center py-20">
+      <div class="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
+        <div class="mb-8">
+          <h1 class="text-4xl font-bold text-gray-900 mb-4 font-display">
+            Test IQ Chuyên Nghiệp
+          </h1>
+          <p class="text-xl text-gray-600 mb-6">
+            Đánh giá trí tuệ với {iqQuestions.length} câu hỏi trong {Math.floor(testConfig.timeLimit / 60)} phút
+          </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-blue-50 p-6 rounded-2xl">
+              <div class="text-3xl mb-2">🧠</div>
+              <h3 class="font-semibold text-gray-900 mb-1">Tư duy logic</h3>
+              <p class="text-sm text-gray-600">Kiểm tra khả năng suy luận và phân tích</p>
+            </div>
+            <div class="bg-green-50 p-6 rounded-2xl">
+              <div class="text-3xl mb-2">⏱️</div>
+              <h3 class="font-semibold text-gray-900 mb-1">Tốc độ xử lý</h3>
+              <p class="text-sm text-gray-600">Đo lường khả năng phản xạ nhanh</p>
+            </div>
+            <div class="bg-purple-50 p-6 rounded-2xl">
+              <div class="text-3xl mb-2">📊</div>
+              <h3 class="font-semibold text-gray-900 mb-1">Phân tích chi tiết</h3>
+              <p class="text-sm text-gray-600">Báo cáo kết quả chuyên sâu</p>
+            </div>
           </div>
         </div>
+        
+        <button 
+          id="start-test-btn"
+          class="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-blue-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          Bắt Đầu Test Ngay
+        </button>
+        
+        <p class="text-sm text-gray-500 mt-4">
+          Mẹo: Sử dụng phím số 1-4 để chọn đáp án nhanh chóng
+        </p>
       </div>
-      
-      <a 
-        href="/test/iq/start"
-        class="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-blue-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-      >
-        Bắt Đầu Test Ngay
-      </a>
-      
-      <p class="text-sm text-gray-500 mt-4">
-        Mẹo: Sử dụng phím số 1-4 để chọn đáp án nhanh chóng
-      </p>
     </div>
   </div>
+  
+  <div id="test-container" class="hidden">
+    <IQTestWrapper 
+      questions={iqQuestions} 
+      timeLimit={testConfig.timeLimit}
+      startImmediately={false}
+      client:load
+    />
+  </div>
+
+  <script>
+    // Script để xử lý việc bắt đầu test
+    document.addEventListener('DOMContentLoaded', () => {
+      const startButton = document.getElementById('start-test-btn');
+      const introContainer = document.getElementById('intro-container');
+      const testContainer = document.getElementById('test-container');
+      
+      // Kiểm tra nếu đã bắt đầu test trước đó (khi refresh trang)
+      if (sessionStorage.getItem('iq_test_started') === 'true') {
+        if (introContainer && testContainer) {
+          introContainer.classList.add('hidden');
+          testContainer.classList.remove('hidden');
+        }
+      }
+      
+      // Thêm sự kiện click cho nút bắt đầu test
+      if (startButton && introContainer && testContainer) {
+        startButton.addEventListener('click', () => {
+          // Ẩn phần giới thiệu
+          introContainer.classList.add('hidden');
+          // Hiển thị phần test
+          testContainer.classList.remove('hidden');
+          
+          // Lưu trạng thái đã bắt đầu test vào sessionStorage
+          sessionStorage.setItem('iq_test_started', 'true');
+          
+          // Cuộn lên đầu trang
+          window.scrollTo(0, 0);
+        });
+      }
+    });
+  </script>
 </BaseLayout>

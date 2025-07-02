@@ -54,65 +54,21 @@ export function clearTestState(): void {
   }
 }
 
-export function hasInProgressTest(): boolean {
-  const state = loadTestState();
-  if (!state) {
-    console.log('❌ No saved state found');
-    return false;
-  }
-  
-  // Check if test has meaningful progress (started test - has time elapsed or current question > 0)
-  const answeredCount = state.answers.filter(a => a !== null).length;
-  const hasStarted = state.timeElapsed > 0 || state.currentQuestion > 0;
-  const hasProgress = hasStarted; // Any progress means show popup
-  
-  console.log(`📈 Progress check: question ${state.currentQuestion + 1}/${state.answers.length}, ${answeredCount} answered, timeElapsed: ${state.timeElapsed}s, hasProgress: ${hasProgress}`);
-  return hasProgress;
-}
-
-export function isTestCompleted(): boolean {
-  const state = loadTestState();
-  if (!state) return false;
-  
-  // ✅ SMART: Check completion flag first, then answer count
-  if (state.isCompleted) {
-    console.log(`✅ Test marked as completed with flag`);
-    return true;
-  }
-  
-  const answeredCount = state.answers.filter(a => a !== null).length;
-  const isCompleted = answeredCount === state.answers.length;
-  
-  console.log(`✅ Completion check: ${answeredCount}/${state.answers.length} answered, isCompleted: ${isCompleted}`);
-  return isCompleted;
-}
-
-export function calculateRemainingTime(state: TestState): number {
-  const totalElapsed = state.timeElapsed + Math.floor((Date.now() - state.startTime) / 1000);
-  const remaining = state.totalTime - totalElapsed;
-  return Math.max(0, remaining);
-}
-
-/**
- * Tính toán chính xác thời gian đã trôi qua dựa trên thời điểm lưu trạng thái cuối
- * và thời gian đã trôi qua được lưu trữ
- */
 export function getAccurateTimeElapsed(): number {
-  const state = loadTestState();
-  if (!state) return 0;
-  
-  // Nếu test đã hoàn thành, trả về thời gian đã lưu
-  if (state.isCompleted) {
-    return state.timeElapsed;
+  try {
+    const state = loadTestState();
+    if (!state) return 0;
+    
+    // Nếu test đã được bắt đầu nhưng không hoàn thành và có lastSavedAt
+    if (state.startTime && !state.isCompleted && state.lastSavedAt) {
+      // Tính toán thời gian đã trôi qua kể từ lúc bắt đầu
+      return state.timeElapsed;
+    }
+    
+    // Nếu không có thông tin để tính toán chính xác, trả về timeElapsed đã lưu
+    return state.timeElapsed || 0;
+  } catch (error) {
+    console.warn('Failed to calculate accurate time elapsed:', error);
+    return 0;
   }
-  
-  // Nếu có timestamp của lần lưu cuối, tính thêm thời gian từ lúc đó đến hiện tại
-  if (state.lastSavedAt) {
-    const additionalTime = Math.floor((Date.now() - state.lastSavedAt) / 1000);
-    const totalElapsed = state.timeElapsed + additionalTime;
-    console.log(`⏱️ Accurate time calculation: ${state.timeElapsed}s saved + ${additionalTime}s additional = ${totalElapsed}s total`);
-    return totalElapsed;
-  }
-  
-  return state.timeElapsed;
 } 

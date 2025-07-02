@@ -20,7 +20,7 @@ import {
 
 import type { Question, TestResult } from '../../../../utils/test';
 import { generateTestResult, saveTestResult } from '../../../../utils/test';
-import { loadTestState, clearTestState, isTestCompleted } from '../../../../utils/test-state';
+import { loadTestState } from '../../../../utils/test-state';
 
 // CSS cho việc tắt animations
 const disableAnimationsStyle = `
@@ -111,7 +111,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   // Hook quản lý lưu tiến trình
   const {
     saveProgress,
-    checkSavedProgress,
     clearProgress
   } = useIQSaveProgress({ questions, timeLimit });
   
@@ -131,50 +130,24 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isReviewMode, setIsReviewMode] = React.useState(false);
   const [isDataLoaded, setIsDataLoaded] = React.useState(!startImmediately);
+  
+  // Ref để đảm bảo useEffect chỉ chạy một lần
+  const hasInitializedRef = React.useRef(false);
 
   // ===== SIDE EFFECTS =====
 
-  // Lưu tiến độ tự động khi test đang hoạt động
-  useEffect(() => {
-    if (!isActive || !startTime) return;
-
-    const saveInterval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      
-      saveProgress(
-        currentQuestion,
-        answers,
-        elapsed
-      );
-    }, 2000); // Lưu mỗi 2 giây
-
-    return () => clearInterval(saveInterval);
-  }, [isActive, startTime, currentQuestion, answers, saveProgress]);
-  
   // Bắt đầu test ngay lập tức nếu startImmediately=true
   useEffect(() => {
-    if (startImmediately) {
+    if (startImmediately && !hasInitializedRef.current) {
       console.log('🚀 Starting test immediately because startImmediately=true');
+      hasInitializedRef.current = true;
       
-      const savedProgress = checkSavedProgress();
-      
-      if (savedProgress.hasCompletedSavedTest) {
-        console.log('🎉 Test completed but not submitted - showing completed test popup');
-        setShowCompletedTestPopup(true);
-        setIsDataLoaded(true);
-      } 
-      else if (savedProgress.hasIncompleteSavedTest && savedProgress.savedProgress) {
-        console.log('📝 Found in-progress test - loading saved state, question:', savedProgress.savedProgress.currentQuestion + 1);
-        setCurrentQuestion(savedProgress.savedProgress.currentQuestion);
-        setAnswers(savedProgress.savedProgress.answers);
-        startTimer(savedProgress.savedProgress.timeElapsed);
-        setIsDataLoaded(true);
-      } 
-      else {
-        setIsDataLoaded(true);
-      }
+      // Bắt đầu test ngay lập tức
+      startTimer(0);
+      setIsDataLoaded(true);
     }
-  }, [startImmediately, checkSavedProgress, setCurrentQuestion, setAnswers, startTimer]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startImmediately]);
 
   // Smart auto-advance logic + Auto show review popup when all answered
   useEffect(() => {
@@ -242,58 +215,20 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   // Start the test - check for saved progress first
   const startTest = useCallback(() => {
     console.log('🚀 User clicked start test button');
-    
-    const savedProgress = checkSavedProgress();
-    
-    if (savedProgress.hasCompletedSavedTest) {
-      console.log('🎉 Test completed but not submitted - showing completed test popup');
-      setShowCompletedTestPopup(true);
-    }
-    else if (savedProgress.hasIncompleteSavedTest && savedProgress.savedProgress) {
-      console.log('📝 Test in progress - showing continue option');
-      const completedCount = savedProgress.savedProgress.answers.filter((a: number | null) => a !== null).length;
-      const remainingTime = Math.max(0, timeLimit - savedProgress.savedProgress.timeElapsed);
-      
-      setSavedProgress(completedCount);
-      setSavedTimeRemaining(remainingTime);
-      setShowProgressPopup(true);
-    }
-    else {
-      console.log('🆕 Starting fresh test');
-      startTimer();
-      setIsDataLoaded(true);
-      resetConfetti();
-    }
-  }, [checkSavedProgress, resetConfetti, startTimer, timeLimit, setShowCompletedTestPopup, setSavedProgress, setSavedTimeRemaining, setShowProgressPopup]);
-
-  // Continue test from saved state
-  const continueTest = useCallback(() => {
-    const savedProgress = checkSavedProgress();
-    
-    if (!savedProgress.hasIncompleteSavedTest || !savedProgress.savedProgress) {
-      startTimer();
-      setShowProgressPopup(false);
-      setIsDataLoaded(true);
-      return;
-    }
-
-    console.log('✅ Continuing test from saved state, question:', savedProgress.savedProgress.currentQuestion + 1);
-    setCurrentQuestion(savedProgress.savedProgress.currentQuestion);
-    setAnswers(savedProgress.savedProgress.answers);
-    startTimer(savedProgress.savedProgress.timeElapsed);
-    setShowProgressPopup(false);
+    startTimer();
     setIsDataLoaded(true);
-  }, [checkSavedProgress, setCurrentQuestion, setAnswers, startTimer, setShowProgressPopup]);
+    resetConfetti();
+  }, [startTimer, resetConfetti]);
 
   // Restart test (clear saved state and start fresh)
   const restartTest = useCallback(() => {
+    console.log('🔄 Restarting test from popup - clearing saved state');
     clearProgress();
-    setShowProgressPopup(false);
     resetQuestionState();
     resetPopupStates();
     startTimer(0);
     setIsDataLoaded(true);
-  }, [clearProgress, resetQuestionState, resetPopupStates, startTimer, setShowProgressPopup]);
+  }, [clearProgress, resetQuestionState, resetPopupStates, startTimer]);
 
   // ✅ OPTIMIZED: Centralized fresh test restart logic for reusability
   const restartFreshTest = useCallback(() => {
@@ -411,7 +346,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     const savedState = loadTestState();
     let timeSpent, filledAnswers;
     
-    if (savedState && isTestCompleted()) {
+    if (savedState && isTimeUp) {
       // Completing from saved completed test
       timeSpent = savedState.timeElapsed;
       filledAnswers = savedState.answers.map(answer => answer ?? -1);
@@ -448,17 +383,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   if (!isActive && !startTime) {
     return (
       <>
-        {/* Test Progress Popup - shows on start screen */}
-        <TestProgressPopup 
-          isOpen={showProgressPopup}
-          questionNumber={savedProgress}
-          totalQuestions={questions.length}
-          timeRemaining={savedTimeRemaining}
-          onContinue={continueTest}
-          onRestart={restartTest}
-          onViewResult={viewSavedResult}
-        />
-        
         {/* Completed Test Popup - for tests that are done but not submitted */}
         <CompletedTestPopup 
           isOpen={showCompletedTestPopup}
@@ -585,17 +509,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         }}
         preloadedUserInfo={preloadedUserInfo}
         isAuthenticatedUser={isAuthenticatedUser}
-      />
-      
-      {/* Test Progress Popup */}
-      <TestProgressPopup 
-        isOpen={showProgressPopup}
-        questionNumber={savedProgress}
-        totalQuestions={questions.length}
-        timeRemaining={savedTimeRemaining}
-        onContinue={continueTest}
-        onRestart={restartTest}
-        onViewResult={viewSavedResult}
       />
 
       {/* Progress Header */}
