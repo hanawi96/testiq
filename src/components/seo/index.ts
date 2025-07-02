@@ -1,0 +1,1 @@
+// Note: We can't export Astro components using default export 
