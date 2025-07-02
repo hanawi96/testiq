@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Question } from '../../utils/test';
+import type { Question } from '../../../utils/test';
 
 interface QuestionCardProps {
   question: Question;
@@ -96,19 +96,15 @@ export default function QuestionCard({
 
         {/* Answer options */}
         <div className="space-y-3">
-          {question.options.map((option, index) => {
+          {question.options.map((option: string, index: number) => {
             const isSelected = selectedAnswer === index;
-            const isCorrect = isReviewMode && index === question.correct;
-            const isWrong = isReviewMode && isSelected && index !== question.correct;
             const isHighlighted = highlightedAnswer === index;
             
             let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-transparent';
             
             if (isReviewMode) {
-              if (isCorrect) {
-                buttonClass += ' bg-green-50 text-green-800';
-              } else if (isWrong) {
-                buttonClass += ' bg-red-50 text-red-800';
+              if (isSelected) {
+                buttonClass += ' bg-primary-50 text-primary-800';
               } else {
                 buttonClass += ' bg-gray-50 text-gray-600';
               }
@@ -133,18 +129,12 @@ export default function QuestionCard({
                 <div className="flex items-center space-x-3">
                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold
                     ${isSelected 
-                      ? (isReviewMode && isWrong ? 'border-red-400 bg-red-100 text-red-600' : 'border-primary-400 bg-primary-100 text-primary-600')
-                      : (isReviewMode && isCorrect ? 'border-green-400 bg-green-100 text-green-600' : 'border-gray-300 text-gray-500')
+                      ? 'border-primary-400 bg-primary-100 text-primary-600'
+                      : 'border-gray-300 text-gray-500'
                     }`}>
                     {String.fromCharCode(65 + index)}
                   </div>
                   <span className="flex-1 font-medium">{option}</span>
-                  {isReviewMode && isCorrect && (
-                    <span className="text-green-600">✓</span>
-                  )}
-                  {isReviewMode && isWrong && (
-                    <span className="text-red-600">✗</span>
-                  )}
                 </div>
               </motion.button>
             );
