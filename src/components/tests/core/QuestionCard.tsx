@@ -99,7 +99,8 @@ const AnswerOptions = memo(({
         const isSelected = selectedAnswer === index;
         const isHighlighted = highlightedAnswer === index;
         
-        let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-transparent transition-colors duration-150';
+        // Luôn thêm border vào class chính, không phụ thuộc vào trạng thái
+        let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0';
         
         if (isReviewMode) {
           if (isSelected) {
@@ -117,10 +118,11 @@ const AnswerOptions = memo(({
 
         return (
           <button
-            key={index}
+            key={`answer-${index}`}
             className={buttonClass}
             onClick={() => !isReviewMode && onAnswerSelect(index)}
             disabled={isReviewMode}
+            style={{ borderWidth: '1px', borderStyle: 'solid', borderColor: '#e5e7eb' }}
           >
             <div className="flex items-center space-x-3">
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150

@@ -805,6 +805,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
       {/* Question Component */}
       <IQQuestion 
+        key={`question-${currentQuestion}`}
         question={questions[currentQuestion]}
         currentAnswer={answers[currentQuestion]}
         onAnswerSelect={handleAnswerSelect}

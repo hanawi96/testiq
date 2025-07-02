@@ -25,22 +25,29 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
   answersDisabled,
   showAnimation
 }) => {
+  // Sử dụng key để đảm bảo component được tạo mới hoàn toàn khi câu hỏi thay đổi
   return (
-    <QuestionCard
-      question={question}
-      selectedAnswer={currentAnswer}
-      onAnswerSelect={onAnswerSelect}
-      highlightedAnswer={highlightedAnswer}
-      isReviewMode={answersDisabled}
-    />
+    <div key={`question-container-${question.id}`}>
+      <QuestionCard
+        question={question}
+        selectedAnswer={currentAnswer}
+        onAnswerSelect={onAnswerSelect}
+        highlightedAnswer={highlightedAnswer}
+        isReviewMode={answersDisabled}
+      />
+    </div>
   );
 };
 
 // Sử dụng memo để tránh re-render không cần thiết
 export default memo(IQQuestion, (prevProps, nextProps) => {
-  // Chỉ re-render khi câu hỏi thay đổi hoặc đáp án được chọn thay đổi
+  // Nếu câu hỏi thay đổi, luôn re-render
+  if (prevProps.question.id !== nextProps.question.id) {
+    return false;
+  }
+  
+  // Nếu câu hỏi không thay đổi, chỉ re-render khi các props quan trọng khác thay đổi
   return (
-    prevProps.question.id === nextProps.question.id &&
     prevProps.currentAnswer === nextProps.currentAnswer &&
     prevProps.highlightedAnswer === nextProps.highlightedAnswer &&
     prevProps.answersDisabled === nextProps.answersDisabled
