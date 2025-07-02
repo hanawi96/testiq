@@ -111,11 +111,20 @@ export interface Question {
   export function generateTestResult(
     questions: Question[],
     answers: number[],
-    timeSpent: number
+    timeSpent: number,
+    skipAnswerCheck: boolean = true
   ): TestResult {
-    const correctAnswers = answers.filter((answer, index) => 
-      answer === questions[index].correct
-    ).length;
+    let correctAnswers = 0;
+    
+    if (skipAnswerCheck) {
+      // Không check đáp án, chỉ tính điểm dựa trên số câu đã làm
+      correctAnswers = answers.filter(a => a !== -1).length;
+    } else {
+      // Kiểm tra từng đáp án với câu hỏi
+      correctAnswers = answers.filter((answer, index) => 
+        answer === questions[index].correct
+      ).length;
+    }
     
     const iq = calculateIQ(correctAnswers, questions.length);
     const classification = getIQClassification(iq);
