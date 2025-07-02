@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Question } from '../../../utils/test';
 
@@ -11,15 +11,8 @@ interface QuestionCardProps {
   highlightedAnswer?: number | null;
 }
 
-export default function QuestionCard({
-  question,
-  selectedAnswer,
-  onAnswerSelect,
-  showExplanation = false,
-  isReviewMode = false,
-  highlightedAnswer = null
-}: QuestionCardProps) {
-  
+// Component hiển thị phần header của câu hỏi
+const QuestionHeader = memo(({ question }: { question: Question }) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return 'bg-green-100 text-green-800';
@@ -53,79 +46,125 @@ export default function QuestionCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary-50 to-blue-50 p-4 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <span className="text-2xl">{getTypeIcon(question.type)}</span>
-            <div>
-              <h3 className="font-semibold text-gray-800">{getTypeLabel(question.type)}</h3>
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
-                {question.difficulty === 'easy' ? 'Dễ' : 
-                 question.difficulty === 'medium' ? 'Trung bình' :
-                 question.difficulty === 'hard' ? 'Khó' : 'Chuyên gia'}
-              </span>
-            </div>
+    <div className="bg-gradient-to-r from-primary-50 to-blue-50 p-4 border-b border-gray-100">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <span className="text-2xl">{getTypeIcon(question.type)}</span>
+          <div>
+            <h3 className="font-semibold text-gray-800">{getTypeLabel(question.type)}</h3>
+            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
+              {question.difficulty === 'easy' ? 'Dễ' : 
+                question.difficulty === 'medium' ? 'Trung bình' :
+                question.difficulty === 'hard' ? 'Khó' : 'Chuyên gia'}
+            </span>
           </div>
-          <div className="text-right">
-            <div className="text-sm text-gray-500">Câu số</div>
-            <div className="text-xl font-bold text-primary-600">#{question.id}</div>
-          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-sm text-gray-500">Câu số</div>
+          <div className="text-xl font-bold text-primary-600">#{question.id}</div>
         </div>
       </div>
+    </div>
+  );
+});
 
-      {/* Question content */}
+// Component hiển thị nội dung câu hỏi
+const QuestionContent = memo(({ question }: { question: Question }) => {
+  return (
+    <div className="mb-6">
+      <p className="text-lg leading-relaxed text-gray-800 font-medium whitespace-pre-wrap">
+        {question.question}
+      </p>
+    </div>
+  );
+});
+
+// Component hiển thị các đáp án
+const AnswerOptions = memo(({ 
+  options, 
+  selectedAnswer, 
+  onAnswerSelect, 
+  isReviewMode, 
+  highlightedAnswer 
+}: { 
+  options: string[], 
+  selectedAnswer: number | null, 
+  onAnswerSelect: (index: number) => void, 
+  isReviewMode: boolean, 
+  highlightedAnswer: number | null 
+}) => {
+  return (
+    <div className="space-y-3">
+      {options.map((option: string, index: number) => {
+        const isSelected = selectedAnswer === index;
+        const isHighlighted = highlightedAnswer === index;
+        
+        let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-transparent transition-colors duration-150';
+        
+        if (isReviewMode) {
+          if (isSelected) {
+            buttonClass += ' bg-primary-50 text-primary-800';
+          } else {
+            buttonClass += ' bg-gray-50 text-gray-600';
+          }
+        } else if (isSelected) {
+          buttonClass += ' bg-primary-50 text-primary-800';
+        } else if (isHighlighted) {
+          buttonClass += ' bg-blue-50 text-blue-800';
+        } else {
+          buttonClass += ' bg-white text-gray-700 hover:bg-gray-50';
+        }
+
+        return (
+          <button
+            key={index}
+            className={buttonClass}
+            onClick={() => !isReviewMode && onAnswerSelect(index)}
+            disabled={isReviewMode}
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
+                ${isSelected 
+                  ? 'border-primary-400 bg-primary-100 text-primary-600'
+                  : 'border-gray-300 text-gray-500'
+                }`}>
+                {String.fromCharCode(65 + index)}
+              </div>
+              <span className="flex-1 font-medium">{option}</span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+});
+
+// Component chính kết hợp các phần
+export default function QuestionCard({
+  question,
+  selectedAnswer,
+  onAnswerSelect,
+  showExplanation = false,
+  isReviewMode = false,
+  highlightedAnswer = null
+}: QuestionCardProps) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Header - chỉ re-render khi question thay đổi */}
+      <QuestionHeader question={question} />
+
       <div className="p-6">
-        <div className="mb-6">
-          <p className="text-lg leading-relaxed text-gray-800 font-medium whitespace-pre-wrap">
-            {question.question}
-          </p>
-        </div>
+        {/* Nội dung câu hỏi - chỉ re-render khi question thay đổi */}
+        <QuestionContent question={question} />
 
-        {/* Answer options */}
-        <div className="space-y-3">
-          {question.options.map((option: string, index: number) => {
-            const isSelected = selectedAnswer === index;
-            const isHighlighted = highlightedAnswer === index;
-            
-            let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-transparent transition-colors duration-150';
-            
-            if (isReviewMode) {
-              if (isSelected) {
-                buttonClass += ' bg-primary-50 text-primary-800';
-              } else {
-                buttonClass += ' bg-gray-50 text-gray-600';
-              }
-            } else if (isSelected) {
-              buttonClass += ' bg-primary-50 text-primary-800';
-            } else if (isHighlighted) {
-              buttonClass += ' bg-blue-50 text-blue-800';
-            } else {
-              buttonClass += ' bg-white text-gray-700 hover:bg-gray-50';
-            }
-
-            return (
-              <button
-                key={index}
-                className={buttonClass}
-                onClick={() => !isReviewMode && onAnswerSelect(index)}
-                disabled={isReviewMode}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
-                    ${isSelected 
-                      ? 'border-primary-400 bg-primary-100 text-primary-600'
-                      : 'border-gray-300 text-gray-500'
-                    }`}>
-                    {String.fromCharCode(65 + index)}
-                  </div>
-                  <span className="flex-1 font-medium">{option}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {/* Các đáp án - re-render khi chọn đáp án */}
+        <AnswerOptions 
+          options={question.options} 
+          selectedAnswer={selectedAnswer} 
+          onAnswerSelect={onAnswerSelect} 
+          isReviewMode={isReviewMode} 
+          highlightedAnswer={highlightedAnswer} 
+        />
 
         {/* Explanation */}
         <AnimatePresence>
