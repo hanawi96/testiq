@@ -34,8 +34,16 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   // ✅ SMART: Separate effect để handle time up
   useEffect(() => {
     if (timeLeft === 0 && isActive && !hasTriggeredTimeUp && timeElapsed > 0) {
+      console.log('⏰ Timer: Time is up! Triggering onTimeUp callback');
       setHasTriggeredTimeUp(true);
-      onTimeUp();
+      
+      // Đảm bảo callback onTimeUp được gọi ngay lập tức
+      try {
+        onTimeUp();
+        console.log('✅ Timer: onTimeUp callback executed successfully');
+      } catch (error) {
+        console.error('❌ Timer: Error executing onTimeUp callback:', error);
+      }
     }
   }, [timeLeft, isActive, onTimeUp, hasTriggeredTimeUp, timeElapsed]);
 

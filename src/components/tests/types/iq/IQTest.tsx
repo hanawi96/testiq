@@ -505,7 +505,14 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     
     // ✅ Play alarm bell sound for time up
     console.log('🔔 IQTest: About to play alarm bell');
+    
+    // Phát âm thanh cảnh báo nhiều lần để chắc chắn người dùng nghe thấy
     playSound('warning');
+    
+    // Thêm timeout để phát lại âm thanh sau một khoảng thời gian
+    setTimeout(() => {
+      playSound('warning');
+    }, 1000);
     
     clearTestState(); // Clear saved state when time is up
     setShowTimeUpPopup(true);
