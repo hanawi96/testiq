@@ -22,7 +22,9 @@
         "@/components/*": ["./src/components/*"],
         "@/layouts/*": ["./src/layouts/*"],
         "@/utils/*": ["./src/utils/*"],
-        "@/data/*": ["./src/data/*"]
+        "@/data/*": ["./src/data/*"],
+        "@/backend": ["./backend/index.ts"],
+        "@/backend/*": ["./backend/*"]
       }
     },
     "include": [
