@@ -10,6 +10,7 @@ interface UseIQQuestionManagerProps {
   initialAnswers?: (number | null)[];
   playSound?: (type: 'correct' | 'wrong' | 'warning' | 'complete') => void;
   isTimeUp?: boolean;
+  isReviewMode?: boolean;
 }
 
 export function useIQQuestionManager({
@@ -17,7 +18,8 @@ export function useIQQuestionManager({
   initialQuestion = 0,
   initialAnswers,
   playSound,
-  isTimeUp = false
+  isTimeUp = false,
+  isReviewMode = false
 }: UseIQQuestionManagerProps) {
   const [currentQuestion, setCurrentQuestion] = useState(initialQuestion);
   const [answers, setAnswers] = useState<(number | null)[]>(
@@ -79,13 +81,24 @@ export function useIQQuestionManager({
 
   // Chuyển đến câu hỏi tiếp theo
   const nextQuestion = useCallback(() => {
-    const nextUnanswered = findNextUnanswered(currentQuestion + 1);
-    if (nextUnanswered !== -1) {
-      setCurrentQuestion(nextUnanswered);
+    if (isReviewMode) {
+      // Trong chế độ xem lại, đơn giản là di chuyển đến câu tiếp theo
+      const nextQuestion = (currentQuestion + 1) % questions.length;
+      setCurrentQuestion(nextQuestion);
       setJustAnswered(false);
       setHighlightedAnswer(null); // Xóa highlight
+      console.log('➡️ Review mode: Moving to next question:', nextQuestion);
+    } else {
+      // Trong chế độ làm bài, tìm câu hỏi chưa trả lời tiếp theo
+      const nextUnanswered = findNextUnanswered(currentQuestion + 1);
+      if (nextUnanswered !== -1) {
+        setCurrentQuestion(nextUnanswered);
+        setJustAnswered(false);
+        setHighlightedAnswer(null); // Xóa highlight
+        console.log('➡️ Normal mode: Moving to next unanswered question:', nextUnanswered);
+      }
     }
-  }, [currentQuestion, findNextUnanswered]);
+  }, [currentQuestion, findNextUnanswered, isReviewMode, questions.length]);
 
   // Quay lại câu hỏi trước
   const previousQuestion = useCallback(() => {
@@ -93,8 +106,15 @@ export function useIQQuestionManager({
       setCurrentQuestion(currentQuestion - 1);
       setJustAnswered(false);
       setHighlightedAnswer(null); // Xóa highlight
+      console.log('⬅️ Moving to previous question:', currentQuestion - 1);
+    } else if (isReviewMode) {
+      // Trong chế độ xem lại, nếu đang ở câu đầu tiên thì quay lại câu cuối cùng
+      setCurrentQuestion(questions.length - 1);
+      setJustAnswered(false);
+      setHighlightedAnswer(null);
+      console.log('⬅️ Review mode: Wrapping to last question:', questions.length - 1);
     }
-  }, [currentQuestion]);
+  }, [currentQuestion, isReviewMode, questions.length]);
 
   // Nhảy đến câu hỏi cụ thể
   const jumpToQuestion = useCallback((questionIndex: number) => {

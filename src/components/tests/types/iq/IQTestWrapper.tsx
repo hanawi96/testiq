@@ -12,49 +12,33 @@ interface IQTestWrapperProps {
 
 export default function IQTestWrapper({ questions, timeLimit, startImmediately = false }: IQTestWrapperProps) {
   const [result, setResult] = useState<TestResult | null>(null);
-  // Thêm ref để theo dõi việc khởi tạo
-  const isInitializedRef = useRef(false);
-  // Thêm state để kiểm soát việc render
-  const [shouldRender, setShouldRender] = useState(false);
-
-  // Kiểm tra và đảm bảo component chỉ được khởi tạo một lần
+  const [shouldRender, setShouldRender] = useState<boolean>(false);
+  
+  // Effect để kiểm tra xem có nên render component hay không
   useEffect(() => {
-    // Sử dụng setTimeout để đảm bảo React đã được khởi tạo đầy đủ
-    const timer = setTimeout(() => {
-      if (!isInitializedRef.current) {
-        console.log('🔄 IQTestWrapper: First initialization');
-        isInitializedRef.current = true;
-        
-        // Chỉ tự động render nếu startImmediately=true
-        // hoặc nếu người dùng đã bấm nút bắt đầu test
-        if (startImmediately || sessionStorage.getItem('iq_test_started') === 'true') {
-          setShouldRender(true);
-        }
-        
-        // Đặt flag để tránh khởi tạo lại khi hot-reload
-        try {
-          if (typeof window !== 'undefined' && window.sessionStorage) {
-            window.sessionStorage.setItem('iq_test_initialized', 'true');
-          }
-        } catch (e) {
-          console.error('Error accessing sessionStorage:', e);
-        }
-      }
-    }, 0);
-    
-    return () => clearTimeout(timer);
-  }, [startImmediately]);
-
-  const handleComplete = useCallback((testResult: TestResult) => {
-    setResult(testResult);
+    // Với URL mới (/test/iq/start), luôn render
+    setShouldRender(true);
   }, []);
 
-  const handleRetake = useCallback(() => {
-    setResult(null);
-    // Chuyển hướng đến trang bắt đầu test
-    window.location.href = '/test/iq';
-    // Xóa trạng thái đã bắt đầu test
+  // Callback xử lý khi hoàn thành bài test
+  const handleComplete = useCallback((testResult: TestResult) => {
+    // Nếu có kết quả, chuyển qua màn hình hiển thị kết quả
+    setResult(testResult);
+    
+    // Xóa trạng thái đã bắt đầu test khỏi sessionStorage (không cần thiết với URL mới)
     sessionStorage.removeItem('iq_test_started');
+  }, []);
+
+  // Callback xử lý khi muốn làm lại bài test
+  const handleRetake = useCallback(() => {
+    // Reset kết quả để hiển thị lại bài test
+    setResult(null);
+    
+    // Không cần dùng sessionStorage nữa do đã có URL riêng
+    sessionStorage.removeItem('iq_test_started');
+    
+    // Quay về trang intro thay vì reset lại test
+    window.location.href = '/test/iq';
   }, []);
 
   const handleHome = useCallback(() => {

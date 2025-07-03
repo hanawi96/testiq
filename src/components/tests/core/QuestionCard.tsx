@@ -93,28 +93,28 @@ const AnswerOptions = memo(({
   isReviewMode: boolean, 
   highlightedAnswer: number | null 
 }) => {
+  console.log('🔍 Rendering AnswerOptions with highlightedAnswer =', highlightedAnswer);
+  
   return (
     <div className="space-y-3">
       {options.map((option: string, index: number) => {
         const isSelected = selectedAnswer === index;
         const isHighlighted = highlightedAnswer === index;
         
+        console.log(`🔍 Answer ${index}: isHighlighted=${isHighlighted}, isSelected=${isSelected}`);
+        
         // Luôn thêm border vào class chính, không phụ thuộc vào trạng thái
-        let buttonClass = 'w-full p-4 text-left border border-gray-200 rounded-xl focus:outline-none focus:ring-0';
+        let buttonClass = 'w-full p-4 text-left border rounded-xl focus:outline-none focus:ring-0';
         
         if (isReviewMode) {
-          if (isSelected) {
-            buttonClass += ' bg-gray-50 text-gray-600';
-          } else {
-            buttonClass += ' bg-gray-50 text-gray-600';
-          }
+          buttonClass += ' bg-gray-50 text-gray-600 border-gray-200';
         } else if (isSelected) {
           // Đáp án được chọn có màu nền xanh lá cây
-          buttonClass += ' bg-green-50 text-green-800';
+          buttonClass += ' bg-green-50 text-green-800 border-green-300';
         } else if (isHighlighted) {
-          buttonClass += ' bg-blue-50 text-blue-800';
+          buttonClass += ' bg-blue-50 text-blue-800 border-blue-300';
         } else {
-          buttonClass += ' bg-white text-gray-700 hover:bg-gray-50';
+          buttonClass += ' bg-white text-gray-700 hover:bg-gray-50 border-gray-200';
         }
 
         return (
@@ -123,14 +123,15 @@ const AnswerOptions = memo(({
             className={buttonClass}
             onClick={() => !isReviewMode && onAnswerSelect(index)}
             disabled={isReviewMode}
-            style={{ borderWidth: '1px', borderStyle: 'solid', borderColor: '#e5e7eb' }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
                   ${isSelected 
                     ? 'border-green-500 bg-green-100 text-green-600'
-                    : 'border-gray-300 text-gray-500'
+                    : isHighlighted
+                      ? 'border-blue-500 bg-blue-100 text-blue-600'
+                      : 'border-gray-300 text-gray-500'
                   }`}>
                   {String.fromCharCode(65 + index)}
                 </div>

@@ -85,6 +85,11 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     isActive: startImmediately
   });
   
+  // State khác - di chuyển lên trước hook useIQQuestionManager
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isReviewMode, setIsReviewMode] = React.useState(false);
+  const [isDataLoaded, setIsDataLoaded] = React.useState(!startImmediately);
+  
   // Hook quản lý câu hỏi và trả lời
   const {
     currentQuestion,
@@ -105,7 +110,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   } = useIQQuestionManager({
     questions,
     playSound,
-    isTimeUp
+    isTimeUp,
+    isReviewMode
   });
   
   // Hook quản lý lưu tiến trình
@@ -120,16 +126,13 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     totalAnswers: questions[currentQuestion]?.options.length || 4,
     onNextQuestion: nextQuestion,
     onPrevQuestion: previousQuestion,
-    isActive: isActive && !isTimeUp && !showCongratulationsPopup && !showTimeUpPopup
+    isActive: true, // Luôn kích hoạt tính năng điều hướng bàn phím
+    highlightedAnswer: highlightedAnswer,
+    setHighlightedAnswer: setHighlightedAnswer
   });
   
   // Hook hiệu ứng confetti
   const { fireSingle } = useConfetti();
-  
-  // State khác
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isReviewMode, setIsReviewMode] = React.useState(false);
-  const [isDataLoaded, setIsDataLoaded] = React.useState(!startImmediately);
   
   // Ref để đảm bảo useEffect chỉ chạy một lần
   const hasInitializedRef = React.useRef(false);
@@ -203,6 +206,18 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       return () => clearTimeout(timer);
     }
   }, [justAnswered, answers, currentQuestion, findNextUnanswered, isReviewMode, questions.length, isActive, startTime, saveProgress]);
+
+  // Thêm listener theo dõi phím ấn toàn cục để debug
+  useEffect(() => {
+    const debugKeyPress = (e: KeyboardEvent) => {
+      console.log('🔍 DEBUG - Key pressed:', e.key);
+    };
+    
+    window.addEventListener('keydown', debugKeyPress);
+    return () => {
+      window.removeEventListener('keydown', debugKeyPress);
+    };
+  }, []);
 
   // ===== CALLBACKS =====
 

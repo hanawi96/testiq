@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { testConfig, iqQuestions } from '../../data/iqQuestions';
 import IQTestWrapper from '../../components/tests/types/iq/IQTestWrapper.tsx';
+import { testConfig, iqQuestions } from '../../data/iqQuestions';
 
 // Simple locale function
 const getLocale = (lang: string) => ({
@@ -17,7 +17,8 @@ const locale = getLocale('vi');
   title={`${testConfig.title} - ${locale.meta.site_name}`}
   description={testConfig.description}
 >
-  <div id="intro-container">
+  <!-- Phần hiển thị intro ban đầu -->
+  <div id="intro-section">
     <div class="max-w-4xl mx-auto text-center py-20">
       <div class="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
         <div class="mb-8">
@@ -60,44 +61,32 @@ const locale = getLocale('vi');
       </div>
     </div>
   </div>
-  
-  <div id="test-container" class="hidden">
+
+  <!-- Phần test sẽ được hiển thị sau khi nhấn nút bắt đầu -->
+  <div id="test-section" style="display: none;">
     <IQTestWrapper 
       questions={iqQuestions} 
       timeLimit={testConfig.timeLimit}
-      startImmediately={false}
-      client:load
+      startImmediately={true}
+      client:only="react"
     />
   </div>
 
   <script>
-    // Script để xử lý việc bắt đầu test
-    document.addEventListener('DOMContentLoaded', () => {
+    // Script để xử lý hiển thị test khi người dùng nhấn nút bắt đầu
+    document.addEventListener('DOMContentLoaded', function() {
+      // Xóa trạng thái cũ (nếu có)
+      sessionStorage.removeItem('iq_test_started');
+      
+      // Thêm event listener cho nút bắt đầu test
       const startButton = document.getElementById('start-test-btn');
-      const introContainer = document.getElementById('intro-container');
-      const testContainer = document.getElementById('test-container');
-      
-      // Kiểm tra nếu đã bắt đầu test trước đó (khi refresh trang)
-      if (sessionStorage.getItem('iq_test_started') === 'true') {
-        if (introContainer && testContainer) {
-          introContainer.classList.add('hidden');
-          testContainer.classList.remove('hidden');
-        }
-      }
-      
-      // Thêm sự kiện click cho nút bắt đầu test
-      if (startButton && introContainer && testContainer) {
-        startButton.addEventListener('click', () => {
-          // Ẩn phần giới thiệu
-          introContainer.classList.add('hidden');
+      if (startButton) {
+        startButton.addEventListener('click', function() {
+          // Ẩn phần intro
+          document.getElementById('intro-section').style.display = 'none';
+          
           // Hiển thị phần test
-          testContainer.classList.remove('hidden');
-          
-          // Lưu trạng thái đã bắt đầu test vào sessionStorage
-          sessionStorage.setItem('iq_test_started', 'true');
-          
-          // Cuộn lên đầu trang
-          window.scrollTo(0, 0);
+          document.getElementById('test-section').style.display = 'block';
         });
       }
     });
