@@ -3,7 +3,6 @@ import Confetti, { useConfetti } from '../../../common/effects/Confetti';
 import CongratulationsPopup, { type UserInfo } from '../../../common/popups/CongratulationsPopup';
 import TimeUpPopup from '../../../common/popups/TimeUpPopup';
 import TestProgressPopup from '../../../common/popups/TestProgressPopup';
-import CompletedTestPopup from '../../../common/popups/CompletedTestPopup';
 import { motion } from 'framer-motion';
 
 // Import components đã tách
@@ -63,8 +62,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     setShowTimeUpPopup,
     showProgressPopup,
     setShowProgressPopup,
-    showCompletedTestPopup,
-    setShowCompletedTestPopup,
     isTimeUp,
     setIsTimeUp,
     savedProgress,
@@ -366,17 +363,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     setShowCongratulationsPopup(true);
   }, []);
 
-  // Handle completed test popup actions
-  const handleCompletedTestViewResult = useCallback(() => {
-    setShowCompletedTestPopup(false);
-    setShowCongratulationsPopup(true);
-  }, []);
-
-  const handleCompletedTestRestart = useCallback(() => {
-    setShowCompletedTestPopup(false);
-    restartFreshTest();
-  }, [restartFreshTest]);
-
   // Submit test - shows congratulations popup
   const submitTest = useCallback(() => {
     if (isSubmitting || (!allAnswered && !isReviewMode)) return;
@@ -451,13 +437,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   if (!isActive && !startTime) {
     return (
       <>
-        {/* Completed Test Popup - for tests that are done but not submitted */}
-        <CompletedTestPopup 
-          isOpen={showCompletedTestPopup}
-          onViewResult={handleCompletedTestViewResult}
-          onRestart={handleCompletedTestRestart}
-        />
-        
         {/* Congratulations Popup - for entering user info and viewing results */}
         <CongratulationsPopup 
           isOpen={showCongratulationsPopup}

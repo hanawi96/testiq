@@ -14,7 +14,6 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
   const [showCongratulationsPopup, setShowCongratulationsPopup] = useState(false);
   const [showTimeUpPopup, setShowTimeUpPopup] = useState(false);
   const [showProgressPopup, setShowProgressPopup] = useState(false);
-  const [showCompletedTestPopup, setShowCompletedTestPopup] = useState(false);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [savedProgress, setSavedProgress] = useState(0);
   const [savedTimeRemaining, setSavedTimeRemaining] = useState(0);
@@ -106,7 +105,6 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
     setShowCongratulationsPopup(false);
     setShowTimeUpPopup(false);
     setShowProgressPopup(false);
-    setShowCompletedTestPopup(false);
     setIsTimeUp(false);
     setSavedProgress(0);
     setSavedTimeRemaining(0);
@@ -129,8 +127,6 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
     setShowTimeUpPopup,
     showProgressPopup,
     setShowProgressPopup,
-    showCompletedTestPopup,
-    setShowCompletedTestPopup,
     isTimeUp,
     setIsTimeUp,
     savedProgress,

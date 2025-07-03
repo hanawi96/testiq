@@ -87,7 +87,11 @@ export function hasInProgressTest(): boolean {
     return false;
   }
   
-  return true;
+  // Kiểm tra xem người dùng đã trả lời ít nhất 1 câu hỏi chưa
+  const hasAnsweredAny = state.answers && state.answers.some(answer => answer !== null);
+  
+  // Chỉ coi là test dang dở nếu đã trả lời ít nhất 1 câu
+  return hasAnsweredAny === true;
 }
 
 // Hàm lấy thông tin chi tiết về bài test đang làm dở

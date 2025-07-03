@@ -64,14 +64,18 @@ export default function TestProgressPopup({
           >
             {/* Header */}
             <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+              <div className={`w-16 h-16 mx-auto mb-4 ${isCompleted ? 'bg-green-600' : 'bg-red-600'} rounded-full flex items-center justify-center`}>
                 <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  {isCompleted ? (
+                    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  ) : (
+                    <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  )}
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {isCompleted ? 'Bài test đã hoàn thành' : 'Bài test chưa hoàn thành'}
+              <h3 className={`text-xl font-bold ${isCompleted ? 'text-green-600' : 'text-red-600'} mb-2`}>
+                {isCompleted ? 'Trước đó, bạn đã hoàn thành bài test' : 'Trước đó bạn chưa hoàn thành bài test'}
               </h3>
               <p className="text-gray-600 text-sm">
                 {isCompleted 

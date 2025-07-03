@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useIQSounds } from '../types/iq/hooks/useIQSounds';
 
 interface TimerProps {
   initialTime: number; // in seconds
@@ -12,6 +13,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
   const prevTimeElapsed = useRef(timeElapsed);
   const circleRef = useRef<SVGCircleElement>(null);
+  const { playTickSound } = useIQSounds();
   
   // Đảm bảo thời gian hiển thị luôn được cập nhật
   const [currentTimeLeft, setCurrentTimeLeft] = useState(Math.max(0, initialTime - timeElapsed));
@@ -51,6 +53,21 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
       }
     }
   }, [timeLeft, isActive, onTimeUp, hasTriggeredTimeUp, timeElapsed]);
+
+  // ✅ SOUND EFFECT: Phát âm thanh tít trong 10 giây cuối
+  useEffect(() => {
+    if (!isActive || currentTimeLeft > 10 || currentTimeLeft <= 0) return;
+    
+    // Phát âm thanh tít mỗi giây trong 10 giây cuối
+    const tickInterval = setInterval(() => {
+      if (currentTimeLeft <= 10 && currentTimeLeft > 0) {
+        console.log(`⏱️ Playing tick sound at ${currentTimeLeft}s remaining`);
+        playTickSound();
+      }
+    }, 1000);
+    
+    return () => clearInterval(tickInterval);
+  }, [isActive, currentTimeLeft, playTickSound]);
 
   // Hiệu ứng cập nhật thời gian hiển thị nếu đang hoạt động
   useEffect(() => {
@@ -139,20 +156,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           </motion.span>
         </div>
       </div>
-      
-      {/* Warning message - chỉ hiện khi không reset và thời gian thấp */}
-      {currentTimeLeft <= 300 && !isReset && (
-        <motion.div
-          key={`warning-${resetKey}`} /* Key mới cho warning */
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <p className={`text-xs font-medium ${progressData.colorClass}`}>
-            {currentTimeLeft <= 60 ? '⚠️ Sắp hết thời gian!' : '⏰ Còn ít thời gian'}
-          </p>
-        </motion.div>
-      )}
+
     </div>
   );
 }

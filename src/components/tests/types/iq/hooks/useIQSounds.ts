@@ -6,11 +6,8 @@ import { useState, useCallback } from 'react';
 export function useIQSounds() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   
-  // Phát âm thanh
-  const playSound = useCallback((type: 'correct' | 'wrong' | 'warning' | 'complete') => {
-    console.log(`🔊 playSound called with type: ${type}`);
-    
-    // ✅ SMART: Create audio context on-demand if not exists
+  // Lấy hoặc tạo audio context
+  const getAudioContext = useCallback(() => {
     let ctx = audioContext;
     if (!ctx) {
       console.log('🔊 Creating audio context on-demand...');
@@ -20,17 +17,28 @@ export function useIQSounds() {
         console.log('🎵 Audio context created:', ctx.state);
       } catch (error) {
         console.error('❌ Failed to create audio context:', error);
-        return;
+        return null;
       }
     }
 
-    try {
-      // Resume context if suspended
-      if (ctx.state === 'suspended') {
-        console.log('🔊 Resuming suspended audio context...');
-        ctx.resume();
-      }
+    // Resume context if suspended
+    if (ctx.state === 'suspended') {
+      console.log('🔊 Resuming suspended audio context...');
+      ctx.resume();
+    }
 
+    return ctx;
+  }, [audioContext]);
+  
+  // Phát âm thanh
+  const playSound = useCallback((type: 'correct' | 'wrong' | 'warning' | 'complete') => {
+    console.log(`🔊 playSound called with type: ${type}`);
+    
+    // ✅ SMART: Create audio context on-demand if not exists
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    try {
       if (type === 'complete') {
         // ✅ SPECIAL: Celebration sound sequence
         playCelebrationSound(ctx);
@@ -70,7 +78,36 @@ export function useIQSounds() {
     } catch (error) {
       console.error('❌ Error playing sound:', error);
     }
-  }, [audioContext]);
+  }, [getAudioContext]);
+
+  // ✅ COUNTDOWN: Âm thanh tít cho đếm ngược 10 giây cuối
+  const playTickSound = useCallback(() => {
+    console.log('⏱️ Playing tick sound for countdown');
+    
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    
+    try {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      // Tần số cao cho âm thanh tít nhỏ gọn
+      oscillator.frequency.setValueAtTime(1500, ctx.currentTime);
+      oscillator.type = 'sine';
+      
+      // Âm thanh ngắn gọn và nhỏ
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.1);
+    } catch (error) {
+      console.error('❌ Error playing tick sound:', error);
+    }
+  }, [getAudioContext]);
 
   // ✅ CELEBRATION: Special multi-tone success sound
   const playCelebrationSound = useCallback((ctx: AudioContext) => {
@@ -145,6 +182,7 @@ export function useIQSounds() {
   }, []);
 
   return {
-    playSound
+    playSound,
+    playTickSound
   };
 } 

@@ -37,7 +37,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
   const skeletonClass = !isDataLoaded ? 'animate-pulse' : '';
   
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm p-6 mt-6 border border-gray-100">
       <div className="flex items-center justify-between">
         {/* Professional Previous Button */}
         <motion.button
