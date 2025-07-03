@@ -37,10 +37,11 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   const prevTimeElapsed = useRef(timeElapsed);
   const { playTickSound } = useIQSounds();
   
-  // Trạng thái cho chế độ tối, âm thanh và lọc ánh sáng xanh
+  // Trạng thái cho chế độ tối, âm thanh, lọc ánh sáng xanh và toàn màn hình
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSoundOn, setIsSoundOn] = useState(true);
   const [isBlueFilterOn, setIsBlueFilterOn] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Đảm bảo thời gian hiển thị luôn được cập nhật
   const [currentTimeLeft, setCurrentTimeLeft] = useState(Math.max(0, initialTime - timeElapsed));
@@ -117,13 +118,26 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   useEffect(() => {
     const root = document.documentElement;
     if (isBlueFilterOn) {
-      root.style.setProperty('--blue-filter', 'brightness(0.95) sepia(20%) saturate(80%) hue-rotate(340deg)');
+      // Điều chỉnh bộ lọc với tông màu vàng ấm hơn
+      root.style.setProperty('--blue-filter', 'brightness(0.97) sepia(35%) saturate(95%) hue-rotate(320deg) contrast(0.95)');
       document.body.classList.add('blue-light-filter');
     } else {
       root.style.setProperty('--blue-filter', 'none');
       document.body.classList.remove('blue-light-filter');
     }
   }, [isBlueFilterOn]);
+
+  // Hiệu ứng theo dõi trạng thái toàn màn hình
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -158,6 +172,21 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   // Xử lý bật/tắt bộ lọc ánh sáng xanh
   const toggleBlueFilter = () => {
     setIsBlueFilterOn(!isBlueFilterOn);
+  };
+
+  // Xử lý bật/tắt chế độ toàn màn hình
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      // Bật chế độ toàn màn hình
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Không thể vào chế độ toàn màn hình: ${err.message}`);
+      });
+    } else {
+      // Thoát chế độ toàn màn hình
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
   };
 
   return (
@@ -219,7 +248,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           {isSoundOn ? (
             // Icon âm thanh bật
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243a1 1 0 01-1.415-1.415A3.982 3.982 0 0013 10a3.982 3.982 0 00-1.172-2.828a1 1 0 010-1.415z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071a1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243a1 1 0 01-1.415-1.415A3.982 3.982 0 0013 10a3.982 3.982 0 00-1.172-2.828a1 1 0 010-1.415z" clipRule="evenodd" />
             </svg>
           ) : (
             // Icon âm thanh tắt
@@ -244,6 +273,23 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
               <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+            </svg>
+          )}
+        </button>
+        <button 
+          className={`w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors ${isFullscreen ? 'ring-2 ring-purple-400' : ''}`}
+          aria-label="Bật/tắt chế độ toàn màn hình"
+          onClick={toggleFullscreen}
+        >
+          {isFullscreen ? (
+            // Icon khi đang ở chế độ toàn màn hình
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5 4a1 1 0 00-1 1v4a1 1 0 01-2 0V5a3 3 0 013-3h4a1 1 0 010 2H5zm10 8a1 1 0 01-1 1h-4a1 1 0 010-2h4a1 1 0 011 1zm3-4a1 1 0 00-1-1h-4a1 1 0 010-2h4a3 3 0 013 3v4a1 1 0 01-2 0V8zM5 8a1 1 0 00-1 1v4a3 3 0 003 3h4a1 1 0 000-2H7a1 1 0 01-1-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            // Icon khi không ở chế độ toàn màn hình
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 011.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 011.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
             </svg>
           )}
         </button>

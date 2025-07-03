@@ -3,6 +3,7 @@ import Confetti, { useConfetti } from '../../../common/effects/Confetti';
 import CongratulationsPopup, { type UserInfo } from '../../../common/popups/CongratulationsPopup';
 import TimeUpPopup from '../../../common/popups/TimeUpPopup';
 import TestProgressPopup from '../../../common/popups/TestProgressPopup';
+import { EyeRestPopup } from '../../../common/popups';
 import { motion } from 'framer-motion';
 
 // Import components đã tách
@@ -16,7 +17,8 @@ import {
   useIQSaveProgress,
   useIQQuestionManager,
   useIQPopups,
-  useIQTimer
+  useIQTimer,
+  useIQEyeRest
 } from './hooks';
 
 import type { Question, TestResult } from '../../../../utils/test';
@@ -91,6 +93,20 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     initialTimeElapsed: savedState ? savedState.timeElapsed : 0,
     onTimeUp: handleTimeUp,
     isActive: startImmediately
+  });
+
+  // Hook quản lý nghỉ mắt
+  const {
+    showRestPopup,
+    isResting,
+    restTimeRemaining,
+    handleSkipRest,
+    handleStartRest
+  } = useIQEyeRest({
+    isActive,
+    startTime,
+    restInterval: 10, // Thay đổi từ 600 (10 phút) xuống 10 giây để kiểm tra
+    restDuration: 10 // Thay đổi từ 60 xuống 10 giây để kiểm tra nhanh hơn
   });
   
   // Hook quản lý câu hỏi và trả lời
@@ -169,6 +185,30 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startImmediately, savedState]);
+
+  // Tạm dừng timer khi đang trong chế độ nghỉ mắt
+  useEffect(() => {
+    if (isResting && isActive) {
+      // Lưu tiến độ trước khi tạm dừng
+      if (startTime) {
+        const currentTimeElapsed = Math.floor((Date.now() - startTime) / 1000);
+        saveProgress(
+          currentQuestion,
+          answers,
+          currentTimeElapsed
+        );
+        console.log(`💾 Saving progress before eye rest: ${currentQuestion + 1}/${questions.length}, time: ${currentTimeElapsed}s`);
+      }
+      
+      // Tạm dừng timer
+      pauseTimer();
+      console.log('⏸️ Timer paused for eye rest');
+    } else if (!isResting && !isActive && !isTimeUp && startTime) {
+      // Tiếp tục timer sau khi nghỉ mắt xong
+      startTimer(timeElapsed);
+      console.log('▶️ Timer resumed after eye rest');
+    }
+  }, [isResting, isActive, isTimeUp, startTime, timeElapsed, currentQuestion, answers, questions.length, saveProgress, pauseTimer, startTimer]);
 
   // Thêm useEffect để lưu tiến độ định kỳ
   useEffect(() => {
@@ -296,6 +336,14 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   // Start the test - check for saved progress first
   const startTest = useCallback(() => {
     console.log('🚀 User clicked start test button');
+    
+    // Tự động kích hoạt chế độ toàn màn hình khi bắt đầu bài test
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.warn('Không thể vào chế độ toàn màn hình:', err);
+      });
+    }
+    
     startTimer();
     setIsDataLoaded(true);
     resetConfetti();
@@ -532,97 +580,118 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // TEST SCREEN RENDERING
   return (
-    <div className="min-h-screen flex items-center justify-center py-8 bg-gray-50">
-      <div className="w-full max-w-5xl px-4 sm:px-6 lg:px-8">
-        <Confetti trigger={showConfetti} type="light" />
-        
-        {/* Congratulations Popup */}
-        <CongratulationsPopup 
-          isOpen={showCongratulationsPopup}
-          onComplete={handlePopupComplete}
-          onReview={() => {
-            setShowCongratulationsPopup(false);
-            setIsReviewMode(true); // Enable review mode and jump to question 1
-            setCurrentQuestion(0);
-            
-            // ✅ FIX: Keep timer running if there's still time left
-            if (!isTimeUp) {
-              startTimer(timeElapsed);
-              console.log('⏰ Timer resumed for review mode');
-            }
-          }}
-          onConfettiTrigger={handleConfettiTrigger}
-          preloadedUserInfo={preloadedUserInfo}
-          isAuthenticatedUser={isAuthenticatedUser}
-          remainingTimeSeconds={!isTimeUp ? Math.max(0, timeLimit - timeElapsed) : undefined}
-        />
-        
-        {/* Time Up Popup */}
-        <TimeUpPopup 
-          isOpen={showTimeUpPopup}
-          onComplete={handlePopupComplete}
-          onRetakeTest={() => {
-            setShowTimeUpPopup(false);
-            restartFreshTest();
-          }}
-          preloadedUserInfo={preloadedUserInfo}
-          isAuthenticatedUser={isAuthenticatedUser}
-        />
+    <div className={`relative min-h-screen w-full bg-white ${isResting ? 'disable-animations' : ''}`}>
+      {/* Thêm style tắt animations khi đang nghỉ mắt */}
+      {isResting && (
+        <style dangerouslySetInnerHTML={{ __html: disableAnimationsStyle }} />
+      )}
+      
+      {/* Hiển thị popup nghỉ mắt */}
+      <EyeRestPopup
+        isOpen={showRestPopup}
+        onSkip={handleSkipRest}
+        onStartRest={handleStartRest}
+      />
+      
+      {/* Hiển thị thông báo đang nghỉ mắt */}
+      {isResting && (
+        <div className="fixed top-0 left-0 right-0 bg-green-100 text-green-800 py-2 text-center font-medium z-50">
+          Đang nghỉ mắt... Còn {restTimeRemaining} giây (Chế độ kiểm thử)
+        </div>
+      )}
 
-        {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
-        <Timer
-          initialTime={timeLimit}
-          timeElapsed={timeElapsed}
-          isActive={isActive}
-          onTimeUp={handleTimeUp}
-        />
+      <div className="min-h-screen flex items-center justify-center py-8 bg-gray-50">
+        <div className="w-full max-w-5xl px-4 sm:px-6 lg:px-8">
+          <Confetti trigger={showConfetti} type="light" />
+          
+          {/* Congratulations Popup */}
+          <CongratulationsPopup 
+            isOpen={showCongratulationsPopup}
+            onComplete={handlePopupComplete}
+            onReview={() => {
+              setShowCongratulationsPopup(false);
+              setIsReviewMode(true); // Enable review mode and jump to question 1
+              setCurrentQuestion(0);
+              
+              // ✅ FIX: Keep timer running if there's still time left
+              if (!isTimeUp) {
+                startTimer(timeElapsed);
+                console.log('⏰ Timer resumed for review mode');
+              }
+            }}
+            onConfettiTrigger={handleConfettiTrigger}
+            preloadedUserInfo={preloadedUserInfo}
+            isAuthenticatedUser={isAuthenticatedUser}
+            remainingTimeSeconds={!isTimeUp ? Math.max(0, timeLimit - timeElapsed) : undefined}
+          />
+          
+          {/* Time Up Popup */}
+          <TimeUpPopup 
+            isOpen={showTimeUpPopup}
+            onComplete={handlePopupComplete}
+            onRetakeTest={() => {
+              setShowTimeUpPopup(false);
+              restartFreshTest();
+            }}
+            preloadedUserInfo={preloadedUserInfo}
+            isAuthenticatedUser={isAuthenticatedUser}
+          />
 
-        {/* Main test container with shadow and background */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-          <div className="flex flex-col gap-4">
-            {/* Question Component */}
-            <div>
-              <IQQuestion 
-                key={`question-${currentQuestion}`}
-                question={questions[currentQuestion]}
-                currentAnswer={answers[currentQuestion]}
-                onAnswerSelect={handleAnswerSelect}
-                highlightedAnswer={highlightedAnswer}
-                justAnswered={justAnswered}
-                answersDisabled={!isActive || isTimeUp}
-                showAnimation={true}
-                onSkip={nextQuestion}
-              />
-            </div>
+          {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
+          <Timer
+            initialTime={timeLimit}
+            timeElapsed={timeElapsed}
+            isActive={isActive}
+            onTimeUp={handleTimeUp}
+          />
 
-            {/* Phần hiển thị tiến độ ở giữa trung tâm */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-              <IQProgressHeader 
-                currentQuestion={currentQuestion}
-                totalQuestions={questions.length}
-                timeElapsed={timeElapsed}
-                timeLimit={timeLimit}
-                isActive={isActive}
-                onTimeUp={handleTimeUp}
-                answers={answers}
-              />
-            </div>
+          {/* Main test container with shadow and background */}
+          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+            <div className="flex flex-col gap-4">
+              {/* Question Component */}
+              <div>
+                <IQQuestion 
+                  key={`question-${currentQuestion}`}
+                  question={questions[currentQuestion]}
+                  currentAnswer={answers[currentQuestion]}
+                  onAnswerSelect={handleAnswerSelect}
+                  highlightedAnswer={highlightedAnswer}
+                  justAnswered={justAnswered}
+                  answersDisabled={!isActive || isTimeUp}
+                  showAnimation={true}
+                  onSkip={nextQuestion}
+                />
+              </div>
 
-            {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
-            <div>
-              <IQNavigation 
-                currentQuestion={currentQuestion}
-                totalQuestions={questions.length}
-                answers={answers}
-                onPrevious={previousQuestion}
-                onNext={nextQuestion}
-                onJumpToQuestion={jumpToQuestion}
-                onSubmit={submitTest}
-                isSubmitting={isSubmitting}
-                isReviewMode={isReviewMode}
-                allAnswered={allAnswered}
-                isDataLoaded={isDataLoaded}
-              />
+              {/* Phần hiển thị tiến độ ở giữa trung tâm */}
+              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                <IQProgressHeader 
+                  currentQuestion={currentQuestion}
+                  totalQuestions={questions.length}
+                  timeElapsed={timeElapsed}
+                  timeLimit={timeLimit}
+                  isActive={isActive}
+                  onTimeUp={handleTimeUp}
+                  answers={answers}
+                />
+              </div>
+
+              {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
+              <div>
+                <IQNavigation 
+                  currentQuestion={currentQuestion}
+                  totalQuestions={questions.length}
+                  answers={answers}
+                  onPrevious={previousQuestion}
+                  onNext={nextQuestion}
+                  onJumpToQuestion={jumpToQuestion}
+                  onSubmit={submitTest}
+                  isSubmitting={isSubmitting}
+                  isReviewMode={isReviewMode}
+                  allAnswered={allAnswered}
+                  isDataLoaded={isDataLoaded}
+                />
+              </div>
             </div>
           </div>
         </div>
