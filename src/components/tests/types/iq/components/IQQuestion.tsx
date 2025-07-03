@@ -13,6 +13,7 @@ interface IQQuestionProps {
   justAnswered: boolean;
   answersDisabled: boolean;
   showAnimation: boolean;
+  onSkip?: () => void;
 }
 
 // Component đơn giản chỉ truyền props xuống QuestionCard
@@ -23,7 +24,8 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
   highlightedAnswer,
   justAnswered,
   answersDisabled,
-  showAnimation
+  showAnimation,
+  onSkip
 }) => {
   // Sử dụng key để đảm bảo component được tạo mới hoàn toàn khi câu hỏi thay đổi
   return (
@@ -34,6 +36,7 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
         onAnswerSelect={onAnswerSelect}
         highlightedAnswer={highlightedAnswer}
         isReviewMode={answersDisabled}
+        onSkip={onSkip}
       />
     </div>
   );

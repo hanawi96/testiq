@@ -9,10 +9,11 @@ interface QuestionCardProps {
   showExplanation?: boolean;
   isReviewMode?: boolean;
   highlightedAnswer?: number | null;
+  onSkip?: () => void;
 }
 
 // Component hiển thị phần header của câu hỏi
-const QuestionHeader = memo(({ question }: { question: Question }) => {
+const QuestionHeader = memo(({ question, onSkip }: { question: Question, onSkip?: () => void }) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return 'bg-green-100 text-green-800';
@@ -59,10 +60,19 @@ const QuestionHeader = memo(({ question }: { question: Question }) => {
             </span>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-sm text-gray-500">Câu số</div>
-          <div className="text-xl font-bold text-primary-600">#{question.id}</div>
-        </div>
+        {onSkip ? (
+          <button 
+            onClick={onSkip}
+            className="text-blue-600 font-medium hover:text-blue-800 focus:outline-none transition-colors"
+          >
+            Bỏ qua
+          </button>
+        ) : (
+          <div className="text-right">
+            <div className="text-sm text-gray-500">Câu số</div>
+            <div className="text-xl font-bold text-primary-600">#{question.id}</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -156,12 +166,13 @@ export default function QuestionCard({
   onAnswerSelect,
   showExplanation = false,
   isReviewMode = false,
-  highlightedAnswer = null
+  highlightedAnswer = null,
+  onSkip
 }: QuestionCardProps) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Header - chỉ re-render khi question thay đổi */}
-      <QuestionHeader question={question} />
+      <QuestionHeader question={question} onSkip={onSkip} />
 
       <div className="p-6">
         {/* Nội dung câu hỏi - chỉ re-render khi question thay đổi */}
