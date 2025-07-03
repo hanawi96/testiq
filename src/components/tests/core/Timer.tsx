@@ -97,7 +97,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     
     // Xác định màu sắc dựa vào phần trăm thời gian còn lại
     return percentage > 50 ? 'text-green-600' : 
-           percentage > 20 ? 'text-yellow-600' : 'text-red-600';
+                      percentage > 20 ? 'text-yellow-600' : 'text-red-600';
   }, [currentTimeLeft, initialTime]);
 
   // Hiệu ứng pulse khi còn ít thời gian
@@ -127,10 +127,10 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
         <motion.div 
           key={resetKey}
           className="w-auto px-3 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
-          animate={{ 
+            animate={{ 
             scale: shouldPulse ? [1, 1.05] : 1
-          }}
-          transition={{ 
+            }}
+            transition={{ 
             duration: 0.7, 
             repeat: shouldPulse ? Infinity : 0, 
             repeatType: "reverse" 

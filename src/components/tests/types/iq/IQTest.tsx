@@ -586,7 +586,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
             </div>
 
             {/* Phần hiển thị tiến độ ở giữa trung tâm */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transform hover:shadow-xl transition-all duration-300">
+            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
               <IQProgressHeader 
                 currentQuestion={currentQuestion}
                 totalQuestions={questions.length}
