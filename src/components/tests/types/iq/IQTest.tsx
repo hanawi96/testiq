@@ -523,89 +523,100 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // TEST SCREEN RENDERING
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      <Confetti trigger={showConfetti} type="light" />
-      
-      {/* Congratulations Popup */}
-      <CongratulationsPopup 
-        isOpen={showCongratulationsPopup}
-        onComplete={handlePopupComplete}
-        onReview={() => {
-          setShowCongratulationsPopup(false);
-          setIsReviewMode(true); // Enable review mode and jump to question 1
-          setCurrentQuestion(0);
-          
-          // ✅ FIX: Keep timer running if there's still time left
-          if (!isTimeUp) {
-            startTimer(timeElapsed);
-            console.log('⏰ Timer resumed for review mode');
-          }
-        }}
-        onConfettiTrigger={handleConfettiTrigger}
-        preloadedUserInfo={preloadedUserInfo}
-        isAuthenticatedUser={isAuthenticatedUser}
-        remainingTimeSeconds={!isTimeUp ? Math.max(0, timeLimit - timeElapsed) : undefined}
-      />
-      
-      {/* Time Up Popup */}
-      <TimeUpPopup 
-        isOpen={showTimeUpPopup}
-        onComplete={handlePopupComplete}
-        onRetakeTest={() => {
-          setShowTimeUpPopup(false);
-          restartFreshTest();
-        }}
-        preloadedUserInfo={preloadedUserInfo}
-        isAuthenticatedUser={isAuthenticatedUser}
-      />
+    <div className="min-h-screen flex items-center justify-center py-8 bg-gray-50">
+      <div className="w-full max-w-5xl px-4 sm:px-6 lg:px-8">
+        <Confetti trigger={showConfetti} type="light" />
+        
+        {/* Congratulations Popup */}
+        <CongratulationsPopup 
+          isOpen={showCongratulationsPopup}
+          onComplete={handlePopupComplete}
+          onReview={() => {
+            setShowCongratulationsPopup(false);
+            setIsReviewMode(true); // Enable review mode and jump to question 1
+            setCurrentQuestion(0);
+            
+            // ✅ FIX: Keep timer running if there's still time left
+            if (!isTimeUp) {
+              startTimer(timeElapsed);
+              console.log('⏰ Timer resumed for review mode');
+            }
+          }}
+          onConfettiTrigger={handleConfettiTrigger}
+          preloadedUserInfo={preloadedUserInfo}
+          isAuthenticatedUser={isAuthenticatedUser}
+          remainingTimeSeconds={!isTimeUp ? Math.max(0, timeLimit - timeElapsed) : undefined}
+        />
+        
+        {/* Time Up Popup */}
+        <TimeUpPopup 
+          isOpen={showTimeUpPopup}
+          onComplete={handlePopupComplete}
+          onRetakeTest={() => {
+            setShowTimeUpPopup(false);
+            restartFreshTest();
+          }}
+          preloadedUserInfo={preloadedUserInfo}
+          isAuthenticatedUser={isAuthenticatedUser}
+        />
 
-      {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
-      <Timer
-        initialTime={timeLimit}
-        timeElapsed={timeElapsed}
-        isActive={isActive}
-        onTimeUp={handleTimeUp}
-      />
-
-      {/* Question Component */}
-      <IQQuestion 
-        key={`question-${currentQuestion}`}
-        question={questions[currentQuestion]}
-        currentAnswer={answers[currentQuestion]}
-        onAnswerSelect={handleAnswerSelect}
-        highlightedAnswer={highlightedAnswer}
-        justAnswered={justAnswered}
-        answersDisabled={!isActive || isTimeUp}
-        showAnimation={true}
-      />
-
-      {/* Phần hiển thị tiến độ ở giữa trung tâm */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 my-8 border border-gray-100 transform hover:shadow-xl transition-all duration-300">
-        <IQProgressHeader 
-          currentQuestion={currentQuestion}
-          totalQuestions={questions.length}
+        {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
+        <Timer
+          initialTime={timeLimit}
           timeElapsed={timeElapsed}
-          timeLimit={timeLimit}
           isActive={isActive}
           onTimeUp={handleTimeUp}
-          answers={answers}
         />
-      </div>
 
-      {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
-      <IQNavigation 
-        currentQuestion={currentQuestion}
-        totalQuestions={questions.length}
-        answers={answers}
-        onPrevious={previousQuestion}
-        onNext={nextQuestion}
-        onJumpToQuestion={jumpToQuestion}
-        onSubmit={submitTest}
-        isSubmitting={isSubmitting}
-        isReviewMode={isReviewMode}
-        allAnswered={allAnswered}
-        isDataLoaded={isDataLoaded}
-      />
+        {/* Main test container with shadow and background */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+          <div className="flex flex-col gap-4">
+            {/* Question Component */}
+            <div>
+              <IQQuestion 
+                key={`question-${currentQuestion}`}
+                question={questions[currentQuestion]}
+                currentAnswer={answers[currentQuestion]}
+                onAnswerSelect={handleAnswerSelect}
+                highlightedAnswer={highlightedAnswer}
+                justAnswered={justAnswered}
+                answersDisabled={!isActive || isTimeUp}
+                showAnimation={true}
+              />
+            </div>
+
+            {/* Phần hiển thị tiến độ ở giữa trung tâm */}
+            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transform hover:shadow-xl transition-all duration-300">
+              <IQProgressHeader 
+                currentQuestion={currentQuestion}
+                totalQuestions={questions.length}
+                timeElapsed={timeElapsed}
+                timeLimit={timeLimit}
+                isActive={isActive}
+                onTimeUp={handleTimeUp}
+                answers={answers}
+              />
+            </div>
+
+            {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
+            <div>
+              <IQNavigation 
+                currentQuestion={currentQuestion}
+                totalQuestions={questions.length}
+                answers={answers}
+                onPrevious={previousQuestion}
+                onNext={nextQuestion}
+                onJumpToQuestion={jumpToQuestion}
+                onSubmit={submitTest}
+                isSubmitting={isSubmitting}
+                isReviewMode={isReviewMode}
+                allAnswered={allAnswered}
+                isDataLoaded={isDataLoaded}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
