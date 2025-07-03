@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 
 // Import components đã tách
 import { IQQuestion, IQNavigation, IQProgressHeader } from './components';
+import Timer from '../../core/Timer';
 
 // Import hooks đã tách
 import { 
@@ -558,18 +559,13 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         isAuthenticatedUser={isAuthenticatedUser}
       />
 
-      {/* Progress Header */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-100 relative overflow-hidden">
-        <IQProgressHeader 
-          currentQuestion={currentQuestion}
-          totalQuestions={questions.length}
-          timeElapsed={timeElapsed}
-          timeLimit={timeLimit}
-          isActive={isActive}
-          onTimeUp={handleTimeUp}
-          answers={answers}
-        />
-      </div>
+      {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
+      <Timer
+        initialTime={timeLimit}
+        timeElapsed={timeElapsed}
+        isActive={isActive}
+        onTimeUp={handleTimeUp}
+      />
 
       {/* Question Component */}
       <IQQuestion 
@@ -582,6 +578,19 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         answersDisabled={!isActive || isTimeUp}
         showAnimation={true}
       />
+
+      {/* Phần hiển thị tiến độ ở giữa trung tâm */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 my-8 border border-gray-100 transform hover:shadow-xl transition-all duration-300">
+        <IQProgressHeader 
+          currentQuestion={currentQuestion}
+          totalQuestions={questions.length}
+          timeElapsed={timeElapsed}
+          timeLimit={timeLimit}
+          isActive={isActive}
+          onTimeUp={handleTimeUp}
+          answers={answers}
+        />
+      </div>
 
       {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
       <IQNavigation 
