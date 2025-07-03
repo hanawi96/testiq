@@ -522,7 +522,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // TEST SCREEN RENDERING
   return (
-    <div className="max-w-4xl mx-auto py-20">
+    <div className="max-w-5xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <Confetti trigger={showConfetti} type="light" />
       
       {/* Congratulations Popup */}

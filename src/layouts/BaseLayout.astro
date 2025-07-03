@@ -66,6 +66,11 @@ import SEO from '../components/seo/SEO.astro';
       flex: 1;
     }
     
+    /* Header and footer transition */
+    header, footer {
+      transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+    
     .hero-section { min-height: 100vh; }
     
     /* Loading spinner */
@@ -80,6 +85,38 @@ import SEO from '../components/seo/SEO.astro';
     
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+    
+    /* Fullscreen test mode - hide header and footer */
+    body.fullscreen-test header,
+    body.fullscreen-test footer {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      position: absolute !important;
+      z-index: -1 !important;
+    }
+    
+    /* Target the specific header with its exact class */
+    body.fullscreen-test header.fixed,
+    body.fullscreen-test header[class*="fixed"],
+    body.fullscreen-test header[class*="top-0"],
+    body.fullscreen-test header[class*="z-50"] {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transform: translateY(-100%) !important;
+    }
+    
+    body.fullscreen-test main {
+      padding: 0;
+      margin: 0;
+    }
+    
+    body.fullscreen-test {
+      background-color: #f9fafb;
     }
   </style>
 </head>

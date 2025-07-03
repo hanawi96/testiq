@@ -82,6 +82,21 @@ const locale = getLocale('vi');
       const startButton = document.getElementById('start-test-btn');
       if (startButton) {
         startButton.addEventListener('click', function() {
+          // Ẩn header và footer trực tiếp
+          const headerElement = document.querySelector('header');
+          const footerElement = document.querySelector('footer');
+          
+          if (headerElement) {
+            headerElement.style.display = 'none';
+          }
+          
+          if (footerElement) {
+            footerElement.style.display = 'none';
+          }
+          
+          // Thêm class vào body
+          document.body.classList.add('fullscreen-test');
+          
           // Kích hoạt event kiểm tra xem có bài test đang làm dở không
           document.dispatchEvent(new CustomEvent('check-in-progress-test'));
         });

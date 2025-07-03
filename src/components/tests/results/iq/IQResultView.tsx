@@ -33,6 +33,32 @@ const IQResultView: React.FC<ResultComponentProps> = ({
   const careers = useMemo(() => getCareerSuggestions(results.score), [results.score]);
   const iqLevel = useMemo(() => getIQLevel(results.score), [results.score]);
   
+  // Remove fullscreen-test class when results are displayed
+  useEffect(() => {
+    // Đảm bảo header và footer được hiển thị khi xem kết quả
+    document.body.classList.remove('fullscreen-test');
+    
+    // Hiển thị trực tiếp header và footer
+    const headerElement = document.querySelector('header');
+    const footerElement = document.querySelector('footer');
+    
+    if (headerElement) {
+      headerElement.style.display = '';
+      headerElement.style.visibility = '';
+      headerElement.style.opacity = '';
+    }
+    
+    if (footerElement) {
+      footerElement.style.display = '';
+      footerElement.style.visibility = '';
+      footerElement.style.opacity = '';
+    }
+    
+    return () => {
+      // Không cần thêm lại class khi component unmount
+    };
+  }, []);
+  
   // Single useEffect for all data loading
   useEffect(() => {
     const loadAllData = async () => {

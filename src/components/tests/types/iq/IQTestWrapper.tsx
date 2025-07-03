@@ -33,6 +33,52 @@ export default function IQTestWrapper({ questions, timeLimit, startImmediately =
   // Ref để kiểm tra xem component đã mount chưa
   const isMounted = useRef<boolean>(false);
 
+  // Thêm/xóa class fullscreen-test vào body khi test bắt đầu/kết thúc
+  useEffect(() => {
+    const headerElement = document.querySelector('header');
+    const footerElement = document.querySelector('footer');
+
+    if (shouldRender && !result) {
+      // Khi bắt đầu test, thêm class để ẩn header và footer
+      document.body.classList.add('fullscreen-test');
+      
+      // Ẩn trực tiếp header và footer
+      if (headerElement) {
+        headerElement.style.display = 'none';
+      }
+      
+      if (footerElement) {
+        footerElement.style.display = 'none';
+      }
+    } else {
+      // Khi kết thúc test hoặc chưa bắt đầu, xóa class
+      document.body.classList.remove('fullscreen-test');
+      
+      // Hiển thị lại header và footer
+      if (headerElement) {
+        headerElement.style.display = '';
+      }
+      
+      if (footerElement) {
+        footerElement.style.display = '';
+      }
+    }
+    
+    return () => {
+      // Cleanup: đảm bảo xóa class khi component unmount
+      document.body.classList.remove('fullscreen-test');
+      
+      // Hiển thị lại header và footer khi unmount
+      if (headerElement) {
+        headerElement.style.display = '';
+      }
+      
+      if (footerElement) {
+        footerElement.style.display = '';
+      }
+    };
+  }, [shouldRender, result]);
+
   // Xử lý event từ button "Bắt đầu Test"
   useEffect(() => {
     const handleCheckInProgress = () => {

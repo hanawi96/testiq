@@ -94,16 +94,16 @@ export function useIQSounds() {
       oscillator.connect(gainNode);
       gainNode.connect(ctx.destination);
       
-      // Tần số cao cho âm thanh tít nhỏ gọn
-      oscillator.frequency.setValueAtTime(1500, ctx.currentTime);
-      oscillator.type = 'sine';
+      // Tần số cao và rõ ràng hơn cho âm thanh tít cảnh báo
+      oscillator.frequency.setValueAtTime(2000, ctx.currentTime);
+      oscillator.type = 'square';
       
-      // Âm thanh ngắn gọn và nhỏ
-      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      // Âm thanh to hơn và rõ ràng hơn
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
       
       oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.1);
+      oscillator.stop(ctx.currentTime + 0.15);
     } catch (error) {
       console.error('❌ Error playing tick sound:', error);
     }
