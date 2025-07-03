@@ -245,7 +245,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // Lưu trạng thái khi người dùng sắp thoát khỏi trang
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isActive && startTime) {
         const currentTimeElapsed = Math.floor((Date.now() - startTime) / 1000);
         saveProgress(
@@ -254,6 +254,15 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           currentTimeElapsed
         );
         console.log(`💾 Saving progress before unload: ${currentQuestion + 1}/${questions.length}, time: ${currentTimeElapsed}s`);
+        
+        // Hiển thị thông báo khi người dùng thoát trang
+        // Cách xử lý cho tất cả các trình duyệt hiện đại
+        const message = "Dữ liệu bài test đã được lưu lại, bạn có muốn thoát không?";
+        e.preventDefault();
+        e.returnValue = message;
+        
+        // Một số trình duyệt cũ vẫn có thể sử dụng giá trị trả về
+        return message;
       }
     };
     
