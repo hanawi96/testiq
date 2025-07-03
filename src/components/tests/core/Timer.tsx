@@ -12,8 +12,11 @@ interface TimerProps {
 export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0 }: TimerProps) {
   const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
   const prevTimeElapsed = useRef(timeElapsed);
-  const circleRef = useRef<SVGCircleElement>(null);
   const { playTickSound } = useIQSounds();
+  
+  // Trạng thái cho chế độ tối và âm thanh
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSoundOn, setIsSoundOn] = useState(true);
   
   // Đảm bảo thời gian hiển thị luôn được cập nhật
   const [currentTimeLeft, setCurrentTimeLeft] = useState(Math.max(0, initialTime - timeElapsed));
@@ -56,18 +59,18 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
 
   // ✅ SOUND EFFECT: Phát âm thanh tít trong 10 giây cuối
   useEffect(() => {
-    if (!isActive || currentTimeLeft > 10 || currentTimeLeft <= 0) return;
+    if (!isActive || currentTimeLeft > 10 || currentTimeLeft <= 0 || !isSoundOn) return;
     
     // Phát âm thanh tít mỗi giây trong 10 giây cuối
     const tickInterval = setInterval(() => {
-      if (currentTimeLeft <= 10 && currentTimeLeft > 0) {
+      if (currentTimeLeft <= 10 && currentTimeLeft > 0 && isSoundOn) {
         console.log(`⏱️ Playing tick sound at ${currentTimeLeft}s remaining`);
         playTickSound();
       }
     }, 1000);
     
     return () => clearInterval(tickInterval);
-  }, [isActive, currentTimeLeft, playTickSound]);
+  }, [isActive, currentTimeLeft, playTickSound, isSoundOn]);
 
   // Hiệu ứng cập nhật thời gian hiển thị nếu đang hoạt động
   useEffect(() => {
@@ -88,128 +91,98 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   };
 
   // ✅ SMART: Memoized calculations để tránh tính lại
-  const progressData = useMemo(() => {
+  const colorClass = useMemo(() => {
     // Sử dụng currentTimeLeft thay vì timeLeft để đảm bảo animation mượt
     const percentage = (currentTimeLeft / initialTime) * 100;
-    const circumference = 2 * Math.PI * 45;
-    const strokeOffset = circumference * (1 - percentage / 100);
     
-    const colorClass = percentage > 50 ? 'text-green-600' : 
-                      percentage > 20 ? 'text-yellow-600' : 'text-red-600';
-    
-    const ringColor = percentage > 50 ? 'stroke-green-500' :
-                     percentage > 20 ? 'stroke-yellow-500' : 'stroke-red-500';
-    
-    const bgColor = percentage > 50 ? 'bg-green-50' :
-                   percentage > 20 ? 'bg-yellow-50' : 'bg-red-50';
-
-    const shadowColor = percentage > 50 ? 'shadow-green-200' :
-                       percentage > 20 ? 'shadow-yellow-200' : 'shadow-red-200';
-                    
-    return { 
-      percentage, 
-      strokeOffset, 
-      colorClass, 
-      ringColor, 
-      circumference,
-      bgColor,
-      shadowColor
-    };
+    // Xác định màu sắc dựa vào phần trăm thời gian còn lại
+    return percentage > 50 ? 'text-green-600' : 
+           percentage > 20 ? 'text-yellow-600' : 'text-red-600';
   }, [currentTimeLeft, initialTime]);
 
-  // Xác định xem có phải đang reset timer không
-  const isReset = timeElapsed === 0 && prevTimeElapsed.current > 0;
-  
   // Hiệu ứng pulse khi còn ít thời gian
   const shouldPulse = currentTimeLeft <= 30;
+  
+  // Xử lý chuyển đổi chế độ sáng/tối
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // Thực hiện các thay đổi khác liên quan đến chế độ tối ở đây nếu cần
+  };
+  
+  // Xử lý bật/tắt âm thanh
+  const toggleSound = () => {
+    setIsSoundOn(!isSoundOn);
+  };
 
   return (
     <motion.div 
-      className="fixed top-[90px] md:top-[90px] right-[20px] md:right-[30px] z-50"
+      className="w-full flex justify-center mb-6 mt-4 relative pb-6"
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.5, type: "spring" }}
     >
-      <motion.div 
-        className={`flex items-center space-x-3 p-3 rounded-xl shadow-lg ${progressData.bgColor} ${progressData.shadowColor} border border-gray-100`}
-        animate={{ 
-          boxShadow: shouldPulse 
-            ? ['0 4px 6px -1px rgba(0, 0, 0, 0.1)', '0 10px 15px -3px rgba(0, 0, 0, 0.2)'] 
-            : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}
-        transition={{ 
-          duration: 0.7, 
-          repeat: shouldPulse ? Infinity : 0, 
-          repeatType: "reverse" 
-        }}
-      >
-        <div className="flex items-center justify-center">
-          <div className="relative w-16 h-16">
-            {/* Background circle */}
-            <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                stroke="currentColor"
-                strokeWidth="8"
-                fill="transparent"
-                className="text-gray-200"
-              />
-              {/* Progress circle */}
-              <motion.circle
-                key={resetKey} /* Key đặc biệt để buộc render lại hoàn toàn khi reset */
-                ref={circleRef}
-                cx="50"
-                cy="50"
-                r="45"
-                stroke="currentColor"
-                strokeWidth="8"
-                fill="transparent"
-                strokeDasharray={`${progressData.circumference}`}
-                strokeLinecap="round"
-                className={progressData.ringColor}
-                initial={{ strokeDashoffset: 0 }} /* Bắt đầu từ 0 - không animation khi tạo mới */
-                animate={{ 
-                  strokeDashoffset: progressData.strokeOffset
-                }}
-                transition={{ 
-                  type: "tween", /* Sử dụng tween thay vì spring để mượt hơn */
-                  duration: timeElapsed < 2 ? 0 : 0.3, /* Tắt animation khi mới bắt đầu */
-                }}
-              />
-            </svg>
-            
-            {/* Time display */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <motion.span 
-                key={`time-${resetKey}`} /* Tạo key mới cho text */
-                className={`font-bold text-base ${progressData.colorClass}`}
-                animate={{ 
-                  scale: currentTimeLeft <= 60 && currentTimeLeft % 2 === 0 && !isReset ? 1.1 : 1,
-                  opacity: shouldPulse && currentTimeLeft % 2 ? 0.7 : 1
-                }}
-                transition={{ duration: 0.2 }}
-              >
-                {formatTime(currentTimeLeft)}
-              </motion.span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex flex-col">
-          <span className={`text-xs uppercase font-semibold tracking-wider ${progressData.colorClass}`}>
-            Thời gian
-          </span>
-          <motion.div 
-            className="text-xs text-gray-500 font-medium"
-            animate={{ opacity: shouldPulse ? [0.5, 1] : 1 }}
-            transition={{ duration: 1, repeat: shouldPulse ? Infinity : 0, repeatType: "reverse" }}
+      {/* Controls panel */}
+      <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 flex items-center gap-3">
+        {/* Compact Timer */}
+        <motion.div 
+          key={resetKey}
+          className="w-auto px-3 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+          animate={{ 
+            scale: shouldPulse ? [1, 1.05] : 1
+          }}
+          transition={{ 
+            duration: 0.7, 
+            repeat: shouldPulse ? Infinity : 0, 
+            repeatType: "reverse" 
+          }}
+        >
+          <motion.span 
+            key={`time-${resetKey}`}
+            className={`font-bold text-sm ${colorClass}`}
+            animate={{ 
+              opacity: shouldPulse && currentTimeLeft % 2 ? 0.7 : 1
+            }}
+            transition={{ duration: 0.2 }}
           >
-            {currentTimeLeft <= 60 ? 'Sắp hết giờ!' : 'Còn lại'}
-          </motion.div>
-        </div>
-      </motion.div>
+            {formatTime(currentTimeLeft)}
+          </motion.span>
+        </motion.div>
+
+        <button 
+          className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors" 
+          aria-label="Chuyển đổi chế độ sáng/tối"
+          onClick={toggleDarkMode}
+        >
+          {isDarkMode ? (
+            // Icon mặt trời (chế độ sáng)
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            // Icon mặt trăng (chế độ tối)
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          )}
+        </button>
+        <button 
+          className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors" 
+          aria-label="Bật/tắt âm thanh"
+          onClick={toggleSound}
+        >
+          {isSoundOn ? (
+            // Icon âm thanh bật
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.982 3.982 0 0013 10a3.982 3.982 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            // Icon âm thanh tắt
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.707 7.293a1 1 0 00-1.414 1.414L12.586 10l-1.293 1.293a1 1 0 101.414 1.414L14 11.414l1.293 1.293a1 1 0 001.414-1.414L15.414 10l1.293-1.293a1 1 0 00-1.414-1.414L14 8.586l-1.293-1.293z" clipRule="evenodd" />
+            </svg>
+          )}
+        </button>
+      </div>
     </motion.div>
   );
 }
