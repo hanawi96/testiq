@@ -71,4 +71,52 @@ export function getAccurateTimeElapsed(): number {
     console.warn('Failed to calculate accurate time elapsed:', error);
     return 0;
   }
+}
+
+// Hàm kiểm tra xem có bài test đang làm dở không
+export function hasInProgressTest(): boolean {
+  const state = loadTestState();
+  if (!state) return false;
+  
+  // Nếu đã hoàn thành, không tính là đang làm dở
+  if (state.isCompleted) return false;
+  
+  // Nếu đã quá 30 ngày, không tính là đang làm dở
+  if (state.lastSavedAt && Date.now() - state.lastSavedAt > 30 * 24 * 60 * 60 * 1000) {
+    clearTestState(); // Tự động xóa trạng thái quá cũ
+    return false;
+  }
+  
+  return true;
+}
+
+// Hàm lấy thông tin chi tiết về bài test đang làm dở
+export function getInProgressTestInfo(): {
+  currentQuestion: number,
+  totalQuestions: number,
+  answeredQuestions: number,
+  timeRemaining: number,
+  daysAgo: number
+} | null {
+  const state = loadTestState();
+  if (!state) return null;
+  
+  // Tính toán thời gian còn lại chính xác
+  const timeRemaining = Math.max(0, state.totalTime - state.timeElapsed);
+  
+  // Tính số ngày đã trôi qua từ lần cuối lưu
+  const daysAgo = state.lastSavedAt 
+    ? Math.floor((Date.now() - state.lastSavedAt) / (24 * 60 * 60 * 1000))
+    : 0;
+  
+  // Đếm số câu đã trả lời (các giá trị không phải null trong mảng answers)
+  const answeredQuestions = state.answers.filter(answer => answer !== null).length;
+  
+  return {
+    currentQuestion: state.currentQuestion,
+    totalQuestions: state.answers.length,
+    answeredQuestions,
+    timeRemaining,
+    daysAgo
+  };
 } 

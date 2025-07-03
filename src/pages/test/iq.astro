@@ -67,26 +67,23 @@ const locale = getLocale('vi');
     <IQTestWrapper 
       questions={iqQuestions} 
       timeLimit={testConfig.timeLimit}
-      startImmediately={true}
+      startImmediately={false}
       client:only="react"
     />
   </div>
 
+  <!-- Component popup thông báo bài test dang dở (sẽ được xử lý bởi React) -->
+  <div id="progress-popup-container"></div>
+
   <script>
     // Script để xử lý hiển thị test khi người dùng nhấn nút bắt đầu
     document.addEventListener('DOMContentLoaded', function() {
-      // Xóa trạng thái cũ (nếu có)
-      sessionStorage.removeItem('iq_test_started');
-      
       // Thêm event listener cho nút bắt đầu test
       const startButton = document.getElementById('start-test-btn');
       if (startButton) {
         startButton.addEventListener('click', function() {
-          // Ẩn phần intro
-          document.getElementById('intro-section').style.display = 'none';
-          
-          // Hiển thị phần test
-          document.getElementById('test-section').style.display = 'block';
+          // Kích hoạt event kiểm tra xem có bài test đang làm dở không
+          document.dispatchEvent(new CustomEvent('check-in-progress-test'));
         });
       }
     });

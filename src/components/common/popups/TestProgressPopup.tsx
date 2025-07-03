@@ -5,7 +5,9 @@ interface TestProgressPopupProps {
   isOpen: boolean;
   questionNumber: number;
   totalQuestions: number;
+  answeredQuestions?: number; // Thêm prop mới
   timeRemaining: number; // seconds
+  daysAgo?: number; // Thêm thông tin số ngày trước đã bắt đầu
   onContinue: () => void;
   onRestart: () => void;
   onViewResult?: () => void; // New option for completed tests
@@ -15,7 +17,9 @@ export default function TestProgressPopup({
   isOpen, 
   questionNumber, 
   totalQuestions,
+  answeredQuestions,
   timeRemaining,
+  daysAgo = 0,
   onContinue, 
   onRestart,
   onViewResult
@@ -26,9 +30,21 @@ export default function TestProgressPopup({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = (questionNumber / totalQuestions) * 100;
+  // Sử dụng answeredQuestions nếu được cung cấp, nếu không thì dùng questionNumber
+  const completedQuestions = typeof answeredQuestions === 'number' 
+    ? answeredQuestions 
+    : questionNumber;
+    
+  const progress = (completedQuestions / totalQuestions) * 100;
   const isLowTime = timeRemaining < 300; // 5 minutes
-  const isCompleted = questionNumber === totalQuestions;
+  const isCompleted = completedQuestions === totalQuestions;
+
+  // Format days ago text
+  const getDaysAgoText = (): string => {
+    if (daysAgo === 0) return 'Hôm nay';
+    if (daysAgo === 1) return 'Hôm qua';
+    return `${daysAgo} ngày trước`;
+  };
 
   return (
     <AnimatePresence>
@@ -60,15 +76,20 @@ export default function TestProgressPopup({
               <p className="text-gray-600 text-sm">
                 {isCompleted 
                   ? 'Bạn có muốn xem kết quả không?' 
-                  : 'Bạn có muốn tiếp tục từ câu đã làm không?'
+                  : `Bạn đang làm đến câu ${questionNumber + 1}/${totalQuestions}`
                 }
               </p>
+              {daysAgo > 0 && (
+                <p className="text-amber-600 text-sm mt-1">
+                  Bài test này đã được bắt đầu từ {getDaysAgoText()}
+                </p>
+              )}
             </div>
 
             {/* Progress Stats */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="bg-blue-50 rounded-xl p-3 text-center">
-                <div className="text-lg font-bold text-blue-600">{questionNumber}/{totalQuestions}</div>
+                <div className="text-lg font-bold text-blue-600">{completedQuestions}/{totalQuestions}</div>
                 <div className="text-xs text-gray-600">Đã hoàn thành</div>
               </div>
               <div className={`rounded-xl p-3 text-center ${isLowTime ? 'bg-red-50' : 'bg-green-50'}`}>

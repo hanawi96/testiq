@@ -28,11 +28,15 @@ export function useIQSaveProgress({ questions, timeLimit }: UseIQSaveProgressPro
     answers: (number | null)[],
     timeElapsed: number
   ) => {
+    // Kiểm tra xem đã có trạng thái cũ chưa
+    const existingState = loadTestState();
+    
     saveTestState({
       currentQuestion,
       answers, 
       timeElapsed,
-      startTime: Date.now(),
+      // Chỉ cập nhật startTime nếu không có trạng thái cũ
+      startTime: existingState ? existingState.startTime : Date.now(),
       totalTime: timeLimit,
       isCompleted: false
     });

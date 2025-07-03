@@ -43,6 +43,14 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   // Hook âm thanh
   const { playSound } = useIQSounds();
   
+  // State khác - di chuyển lên trước hook useIQQuestionManager
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isReviewMode, setIsReviewMode] = React.useState(false);
+  const [isDataLoaded, setIsDataLoaded] = React.useState(!startImmediately);
+  
+  // Trạng thái savedState để lưu trữ tiến độ đã lưu
+  const [savedState, setSavedState] = React.useState(loadTestState());
+  
   // Hook quản lý popups
   const { 
     showConfetti,
@@ -81,14 +89,10 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     resetTimer
   } = useIQTimer({
     timeLimit,
+    initialTimeElapsed: savedState ? savedState.timeElapsed : 0,
     onTimeUp: handleTimeUp,
     isActive: startImmediately
   });
-  
-  // State khác - di chuyển lên trước hook useIQQuestionManager
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isReviewMode, setIsReviewMode] = React.useState(false);
-  const [isDataLoaded, setIsDataLoaded] = React.useState(!startImmediately);
   
   // Hook quản lý câu hỏi và trả lời
   const {
@@ -111,7 +115,9 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     questions,
     playSound,
     isTimeUp,
-    isReviewMode
+    isReviewMode,
+    initialAnswers: savedState ? savedState.answers : undefined,
+    initialQuestion: savedState ? savedState.currentQuestion : 0
   });
   
   // Hook quản lý lưu tiến trình
@@ -145,12 +151,45 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       console.log('🚀 Starting test immediately because startImmediately=true');
       hasInitializedRef.current = true;
       
-      // Bắt đầu test ngay lập tức
-      startTimer(0);
+      // Kiểm tra xem có trạng thái đã lưu không
+      if (savedState) {
+        console.log('📝 Found saved progress, resuming from question', savedState.currentQuestion + 1);
+        
+        // Khởi tạo lại câu hỏi và câu trả lời từ trạng thái đã lưu
+        setCurrentQuestion(savedState.currentQuestion);
+        setAnswers([...savedState.answers]);
+        
+        // Bắt đầu timer với thời gian đã trôi qua
+        startTimer(savedState.timeElapsed);
+      } else {
+        // Bắt đầu test mới
+        startTimer(0);
+      }
+      
       setIsDataLoaded(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startImmediately]);
+  }, [startImmediately, savedState]);
+
+  // Thêm useEffect để lưu tiến độ định kỳ
+  useEffect(() => {
+    if (!isActive || !startTime) return;
+    
+    // Tạo interval để lưu tiến độ mỗi 10 giây
+    const saveInterval = setInterval(() => {
+      if (isActive && startTime) {
+        const currentTimeElapsed = Math.floor((Date.now() - startTime) / 1000);
+        saveProgress(
+          currentQuestion,
+          answers,
+          currentTimeElapsed
+        );
+        console.log(`⏱️ Auto-saving progress: ${currentQuestion + 1}/${questions.length}, time: ${currentTimeElapsed}s`);
+      }
+    }, 10000); // 10 giây
+    
+    return () => clearInterval(saveInterval);
+  }, [isActive, startTime, currentQuestion, answers, saveProgress, questions.length]);
 
   // Smart auto-advance logic + Auto show review popup when all answered
   useEffect(() => {
@@ -206,6 +245,27 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       return () => clearTimeout(timer);
     }
   }, [justAnswered, answers, currentQuestion, findNextUnanswered, isReviewMode, questions.length, isActive, startTime, saveProgress]);
+
+  // Lưu trạng thái khi người dùng sắp thoát khỏi trang
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isActive && startTime) {
+        const currentTimeElapsed = Math.floor((Date.now() - startTime) / 1000);
+        saveProgress(
+          currentQuestion,
+          answers,
+          currentTimeElapsed
+        );
+        console.log(`💾 Saving progress before unload: ${currentQuestion + 1}/${questions.length}, time: ${currentTimeElapsed}s`);
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isActive, startTime, currentQuestion, answers, saveProgress, questions.length]);
 
   // Thêm listener theo dõi phím ấn toàn cục để debug
   useEffect(() => {
