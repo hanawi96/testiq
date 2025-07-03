@@ -4,6 +4,7 @@ import CongratulationsPopup, { type UserInfo } from '../../../common/popups/Cong
 import TimeUpPopup from '../../../common/popups/TimeUpPopup';
 import TestProgressPopup from '../../../common/popups/TestProgressPopup';
 import CompletedTestPopup from '../../../common/popups/CompletedTestPopup';
+import { motion } from 'framer-motion';
 
 // Import components đã tách
 import { IQQuestion, IQNavigation, IQProgressHeader } from './components';
@@ -234,10 +235,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
             // All questions answered - auto submit
             setJustAnswered(false);
             
-            // ✅ FIX: Đợi một frame để đảm bảo tiến trình đã được cập nhật trước khi hiển thị popup
-            requestAnimationFrame(() => {
-              submitTest();
-            });
+            // Gọi submitTest ngay lập tức không có độ trễ
+            submitTest();
           }
         }
       }, 100);
@@ -380,7 +379,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // Submit test - shows congratulations popup
   const submitTest = useCallback(() => {
-    if (isSubmitting || !allAnswered) return;
+    if (isSubmitting || (!allAnswered && !isReviewMode)) return;
     
     console.log('submitTest: starting submission process');
     setIsSubmitting(true);
@@ -403,17 +402,11 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       console.log('💾 Marked test as completed, keeping state for result viewing');
     }
     
-    // ✅ FIX: Đảm bảo thanh tiến trình cập nhật đến 100% trước khi hiển thị popup
-    // Sử dụng requestAnimationFrame và setTimeout để tạo độ trễ nhỏ cho phép render
-    requestAnimationFrame(() => {
-      // Độ trễ nhỏ để đảm bảo thanh tiến trình đã được cập nhật
-      setTimeout(() => {
-        console.log('submitTest: showing congratulations popup');
-        setShowCongratulationsPopup(true);
-        setIsSubmitting(false);
-      }, 50);
-    });
-  }, [isSubmitting, allAnswered, pauseTimer, playSound]);
+    // Hiển thị popup ngay lập tức không có độ trễ
+    console.log('submitTest: showing congratulations popup immediately');
+    setShowCongratulationsPopup(true);
+    setIsSubmitting(false);
+  }, [isSubmitting, allAnswered, isReviewMode, pauseTimer, playSound]);
 
   // Handle popup completion
   const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {

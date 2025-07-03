@@ -182,33 +182,50 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
           </div>
         </div>
 
-        {/* Show Complete button in review mode when all answered */}
-        {isReviewMode && allAnswered ? (
-          <motion.button
-            onClick={onSubmit}
-            disabled={isSubmitting || !isDataLoaded}
-            className={`flex items-center px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-              isSubmitting || !isDataLoaded
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                : 'bg-green-600 text-white hover:bg-green-700 border border-green-600 hover:border-green-700 shadow-sm hover:shadow-md'
-            }`}
-            whileHover={!isSubmitting && isDataLoaded ? { scale: 1.02 } : {}}
-            whileTap={!isSubmitting && isDataLoaded ? { scale: 0.98 } : {}}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="loading-spinner mr-2"></div>
-                Đang xử lý...
-              </>
-            ) : (
-              <>
-                Xem kết quả
-              </>
-            )}
-          </motion.button>
-        ) : (
-          <div className="invisible w-[120px]"></div>
-        )}
+        {/* Show Complete button or placeholder with transition between them */}
+        <motion.div
+          className="flex items-center justify-center min-w-[120px]"
+          initial={false}
+        >
+          {(isReviewMode || allAnswered) ? (
+            <motion.button
+              onClick={onSubmit}
+              disabled={isSubmitting || !isDataLoaded}
+              className={`flex items-center px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                isSubmitting || !isDataLoaded
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  : 'bg-green-600 text-white hover:bg-green-700 border border-green-600 hover:border-green-700 shadow-sm hover:shadow-md'
+              }`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.1 }}
+              whileHover={!isSubmitting && isDataLoaded ? { scale: 1.02 } : {}}
+              whileTap={!isSubmitting && isDataLoaded ? { scale: 0.98 } : {}}
+            >
+              {isSubmitting ? (
+                <>
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Xem kết quả
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Xem kết quả
+                </>
+              )}
+            </motion.button>
+          ) : (
+            <motion.div 
+              className="invisible w-[120px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0 }}
+            />
+          )}
+        </motion.div>
       </div>
       
       {/* Keyboard shortcuts hint */}
