@@ -180,19 +180,21 @@ export default function ScalableLeaderboard({
     const isTopTier = entry.rank <= 10;
     
     return (
-      <div className={`relative group rounded-xl p-3 border transition-all duration-200 w-full hover:shadow-md active:scale-[0.98] ${
-        isTopTier ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'
+      <div className={`relative group rounded-xl p-3 border w-full hover:shadow-md active:scale-[0.98] ${
+        isTopTier 
+          ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
+          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
       }`}>
-                 {/* Rank Badge - Góc trái trên */}
-         <div className="absolute -top-1 -left-1 z-10">
-           <div className={`w-10 h-8 bg-gradient-to-br ${
-             entry.rank <= 3 ? 'from-yellow-400 to-orange-500' :
-             entry.rank <= 10 ? 'from-blue-400 to-indigo-500' :
-             'from-gray-400 to-gray-500'
-           } rounded-full flex items-center justify-center border-2 border-white shadow-sm`}>
-             <span className="text-white text-xs font-bold">{entry.rank}</span>
-           </div>
-         </div>
+        {/* Rank Badge - Góc trái trên */}
+        <div className="absolute -top-1 -left-1 z-10">
+          <div className={`w-10 h-8 bg-gradient-to-br ${
+            entry.rank <= 3 ? 'from-yellow-400 to-orange-500' :
+            entry.rank <= 10 ? 'from-blue-400 to-indigo-500' :
+            'from-gray-400 to-gray-500'
+          } rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm`}>
+            <span className="text-white text-xs font-bold">{entry.rank}</span>
+          </div>
+        </div>
 
         {/* Top Tier Indicator */}
         {isTopTier && (
@@ -361,7 +363,7 @@ export default function ScalableLeaderboard({
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                      className={`px-3 py-1 text-sm rounded ${
                         page === currentPage
                           ? 'bg-blue-600 text-white'
                           : 'border border-gray-300 hover:bg-gray-50'

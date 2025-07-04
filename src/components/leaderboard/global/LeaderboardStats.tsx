@@ -106,9 +106,9 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
     subtitle?: string;
     gradient?: string;
   }) => (
-    <div className={`${gradient || 'bg-white/90'} backdrop-blur-sm rounded-2xl p-4 border border-white/30 shadow-sm hover:shadow-lg transition-all duration-300 group`}>
+    <div className={`${gradient || 'bg-white/90'} backdrop-blur-sm rounded-2xl p-4 border border-white/30 shadow-sm hover:shadow-lg group`}>
       <div className="flex items-center gap-3">
-        <span className="text-2xl group-hover:scale-110 transition-transform">{icon}</span>
+        <span className="text-2xl">{icon}</span>
         <div>
           <div className="text-2xl font-bold text-gray-800">
             {isLoading ? (
@@ -125,97 +125,97 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Modern Minimalist Stats */}
-      <div className="backdrop-blur-sm bg-white/70 border border-gray-200/50 rounded-2xl p-5 shadow-sm">
+      <div className="backdrop-blur-sm bg-white/70 dark:bg-gray-900/70 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-5 shadow-sm">
         {/* Top Stats - Clean 4-grid */}
         <div className="grid grid-cols-4 gap-3 mb-4">
           <div className="text-center group cursor-pointer">
-            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-slate-200 transition-colors">
+            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
               🌍
             </div>
-            <div className="text-lg font-bold text-slate-800">
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
               {isLoading ? (
-                <div className="w-8 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                <div className="w-8 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto"></div>
               ) : formatNumber(stats.totalCountries)}
             </div>
-            <div className="text-xs text-slate-500 font-medium">Quốc gia</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Quốc gia</div>
           </div>
           
           <div className="text-center group cursor-pointer">
-            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-slate-200 transition-colors">
+            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
               👤
             </div>
-            <div className="text-lg font-bold text-slate-800">
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
               {isLoading ? (
-                <div className="w-10 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto"></div>
               ) : formatNumber(stats.totalParticipants)}
             </div>
-            <div className="text-xs text-slate-500 font-medium">Người test</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Người test</div>
           </div>
           
           <div className="text-center group cursor-pointer">
-            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-slate-200 transition-colors">
+            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
               🧠
             </div>
-            <div className="text-lg font-bold text-slate-800">
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
               {isLoading ? (
-                <div className="w-8 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                <div className="w-8 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto"></div>
               ) : stats.globalAverageIQ}
             </div>
-            <div className="text-xs text-slate-500 font-medium">IQ TB</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">IQ TB</div>
           </div>
           
           <div className="text-center group cursor-pointer">
-            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 flex items-center justify-center text-sm group-hover:bg-slate-200 transition-colors">
+            <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
               ⏱️
             </div>
-            <div className="text-lg font-bold text-slate-800">
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
               {isLoading ? (
-                <div className="w-10 h-5 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto"></div>
               ) : stats.averageTestTime}
             </div>
-            <div className="text-xs text-slate-500 font-medium">Thời gian</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Thời gian</div>
           </div>
         </div>
 
         {/* Subtle divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-slate-200/60 to-transparent my-4"></div>
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-200/60 dark:via-slate-700/60 to-transparent my-4"></div>
 
         {/* Bottom badges - Ultra minimal */}
         <div className="flex items-center justify-center gap-6">
           <div className="text-center group cursor-pointer">
             <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-6 h-6 rounded-md bg-amber-100 flex items-center justify-center text-xs">🏆</div>
-              <span className="text-base font-bold text-slate-800">
+              <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-xs">🏆</div>
+              <span className="text-base font-bold text-slate-800 dark:text-slate-200">
                 {isLoading ? (
-                  <div className="w-6 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-6 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                 ) : formatNumber(stats.geniusBadges)}
               </span>
             </div>
-            <div className="text-xs text-amber-600 font-medium">Genius</div>
+            <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">Genius</div>
           </div>
           
           <div className="text-center group cursor-pointer">
             <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center text-xs">🎓</div>
-              <span className="text-base font-bold text-slate-800">
+              <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs">🎓</div>
+              <span className="text-base font-bold text-slate-800 dark:text-slate-200">
                 {isLoading ? (
-                  <div className="w-6 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-6 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                 ) : formatNumber(stats.smartBadges)}
               </span>
             </div>
-            <div className="text-xs text-blue-600 font-medium">Smart</div>
+            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">Smart</div>
           </div>
           
           <div className="text-center group cursor-pointer">
             <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center text-xs">⭐</div>
-              <span className="text-base font-bold text-slate-800">
+              <div className="w-6 h-6 rounded-md bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xs">⭐</div>
+              <span className="text-base font-bold text-slate-800 dark:text-slate-200">
                 {isLoading ? (
-                  <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                 ) : formatNumber(stats.excellentBadges)}
               </span>
             </div>
-            <div className="text-xs text-emerald-600 font-medium">Excellent</div>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Excellent</div>
           </div>
         </div>
       </div>
@@ -223,8 +223,8 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
       {/* IQ Distribution & Age Distribution */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* IQ Distribution */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 dark:border-gray-700/30 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             📈 Phân bố điểm IQ
           </h3>
           <div className="space-y-3">
@@ -234,18 +234,18 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
               
               return (
                 <div key={idx} className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">{item.range}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.range}</span>
                   <div className="flex items-center gap-2 flex-1 mx-3">
-                    <div className="bg-gray-200 rounded-full h-2 flex-1">
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2 flex-1">
                       <div 
-                        className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full transition-all duration-500"
+                        className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full"
                         style={{ width: `${width}%` }}
                       />
                     </div>
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     {isLoading ? (
-                      <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                     ) : formatNumber(item.count)}
                   </span>
                 </div>
@@ -255,29 +255,34 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
         </div>
 
         {/* Age Distribution */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            👶 Độ tuổi phổ biến
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 dark:border-gray-700/30 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            📊 Phân bố độ tuổi
           </h3>
           <div className="space-y-3">
-            {stats.ageDistribution.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">{item.age} tuổi</span>
-                <div className="flex items-center gap-2 flex-1 mx-3">
-                  <div className="bg-gray-200 rounded-full h-2 flex-1">
-                    <div 
-                      className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${item.percentage}%` }}
-                    />
+            {stats.ageDistribution.map((item, idx) => {
+              const maxPercentage = Math.max(...stats.ageDistribution.map(d => d.percentage));
+              const width = maxPercentage > 0 ? (item.percentage / maxPercentage) * 100 : 0;
+              
+              return (
+                <div key={idx} className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.age}</span>
+                  <div className="flex items-center gap-2 flex-1 mx-3">
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2 flex-1">
+                      <div 
+                        className="bg-gradient-to-r from-green-400 to-teal-500 h-2 rounded-full"
+                        style={{ width: `${width}%` }}
+                      />
+                    </div>
                   </div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {isLoading ? (
+                      <div className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    ) : `${item.percentage}%`}
+                  </span>
                 </div>
-                <span className="text-sm text-gray-600">
-                  {isLoading ? (
-                    <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
-                  ) : `${item.percentage}%`}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -285,67 +290,67 @@ const DashboardStatsComponent: React.FC<Props> = ({ initialStats }) => {
       {/* Top Countries */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Top by IQ */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 dark:border-gray-700/30 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             🌟 Top 5 quốc gia IQ cao nhất
           </h3>
           <div className="space-y-3">
             {isLoading ? (
               // Loading skeleton
               [...Array(5)].map((_, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-4 bg-gray-300 rounded animate-pulse"></div>
-                    <div className="w-20 h-4 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="w-6 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                    <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
                   </div>
-                  <div className="w-8 h-4 bg-gray-300 rounded animate-pulse"></div>
+                  <div className="w-8 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
                 </div>
               ))
             ) : stats.topCountriesByIQ.length > 0 ? (
               stats.topCountriesByIQ.map((country, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">{country.flag}</span>
-                    <span className="font-medium text-gray-700">{country.country}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{country.country}</span>
                   </div>
-                  <span className="font-bold text-blue-600">{country.avgIQ}</span>
+                  <span className="font-bold text-blue-600 dark:text-blue-400">{country.avgIQ}</span>
                 </div>
               ))
             ) : (
-              <div className="text-center text-gray-500 py-4">Chưa có dữ liệu</div>
+              <div className="text-center text-gray-500 dark:text-gray-400 py-4">Chưa có dữ liệu</div>
             )}
           </div>
         </div>
 
         {/* Top by Participants */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 dark:border-gray-700/30 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             🔥 Top 5 quốc gia nhiều người chơi
           </h3>
           <div className="space-y-3">
             {isLoading ? (
               // Loading skeleton
               [...Array(5)].map((_, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-4 bg-gray-300 rounded animate-pulse"></div>
-                    <div className="w-20 h-4 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="w-6 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                    <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
                   </div>
-                  <div className="w-12 h-4 bg-gray-300 rounded animate-pulse"></div>
+                  <div className="w-12 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
                 </div>
               ))
             ) : stats.topCountriesByParticipants.length > 0 ? (
               stats.topCountriesByParticipants.map((country, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">{country.flag}</span>
-                    <span className="font-medium text-gray-700">{country.country}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{country.country}</span>
                   </div>
-                  <span className="font-bold text-green-600">{formatNumber(country.participants)}</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">{formatNumber(country.participants)}</span>
                 </div>
               ))
             ) : (
-              <div className="text-center text-gray-500 py-4">Chưa có dữ liệu</div>
+              <div className="text-center text-gray-500 dark:text-gray-400 py-4">Chưa có dữ liệu</div>
             )}
           </div>
         </div>

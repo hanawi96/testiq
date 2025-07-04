@@ -260,7 +260,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
         {/* Control Buttons - Right Side */}
         <div className="flex items-center gap-3">
           <button 
-            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
+            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700" 
             aria-label="Chuyển đổi chế độ sáng/tối"
             onClick={toggleDarkMode}
             type="button"
@@ -278,7 +278,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             )}
           </button>
           <button 
-            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
+            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700" 
             aria-label="Bật/tắt âm thanh"
             onClick={toggleSound}
             type="button"
@@ -286,7 +286,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             {isSoundOn ? (
               // Icon âm thanh bật
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071a1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243a1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828a1 1 0 010-1.415z" clipRule="evenodd" />
               </svg>
             ) : (
               // Icon âm thanh tắt
@@ -296,7 +296,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             )}
           </button>
           <button 
-            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
+            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700" 
             aria-label="Bật/tắt bộ lọc ánh sáng xanh"
             onClick={toggleBlueFilter}
             type="button"
@@ -306,19 +306,13 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
                 <circle cx="12" cy="12" r="3" />
-                <path d="M12 5V3" />
-                <path d="M19 5l-2 2" />
-                <path d="M5 5l2 2" />
                 <path fill="currentColor" fillOpacity="0.2" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
               </svg>
             ) : (
-              // Icon khi bộ lọc ánh sáng xanh đang tắt - màu xanh (mắt với tia sáng xanh)
+              // Icon khi bộ lọc ánh sáng xanh đang tắt - màu xanh (mắt không có tia sáng)
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 dark:text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
                 <circle cx="12" cy="12" r="3" />
-                <path d="M12 5V3" strokeDasharray="2" />
-                <path d="M19 5l-2 2" strokeDasharray="2" />
-                <path d="M5 5l2 2" strokeDasharray="2" />
               </svg>
             )}
           </button>
@@ -326,7 +320,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           {/* Font Size Button */}
           {onFontSizeClick && (
             <button 
-              className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
+              className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700" 
               aria-label="Điều chỉnh cỡ chữ"
               onClick={onFontSizeClick} // Không cần truyền event
               title="Điều chỉnh kích thước chữ"
@@ -340,7 +334,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           )}
           
           <button 
-            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
+            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700" 
             aria-label="Bật/tắt chế độ toàn màn hình"
             onClick={toggleFullscreen}
             type="button"

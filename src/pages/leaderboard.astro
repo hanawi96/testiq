@@ -73,8 +73,8 @@ const getGenderIcon = (gender?: string) => {
   description="Khám phá bảng xếp hạng IQ với những tài năng xuất sắc nhất. So sánh kết quả và thách thức bản thân với cộng đồng."
 >
   <!-- Streamlined Hero Section -->
-  <section class="relative bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-12 overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-orange-500/5"></div>
+  <section class="relative bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950 pt-24 pb-12 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-orange-500/5 dark:from-yellow-400/10 dark:to-orange-500/10"></div>
     
     <div class="relative max-w-6xl mx-auto px-4 text-center">
       <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -83,11 +83,11 @@ const getGenderIcon = (gender?: string) => {
         </svg>
       </div>
       
-      <h1 class="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
-        Bảng xếp hạng <span class="text-yellow-600">IQ</span>
+      <h1 class="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+        Bảng xếp hạng <span class="text-yellow-600 dark:text-yellow-500">IQ</span>
       </h1>
       
-      <p class="text-lg text-gray-600 mb-8">Khám phá những tài năng xuất sắc nhất</p>
+      <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">Khám phá những tài năng xuất sắc nhất</p>
 
       <!-- ✅ INSTANT DISPLAY: Có initialStats từ server -->
       <LeaderboardStats client:load initialStats={dashboardStats} />
@@ -95,21 +95,21 @@ const getGenderIcon = (gender?: string) => {
   </section>
 
   <!-- Top 10 Leaderboard Section -->
-  <section class="bg-white py-8">
+  <section class="bg-white dark:bg-gray-900 py-8">
     <div class="max-w-6xl mx-auto px-4">
       <TopTenLeaderboard client:load initialData={topTenData} />
     </div>
   </section>
 
   <!-- Local Ranking Section for Logged-in Users -->
-  <section class="py-8 bg-white border-t border-gray-200">
+  <section class="py-8 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
     <div class="max-w-6xl mx-auto px-4">
       <LocalRankingWrapper client:load />
     </div>
   </section>
 
   <!-- Optimized Full Leaderboard -->
-  <section id="full-leaderboard" class="py-8 bg-gray-50 border-t border-gray-200">
+  <section id="full-leaderboard" class="py-8 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
     <div class="max-w-6xl mx-auto px-4">
       <!-- ✅ OPTIMIZED: Pass pre-processed data -->
       <LeaderboardList client:load initialData={fullLeaderboardData} />

@@ -119,29 +119,29 @@ export default function TopTenLeaderboard({ initialData }: Props) {
       <div className="space-y-2">
         {/* Header skeleton */}
         <div className="text-center mb-6">
-          <div className="w-48 h-6 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
-          <div className="w-64 h-4 bg-gray-200 rounded animate-pulse mx-auto"></div>
+          <div className="w-48 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto mb-2"></div>
+          <div className="w-64 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto"></div>
         </div>
 
         {/* Top 10 skeleton - 2 cols layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[...Array(10)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-20 relative" 
+            <div key={i} className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-20 relative" 
                  style={{ animationDelay: `${i * 50}ms` }}>
               {/* Skeleton rank badge */}
-              <div className="absolute -top-1 -left-1 w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
+              <div className="absolute -top-1 -left-1 w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"></div>
               {/* Skeleton corner badge */}
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full animate-pulse"></div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"></div>
             </div>
           ))}
         </div>
 
         {/* Call to action skeleton */}
-        <div className="mt-6 p-4 bg-gray-100 rounded-xl animate-pulse">
+        <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse">
           <div className="text-center space-y-2">
-            <div className="w-32 h-5 bg-gray-300 rounded mx-auto"></div>
-            <div className="w-48 h-4 bg-gray-300 rounded mx-auto"></div>
-            <div className="w-36 h-8 bg-gray-300 rounded mx-auto"></div>
+            <div className="w-32 h-5 bg-gray-300 dark:bg-gray-600 rounded mx-auto"></div>
+            <div className="w-48 h-4 bg-gray-300 dark:bg-gray-600 rounded mx-auto"></div>
+            <div className="w-36 h-8 bg-gray-300 dark:bg-gray-600 rounded mx-auto"></div>
           </div>
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function TopTenLeaderboard({ initialData }: Props) {
     return (
       <div className="text-center py-8">
         <span className="text-4xl mb-3 block">🏆</span>
-        <p className="text-gray-600">Chưa có dữ liệu xếp hạng</p>
+        <p className="text-gray-600 dark:text-gray-400">Chưa có dữ liệu xếp hạng</p>
       </div>
     );
   }
@@ -161,8 +161,8 @@ export default function TopTenLeaderboard({ initialData }: Props) {
     <div className="space-y-2">
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Top 10 Thiên Tài IQ</h2>
-        <p className="text-sm text-gray-600">Nhấn vào profile để xem hành trình phát triển trí tuệ</p>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Top 10 Thiên Tài IQ</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">Nhấn vào profile để xem hành trình phát triển trí tuệ</p>
       </div>
 
       {/* Top 10 List - Desktop 2 cols, Mobile 1 col */}
@@ -178,24 +178,24 @@ export default function TopTenLeaderboard({ initialData }: Props) {
               key={`${entry.rank}-${entry.score}`}
               onClick={() => isClickable && handleProfileClick(entry.user_id, entry.name)}
               className={`
-                relative group rounded-xl p-3 border transition-all duration-200 w-full
+                relative group rounded-xl p-3 border w-full
                 ${isTop3 
-                  ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200 shadow-sm' 
-                  : 'bg-white border-gray-200 hover:border-gray-300'
+                  ? 'bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800 shadow-sm' 
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                 }
                 ${isClickable ? 'cursor-pointer hover:shadow-md active:scale-[0.98]' : 'cursor-default'}
               `}
             >
               {/* Rank Badge - Special for top 10 */}
               <div className="absolute -top-1 -left-1 z-10">
-                <div className={`w-10 h-8 bg-gradient-to-br ${specialBadge.color} rounded-full flex items-center justify-center border-2 border-white shadow-sm`}>
+                <div className={`w-10 h-8 bg-gradient-to-br ${specialBadge.color} rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm`}>
                   <span className="text-white text-xs font-bold">{entry.rank}</span>
                 </div>
               </div>
 
               {/* Special Badge Corner */}
               <div className="absolute -top-1 -right-1 z-10">
-                <div className="bg-white rounded-full p-1 shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-700 rounded-full p-1 shadow-sm border border-gray-200 dark:border-gray-600">
                   <span className="text-sm">{specialBadge.emoji}</span>
                 </div>
               </div>
@@ -204,20 +204,20 @@ export default function TopTenLeaderboard({ initialData }: Props) {
                 {/* User Info - Compact */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
-                    <h3 className="font-bold text-gray-900 truncate text-sm">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate text-sm">
                       {entry.name}
                     </h3>
                     {getGenderIcon(entry.gender) && (
                       <span className="text-xs opacity-70">{getGenderIcon(entry.gender)}</span>
                     )}
                     {entry.age && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                      <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">
                         {entry.age}
                       </span>
                     )}
                   </div>
                   
-                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                     <span className="flex items-center">
                       <span className="mr-1">📍</span>
                       <span className="truncate max-w-16 md:max-w-20">{entry.location}</span>
@@ -238,26 +238,26 @@ export default function TopTenLeaderboard({ initialData }: Props) {
                 {/* Score & Badges - Right aligned */}
                 <div className="text-right flex-shrink-0 ml-3">
                   <div className={`text-lg font-bold mb-1 ${
-                    isTop3 ? 'text-yellow-600' : 'text-gray-700'
+                    isTop3 ? 'text-yellow-600 dark:text-yellow-500' : 'text-gray-700 dark:text-gray-300'
                   }`}>
                     {entry.score}
                   </div>
                   
                   <div className="flex flex-col md:flex-row items-end md:items-center space-y-1 md:space-y-0 md:space-x-1 justify-end">
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium bg-${badgeInfo.color}-100 dark:bg-${badgeInfo.color}-900/30 text-${badgeInfo.color}-700 dark:text-${badgeInfo.color}-400`}>
                       {badgeInfo.label}
                     </span>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-medium">
-                      {specialBadge.label}
+                    <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full font-medium">
+                      {entry.score >= 145 ? 'Top 1%' : entry.score >= 130 ? 'Top 5%' : entry.score >= 120 ? 'Top 10%' : ''}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Click indicator for registered users */}
-              {isClickable && (
-                <div className="absolute bottom-1 right-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                  👆 Xem profile
+              {/* Verified indicator */}
+              {entry.user_id && (
+                <div className="absolute bottom-1 right-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100">
+                  ✓ Đã xác thực
                 </div>
               )}
             </div>
@@ -266,17 +266,15 @@ export default function TopTenLeaderboard({ initialData }: Props) {
       </div>
 
       {/* Call to action */}
-      <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-        <div className="text-center">
-          <h3 className="font-bold text-blue-900 mb-1">Bạn có thể làm được!</h3>
-          <p className="text-sm text-blue-700 mb-3">Tham gia thử thách và leo lên Top 10</p>
-          <a 
-            href="/test/iq"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            🧠 Làm Test IQ ngay
-          </a>
-        </div>
+      <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl text-center">
+        <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">Bạn có thể đạt thứ hạng cao?</p>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">Thử thách bản thân với bài test IQ chuẩn quốc tế</p>
+        <a 
+          href="/test/iq" 
+          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+        >
+          Làm Test IQ Ngay
+        </a>
       </div>
     </div>
   );

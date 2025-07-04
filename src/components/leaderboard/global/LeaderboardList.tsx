@@ -54,6 +54,11 @@ const formatAge = (age?: number): string => {
   return `${age}`;
 };
 
+// Format number with thousands separator
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('vi-VN').format(num);
+};
+
 // ✅ SMART: Format thời gian hoàn thành (compact)
 const formatDuration = (seconds?: number): string => {
   if (!seconds || seconds <= 0) return '';
@@ -70,7 +75,7 @@ const formatDuration = (seconds?: number): string => {
 const FastSkeleton = ({ count = 3 }: { count?: number }) => (
   <div className="space-y-3">
     {[...Array(count)].map((_, i) => (
-      <div key={i} className="animate-pulse h-20 bg-gray-200 rounded-xl" 
+      <div key={i} className="animate-pulse h-20 bg-gray-200 dark:bg-gray-700 rounded-xl" 
            style={{ animationDelay: `${i * 100}ms` }} />
     ))}
   </div>
@@ -426,383 +431,327 @@ export default function LeaderboardList({ initialData }: Props) {
   }, []);
 
   return (
-    <div className="w-full">
-      {/* Loading State - Only show if no initial data */}
-      {loading && !hasLoadedFresh && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gray-300 rounded-lg animate-pulse"></div>
-              <div className="space-y-1">
-                <div className="w-32 h-5 bg-gray-300 rounded animate-pulse"></div>
-                <div className="w-24 h-3 bg-gray-300 rounded animate-pulse"></div>
-              </div>
+    <div className="space-y-6">
+      {/* Tiêu đề và bộ lọc */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Bảng xếp hạng đầy đủ
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {filteredData.length > 0 
+              ? `${formatNumber(filteredData.length)} người tham gia từ ${initialData?.stats?.totalCountries || '...'} quốc gia` 
+              : 'Đang tải dữ liệu...'}
+          </p>
+        </div>
+        
+        {/* Filter button */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            <span className="text-gray-700 dark:text-gray-300">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Lọc</span>
+            {(filters.gender || filters.country || filters.ageRange) && (
+              <span className="w-5 h-5 flex items-center justify-center bg-blue-500 text-white text-xs rounded-full">
+                {[filters.gender, filters.country, filters.ageRange].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+          
+          {(filters.gender || filters.country || filters.ageRange) && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+            >
+              <span>Xóa</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Filters panel */}
+      {showFilters && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Gender filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Giới tính</label>
+              <select
+                value={filters.gender}
+                onChange={(e) => setFilters({...filters, gender: e.target.value})}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+              >
+                <option value="">Tất cả</option>
+                <option value="male">Nam</option>
+                <option value="female">Nữ</option>
+                <option value="other">Khác</option>
+              </select>
+            </div>
+            
+            {/* Country filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quốc gia</label>
+              <select
+                value={filters.country}
+                onChange={(e) => setFilters({...filters, country: e.target.value})}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+              >
+                <option value="">Tất cả</option>
+                {filterOptions.countries.map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Age range filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Độ tuổi</label>
+              <select
+                value={filters.ageRange}
+                onChange={(e) => setFilters({...filters, ageRange: e.target.value})}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+              >
+                <option value="">Tất cả</option>
+                <option value="18-25">18-25</option>
+                <option value="26-35">26-35</option>
+                <option value="36-50">36-50</option>
+                <option value="50+">Trên 50</option>
+              </select>
             </div>
           </div>
-          <FastSkeleton count={5} />
         </div>
       )}
-
-      {/* Error State */}
-      {error && !loading && (
-        <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
-            </svg>
+      
+      {/* Leaderboard list */}
+      {loading ? (
+        <FastSkeleton count={5} />
+      ) : error ? (
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl text-center">
+          <p>{error}</p>
+        </div>
+      ) : filteredData.length === 0 ? (
+        <div className="bg-gray-50 dark:bg-gray-800 p-8 rounded-xl text-center">
+          <div className="w-16 h-16 mx-auto bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+            <span className="text-2xl">🔍</span>
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Không thể tải dữ liệu</h3>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Không tìm thấy kết quả</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Thử thay đổi bộ lọc hoặc tải lại trang</p>
           <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            onClick={clearFilters}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Thử lại
+            Xóa bộ lọc
           </button>
         </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && allData.length === 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl">🏆</span>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Chưa có dữ liệu xếp hạng</h2>
-          <p className="text-gray-600 mb-6">Hãy là người đầu tiên tham gia test IQ!</p>
-          <a 
-            href="/test/iq" 
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Làm Test IQ
-          </a>
-        </div>
-      )}
-
-      {/* Leaderboard List */}
-      {!loading && !error && allData.length > 0 && (
-        <div id="leaderboard-container" className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🏆</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">Bảng xếp hạng chi tiết</h3>
-                    <p className="text-sm text-gray-600">
-                      {totalFiltered < allData.length ? 
-                        `${totalFiltered} / ${allData.length} kết quả` : 
-                        `${allData.length} kết quả`}
-                      
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
-                      showFilters ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
-                    </svg>
-                    <span className="text-sm font-medium">Bộ lọc</span>
-                    {(filters.gender || filters.country || filters.ageRange) && (
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter Panel */}
-              {showFilters && (
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Gender Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Giới tính</label>
-                      <select
-                        value={filters.gender}
-                        onChange={(e) => {
-                          setFilters(prev => ({ ...prev, gender: e.target.value }));
-                          setCurrentPage(1);
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      >
-                        <option value="">Tất cả</option>
-                        <option value="male">Nam ♂️</option>
-                        <option value="female">Nữ ♀️</option>
-                        <option value="other">Khác ⚧️</option>
-                      </select>
-                    </div>
-
-                    {/* Country Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Quốc gia</label>
-                      <select
-                        value={filters.country}
-                        onChange={(e) => {
-                          setFilters(prev => ({ ...prev, country: e.target.value }));
-                          setCurrentPage(1);
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      >
-                        <option value="">Tất cả</option>
-                        {filterOptions.countries.map(country => (
-                          <option key={country} value={country}>{country}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Age Range Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Độ tuổi</label>
-                      <select
-                        value={filters.ageRange}
-                        onChange={(e) => {
-                          setFilters(prev => ({ ...prev, ageRange: e.target.value }));
-                          setCurrentPage(1);
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      >
-                        <option value="">Tất cả</option>
-                        <option value="18-25">18-25 tuổi</option>
-                        <option value="26-35">26-35 tuổi</option>
-                        <option value="36-50">36-50 tuổi</option>
-                        <option value="50+">Trên 50 tuổi</option>
-                      </select>
-                    </div>
-
-                    {/* Clear Filters */}
-                    <div className="flex items-end">
-                      <button
-                        onClick={clearFilters}
-                        disabled={!filters.gender && !filters.country && !filters.ageRange}
-                        className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
-                      >
-                        Xóa bộ lọc
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Active Filters Display */}
-                  {(filters.gender || filters.country || filters.ageRange) && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="flex items-center space-x-2 text-sm">
-                        <span className="text-gray-600">Đang lọc:</span>
-                        {filters.gender && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                            {filters.gender === 'male' ? 'Nam ♂️' : filters.gender === 'female' ? 'Nữ ♀️' : 'Khác ⚧️'}
-                          </span>
-                        )}
-                        {filters.country && (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                            📍 {filters.country}
-                          </span>
-                        )}
-                        {filters.ageRange && (
-                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
-                            🎂 {filters.ageRange === '50+' ? 'Trên 50' : filters.ageRange} tuổi
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* List - Show current page items */}
-          <div className="p-6 space-y-3">
-            {currentItems.length > 0 ? currentItems.map((entry, index) => {
+      ) : (
+        <>
+          {/* Danh sách người dùng - tối ưu hóa render */}
+          <div className="space-y-3">
+            {currentItems.map((entry) => {
               const badgeInfo = getBadgeInfo(entry.badge);
-              const isTopTier = entry.rank <= 10;
               
               return (
                 <div 
                   key={`${entry.rank}-${entry.score}`}
-                  className={`relative group rounded-xl p-3 border transition-all duration-200 w-full hover:shadow-md active:scale-[0.98] ${
-                    isTopTier ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'
-                  }`}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm"
                 >
-                                     {/* Rank Badge - Góc trái trên */}
-                   <div className="absolute -top-1 -left-1 z-10">
-                     <div className={`w-10 h-8 bg-gradient-to-br ${getRankColor(entry.rank)} rounded-full flex items-center justify-center border-2 border-white shadow-sm`}>
-                       <span className="text-white text-xs font-bold">{entry.rank}</span>
-                     </div>
-                   </div>
-
-                  {/* Top Tier Indicator (không phải special badge) */}
-                  {isTopTier && (
-                    <div className="absolute -top-1 -right-1 z-10">
-                      <div className="bg-blue-500 rounded-full p-1 shadow-sm border border-white">
-                        <span className="text-sm text-white">✨</span>
+                  <div className="flex items-center">
+                    {/* Rank */}
+                    <div className="w-12 flex-shrink-0 text-center">
+                      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full 
+                        ${entry.rank <= 100 
+                          ? 'bg-gradient-to-br from-blue-400 to-indigo-500 text-white' 
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                      >
+                        <span className="text-xs font-bold">{entry.rank}</span>
                       </div>
                     </div>
-                  )}
-
-                  <div className="flex items-center justify-between pl-6 pr-2">
-                    {/* User Info - Compact */}
+                    
+                    {/* User info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-bold text-gray-900 truncate text-sm">
+                      <div className="flex items-center">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
                           {entry.name}
                         </h3>
-                        {getGenderIcon(entry.gender) && (
-                          <span className="text-xs opacity-70">{getGenderIcon(entry.gender)}</span>
+                        {entry.gender && (
+                          <span className="ml-1 text-gray-500 dark:text-gray-400 text-sm">
+                            {entry.gender === 'male' ? '♂️' : entry.gender === 'female' ? '♀️' : '⚧️'}
+                          </span>
                         )}
                         {entry.age && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                          <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">
                             {entry.age}
                           </span>
                         )}
                       </div>
                       
-                      <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
                         <span className="flex items-center">
                           <span className="mr-1">📍</span>
-                          <span className="truncate max-w-16 md:max-w-20">{entry.location}</span>
+                          {entry.location}
                         </span>
                         <span className="flex items-center">
                           <span className="mr-1">⏰</span>
-                          <span className="truncate">{formatDate(entry.date)}</span>
+                          {formatDate(entry.date)}
                         </span>
                         {entry.duration && (
-                          <span className="flex items-center" title={`Thời gian hoàn thành: ${formatDuration(entry.duration)}`}>
+                          <span className="flex items-center">
                             <span className="mr-1">⏱️</span>
-                            <span className="truncate">{formatDuration(entry.duration)}</span>
+                            {formatDuration(entry.duration)}
                           </span>
                         )}
                       </div>
                     </div>
-
-                    {/* Score & Badges - Right aligned */}
-                    <div className="text-right flex-shrink-0 ml-3">
-                      <div className={`text-lg font-bold mb-1 ${
-                        isTopTier ? 'text-blue-600' : 'text-gray-700'
-                      }`}>
+                    
+                    {/* Score & Badge */}
+                    <div className="flex-shrink-0 text-right">
+                      <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
                         {entry.score}
                       </div>
-                      
-                      <div className="flex flex-col items-end space-y-1">
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium bg-${badgeInfo.color}-100 text-${badgeInfo.color}-700`}>
+                      <div className="flex items-center justify-end mt-1">
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full bg-${badgeInfo.color}-100 dark:bg-${badgeInfo.color}-900/30 text-${badgeInfo.color}-700 dark:text-${badgeInfo.color}-400`}>
                           {badgeInfo.label}
                         </span>
-                        {isTopTier && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
-                            Top {entry.rank <= 5 ? '5' : '10'}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               );
-            }) : (
-              <div className="text-center py-8 text-gray-500">
-                Không có kết quả phù hợp với bộ lọc
-              </div>
-            )}
+            })}
           </div>
-
-          {/* 🚀 SMART PAGINATION với Dynamic Visible Range */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-gray-600">
-                  Trang {currentPage} / {totalPages} ({totalFiltered} kết quả)
-                  
+          
+          {/* Pagination */}
+          {filteredData.length > itemsPerPage && (
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 text-sm rounded-md ${
+                    currentPage === 1
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Trước
+                </button>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`ml-3 px-4 py-2 text-sm rounded-md ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Tiếp
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Hiển thị <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> đến{' '}
+                    <span className="font-medium">
+                      {Math.min(currentPage * itemsPerPage, filteredData.length)}
+                    </span>{' '}
+                    trong <span className="font-medium">{filteredData.length}</span> kết quả
+                  </p>
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  {/* First page button */}
-                  {currentPage > 3 && (
-                    <>
-                      <button
-                        onClick={() => handlePageChange(1)}
-                        onMouseEnter={() => handlePageHover(1)}
-                        className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        1
-                      </button>
-                      {currentPage > 4 && (
-                        <span className="text-gray-400 text-sm">...</span>
-                      )}
-                    </>
-                  )}
-
-                  {/* Previous button */}
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    ← Trước
-                  </button>
-                  
-                  {/* 🎯 DYNAMIC VISIBLE RANGE: Always show visible pages */}
-                  {visibleRange.map(page => {
-                    const isLoading = pageLoading.has(page);
-                    const isCached = pageCache[page] || page === currentPage;
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border text-sm font-medium ${
+                        currentPage === 1
+                          ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="sr-only">Trang trước</span>
+                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
                     
-                    return (
+                    {/* Trang đầu */}
+                    {visibleRange[0] > 1 && (
+                      <>
+                        <button
+                          onClick={() => handlePageChange(1)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          1
+                        </button>
+                        {visibleRange[0] > 2 && (
+                          <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            ...
+                          </span>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Các trang hiển thị */}
+                    {visibleRange.map(page => (
                       <button
                         key={page}
                         onClick={() => handlePageChange(page)}
-                        onMouseEnter={() => handlePageHover(page)}
-                        disabled={isLoading}
-                        className={`relative px-3 py-2 text-sm rounded-lg transition-all ${
-                          page === currentPage
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white border border-gray-300 hover:bg-gray-50'
-                        } ${isLoading ? 'opacity-70' : ''}`}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          currentPage === page
+                            ? 'z-10 bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-700 text-blue-600 dark:text-blue-400'
+                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
                       >
                         {page}
-                        {/* Loading indicator */}
-                        {isLoading && (
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" 
-                               title="Loading..." />
+                      </button>
+                    ))}
+                    
+                    {/* Trang cuối */}
+                    {visibleRange[visibleRange.length - 1] < totalPages && (
+                      <>
+                        {visibleRange[visibleRange.length - 1] < totalPages - 1 && (
+                          <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            ...
+                          </span>
                         )}
-                      </button>
-                    );
-                  })}
-                  
-                  {/* Next button */}
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Sau →
-                  </button>
-
-                  {/* Last page button */}
-                  {currentPage < totalPages - 2 && (
-                    <>
-                      {currentPage < totalPages - 3 && (
-                        <span className="text-gray-400 text-sm">...</span>
-                      )}
-                      <button
-                        onClick={() => handlePageChange(totalPages)}
-                        onMouseEnter={() => handlePageHover(totalPages)}
-                        className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        {totalPages}
-                      </button>
-                    </>
-                  )}
+                        <button
+                          onClick={() => handlePageChange(totalPages)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          {totalPages}
+                        </button>
+                      </>
+                    )}
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border text-sm font-medium ${
+                        currentPage === totalPages
+                          ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="sr-only">Trang sau</span>
+                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </nav>
                 </div>
               </div>
-              
-
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

@@ -48,7 +48,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
               {currentQuestion >= 5 && (
                 <button
                   onClick={() => onJumpToQuestion(Math.max(0, currentQuestion - 5))}
-                  className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-0"
+                  className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-medium focus:outline-none focus:ring-0"
                   title="Nhảy về 5 câu trước"
                   disabled={!isDataLoaded}
                 >
@@ -78,7 +78,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                 
                 return visibleQuestions.map(index => {
                   // Xác định class dựa trên trạng thái và isDataLoaded
-                  let buttonClass = 'w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-0 ';
+                  let buttonClass = 'w-8 h-8 rounded-full text-xs font-medium focus:outline-none focus:ring-0 ';
                   
                   if (!isDataLoaded) {
                     // Khi dữ liệu chưa tải, tất cả các nút đều có màu xám với hiệu ứng loading
@@ -117,7 +117,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
               {currentQuestion < totalQuestions - 6 && (
                 <button
                   onClick={() => onJumpToQuestion(Math.min(totalQuestions - 1, currentQuestion + 5))}
-                  className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-0"
+                  className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-medium focus:outline-none focus:ring-0"
                   title="Nhảy tới 5 câu sau"
                   disabled={!isDataLoaded}
                 >
@@ -130,7 +130,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
             <div className="flex space-x-2">
               {Array.from({ length: totalQuestions }).map((_, index) => {
                 // Xác định class dựa trên trạng thái và isDataLoaded
-                let buttonClass = 'w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-0 ';
+                let buttonClass = 'w-8 h-8 rounded-full text-xs font-medium focus:outline-none focus:ring-0 ';
                 
                 if (!isDataLoaded) {
                   // Khi dữ liệu chưa tải, tất cả các nút đều có màu xám với hiệu ứng loading

@@ -308,7 +308,7 @@ export default function Header() {
                     e.stopPropagation();
                     setShowLanguageDropdown(!showLanguageDropdown);
                   }}
-                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -329,8 +329,7 @@ export default function Header() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     className="text-gray-400 hidden sm:block"
-                    animate={{ rotate: showLanguageDropdown ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
+                    style={{ transform: showLanguageDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}
                   >
                     <polyline points="6,9 12,15 18,9"/>
                   </motion.svg>
@@ -341,16 +340,13 @@ export default function Header() {
                   {showLanguageDropdown && (
                     <motion.div
                       className="absolute right-0 top-full mt-2 w-48 sm:w-52 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-[70]"
-                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                      transition={{ duration: 0.2 }}
+                      style={{ display: showLanguageDropdown ? 'block' : 'none' }}
                     >
                       {languages.map((language) => (
                         <motion.button
                           key={language.code}
                           onClick={() => selectLanguage(language)}
-                          className={`w-full flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left ${
+                          className={`w-full flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left ${
                             currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
                           }`}
                         >
@@ -362,9 +358,7 @@ export default function Header() {
                           {currentLanguage.code === language.code && (
                             <motion.div
                               className="ml-auto"
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ duration: 0.2 }}
+                              style={{ display: currentLanguage.code === language.code ? 'block' : 'none' }}
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
                                 <polyline points="20,6 9,17 4,12"/>
@@ -391,7 +385,7 @@ export default function Header() {
                       e.stopPropagation();
                       setShowUserDropdown(!showUserDropdown);
                     }}
-                    className="flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50 transition-all duration-300 font-medium"
+                    className="flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -417,8 +411,7 @@ export default function Header() {
                       fill="none" 
                       stroke="currentColor" 
                       viewBox="0 0 24 24"
-                      animate={{ rotate: showUserDropdown ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
+                      style={{ transform: showUserDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </motion.svg>
@@ -428,10 +421,7 @@ export default function Header() {
                   <AnimatePresence>
                     {showUserDropdown && (
                       <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
+                        style={{ display: showUserDropdown ? 'block' : 'none' }}
                         className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
                       >
                         {/* User Info Header */}
@@ -483,12 +473,11 @@ export default function Header() {
                             <motion.a
                               key={item.label}
                               href={item.href}
-                              className={`flex items-center px-4 py-3 text-sm transition-all duration-200 ${
+                              className={`flex items-center px-4 py-3 text-sm ${
                                 item.highlight 
                                   ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20' 
                                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                               }`}
-                              whileHover={{ x: 4 }}
                               onClick={() => setShowUserDropdown(false)}
                             >
                               <span className={`mr-3 ${item.highlight ? 'text-amber-500' : 'text-gray-400 dark:text-gray-500'}`}>

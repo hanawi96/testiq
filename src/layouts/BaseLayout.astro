@@ -196,8 +196,19 @@ import SEO from '../components/seo/SEO.astro';
 
     /* Đảm bảo không có hiệu ứng nhấp nháy */
     * {
-      transition-property: background-color, color !important;
-      transition-duration: 0s !important;
+      transition: none !important;
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+    }
+
+    /* Vô hiệu hóa tất cả các transition cho dark mode */
+    html, html.dark, html.dark *, *[class*="dark:"] {
+      transition: none !important;
+    }
+
+    /* Đảm bảo không có transition cho các lớp Tailwind dark: */
+    *[class*="dark:"] {
+      transition: none !important;
     }
   </style>
 </head>
