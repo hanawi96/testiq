@@ -39,23 +39,8 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mt-6 border border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between">
-        {/* Professional Previous Button */}
-        <motion.button
-          onClick={onPrevious}
-          disabled={currentQuestion === 0 || !isDataLoaded}
-          className={`group flex items-center justify-center w-11 h-11 rounded-lg border transition-all duration-200 ${
-            currentQuestion === 0 || !isDataLoaded
-              ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-500 cursor-not-allowed'
-              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-white active:bg-gray-100 dark:active:bg-gray-600'
-          }`}
-          whileHover={currentQuestion > 0 && isDataLoaded ? { scale: 1.02 } : {}}
-          whileTap={currentQuestion > 0 && isDataLoaded ? { scale: 0.98 } : {}}
-          title={currentQuestion > 0 ? "Câu hỏi trước" : "Đã ở câu đầu tiên"}
-        >
-          <svg className="w-5 h-5 transition-transform duration-200 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </motion.button>
+        {/* Placeholder div để giữ layout cân đối */}
+        <div className="w-11 h-11"></div>
 
         {/* Centered Smart Question Navigator */}
         <div className="flex-1 flex justify-center">

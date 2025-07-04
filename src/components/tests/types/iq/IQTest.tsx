@@ -762,8 +762,10 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
                   highlightedAnswer={highlightedAnswer}
                   justAnswered={justAnswered}
                   answersDisabled={!isActive || isTimeUp}
+                  isReviewMode={isReviewMode}
                   showAnimation={true}
                   onSkip={nextQuestion}
+                  onPrevious={previousQuestion}
                 />
               </div>
 

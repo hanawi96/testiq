@@ -8,12 +8,19 @@ interface QuestionCardProps {
   onAnswerSelect: (answerIndex: number) => void;
   showExplanation?: boolean;
   isReviewMode?: boolean;
+  isInReviewMode?: boolean; // Trạng thái xem lại bài kiểm tra
   highlightedAnswer?: number | null;
   onSkip?: () => void;
+  onPrevious?: () => void; // Quay lại câu trước đó
 }
 
 // Component hiển thị phần header của câu hỏi
-const QuestionHeader = memo(({ question, onSkip }: { question: Question, onSkip?: () => void }) => {
+const QuestionHeader = memo(({ question, onSkip, onPrevious, isInReviewMode }: { 
+  question: Question, 
+  onSkip?: () => void, 
+  onPrevious?: () => void,
+  isInReviewMode?: boolean 
+}) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
@@ -61,12 +68,29 @@ const QuestionHeader = memo(({ question, onSkip }: { question: Question, onSkip?
           </div>
         </div>
         {onSkip ? (
-          <button 
-            onClick={onSkip}
-            className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none transition-colors"
-          >
-            Bỏ qua
-          </button>
+          <div className="flex items-center">
+            {onPrevious && (
+              <button 
+                onClick={onPrevious}
+                className="flex items-center justify-center w-10 h-10 rounded-l-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors mr-px"
+                title="Câu trước"
+                aria-label="Câu trước"
+              >
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <button 
+              onClick={onSkip}
+              className={`flex items-center px-4 py-2 text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none transition-colors ${onPrevious ? 'border-l border-gray-200 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600' : ''}`}
+            >
+              {isInReviewMode ? 'Next' : 'Bỏ qua'}
+              <svg className="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         ) : (
         <div className="text-right">
           <div className="text-sm text-gray-500 dark:text-gray-400">Câu số</div>
@@ -166,13 +190,20 @@ export default function QuestionCard({
   onAnswerSelect,
   showExplanation = false,
   isReviewMode = false,
+  isInReviewMode = false,
   highlightedAnswer = null,
-  onSkip
+  onSkip,
+  onPrevious
 }: QuestionCardProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Header - chỉ re-render khi question thay đổi */}
-      <QuestionHeader question={question} onSkip={onSkip} />
+      <QuestionHeader 
+        question={question} 
+        onSkip={onSkip} 
+        onPrevious={onPrevious}
+        isInReviewMode={isInReviewMode} 
+      />
 
       <div className="p-6">
         {/* Nội dung câu hỏi - chỉ re-render khi question thay đổi */}
