@@ -60,7 +60,7 @@ export default function TestProgressPopup({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 400 }}
-            className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6"
           >
             {/* Header */}
             <div className="text-center mb-6">
@@ -77,14 +77,14 @@ export default function TestProgressPopup({
               <h3 className={`text-xl font-bold ${isCompleted ? 'text-green-600' : 'text-red-600'} mb-2`}>
                 {isCompleted ? 'Trước đó, bạn đã hoàn thành bài test' : 'Trước đó bạn chưa hoàn thành bài test'}
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
                 {isCompleted 
                   ? 'Bạn có muốn xem kết quả không?' 
                   : `Bạn đang làm đến câu ${questionNumber + 1}/${totalQuestions}`
                 }
               </p>
               {daysAgo > 0 && (
-                <p className="text-amber-600 text-sm mt-1">
+                <p className="text-amber-600 dark:text-amber-500 text-sm mt-1">
                   Bài test này đã được bắt đầu từ {getDaysAgoText()}
                 </p>
               )}
@@ -92,25 +92,25 @@ export default function TestProgressPopup({
 
             {/* Progress Stats */}
             <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-blue-50 rounded-xl p-3 text-center">
-                <div className="text-lg font-bold text-blue-600">{completedQuestions}/{totalQuestions}</div>
-                <div className="text-xs text-gray-600">Đã hoàn thành</div>
+              <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{completedQuestions}/{totalQuestions}</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Đã hoàn thành</div>
               </div>
-              <div className={`rounded-xl p-3 text-center ${isLowTime ? 'bg-red-50' : 'bg-green-50'}`}>
-                <div className={`text-lg font-bold ${isLowTime ? 'text-red-600' : 'text-green-600'}`}>
+              <div className={`rounded-xl p-3 text-center ${isLowTime ? 'bg-red-50 dark:bg-red-900/30' : 'bg-green-50 dark:bg-green-900/30'}`}>
+                <div className={`text-lg font-bold ${isLowTime ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                   {formatTime(timeRemaining)}
                 </div>
-                <div className="text-xs text-gray-600">Còn lại</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Còn lại</div>
               </div>
             </div>
 
             {/* Progress Bar */}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-gray-600">Tiến độ</span>
-                <span className="text-xs font-medium text-blue-600">{Math.round(progress)}%</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Tiến độ</span>
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">{Math.round(progress)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <motion.div 
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full"
                   initial={{ width: 0 }}
@@ -124,7 +124,7 @@ export default function TestProgressPopup({
             <div className="flex gap-3">
               <motion.button
                 onClick={onRestart}
-                className="flex-1 flex items-center justify-center px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 flex items-center justify-center px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >

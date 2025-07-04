@@ -188,7 +188,7 @@ interface UserInfo {
           transition={{ duration: 0.15 }}
         >
           <motion.div
-            className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100 relative"
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100 dark:border-gray-700 relative"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -201,14 +201,14 @@ interface UserInfo {
                   Hoàn thành test!
                 </h3>
               </div>
-              <p className="text-sm text-green-600">
+              <p className="text-sm text-green-600 dark:text-green-400">
                 Nhập thông tin để hiển thị thành tích của bạn trên bảng xếp hạng
               </p>
             </div>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Họ và tên <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -216,18 +216,18 @@ interface UserInfo {
                   value={userInfo.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   disabled={isAnalyzing}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
-                    isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
+                  className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ${
+                    isAnalyzing ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                   placeholder="Nhập họ tên của bạn"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email <span className="text-red-500">*</span>
                   {isAuthenticatedUser && (
-                    <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                    <span className="ml-2 text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded-full">
                       🔒 Tài khoản đã xác thực
                     </span>
                   )}
@@ -239,10 +239,10 @@ interface UserInfo {
                   disabled={isAnalyzing || isAuthenticatedUser}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 transition-all duration-200 ${
                     isAuthenticatedUser 
-                      ? 'bg-blue-50 border-blue-200 text-blue-800 cursor-not-allowed' 
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-300 cursor-not-allowed' 
                       : isAnalyzing 
-                        ? 'bg-gray-100 border-gray-300 cursor-not-allowed' 
-                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400'
+                        ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 cursor-not-allowed dark:text-gray-400' 
+                        : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                   placeholder={isAuthenticatedUser ? "Email đã được xác thực" : "Nhập email của bạn"}
                   title={isAuthenticatedUser ? "Email không thể thay đổi với tài khoản đã đăng nhập" : ""}
@@ -252,7 +252,7 @@ interface UserInfo {
               
               <div className="flex gap-4">
                 <div className="w-[30%]">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Tuổi <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -260,9 +260,9 @@ interface UserInfo {
                     value={userInfo.age}
                     onChange={(e) => handleInputChange('age', e.target.value)}
                     disabled={isAnalyzing}
-                    className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
-                      isAnalyzing ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'
-                    }`}
+                    className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ${
+                      isAnalyzing ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'
+                    } [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:m-0`}
                     placeholder="Tuổi"
                     min="1"
                     max="120"
@@ -271,7 +271,7 @@ interface UserInfo {
                 </div>
                 
                 <div className="w-[70%]">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Quốc gia <span className="text-red-500">*</span>
                   </label>
                   <CountrySelector
@@ -287,7 +287,7 @@ interface UserInfo {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Giới tính
                 </label>
                 <div className="flex gap-2">
@@ -303,9 +303,9 @@ interface UserInfo {
                       disabled={isAnalyzing}
                       className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all duration-75 ${
                         userInfo.gender === option.value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                      } ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-600 dark:text-gray-300'
+                      } ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                       whileHover={!isAnalyzing ? { scale: 1.02 } : {}}
                       whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
                       transition={{ duration: 0.1, ease: "easeOut" }}
@@ -318,7 +318,7 @@ interface UserInfo {
               </div>
             </div>
             
-                          <div className="flex gap-3 mt-8">
+            <div className="flex gap-3 mt-8">
               {/* Xem kết quả button - 70% width - moved to left */}
               <motion.button
                 onClick={handleSubmit}
@@ -326,7 +326,7 @@ interface UserInfo {
                 className={`w-[70%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                   isFormValid && !isAnalyzing
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/25'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 }`}
                 whileHover={isFormValid && !isAnalyzing ? { scale: 1.02, y: -2 } : {}}
                 whileTap={isFormValid && !isAnalyzing ? { scale: 0.98 } : {}}
@@ -365,28 +365,28 @@ interface UserInfo {
                 disabled={isAnalyzing}
                 className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                 isAnalyzing
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                  : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-lg'
-              }`}
-              whileHover={!isAnalyzing ? { scale: 1.02 } : {}}
-              whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
-            >
-              Xem lại
-            </motion.button>
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-700'
+                  : 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 hover:shadow-lg'
+                }`}
+                whileHover={!isAnalyzing ? { scale: 1.02, y: -2 } : {}}
+                whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
+              >
+                Xem lại
+              </motion.button>
             </div>
 
-            {/* ✅ Thông báo thời gian còn lại */}
+            {/* ✅ Thông báo thời gian còn lại - cập nhật màu sắc cho dark mode */}
             {remainingTimeSeconds && remainingTimeSeconds > 0 && onReview && (
               <motion.div
-                className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <div className="flex items-center gap-2 text-blue-700">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
                   <span className="text-lg">✅</span>
                   <p className="text-sm font-medium">
-                    Bạn đã hoàn thành bài test, thời lượng vẫn còn <span className="font-bold text-blue-800">{formatTime(remainingTimeSeconds)}</span>, hãy xem lại bài test để kiểm tra kết quả cho chắc chắn nếu muốn.
+                    Bạn đã hoàn thành bài test, thời lượng vẫn còn <span className="font-bold text-blue-800 dark:text-blue-200">{formatTime(remainingTimeSeconds)}</span>, hãy xem lại bài test để kiểm tra kết quả cho chắc chắn nếu muốn.
                   </p>
                 </div>
               </motion.div>

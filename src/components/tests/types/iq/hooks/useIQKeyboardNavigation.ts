@@ -47,15 +47,20 @@ export function useIQKeyboardNavigation({
       let newHighlight: number;
       
       if (current === null) {
-        // Khởi tạo trạng thái ban đầu, bắt đầu từ đáp án 0
-        // Nếu đáp án 0 là đáp án hiện tại (đã chọn), tìm đáp án tiếp theo
-        newHighlight = currentAnswer === 0 ? 1 % totalAnswers : 0;
+        // Khởi tạo trạng thái ban đầu
+        if (direction === 1) {
+          // Mũi tên xuống: bắt đầu từ đáp án 0 hoặc tiếp theo nếu 0 đã được chọn
+          newHighlight = currentAnswer === 0 ? 1 : 0;
+        } else {
+          // Mũi tên lên: bắt đầu từ đáp án cuối cùng hoặc trước đó nếu cuối cùng đã được chọn
+          newHighlight = currentAnswer === totalAnswers - 1 ? totalAnswers - 2 : totalAnswers - 1;
+          if (newHighlight < 0) newHighlight = 0; // Trường hợp chỉ có 1 đáp án
+        }
         console.log('🎯 Setting initial highlight to', newHighlight);
       } else {
-        // Tìm đáp án tiếp theo (bỏ qua đáp án hiện tại)
+        // Tìm đáp án tiếp theo (luôn bỏ qua đáp án hiện tại đã chọn)
         let nextHighlight = current;
         
-        // Tìm đáp án tiếp theo cho đến khi tìm thấy đáp án khác với currentAnswer
         do {
           nextHighlight = (nextHighlight + direction) % totalAnswers;
           // Xử lý trường hợp số âm

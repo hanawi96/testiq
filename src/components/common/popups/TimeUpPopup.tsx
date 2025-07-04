@@ -163,7 +163,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 relative"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 relative"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
@@ -174,16 +174,16 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
             <div className="text-center mb-4">
               <div className="inline-flex items-center gap-2 mb-2">
                 <span className="text-2xl">⏰</span>
-                <h3 className="text-lg font-bold text-red-600">Hết thời gian!</h3>
+                <h3 className="text-lg font-bold text-red-600 dark:text-red-500">Hết thời gian!</h3>
               </div>
-              <p className="text-gray-600 text-xs">
+              <p className="text-gray-600 dark:text-gray-300 text-xs">
                 Nhập thông tin để hiển thị thành tích của bạn trên bảng xếp hạng
               </p>
             </div>
             
             <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Họ và tên <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -191,19 +191,19 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                     value={userInfo.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     disabled={isSubmitting}
-                    className={`w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                    className={`w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                      isSubmitting ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''
                     }`}
                     placeholder="Nhập họ tên của bạn"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Email <span className="text-red-500">*</span>
                     {isAuthenticatedUser && (
-                      <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                        🔒 Đã xác thực
+                      <span className="ml-2 text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded-full">
+                        🔒 Tài khoản đã xác thực
                       </span>
                     )}
                   </label>
@@ -214,10 +214,10 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                     disabled={isSubmitting || isAuthenticatedUser}
                     className={`w-full px-3 py-3 border rounded-lg focus:ring-2 transition-colors ${
                       isAuthenticatedUser 
-                        ? 'bg-blue-50 border-blue-200 text-blue-800 cursor-not-allowed' 
+                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-300 cursor-not-allowed' 
                         : isSubmitting 
-                          ? 'bg-gray-100 border-gray-300 cursor-not-allowed' 
-                          : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                          ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 cursor-not-allowed' 
+                          : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'
                     }`}
                     placeholder={isAuthenticatedUser ? "Email đã được xác thực" : "Nhập email của bạn"}
                     title={isAuthenticatedUser ? "Email không thể thay đổi với tài khoản đã đăng nhập" : ""}
@@ -227,7 +227,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                 
                 <div className="flex gap-4">
                   <div className="w-[30%]">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Tuổi <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -235,9 +235,9 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                       value={userInfo.age}
                       onChange={(e) => handleInputChange('age', e.target.value)}
                       disabled={isSubmitting}
-                      className={`w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-                      }`}
+                      className={`w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        isSubmitting ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''
+                      } [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:m-0`}
                       placeholder="Tuổi"
                       min="1"
                       max="120"
@@ -246,10 +246,10 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                   </div>
                   
                   <div className="w-[70%]">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Quốc gia <span className="text-red-500">*</span>
                     </label>
-                                          <CountrySelector
+                    <CountrySelector
                         value={userInfo.location}
                         onChange={(countryName, countryCode) => {
                           handleInputChange('location', countryName);
@@ -262,7 +262,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Giới tính
                   </label>
                   <div className="flex gap-2">
@@ -271,57 +271,48 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                       { value: 'female', label: 'Nữ', icon: '♀️' },
                       { value: 'other', label: 'Khác', icon: '⚧️' }
                     ].map((option) => (
-                      <motion.button
+                      <button
                         key={option.value}
                         type="button"
                         onClick={() => handleInputChange('gender', option.value)}
                         disabled={isSubmitting}
-                        className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 transition-all duration-75 ${
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
                           userInfo.gender === option.value
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                        whileHover={!isSubmitting ? { scale: 1.02 } : {}}
-                        whileTap={!isSubmitting ? { scale: 0.98 } : {}}
-                        transition={{ duration: 0.1, ease: "easeOut" }}
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-600 dark:text-gray-300'
+                        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        <span className="text-xs">{option.icon}</span>
-                        <span className="text-xs font-medium">{option.label}</span>
-                      </motion.button>
+                        <span className="text-sm">{option.icon}</span>
+                        <span className="text-sm font-medium">{option.label}</span>
+                      </button>
                     ))}
                   </div>
                 </div>
               </div>
             
             <div className="flex gap-3 mt-6">
-              {/* Test lại button - 30% width */}
               {onRetakeTest && (
-                <motion.button
+                <button
                   onClick={onRetakeTest}
                   disabled={isSubmitting}
-                  className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                     isSubmitting
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-lg'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
-                  whileHover={!isSubmitting ? { scale: 1.02 } : {}}
-                  whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                 >
-                Test lại
-                </motion.button>
+                  Làm lại
+                </button>
               )}
-
-              {/* Xem kết quả button - 70% width */}
-              <motion.button
+              
+              <button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}
-                className={`${onRetakeTest ? 'w-[70%]' : 'w-full'} px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   isFormValid && !isSubmitting
-                    ? 'bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-lg'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 }`}
-                whileHover={isFormValid && !isSubmitting ? { scale: 1.02 } : {}}
-                whileTap={isFormValid && !isSubmitting ? { scale: 0.98 } : {}}
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center">
@@ -344,12 +335,12 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                         className="opacity-75"
                       />
                     </svg>
-                    Đang xử lý...
+                    Đang phân tích...
                   </div>
                 ) : (
                   'Xem kết quả'
                 )}
-              </motion.button>
+              </button>
             </div>
           </motion.div>
         </motion.div>
