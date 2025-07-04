@@ -52,16 +52,16 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
         {...(showAnimation ? animationConfig : { initial: false })}
         className="question-transition-container will-change-transform"
       >
-        <QuestionCard
-          question={question}
-          selectedAnswer={currentAnswer}
-          onAnswerSelect={onAnswerSelect}
-          highlightedAnswer={highlightedAnswer}
-          isReviewMode={answersDisabled}
-          isInReviewMode={isReviewMode}
-          onSkip={onSkip}
-          onPrevious={onPrevious}
-        />
+      <QuestionCard
+        question={question}
+        selectedAnswer={currentAnswer}
+        onAnswerSelect={onAnswerSelect}
+        highlightedAnswer={highlightedAnswer}
+        isReviewMode={answersDisabled}
+        isInReviewMode={isReviewMode}
+        onSkip={onSkip}
+        onPrevious={onPrevious}
+      />
       </motion.div>
     </AnimatePresence>
   );

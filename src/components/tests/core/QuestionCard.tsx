@@ -179,11 +179,11 @@ const AnswerOptions = memo(({
               <div className="flex items-center space-x-3">
                 <div 
                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
-                    ${isSelected 
-                      ? 'border-green-500 dark:border-green-400 bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300'
-                      : isHighlighted
-                        ? 'border-blue-500 dark:border-blue-400 bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300'
-                        : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                  ${isSelected 
+                    ? 'border-green-500 dark:border-green-400 bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300'
+                    : isHighlighted
+                      ? 'border-blue-500 dark:border-blue-400 bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
                     }`}
                 >
                   {String.fromCharCode(65 + index)}

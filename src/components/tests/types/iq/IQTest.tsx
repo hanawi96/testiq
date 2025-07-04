@@ -476,9 +476,9 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         font-size: 12px !important;
       }
     `;
-    
-    // Lưu cài đặt vào localStorage
-    localStorage.setItem('iq_test_font_size', size.toString());
+      
+      // Lưu cài đặt vào localStorage
+      localStorage.setItem('iq_test_font_size', size.toString());
     console.log(`🔍 Font size đã được điều chỉnh: ${size}%`);
   };
 
@@ -899,7 +899,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           />
 
           {/* Font Size Panel - Inline Panel */}
-          {showFontSizePopup && (
+      {showFontSizePopup && (
             <motion.div 
               className="w-full mb-4"
               initial={{ opacity: 0, y: -10 }}
@@ -917,35 +917,35 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
                     Điều chỉnh cỡ chữ
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button 
+              <button 
                       onClick={decreaseFontSize}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       aria-label="Giảm cỡ chữ"
                       title="Giảm cỡ chữ (-10%)"
-                    >
+              >
                       <span className="text-xs font-medium">A</span>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                      </svg>
-                    </button>
+                </svg>
+              </button>
                     
                     <div className="font-medium text-gray-700 dark:text-gray-300 text-sm min-w-[50px] text-center px-3 py-1.5 bg-gray-50 dark:bg-gray-900/50 rounded-md">
                       {fontSize}%
-                    </div>
-                    
-                    <button 
-                      onClick={increaseFontSize}
+            </div>
+            
+              <button 
+                onClick={increaseFontSize}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       aria-label="Tăng cỡ chữ"
                       title="Tăng cỡ chữ (+10%)"
-                    >
+              >
                       <span className="text-base font-medium">A</span>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </button>
-                    
-                    <button 
+                  </svg>
+              </button>
+              
+              <button 
                       onClick={resetFontSize}
                       className="flex items-center px-2.5 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ml-2"
                       aria-label="Đặt lại cỡ chữ"
@@ -953,23 +953,23 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
-                    
-                    <button 
+                  </svg>
+              </button>
+              
+              <button 
                       onClick={() => setShowFontSizePopup(false)}
                       className="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                       aria-label="Đóng panel điều chỉnh font"
-                    >
+              >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
+                  </svg>
+              </button>
+            </div>
+            </div>
+          </div>
             </motion.div>
-          )}
+      )}
 
           {/* Main test container with shadow and background */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700 iq-test-content">
@@ -993,33 +993,33 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
               {/* Phần hiển thị tiến độ ở giữa trung tâm */}
               <div className="progress-container bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
-                <IQProgressHeader 
-                  currentQuestion={currentQuestion}
-                  totalQuestions={questions.length}
-                  timeElapsed={timeElapsed}
-                  timeLimit={timeLimit}
-                  isActive={isActive}
-                  onTimeUp={handleTimeUp}
-                  answers={answers}
-                  onSubmit={submitTest}
-                />
-              </div>
+        <IQProgressHeader 
+          currentQuestion={currentQuestion}
+          totalQuestions={questions.length}
+          timeElapsed={timeElapsed}
+          timeLimit={timeLimit}
+          isActive={isActive}
+          onTimeUp={handleTimeUp}
+          answers={answers}
+          onSubmit={submitTest}
+        />
+      </div>
 
-              {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
+      {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
               <div className="iq-navigation">
-                <IQNavigation 
-                  currentQuestion={currentQuestion}
-                  totalQuestions={questions.length}
-                  answers={answers}
-                  onPrevious={previousQuestion}
-                  onNext={nextQuestion}
-                  onJumpToQuestion={jumpToQuestion}
-                  onSubmit={submitTest}
-                  isSubmitting={isSubmitting}
-                  isReviewMode={isReviewMode}
-                  allAnswered={allAnswered}
-                  isDataLoaded={isDataLoaded}
-                />
+      <IQNavigation 
+        currentQuestion={currentQuestion}
+        totalQuestions={questions.length}
+        answers={answers}
+        onPrevious={previousQuestion}
+        onNext={nextQuestion}
+        onJumpToQuestion={jumpToQuestion}
+        onSubmit={submitTest}
+        isSubmitting={isSubmitting}
+        isReviewMode={isReviewMode}
+        allAnswered={allAnswered}
+        isDataLoaded={isDataLoaded}
+      />
               </div>
             </div>
           </div>

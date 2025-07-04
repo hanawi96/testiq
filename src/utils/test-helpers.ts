@@ -134,7 +134,8 @@ export function validateUserInfo(userInfo: UserInfo): boolean {
     userInfo.age?.trim() && 
     parseInt(userInfo.age) > 0 && 
     parseInt(userInfo.age) <= 120 &&
-    userInfo.location?.trim()
+    userInfo.location?.trim() &&
+    userInfo.gender?.trim()
   );
 }
 
@@ -166,6 +167,12 @@ export function validateField(field: keyof UserInfo, value: string): { isValid: 
       return {
         isValid: !!value?.trim(),
         error: !value?.trim() ? 'Vui lòng chọn quốc gia' : undefined
+      };
+    
+    case 'gender':
+      return {
+        isValid: !!value?.trim(),
+        error: !value?.trim() ? 'Vui lòng chọn giới tính' : undefined
       };
     
     default:

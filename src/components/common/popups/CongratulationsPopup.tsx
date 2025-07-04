@@ -23,7 +23,7 @@ interface UserInfo {
   }
 
   export default function CongratulationsPopup({ isOpen, onComplete, onReview, onConfettiTrigger, preloadedUserInfo, isAuthenticatedUser = false, remainingTimeSeconds }: CongratulationsPopupProps) {
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: 'male' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -335,7 +335,7 @@ interface UserInfo {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Giới tính
+                  Giới tính <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   {[

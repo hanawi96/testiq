@@ -285,19 +285,19 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
               exit={{ x: -100, opacity: 0 }}
               transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
             >
-              <QuestionCard
-                question={{
-                  id: currentQ.id,
-                  type: currentQ.type as any,
-                  difficulty: currentQ.difficulty as any,
-                  question: currentQ.question,
-                  options: currentQ.options,
-                  correct: currentQ.correct,
-                  explanation: currentQ.explanation
-                }}
-                selectedAnswer={answers[currentQ.id] || null}
-                onAnswerSelect={(answerId) => handleAnswer(currentQ.id, answerId)}
-              />
+          <QuestionCard
+            question={{
+              id: currentQ.id,
+              type: currentQ.type as any,
+              difficulty: currentQ.difficulty as any,
+              question: currentQ.question,
+              options: currentQ.options,
+              correct: currentQ.correct,
+              explanation: currentQ.explanation
+            }}
+            selectedAnswer={answers[currentQ.id] || null}
+            onAnswerSelect={(answerId) => handleAnswer(currentQ.id, answerId)}
+          />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -316,8 +316,8 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
             <motion.span 
               whileHover={{ x: -3 }} 
               transition={{ duration: 0.2 }}
-            >
-              ← Quay lại
+          >
+            ← Quay lại
             </motion.span>
           </button>
 
@@ -359,8 +359,8 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
               <motion.span 
                 whileHover={{ x: 3 }} 
                 transition={{ duration: 0.2 }}
-              >
-                Tiếp theo →
+            >
+              Tiếp theo →
               </motion.span>
             </button>
           )}

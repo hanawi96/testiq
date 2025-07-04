@@ -21,7 +21,7 @@ interface TimeUpPopupProps {
 }
 
 export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloadedUserInfo, isAuthenticatedUser = false }: TimeUpPopupProps) {
-  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: 'male' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -80,7 +80,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
             age: preloadedUserInfo.age || '',
             location: preloadedUserInfo.location || '',
             countryCode: preloadedUserInfo.countryCode || '',
-            gender: preloadedUserInfo.gender || ''
+            gender: preloadedUserInfo.gender || 'male'
           });
           console.log('✅ Using pre-loaded user info for authenticated user');
           return;
@@ -97,7 +97,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
               age: savedInfo.age || '',
               location: savedInfo.location || '',
               countryCode: savedInfo.countryCode || '',
-              gender: savedInfo.gender || ''
+              gender: savedInfo.gender || 'male'
             });
             console.log('✅ Loaded saved anonymous user info from localStorage');
           }
@@ -311,7 +311,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Giới tính
+                    Giới tính <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-2">
                     {[
