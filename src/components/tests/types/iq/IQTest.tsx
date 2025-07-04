@@ -155,7 +155,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     onPrevQuestion: previousQuestion,
     isActive: true, // Luôn kích hoạt tính năng điều hướng bàn phím
     highlightedAnswer: highlightedAnswer,
-    setHighlightedAnswer: setHighlightedAnswer
+    setHighlightedAnswer: setHighlightedAnswer,
+    currentAnswer: answers[currentQuestion] // Truyền đáp án hiện tại để bỏ qua khi di chuyển
   });
   
   // Hook hiệu ứng confetti

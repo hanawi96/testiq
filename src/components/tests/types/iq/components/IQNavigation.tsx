@@ -37,7 +37,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
   const skeletonClass = !isDataLoaded ? 'animate-pulse' : '';
   
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mt-6 border border-gray-100 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-center">
         {/* Centered Smart Question Navigator - thiết kế lại để căn giữa hoàn toàn */}
         <div className={`flex items-center space-x-2 ${skeletonClass}`}>

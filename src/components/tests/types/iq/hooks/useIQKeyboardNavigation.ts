@@ -11,6 +11,7 @@ interface UseKeyboardNavigationProps {
   isActive: boolean;
   highlightedAnswer: number | null;
   setHighlightedAnswer: (answerId: number | null) => void;
+  currentAnswer?: number | null; // Thêm trạng thái đáp án hiện tại của câu hỏi
 }
 
 export function useIQKeyboardNavigation({
@@ -20,13 +21,14 @@ export function useIQKeyboardNavigation({
   onPrevQuestion,
   isActive,
   highlightedAnswer,
-  setHighlightedAnswer
+  setHighlightedAnswer,
+  currentAnswer = null
 }: UseKeyboardNavigationProps) {
   // Xử lý phím bấm
   const handleKeyPress = useCallback((e: KeyboardEvent) => {
     if (!isActive) return;
     
-    console.log('🎮 Key press detected:', e.key);
+    console.log('🎮 Key press detected:', e.key, 'currentAnswer:', currentAnswer);
     
     // Arrow keys for navigation
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -38,21 +40,30 @@ export function useIQKeyboardNavigation({
         console.log('⬇️ ArrowDown pressed - highlighting next answer');
       }
       
-      // Instead of using function form, calculate the new value directly
+      const direction = e.key === 'ArrowUp' ? -1 : 1;
       const current = highlightedAnswer;
+      
+      // Tìm đáp án phù hợp tiếp theo (bỏ qua đáp án đã chọn)
       let newHighlight: number;
       
       if (current === null) {
-        console.log('🎯 Setting initial highlight to 0');
-        newHighlight = 0;
+        // Khởi tạo trạng thái ban đầu, bắt đầu từ đáp án 0
+        // Nếu đáp án 0 là đáp án hiện tại (đã chọn), tìm đáp án tiếp theo
+        newHighlight = currentAnswer === 0 ? 1 % totalAnswers : 0;
+        console.log('🎯 Setting initial highlight to', newHighlight);
       } else {
-        const direction = e.key === 'ArrowUp' ? -1 : 1;
-        newHighlight = (current + direction) % totalAnswers;
+        // Tìm đáp án tiếp theo (bỏ qua đáp án hiện tại)
+        let nextHighlight = current;
         
-        // Handle negative wrap-around
-        if (newHighlight < 0) newHighlight = totalAnswers - 1;
+        // Tìm đáp án tiếp theo cho đến khi tìm thấy đáp án khác với currentAnswer
+        do {
+          nextHighlight = (nextHighlight + direction) % totalAnswers;
+          // Xử lý trường hợp số âm
+          if (nextHighlight < 0) nextHighlight = totalAnswers - 1;
+        } while (nextHighlight === currentAnswer && totalAnswers > 1);
         
-        console.log(`🎯 Highlighting answer: ${newHighlight} (was ${current})`);
+        newHighlight = nextHighlight;
+        console.log(`🎯 Highlighting answer: ${newHighlight} (was ${current}, skipping ${currentAnswer})`);
       }
       
       setHighlightedAnswer(newHighlight);
@@ -87,7 +98,7 @@ export function useIQKeyboardNavigation({
       console.log('➡️ ArrowRight pressed - going to next question');
       onNextQuestion();
     }
-  }, [isActive, highlightedAnswer, totalAnswers, onAnswerSelect, onNextQuestion, onPrevQuestion, setHighlightedAnswer]);
+  }, [isActive, highlightedAnswer, totalAnswers, currentAnswer, onAnswerSelect, onNextQuestion, onPrevQuestion, setHighlightedAnswer]);
   
   // Đăng ký sự kiện phím - sử dụng cả keydown và keyup để đảm bảo hoạt động
   useEffect(() => {
