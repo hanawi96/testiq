@@ -43,6 +43,8 @@ interface IQTestProps {
 }
 
 export default function IQTest({ questions, timeLimit, onComplete, startImmediately = false }: IQTestProps) {
+  console.log('🔍 DEBUG: IQTest component được render');
+  
   // ===== HOOKS =====
   
   // Dark Mode
@@ -53,7 +55,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   const [showFontSizePopup, setShowFontSizePopup] = React.useState(false);
   
   // Hook âm thanh
-  const { playSound } = useIQSounds();
+  const { playSound, playTickSound, isMuted, toggleMute } = useIQSounds();
+  console.log(`🔍 DEBUG: IQTest - useIQSounds hook trả về isMuted = ${isMuted}`);
   
   // State khác - di chuyển lên trước hook useIQQuestionManager
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -87,6 +90,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     handleConfettiTrigger,
     resetPopupStates
   } = useIQPopups({ playSound });
+  console.log('🔍 DEBUG: IQTest - useIQPopups hook đã được gọi và trả về kết quả');
   
   // Hook quản lý thời gian
   const {
@@ -105,6 +109,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     onTimeUp: handleTimeUp,
     isActive: startImmediately
   });
+  console.log('🔍 DEBUG: IQTest - useIQTimer hook đã được gọi và trả về kết quả');
 
   // Hook để quản lý nghỉ mắt
   const {
@@ -123,6 +128,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     restDuration: 30, // Đặt thời gian nghỉ mắt là 30 giây
     playSound // Truyền hàm phát âm thanh
   });
+  console.log('🔍 DEBUG: IQTest - useIQEyeRest hook đã được gọi và trả về kết quả');
   
   // Hook quản lý câu hỏi và trả lời
   const {
@@ -149,12 +155,14 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     initialAnswers: savedState ? savedState.answers : undefined,
     initialQuestion: savedState ? savedState.currentQuestion : 0
   });
+  console.log('🔍 DEBUG: IQTest - useIQQuestionManager hook đã được gọi và trả về kết quả');
   
   // Hook quản lý lưu tiến trình
   const {
     saveProgress,
     clearProgress
   } = useIQSaveProgress({ questions, timeLimit });
+  console.log('🔍 DEBUG: IQTest - useIQSaveProgress hook đã được gọi và trả về kết quả');
   
   // Hook điều hướng bàn phím
   useIQKeyboardNavigation({
@@ -167,6 +175,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     setHighlightedAnswer: setHighlightedAnswer,
     currentAnswer: answers[currentQuestion] // Truyền đáp án hiện tại để bỏ qua khi di chuyển
   });
+  console.log('🔍 DEBUG: IQTest - useIQKeyboardNavigation hook đã được gọi');
   
   // Hook hiệu ứng confetti
   const { fireSingle } = useConfetti();
@@ -535,6 +544,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     }
     
     // ✅ STEP 1: Stop all audio immediately - siêu nhanh
+    console.log('🔍 DEBUG: restartFreshTest - Gọi playSound("complete")');
+    console.log(`🔍 DEBUG: restartFreshTest - isMuted = ${isMuted}`);
     playSound('complete');
     
     // ✅ STEP 2: Clear states and storage - KHÔNG DÙNG BATCH
@@ -572,7 +583,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     
   }, [
     playSound, clearProgress, pauseTimer, resetTimer, 
-    resetQuestionState, resetPopupStates, startTimer
+    resetQuestionState, resetPopupStates, startTimer, isMuted
   ]);
 
   // View result from completed saved test
@@ -620,6 +631,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     }
     
     // ✅ Play completion sound
+    console.log('🔍 DEBUG: submitTest - Gọi playSound("complete")');
+    console.log(`🔍 DEBUG: submitTest - isMuted = ${isMuted}`);
     playSound('complete');
     
     // ✅ SMART: Mark as completed but keep state for "view result" option
@@ -649,7 +662,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         remainingTime
       });
     }, 500);
-  }, [isSubmitting, allAnswered, isReviewMode, pauseTimer, playSound, setIsTimeUp, setIsActive, setTimeElapsed, timeLimit, timeElapsed, startTime, setStartTime, isActive, isTimeUp]);
+  }, [isSubmitting, allAnswered, isReviewMode, pauseTimer, playSound, setIsTimeUp, setIsActive, setTimeElapsed, timeLimit, timeElapsed, startTime, setStartTime, isActive, isTimeUp, isMuted]);
 
   // Handle popup completion
   const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {

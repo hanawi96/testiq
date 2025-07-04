@@ -1,7 +1,8 @@
 /**
  * Hook quản lý các câu hỏi và câu trả lời trong IQ Test
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { globalAudioContext } from './useIQSounds';
 import type { Question } from '../../../../../utils/test';
 
 interface UseIQQuestionManagerProps {
@@ -28,8 +29,8 @@ export function useIQQuestionManager({
   const [justAnswered, setJustAnswered] = useState(false);
   const [highlightedAnswer, setHighlightedAnswer] = useState<number | null>(null);
   
-  // Kiểm tra nếu tất cả các câu hỏi đã được trả lời
-  const allAnswered = useCallback(() => {
+  // Kiểm tra nếu tất cả các câu hỏi đã được trả lời - sử dụng useMemo thay vì useCallback
+  const allAnswered = useMemo(() => {
     return answers.every(a => a !== null);
   }, [answers]);
 
@@ -52,11 +53,8 @@ export function useIQQuestionManager({
   const handleAnswerSelect = useCallback((answerIndex: number) => {
     // Ngăn việc chọn đáp án nếu đã hết thời gian
     if (isTimeUp) {
-      console.log('⏰ Cannot select answer - time is up!');
       return;
     }
-    
-    console.log(`🎯 handleAnswerSelect: question=${currentQuestion}, answer=${answerIndex}`);
     
     // Cập nhật câu trả lời
     const newAnswers = [...answers];
@@ -65,7 +63,7 @@ export function useIQQuestionManager({
     setJustAnswered(true);
     
     // Phản hồi ngay lập tức
-    if (playSound) {
+    if (playSound && !globalAudioContext.isMuted) {
       const question = questions[currentQuestion];
       if (question) {
         const isCorrect = answerIndex === question.correct;
@@ -77,20 +75,16 @@ export function useIQQuestionManager({
         }
       }
     }
-    
-    // KHÔNG thêm setTimeout - logic chuyển câu hỏi sẽ được xử lý bởi useEffect trong IQTest.tsx
-    // Điều này tránh race condition và khiến việc chuyển câu hỏi mượt mà hơn
   }, [answers, currentQuestion, isTimeUp, playSound, questions]);
 
   // Chuyển đến câu hỏi tiếp theo
   const nextQuestion = useCallback(() => {
     if (isReviewMode) {
       // Trong chế độ xem lại, đơn giản là di chuyển đến câu tiếp theo
-      const nextQuestion = (currentQuestion + 1) % questions.length;
-      setCurrentQuestion(nextQuestion);
+      const nextQuestionIndex = (currentQuestion + 1) % questions.length;
+      setCurrentQuestion(nextQuestionIndex);
       setJustAnswered(false);
       setHighlightedAnswer(null); // Xóa highlight
-      console.log('➡️ Review mode: Moving to next question:', nextQuestion);
     } else {
       // Trong chế độ làm bài, tìm câu hỏi chưa trả lời tiếp theo
       const nextUnanswered = findNextUnanswered(currentQuestion + 1);
@@ -98,7 +92,6 @@ export function useIQQuestionManager({
         setCurrentQuestion(nextUnanswered);
         setJustAnswered(false);
         setHighlightedAnswer(null); // Xóa highlight
-        console.log('➡️ Normal mode: Moving to next unanswered question:', nextUnanswered);
       }
     }
   }, [currentQuestion, findNextUnanswered, isReviewMode, questions.length]);
@@ -109,13 +102,11 @@ export function useIQQuestionManager({
       setCurrentQuestion(currentQuestion - 1);
       setJustAnswered(false);
       setHighlightedAnswer(null); // Xóa highlight
-      console.log('⬅️ Moving to previous question:', currentQuestion - 1);
     } else if (isReviewMode) {
       // Trong chế độ xem lại, nếu đang ở câu đầu tiên thì quay lại câu cuối cùng
       setCurrentQuestion(questions.length - 1);
       setJustAnswered(false);
       setHighlightedAnswer(null);
-      console.log('⬅️ Review mode: Wrapping to last question:', questions.length - 1);
     }
   }, [currentQuestion, isReviewMode, questions.length]);
 
@@ -145,7 +136,7 @@ export function useIQQuestionManager({
     setJustAnswered,
     highlightedAnswer,
     setHighlightedAnswer,
-    allAnswered: allAnswered(),
+    allAnswered,
     handleAnswerSelect,
     nextQuestion,
     previousQuestion,

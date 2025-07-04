@@ -1,20 +1,55 @@
 /**
  * Hook cung cấp chức năng phát âm thanh cho IQ test
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+
+// Global audio context để quản lý trạng thái âm thanh toàn cục
+export const globalAudioContext = {
+  isMuted: false,
+  setIsMuted: (value: boolean) => {
+    globalAudioContext.isMuted = value;
+    localStorage.setItem('iq_test_muted', value.toString());
+  },
+  // Khởi tạo từ localStorage
+  initialize: () => {
+    const savedMuteState = localStorage.getItem('iq_test_muted');
+    globalAudioContext.isMuted = savedMuteState ? savedMuteState === 'true' : false;
+  }
+};
+
+// Khởi tạo ngay khi file được import
+globalAudioContext.initialize();
 
 export function useIQSounds() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [isMuted, setIsMuted] = useState<boolean>(globalAudioContext.isMuted);
+  
+  // Đồng bộ state local với global
+  useEffect(() => {
+    setIsMuted(globalAudioContext.isMuted);
+  }, []);
+  
+  // Toggle mute/unmute
+  const toggleMute = useCallback(() => {
+    const newValue = !globalAudioContext.isMuted;
+    
+    // Cập nhật cả global và local
+    globalAudioContext.setIsMuted(newValue);
+    setIsMuted(newValue);
+  }, []);
   
   // Lấy hoặc tạo audio context
   const getAudioContext = useCallback(() => {
+    // Luôn kiểm tra giá trị hiện tại từ global
+    if (globalAudioContext.isMuted) {
+      return null;
+    }
+    
     let ctx = audioContext;
     if (!ctx) {
-      console.log('🔊 Creating audio context on-demand...');
       try {
         ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         setAudioContext(ctx); // Update state for future calls
-        console.log('🎵 Audio context created:', ctx.state);
       } catch (error) {
         console.error('❌ Failed to create audio context:', error);
         return null;
@@ -23,20 +58,102 @@ export function useIQSounds() {
 
     // Resume context if suspended
     if (ctx.state === 'suspended') {
-      console.log('🔊 Resuming suspended audio context...');
       ctx.resume();
     }
 
     return ctx;
   }, [audioContext]);
   
+  // ✅ CELEBRATION: Special multi-tone success sound
+  const playCelebrationSound = useCallback((ctx: AudioContext) => {
+    // Luôn kiểm tra giá trị hiện tại từ global
+    if (globalAudioContext.isMuted) {
+      return;
+    }
+    
+    // Victory melody: C-E-G-C (Do-Mi-Sol-Do) in higher octave
+    const melody = [
+      { freq: 523, duration: 0.2 }, // C5
+      { freq: 659, duration: 0.2 }, // E5
+      { freq: 784, duration: 0.2 }, // G5
+      { freq: 1047, duration: 0.4 } // C6
+    ];
+    
+    let startTime = ctx.currentTime;
+    
+    melody.forEach((note) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.setValueAtTime(note.freq, startTime);
+      oscillator.type = 'sine';
+      
+      // Volume envelope for musical effect
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + note.duration);
+      
+      startTime += note.duration * 0.8; // Slight overlap for smooth transition
+    });
+  }, []);
+
+  // ✅ ALARM: Chuông báo động khi hết thời gian
+  const playAlarmSound = useCallback((ctx: AudioContext) => {
+    // Luôn kiểm tra giá trị hiện tại từ global
+    if (globalAudioContext.isMuted) {
+      return;
+    }
+    
+    // Chuỗi âm thanh báo động: cao-thấp-cao-thấp
+    const alarmSequence = [
+      { freq: 880, duration: 0.3 }, // A5 - cao
+      { freq: 440, duration: 0.3 }, // A4 - thấp
+      { freq: 880, duration: 0.3 }, // A5 - cao
+      { freq: 440, duration: 0.3 }  // A4 - thấp
+    ];
+    
+    let startTime = ctx.currentTime;
+    
+    alarmSequence.forEach((note) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.setValueAtTime(note.freq, startTime);
+      oscillator.type = 'square'; // Âm thanh sắc nét hơn cho cảnh báo
+      
+      // Âm lượng lớn hơn cho cảnh báo
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.4, startTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + note.duration);
+      
+      startTime += note.duration * 0.9; // Khoảng cách ngắn giữa các âm
+    });
+  }, []);
+  
   // Phát âm thanh
   const playSound = useCallback((type: 'correct' | 'wrong' | 'warning' | 'complete') => {
-    console.log(`🔊 playSound called with type: ${type}`);
+    // Luôn kiểm tra giá trị hiện tại từ global
+    if (globalAudioContext.isMuted) {
+      return;
+    }
     
     // ✅ SMART: Create audio context on-demand if not exists
     const ctx = getAudioContext();
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
 
     try {
       if (type === 'complete') {
@@ -61,7 +178,6 @@ export function useIQSounds() {
         };
         
         const config = configs[type];
-        console.log(`🔊 Playing ${type} sound:`, config);
         
         oscillator.frequency.setValueAtTime(config.frequency, ctx.currentTime);
         oscillator.type = config.type;
@@ -72,20 +188,22 @@ export function useIQSounds() {
         oscillator.start(ctx.currentTime);
         oscillator.stop(ctx.currentTime + config.duration);
       }
-      
-      console.log('✅ Sound should be playing now');
-      
     } catch (error) {
       console.error('❌ Error playing sound:', error);
     }
-  }, [getAudioContext]);
+  }, [getAudioContext, playCelebrationSound, playAlarmSound]);
 
   // ✅ COUNTDOWN: Âm thanh tít cho đếm ngược 10 giây cuối
   const playTickSound = useCallback(() => {
-    console.log('⏱️ Playing tick sound for countdown');
+    // Luôn kiểm tra giá trị hiện tại từ global
+    if (globalAudioContext.isMuted) {
+      return;
+    }
     
     const ctx = getAudioContext();
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
     
     try {
       const oscillator = ctx.createOscillator();
@@ -109,80 +227,10 @@ export function useIQSounds() {
     }
   }, [getAudioContext]);
 
-  // ✅ CELEBRATION: Special multi-tone success sound
-  const playCelebrationSound = useCallback((ctx: AudioContext) => {
-    console.log('🎉 Playing celebration sound sequence!');
-    
-    // Victory melody: C-E-G-C (Do-Mi-Sol-Do) in higher octave
-    const melody = [
-      { freq: 523, duration: 0.2 }, // C5
-      { freq: 659, duration: 0.2 }, // E5
-      { freq: 784, duration: 0.2 }, // G5
-      { freq: 1047, duration: 0.4 } // C6
-    ];
-    
-    let startTime = ctx.currentTime;
-    
-    melody.forEach((note, index) => {
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      
-      oscillator.frequency.setValueAtTime(note.freq, startTime);
-      oscillator.type = 'sine';
-      
-      // Volume envelope for musical effect
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
-      
-      oscillator.start(startTime);
-      oscillator.stop(startTime + note.duration);
-      
-      startTime += note.duration * 0.8; // Slight overlap for smooth transition
-    });
-  }, []);
-
-  // ✅ ALARM: Chuông báo động khi hết thời gian
-  const playAlarmSound = useCallback((ctx: AudioContext) => {
-    console.log('🚨 Playing alarm bell sound!');
-    
-    // Chuỗi âm thanh báo động: cao-thấp-cao-thấp
-    const alarmSequence = [
-      { freq: 880, duration: 0.3 }, // A5 - cao
-      { freq: 440, duration: 0.3 }, // A4 - thấp
-      { freq: 880, duration: 0.3 }, // A5 - cao
-      { freq: 440, duration: 0.3 }  // A4 - thấp
-    ];
-    
-    let startTime = ctx.currentTime;
-    
-    alarmSequence.forEach((note, index) => {
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      
-      oscillator.frequency.setValueAtTime(note.freq, startTime);
-      oscillator.type = 'square'; // Âm thanh sắc nét hơn cho cảnh báo
-      
-      // Âm lượng lớn hơn cho cảnh báo
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.4, startTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
-      
-      oscillator.start(startTime);
-      oscillator.stop(startTime + note.duration);
-      
-      startTime += note.duration * 0.9; // Khoảng cách ngắn giữa các âm
-    });
-  }, []);
-
   return {
     playSound,
-    playTickSound
+    playTickSound,
+    isMuted,
+    toggleMute
   };
 } 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useIQSounds } from '../types/iq/hooks/useIQSounds';
+import { useIQSounds, globalAudioContext } from '../types/iq/hooks/useIQSounds';
 
 // Thêm CSS cho bộ lọc ánh sáng xanh
 const addBlueFilterStyles = () => {
@@ -36,11 +36,10 @@ interface TimerProps {
 export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0, onFontSizeClick }: TimerProps) {
   const [hasTriggeredTimeUp, setHasTriggeredTimeUp] = useState(false);
   const prevTimeElapsed = useRef(timeElapsed);
-  const { playTickSound } = useIQSounds();
+  const { playTickSound, isMuted, toggleMute } = useIQSounds();
   
-  // Trạng thái cho chế độ tối, âm thanh, lọc ánh sáng xanh và toàn màn hình
+  // Trạng thái cho chế độ tối, lọc ánh sáng xanh và toàn màn hình
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isSoundOn, setIsSoundOn] = useState(true);
   const [isBlueFilterOn, setIsBlueFilterOn] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
@@ -84,13 +83,11 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   // ✅ SMART: Separate effect để handle time up
   useEffect(() => {
     if (timeLeft === 0 && isActive && !hasTriggeredTimeUp && timeElapsed > 0) {
-      console.log('⏰ Timer: Time is up! Triggering onTimeUp callback');
       setHasTriggeredTimeUp(true);
       
       // Đảm bảo callback onTimeUp được gọi ngay lập tức
       try {
         onTimeUp();
-        console.log('✅ Timer: onTimeUp callback executed successfully');
       } catch (error) {
         console.error('❌ Timer: Error executing onTimeUp callback:', error);
       }
@@ -99,18 +96,17 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
 
   // ✅ SOUND EFFECT: Phát âm thanh tít trong 10 giây cuối
   useEffect(() => {
-    if (!isActive || currentTimeLeft > 10 || currentTimeLeft <= 0 || !isSoundOn) return;
+    if (!isActive || currentTimeLeft > 10 || currentTimeLeft <= 0) return;
     
     // Phát âm thanh tít mỗi giây trong 10 giây cuối
     const tickInterval = setInterval(() => {
-      if (currentTimeLeft <= 10 && currentTimeLeft > 0 && isSoundOn) {
-        console.log(`⏱️ Playing tick sound at ${currentTimeLeft}s remaining`);
+      if (currentTimeLeft <= 10 && currentTimeLeft > 0 && !globalAudioContext.isMuted) {
         playTickSound();
       }
     }, 1000);
     
     return () => clearInterval(tickInterval);
-  }, [isActive, currentTimeLeft, playTickSound, isSoundOn]);
+  }, [isActive, currentTimeLeft, playTickSound]);
 
   // Hiệu ứng cập nhật thời gian hiển thị nếu đang hoạt động
   useEffect(() => {
@@ -179,13 +175,6 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     // Áp dụng vào HTML và localStorage
     document.documentElement.classList.toggle('dark', newDarkMode);
     localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
-    
-    console.log('🌓 Timer: Toggle Dark Mode -', newDarkMode ? 'Kích hoạt chế độ tối' : 'Kích hoạt chế độ sáng');
-  };
-  
-  // Xử lý bật/tắt âm thanh
-  const toggleSound = () => {
-    setIsSoundOn(!isSoundOn);
   };
 
   // Xử lý bật/tắt bộ lọc ánh sáng xanh
@@ -207,6 +196,9 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
       }
     }
   };
+  
+  // Lấy trạng thái âm thanh hiện tại từ globalAudioContext
+  const currentMuteState = globalAudioContext.isMuted;
 
   return (
     <motion.div 
@@ -280,10 +272,10 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           <button 
             className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700" 
             aria-label="Bật/tắt âm thanh"
-            onClick={toggleSound}
+            onClick={toggleMute}
             type="button"
           >
-            {isSoundOn ? (
+            {!currentMuteState ? (
               // Icon âm thanh bật
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071a1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243a1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828a1 1 0 010-1.415z" clipRule="evenodd" />

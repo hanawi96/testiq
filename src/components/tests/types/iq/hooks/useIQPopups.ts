@@ -3,6 +3,7 @@
  */
 import { useState, useCallback, useEffect } from 'react';
 import type { UserInfo } from '../../../../common/popups/CongratulationsPopup';
+import { globalAudioContext } from './useIQSounds';
 
 interface UseIQPopupsProps {
   playSound?: (type: 'correct' | 'wrong' | 'warning' | 'complete') => void;
@@ -35,14 +36,6 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
       
       if (userInfo) {
         setPreloadedUserInfo(userInfo);
-        console.log('✅ User info pre-loaded successfully:', {
-          name: userInfo.name,
-          email: userInfo.email ? '✅ with email' : '❌ no email',
-          age: userInfo.age || 'not set',
-          location: userInfo.location || 'not set'
-        });
-      } else {
-        console.log('📝 No user info found - user will need to enter info manually');
       }
     } catch (error) {
       console.warn('⚠️ Could not pre-load user info:', error);
@@ -51,25 +44,22 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
 
   // Xử lý khi hết thời gian
   const handleTimeUp = useCallback(() => {
-    console.log('🔔 IQTest: handleTimeUp called');
     setIsTimeUp(true); // ✅ Đánh dấu test đã hết thời gian - không cho phép tương tác nữa
-    
-    // ✅ Phát âm thanh cảnh báo khi hết thời gian
-    console.log('🔔 IQTest: About to play alarm bell');
     
     try {
       // ✅ FIX: Gọi playSound trước và đợi một khoảng thời gian để đảm bảo âm thanh được phát
-      if (playSound) {
+      if (playSound && !globalAudioContext.isMuted) {
         playSound('warning');
       
         // ✅ FIX: Chỉ hiển thị popup sau khi đảm bảo âm thanh đã được khởi tạo
         setTimeout(() => {
           setShowTimeUpPopup(true);
-          console.log('🔔 IQTest: Time up popup shown after sound initialized');
           
           // Thêm timeout để phát lại âm thanh sau một khoảng thời gian
           setTimeout(() => {
-            playSound('warning');
+            if (!globalAudioContext.isMuted) {
+              playSound('warning');
+            }
           }, 300);
         }, 50);
       } else {
@@ -80,14 +70,11 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
       // Vẫn hiển thị popup nếu có lỗi phát âm thanh
       setShowTimeUpPopup(true);
     }
-    
-    console.log('🔔 IQTest: handleTimeUp processing complete');
   }, [playSound]);
 
   // Xử lý hiệu ứng confetti
   const handleConfettiTrigger = useCallback(() => {
     if (!confettiTriggered) {
-      console.log('🎉 Triggering confetti once');
       setShowConfetti(true);
       setConfettiTriggered(true);
       

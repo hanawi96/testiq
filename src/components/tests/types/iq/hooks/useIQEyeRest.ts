@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { globalAudioContext } from './useIQSounds';
 
 interface UseIQEyeRestProps {
   isActive: boolean; // Trạng thái hoạt động của bài test
@@ -32,10 +33,15 @@ export function useIQEyeRest({
   const halfTimePointReachedRef = useRef(false);
   const autoHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevStartTimeRef = useRef<number | null>(null); // Lưu giá trị startTime trước đó
+  const playSoundRef = useRef(playSound); // Lưu tham chiếu đến playSound
+  
+  // Cập nhật playSoundRef khi playSound thay đổi
+  useEffect(() => {
+    playSoundRef.current = playSound;
+  }, [playSound]);
   
   // 3. Tất cả useCallback phải được khai báo sau useRef
   const handleSkipRest = useCallback(() => {
-    console.log('👁️ handleSkipRest: Người dùng bỏ qua nghỉ mắt');
     setShowRestPopup(false);
     setSoundPlayed(false); // Đặt lại trạng thái âm thanh khi bỏ qua nghỉ mắt
     // Cập nhật thời gian nghỉ mắt gần nhất để tính toán lần tiếp theo
@@ -43,7 +49,6 @@ export function useIQEyeRest({
   }, []);
 
   const handleStartRest = useCallback(() => {
-    console.log('👁️ handleStartRest: Người dùng bắt đầu nghỉ mắt');
     // Đảm bảo popup ẩn đi ngay lập tức trước khi bắt đầu nghỉ
     setShowRestPopup(false);
     
@@ -62,22 +67,22 @@ export function useIQEyeRest({
         setRestTimeRemaining(prev => {
           if (prev <= 1) {
             clearInterval(interval);
-            console.log('👁️ Kết thúc thời gian nghỉ mắt, đặt isResting = false');
             setIsResting(false);
             // Cập nhật thời gian nghỉ mắt gần nhất
             setLastRestTime(Date.now());
             
-            // Chỉ phát âm thanh nếu chưa phát
-            if (playSound && !soundPlayed) {
+            // Chỉ phát âm thanh nếu chưa phát và không bị mute
+            if (playSoundRef.current && !soundPlayed && !globalAudioContext.isMuted) {
               setSoundPlayed(true); // Đánh dấu đã phát âm thanh
-              console.log('🔊 Phát chính xác 2 tiếng tít tít thông báo kết thúc nghỉ mắt');
               
               // Phát tiếng tít tít đầu tiên
-              playSound('warning');
+              playSoundRef.current('warning');
               
               // Phát tiếng tít tít thứ hai sau 500ms
               setTimeout(() => {
-                playSound('warning');
+                if (playSoundRef.current && !globalAudioContext.isMuted) {
+                  playSoundRef.current('warning');
+                }
               }, 500);
             }
             
@@ -91,10 +96,9 @@ export function useIQEyeRest({
         clearInterval(interval);
       };
     }, 0);
-  }, [restDuration, playSound, soundPlayed]);
+  }, [restDuration, soundPlayed]);
 
   const handleDisableRest = useCallback(() => {
-    console.log('👁️ Người dùng đã tắt hiển thị popup nghỉ mắt cho phiên test này');
     setShowRestPopup(false);
     setIsDisabled(true); // Đánh dấu đã tắt hiển thị
     setLastRestTime(Date.now()); // Cũng cập nhật thời gian để tránh hiển thị lại ngay
@@ -104,7 +108,6 @@ export function useIQEyeRest({
   useEffect(() => {
     // Khi timeElapsed = 0 hoặc rất nhỏ (< 2), có khả năng là test mới được bắt đầu
     if (timeElapsed < 2) {
-      console.log('🔄 Reset trạng thái hasShownPopup do phát hiện test mới bắt đầu (timeElapsed = 0)');
       setHasShownPopup(false);
       halfTimePointReachedRef.current = false;
       setIsDisabled(false); // Reset cả trạng thái disabled
@@ -114,7 +117,6 @@ export function useIQEyeRest({
   useEffect(() => {
     // Chỉ reset khi startTime thay đổi và khác với giá trị trước đó (test mới thực sự)
     if (startTime && startTime !== prevStartTimeRef.current && timeElapsed < 2) {
-      console.log('🔄 Reset trạng thái hasShownPopup do phát hiện test mới thực sự bắt đầu');
       setHasShownPopup(false);
       halfTimePointReachedRef.current = false;
       setIsDisabled(false); // Reset cả trạng thái disabled
@@ -122,9 +124,6 @@ export function useIQEyeRest({
     
     // Luôn cập nhật giá trị startTime để so sánh cho lần sau
     if (startTime !== prevStartTimeRef.current) {
-      if (startTime && timeElapsed > 2) {
-        console.log('ℹ️ Cập nhật startTime mà không reset trạng thái (có thể là tiếp tục sau khi nghỉ mắt)');
-      }
       prevStartTimeRef.current = startTime;
     }
   }, [startTime, timeElapsed]);
@@ -132,16 +131,11 @@ export function useIQEyeRest({
   useEffect(() => {
     // Khi chế độ nghỉ mắt kết thúc, đảm bảo hasShownPopup vẫn là true
     if (!isResting && halfTimePointReachedRef.current) {
-      console.log('🔒 Đảm bảo hasShownPopup vẫn là true sau khi nghỉ mắt kết thúc');
       setHasShownPopup(true);
     }
   }, [isResting]);
 
   useEffect(() => {
-    // Log các điều kiện để debug
-    console.log(`🔍 Kiểm tra điều kiện hiển thị popup: timeElapsed=${timeElapsed}, halfTimePoint=${timeLimit ? Math.floor(timeLimit / 2) : 'N/A'}`);
-    console.log(`🔍 Các điều kiện ngăn hiển thị: isReviewMode=${isReviewMode}, isDisabled=${isDisabled}, hasShownPopup=${hasShownPopup}, isResting=${isResting}`);
-    
     // Không hiển thị popup nghỉ mắt khi đang ở chế độ review hoặc đã tắt hiển thị hoặc đã hiển thị rồi
     if (isReviewMode || isDisabled || hasShownPopup || !timeLimit || isResting) {
       return;
@@ -151,7 +145,6 @@ export function useIQEyeRest({
     const halfTimePoint = Math.floor(timeLimit / 2);
     
     if (isActive && timeElapsed >= halfTimePoint && !halfTimePointReachedRef.current) {
-      console.log(`👁️ Đã đạt 50% thời gian (${timeElapsed}/${timeLimit} giây), hiển thị popup nghỉ mắt`);
       setShowRestPopup(true);
       setHasShownPopup(true);
       halfTimePointReachedRef.current = true; // Đánh dấu đã đạt mốc 50%
@@ -159,7 +152,6 @@ export function useIQEyeRest({
       // Tự động ẩn popup sau 5 giây nếu không có tương tác
       autoHideTimeoutRef.current = setTimeout(() => {
         if (showRestPopup) {
-          console.log('👁️ Tự động ẩn popup nghỉ mắt sau 5 giây');
           handleSkipRest();
         }
       }, 5000);
@@ -171,10 +163,6 @@ export function useIQEyeRest({
       };
     }
   }, [isActive, timeElapsed, timeLimit, isResting, isReviewMode, isDisabled, hasShownPopup, showRestPopup, handleSkipRest]);
-
-  useEffect(() => {
-    console.log(`🔍 DEBUG - State change: isResting=${isResting}, hasShownPopup=${hasShownPopup}, halfTimePointReached=${halfTimePointReachedRef.current}, showRestPopup=${showRestPopup}`);
-  }, [isResting, hasShownPopup, showRestPopup]);
 
   return {
     showRestPopup,
