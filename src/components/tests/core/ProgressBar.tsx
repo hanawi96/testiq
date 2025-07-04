@@ -32,11 +32,11 @@ export default function ProgressBar({
       
       {/* Progress bar */}
       <div className="relative">
-        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
           <motion.div
             key={resetKey} /* Key đặc biệt để buộc render lại hoàn toàn khi reset */
             ref={barRef}
-            className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full relative overflow-hidden"
+            className="h-full bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-500 rounded-full relative overflow-hidden"
             initial={{ width: 0 }} /* Luôn bắt đầu từ 0 khi là component mới */
             animate={{ width: `${percentage}%` }}
             transition={{ 
@@ -68,10 +68,10 @@ export default function ProgressBar({
                 key={`step-${index}-${resetKey}`}
                 className={`w-3 h-3 rounded-full border-2 transition-colors duration-300 ${
                   index < current
-                    ? 'bg-primary-500 border-primary-500'
+                    ? 'bg-primary-500 border-primary-500 dark:bg-primary-400 dark:border-primary-400'
                     : index === current - 1
-                    ? 'bg-primary-400 border-primary-400 animate-pulse'
-                    : 'bg-white border-gray-300'
+                    ? 'bg-primary-400 border-primary-400 dark:bg-primary-300 dark:border-primary-300 animate-pulse'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'
                 }`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}

@@ -43,6 +43,9 @@ interface IQTestProps {
 export default function IQTest({ questions, timeLimit, onComplete, startImmediately = false }: IQTestProps) {
   // ===== HOOKS =====
   
+  // Dark Mode
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
+  
   // Hook âm thanh
   const { playSound } = useIQSounds();
   
@@ -50,6 +53,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isReviewMode, setIsReviewMode] = React.useState(false);
   const [isDataLoaded, setIsDataLoaded] = React.useState(!startImmediately);
+  const [hasStarted, setHasStarted] = React.useState(startImmediately); // Theo dõi trạng thái bài test đã bắt đầu
   
   // Trạng thái savedState để lưu trữ tiến độ đã lưu
   const [savedState, setSavedState] = React.useState(loadTestState());
@@ -83,6 +87,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     isActive,
     setIsActive,
     timeElapsed,
+    setTimeElapsed,
     startTime,
     setStartTime,
     startTimer,
@@ -159,6 +164,17 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   const hasInitializedRef = React.useRef(false);
 
   // ===== SIDE EFFECTS =====
+
+  // Khởi tạo Dark Mode từ localStorage khi component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    console.log('🌙 Khởi tạo Dark Mode:', { savedTheme, prefersDark, shouldBeDark });
+    setIsDarkMode(shouldBeDark);
+    document.documentElement.classList.toggle('dark', shouldBeDark);
+  }, []);
 
   // Bắt đầu test ngay lập tức nếu startImmediately=true
   useEffect(() => {
@@ -327,6 +343,16 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // ===== CALLBACKS =====
 
+  // Toggle Dark Mode
+  const toggleTheme = () => {
+    console.log('🌓 Toggle Dark Mode clicked. Current state:', isDarkMode);
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    document.documentElement.classList.toggle('dark', newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    console.log('🌓 New dark mode state:', newTheme, 'Class on html:', document.documentElement.classList.contains('dark'));
+  };
+
   // Reset confetti
   const resetConfetti = useCallback(() => {
     setShowConfetti(false);
@@ -346,6 +372,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     
     startTimer();
     setIsDataLoaded(true);
+    setHasStarted(true);
     resetConfetti();
   }, [startTimer, resetConfetti]);
 
@@ -425,11 +452,39 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   const submitTest = useCallback(() => {
     if (isSubmitting || (!allAnswered && !isReviewMode)) return;
     
-    console.log('submitTest: starting submission process');
+    console.log('⏰ [DEBUG] submitTest: starting submission process');
+    console.log('⏰ [DEBUG] Current timer state before stopping:', { isActive, timeElapsed, startTime });
     setIsSubmitting(true);
     
-    // ✅ STOP TIMER IMMEDIATELY when user clicks Complete
+    // ✅ STOP TIMER COMPLETELY - GIẢI PHÁP HOÀN THIỆN
+    // Cách 1: Gọi pauseTimer để dừng interval
     pauseTimer();
+    console.log('⏰ [DEBUG] pauseTimer called, stopping timer interval');
+    
+    // Cách 2: Lưu trữ thời gian hiện tại chính xác
+    const currentTimeElapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : timeElapsed;
+    
+    // Cách 3: Thiết lập lại toàn bộ trạng thái timer để đảm bảo hoàn toàn dừng
+    setIsActive(false);  // Dừng timer logic
+    setStartTime(null);  // Xóa startTime để ngăn mọi tính toán thời gian
+    setTimeElapsed(currentTimeElapsed); // Cập nhật thời gian đã trôi qua chính xác
+    
+    console.log('⏰ [DEBUG] Completely stopped timer with exact elapsed time:', currentTimeElapsed);
+    
+    // ✅ Xác định trạng thái thời gian
+    const remainingTime = timeLimit - currentTimeElapsed;
+    const hasTimeLeft = remainingTime > 0;
+    console.log('⏰ [DEBUG] Time remaining check:', { remainingTime, hasTimeLeft });
+    
+    // Xử lý trạng thái thời gian dựa trên thời gian còn lại
+    if (!hasTimeLeft) {
+      // Nếu hết thời gian, đặt isTimeUp = true
+      setIsTimeUp(true);
+      console.log('⏰ [DEBUG] Time is up, setting isTimeUp = true');
+    } else {
+      // Nếu còn thời gian, KHÔNG đặt isTimeUp = true để hiện thông báo
+      console.log('⏰ [DEBUG] Time remains, ensuring timer is frozen but keeping isTimeUp = false');
+    }
     
     // ✅ Play completion sound
     playSound('complete');
@@ -447,10 +502,21 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     }
     
     // Hiển thị popup ngay lập tức không có độ trễ
-    console.log('submitTest: showing congratulations popup immediately');
+    console.log('⏰ [DEBUG] Showing congratulations popup with timer state:', { isActive: false, timeElapsed: currentTimeElapsed });
     setShowCongratulationsPopup(true);
     setIsSubmitting(false);
-  }, [isSubmitting, allAnswered, isReviewMode, pauseTimer, playSound]);
+
+    // Double-check timer state after changes
+    setTimeout(() => {
+      console.log('⏰ [DEBUG] Timer state check after 500ms:', { 
+        isActive, 
+        timeElapsed, 
+        startTime, 
+        isTimeUp,
+        remainingTime
+      });
+    }, 500);
+  }, [isSubmitting, allAnswered, isReviewMode, pauseTimer, playSound, setIsTimeUp, setIsActive, setTimeElapsed, timeLimit, timeElapsed, startTime, setStartTime, isActive, isTimeUp]);
 
   // Handle popup completion
   const handlePopupComplete = useCallback(async (userInfo: UserInfo) => {
@@ -491,8 +557,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // ===== RENDERING =====
 
-  // START SCREEN RENDERING
-  if (!isActive && !startTime) {
+  // START SCREEN RENDERING - Chỉ hiển thị khi chưa bắt đầu bài test
+  if (!hasStarted) {
     return (
       <>
         {/* Congratulations Popup - for entering user info and viewing results */}
@@ -506,12 +572,16 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
             if (savedState) {
               setCurrentQuestion(savedState.currentQuestion);
               setAnswers(savedState.answers);
-              startTimer(savedState.timeElapsed);
               setIsReviewMode(true);
+              setHasStarted(true);
               
               // ✅ FIX: Check if there's still time left before resuming timer
               const remainingTime = timeLimit - savedState.timeElapsed;
-              if (remainingTime <= 0) {
+              if (remainingTime > 0) {
+                setIsTimeUp(false);
+                startTimer(savedState.timeElapsed);
+                console.log('⏰ Timer resumed with', remainingTime, 'seconds remaining');
+              } else {
                 setIsTimeUp(true);
                 pauseTimer();
                 console.log('⏰ Time already up - not resuming timer');
@@ -533,43 +603,68 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           })()}
         />
         
-        <div className="max-w-4xl mx-auto text-center py-20">
-          <div className="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
+        <div className="max-w-4xl mx-auto text-center py-20 dark:bg-gray-900">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-12 border border-gray-100 dark:border-gray-700">
             <div className="mb-8">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4 font-display">
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 font-display">
                 Test IQ Chuyên Nghiệp
               </h1>
-              <p className="text-xl text-gray-600 mb-6">
+              <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
                 Đánh giá trí tuệ với {questions.length} câu hỏi trong {Math.floor(timeLimit / 60)} phút
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-blue-50 p-6 rounded-2xl">
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-6 rounded-2xl">
                   <div className="text-3xl mb-2">🧠</div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Tư duy logic</h3>
-                  <p className="text-sm text-gray-600">Kiểm tra khả năng suy luận và phân tích</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Tư duy logic</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Kiểm tra khả năng suy luận và phân tích</p>
                 </div>
-                <div className="bg-green-50 p-6 rounded-2xl">
+                <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-2xl">
                   <div className="text-3xl mb-2">⏱️</div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Tốc độ xử lý</h3>
-                  <p className="text-sm text-gray-600">Đo lường khả năng phản xạ nhanh</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Tốc độ xử lý</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Đo lường khả năng phản xạ nhanh</p>
                 </div>
-                <div className="bg-purple-50 p-6 rounded-2xl">
+                <div className="bg-purple-50 dark:bg-purple-900/30 p-6 rounded-2xl">
                   <div className="text-3xl mb-2">📊</div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Phân tích chi tiết</h3>
-                  <p className="text-sm text-gray-600">Báo cáo kết quả chuyên sâu</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Phân tích chi tiết</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Báo cáo kết quả chuyên sâu</p>
                 </div>
               </div>
             </div>
             
-            <button
-              onClick={startTest}
-              className="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-blue-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              Bắt Đầu Test Ngay
-            </button>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+              <button
+                onClick={startTest}
+                className="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-blue-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                Bắt Đầu Test Ngay
+              </button>
+              
+              <button 
+                onClick={toggleTheme}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                aria-label="Toggle Dark Mode"
+                type="button"
+              >
+                {isDarkMode ? (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    Chế độ sáng
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                    Chế độ tối
+                  </>
+                )}
+              </button>
+            </div>
             
-            <p className="text-sm text-gray-500 mt-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
               Mẹo: Sử dụng phím số 1-4 để chọn đáp án nhanh chóng
             </p>
           </div>
@@ -580,7 +675,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
   // TEST SCREEN RENDERING
   return (
-    <div className={`relative min-h-screen w-full bg-white ${isResting ? 'disable-animations' : ''}`}>
+    <div className={`relative min-h-screen w-full bg-white dark:bg-gray-900 ${isResting ? 'disable-animations' : ''}`}>
       {/* Thêm style tắt animations khi đang nghỉ mắt */}
       {isResting && (
         <style dangerouslySetInnerHTML={{ __html: disableAnimationsStyle }} />
@@ -595,47 +690,56 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       
       {/* Hiển thị thông báo đang nghỉ mắt */}
       {isResting && (
-        <div className="fixed top-0 left-0 right-0 bg-green-100 text-green-800 py-2 text-center font-medium z-50">
+        <div className="fixed top-0 left-0 right-0 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 py-2 text-center font-medium z-50">
           Đang nghỉ mắt... Còn {restTimeRemaining} giây (Chế độ kiểm thử)
         </div>
       )}
 
-      <div className="min-h-screen flex items-center justify-center py-8 bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center py-8 bg-gray-50 dark:bg-gray-900">
         <div className="w-full max-w-5xl px-4 sm:px-6 lg:px-8">
-          <Confetti trigger={showConfetti} type="light" />
+      <Confetti trigger={showConfetti} type="light" />
+      
+      {/* Congratulations Popup */}
+      <CongratulationsPopup 
+        isOpen={showCongratulationsPopup}
+        onComplete={handlePopupComplete}
+        onReview={() => {
+          console.log('⏰ [DEBUG] Review button clicked - preparing to resume test');
+          setShowCongratulationsPopup(false);
+          setIsReviewMode(true); // Enable review mode and jump to question 1
+          setCurrentQuestion(0);
           
-          {/* Congratulations Popup */}
-          <CongratulationsPopup 
-            isOpen={showCongratulationsPopup}
-            onComplete={handlePopupComplete}
-            onReview={() => {
-              setShowCongratulationsPopup(false);
-              setIsReviewMode(true); // Enable review mode and jump to question 1
-              setCurrentQuestion(0);
-              
-              // ✅ FIX: Keep timer running if there's still time left
-              if (!isTimeUp) {
-                startTimer(timeElapsed);
-                console.log('⏰ Timer resumed for review mode');
-              }
-            }}
-            onConfettiTrigger={handleConfettiTrigger}
-            preloadedUserInfo={preloadedUserInfo}
-            isAuthenticatedUser={isAuthenticatedUser}
-            remainingTimeSeconds={!isTimeUp ? Math.max(0, timeLimit - timeElapsed) : undefined}
-          />
+          // Kiểm tra nếu còn thời gian
+          const remainingTime = timeLimit - timeElapsed;
+          console.log('⏰ [DEBUG] Time check for review mode:', { timeElapsed, remainingTime });
           
-          {/* Time Up Popup */}
-          <TimeUpPopup 
-            isOpen={showTimeUpPopup}
-            onComplete={handlePopupComplete}
-            onRetakeTest={() => {
-              setShowTimeUpPopup(false);
-              restartFreshTest();
-            }}
-            preloadedUserInfo={preloadedUserInfo}
-            isAuthenticatedUser={isAuthenticatedUser}
-          />
+          if (remainingTime > 0) {
+            // ✅ Đặt các trạng thái timer chính xác để tiếp tục đếm ngược
+            console.log('⏰ [DEBUG] Resuming timer with', remainingTime, 'seconds remaining');
+            setIsTimeUp(false);
+            setIsActive(true);  // Đảm bảo timer hiển thị là active
+            
+            // Tính thời gian bắt đầu chính xác dựa trên thời gian đã trôi qua
+            startTimer(timeElapsed);
+          }
+        }}
+        onConfettiTrigger={handleConfettiTrigger}
+        preloadedUserInfo={preloadedUserInfo}
+        isAuthenticatedUser={isAuthenticatedUser}
+        remainingTimeSeconds={!isTimeUp ? Math.max(0, timeLimit - timeElapsed) : undefined}
+      />
+      
+      {/* Time Up Popup */}
+      <TimeUpPopup 
+        isOpen={showTimeUpPopup}
+        onComplete={handlePopupComplete}
+        onRetakeTest={() => {
+          setShowTimeUpPopup(false);
+          restartFreshTest();
+        }}
+        preloadedUserInfo={preloadedUserInfo}
+        isAuthenticatedUser={isAuthenticatedUser}
+      />
 
           {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
           <Timer
@@ -646,7 +750,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           />
 
           {/* Main test container with shadow and background */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700">
             <div className="flex flex-col gap-4">
               {/* Question Component */}
               <div>
@@ -664,33 +768,33 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
               </div>
 
               {/* Phần hiển thị tiến độ ở giữa trung tâm */}
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                <IQProgressHeader 
-                  currentQuestion={currentQuestion}
-                  totalQuestions={questions.length}
-                  timeElapsed={timeElapsed}
-                  timeLimit={timeLimit}
-                  isActive={isActive}
-                  onTimeUp={handleTimeUp}
-                  answers={answers}
-                />
-              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+        <IQProgressHeader 
+          currentQuestion={currentQuestion}
+          totalQuestions={questions.length}
+          timeElapsed={timeElapsed}
+          timeLimit={timeLimit}
+          isActive={isActive}
+          onTimeUp={handleTimeUp}
+          answers={answers}
+        />
+      </div>
 
-              {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
+      {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
               <div>
-                <IQNavigation 
-                  currentQuestion={currentQuestion}
-                  totalQuestions={questions.length}
-                  answers={answers}
-                  onPrevious={previousQuestion}
-                  onNext={nextQuestion}
-                  onJumpToQuestion={jumpToQuestion}
-                  onSubmit={submitTest}
-                  isSubmitting={isSubmitting}
-                  isReviewMode={isReviewMode}
-                  allAnswered={allAnswered}
-                  isDataLoaded={isDataLoaded}
-                />
+      <IQNavigation 
+        currentQuestion={currentQuestion}
+        totalQuestions={questions.length}
+        answers={answers}
+        onPrevious={previousQuestion}
+        onNext={nextQuestion}
+        onJumpToQuestion={jumpToQuestion}
+        onSubmit={submitTest}
+        isSubmitting={isSubmitting}
+        isReviewMode={isReviewMode}
+        allAnswered={allAnswered}
+        isDataLoaded={isDataLoaded}
+      />
               </div>
             </div>
           </div>

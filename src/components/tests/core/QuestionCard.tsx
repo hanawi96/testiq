@@ -16,11 +16,11 @@ interface QuestionCardProps {
 const QuestionHeader = memo(({ question, onSkip }: { question: Question, onSkip?: () => void }) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-orange-100 text-orange-800';
-      case 'expert': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'easy': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+      case 'medium': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
+      case 'hard': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300';
+      case 'expert': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
     }
   };
 
@@ -47,12 +47,12 @@ const QuestionHeader = memo(({ question, onSkip }: { question: Question, onSkip?
   };
 
   return (
-    <div className="bg-gradient-to-r from-primary-50 to-blue-50 p-4 border-b border-gray-100">
+    <div className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/30 dark:to-blue-900/30 p-4 border-b border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <span className="text-2xl">{getTypeIcon(question.type)}</span>
           <div>
-            <h3 className="font-semibold text-gray-800">{getTypeLabel(question.type)}</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200">{getTypeLabel(question.type)}</h3>
             <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
               {question.difficulty === 'easy' ? 'Dễ' : 
                 question.difficulty === 'medium' ? 'Trung bình' :
@@ -63,15 +63,15 @@ const QuestionHeader = memo(({ question, onSkip }: { question: Question, onSkip?
         {onSkip ? (
           <button 
             onClick={onSkip}
-            className="text-blue-600 font-medium hover:text-blue-800 focus:outline-none transition-colors"
+            className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none transition-colors"
           >
             Bỏ qua
           </button>
         ) : (
-          <div className="text-right">
-            <div className="text-sm text-gray-500">Câu số</div>
-            <div className="text-xl font-bold text-primary-600">#{question.id}</div>
-          </div>
+        <div className="text-right">
+          <div className="text-sm text-gray-500 dark:text-gray-400">Câu số</div>
+          <div className="text-xl font-bold text-primary-600 dark:text-primary-400">#{question.id}</div>
+        </div>
         )}
       </div>
     </div>
@@ -82,7 +82,7 @@ const QuestionHeader = memo(({ question, onSkip }: { question: Question, onSkip?
 const QuestionContent = memo(({ question }: { question: Question }) => {
   return (
     <div className="mb-6">
-      <p className="text-lg leading-relaxed text-gray-800 font-medium whitespace-pre-wrap">
+      <p className="text-lg leading-relaxed text-gray-800 dark:text-gray-200 font-medium whitespace-pre-wrap">
         {question.question}
       </p>
     </div>
@@ -117,14 +117,14 @@ const AnswerOptions = memo(({
         let buttonClass = 'w-full p-4 text-left border rounded-xl focus:outline-none focus:ring-0';
         
         if (isReviewMode) {
-          buttonClass += ' bg-gray-50 text-gray-600 border-gray-200';
+          buttonClass += ' bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700';
         } else if (isSelected) {
           // Đáp án được chọn có màu nền xanh lá cây
-          buttonClass += ' bg-green-50 text-green-800 border-green-300';
+          buttonClass += ' bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700';
         } else if (isHighlighted) {
-          buttonClass += ' bg-blue-50 text-blue-800 border-blue-300';
+          buttonClass += ' bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700';
         } else {
-          buttonClass += ' bg-white text-gray-700 hover:bg-gray-50 border-gray-200';
+          buttonClass += ' bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700';
         }
 
         return (
@@ -138,10 +138,10 @@ const AnswerOptions = memo(({
               <div className="flex items-center space-x-3">
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
                   ${isSelected 
-                    ? 'border-green-500 bg-green-100 text-green-600'
+                    ? 'border-green-500 dark:border-green-400 bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300'
                     : isHighlighted
-                      ? 'border-blue-500 bg-blue-100 text-blue-600'
-                      : 'border-gray-300 text-gray-500'
+                      ? 'border-blue-500 dark:border-blue-400 bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
                   }`}>
                   {String.fromCharCode(65 + index)}
                 </div>
@@ -149,7 +149,7 @@ const AnswerOptions = memo(({
               </div>
               {/* Hiển thị biểu tượng dấu "V" ở bên phải khi đáp án được chọn */}
               {isSelected && (
-                <span className="text-green-600 font-bold">✓</span>
+                <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
               )}
             </div>
           </button>
@@ -170,7 +170,7 @@ export default function QuestionCard({
   onSkip
 }: QuestionCardProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       {/* Header - chỉ re-render khi question thay đổi */}
       <QuestionHeader question={question} onSkip={onSkip} />
 
@@ -191,17 +191,17 @@ export default function QuestionCard({
         <AnimatePresence>
           {showExplanation && (
             <motion.div
-              className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl"
+              className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
               <div className="flex items-start space-x-2">
-                <span className="text-blue-600 text-lg">💡</span>
+                <span className="text-blue-600 dark:text-blue-400 text-lg">💡</span>
                 <div>
-                  <h4 className="font-semibold text-blue-800 mb-1">Giải thích</h4>
-                  <p className="text-blue-700 text-sm leading-relaxed">{question.explanation}</p>
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-1">Giải thích</h4>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed">{question.explanation}</p>
                 </div>
               </div>
             </motion.div>

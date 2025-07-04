@@ -32,6 +32,24 @@ import SEO from '../components/seo/SEO.astro';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
+  <!-- Dark mode script - thêm trước khi trang tải để tránh nhấp nháy -->
+  <script is:inline>
+    // Lấy theme từ localStorage hoặc preferences
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    // Áp dụng class dark nếu cần
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Log để debug
+    console.log('🌙 Initial dark mode setup:', { savedTheme, prefersDark, isDark });
+  </script>
+  
   <SEO 
     title={title}
     description={description}
@@ -118,10 +136,15 @@ import SEO from '../components/seo/SEO.astro';
     body.fullscreen-test {
       background-color: #f9fafb;
     }
+    
+    /* Dark mode styles */
+    .dark body.fullscreen-test {
+      background-color: #111827;
+    }
   </style>
 </head>
 
-<body class="bg-gray-50 font-inter antialiased">
+<body class="bg-gray-50 dark:bg-gray-900 font-inter antialiased">
   <!-- Skip to main content for accessibility -->
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-lg z-50">
     Skip to main content

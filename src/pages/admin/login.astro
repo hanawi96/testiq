@@ -8,11 +8,27 @@ import AdminLogin from '@/components/admin/auth/AdminLogin.tsx';
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Dark mode script - thêm trước khi trang tải để tránh nhấp nháy -->
+  <script is:inline>
+    // Lấy theme từ localStorage hoặc preferences
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    // Áp dụng class dark nếu cần
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+  
   <title>Admin Login</title>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
-<body>
+<body class="bg-gray-50 dark:bg-gray-900">
   <AdminLogin client:load />
 </body>
 </html> 

@@ -54,6 +54,15 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     addBlueFilterStyles();
   }, []);
 
+  // Khởi tạo trạng thái dark mode từ localStorage khi component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    setIsDarkMode(shouldBeDark);
+  }, []);
+
   // ✅ SINGLE SOURCE OF TRUTH: Calculate timeLeft from timeElapsed prop
   const timeLeft = Math.max(0, initialTime - timeElapsed);
   
@@ -151,8 +160,8 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     const percentage = (currentTimeLeft / initialTime) * 100;
     
     // Xác định màu sắc dựa vào phần trăm thời gian còn lại
-    return percentage > 50 ? 'text-green-600' : 
-                      percentage > 20 ? 'text-yellow-600' : 'text-red-600';
+    return percentage > 50 ? 'text-green-600 dark:text-green-400' : 
+                      percentage > 20 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400';
   }, [currentTimeLeft, initialTime]);
 
   // Hiệu ứng pulse khi còn ít thời gian
@@ -160,8 +169,17 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   
   // Xử lý chuyển đổi chế độ sáng/tối
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    // Thực hiện các thay đổi khác liên quan đến chế độ tối ở đây nếu cần
+    // Lấy trạng thái mới dựa trên trạng thái hiện tại
+    const newDarkMode = !isDarkMode;
+    
+    // Lưu vào state
+    setIsDarkMode(newDarkMode);
+    
+    // Áp dụng vào HTML và localStorage
+    document.documentElement.classList.toggle('dark', newDarkMode);
+    localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
+    
+    console.log('🌓 Timer: Toggle Dark Mode -', newDarkMode ? 'Kích hoạt chế độ tối' : 'Kích hoạt chế độ sáng');
   };
   
   // Xử lý bật/tắt âm thanh
@@ -201,7 +219,7 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
         {/* Compact Timer */}
         <motion.div 
           key={resetKey}
-          className="w-auto px-3 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+          className="w-auto px-3 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             animate={{ 
             scale: shouldPulse ? [1, 1.05] : 1
             }}
@@ -224,9 +242,10 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
         </motion.div>
 
         <button 
-          className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors" 
+          className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
           aria-label="Chuyển đổi chế độ sáng/tối"
           onClick={toggleDarkMode}
+          type="button"
         >
           {isDarkMode ? (
             // Icon mặt trời (chế độ sáng)
@@ -235,60 +254,53 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
             </svg>
           ) : (
             // Icon mặt trăng (chế độ tối)
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
               <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
             </svg>
           )}
         </button>
         <button 
-          className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors" 
+          className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
           aria-label="Bật/tắt âm thanh"
           onClick={toggleSound}
+          type="button"
         >
           {isSoundOn ? (
             // Icon âm thanh bật
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071a1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243a1 1 0 01-1.415-1.415A3.982 3.982 0 0013 10a3.982 3.982 0 00-1.172-2.828a1 1 0 010-1.415z" clipRule="evenodd" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
             </svg>
           ) : (
             // Icon âm thanh tắt
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.707 7.293a1 1 0 00-1.414 1.414L12.586 10l-1.293 1.293a1 1 0 101.414 1.414L14 11.414l1.293 1.293a1 1 0 001.414-1.414L15.414 10l1.293-1.293a1 1 0 00-1.414-1.414L14 8.586l-1.293-1.293z" clipRule="evenodd" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           )}
         </button>
         <button 
-          className={`w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors ${isBlueFilterOn ? 'ring-2 ring-blue-400' : ''}`}
+          className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
           aria-label="Bật/tắt bộ lọc ánh sáng xanh"
           onClick={toggleBlueFilter}
+          type="button"
         >
-          {isBlueFilterOn ? (
-            // Icon khi bộ lọc ánh sáng xanh đang bật
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            // Icon khi bộ lọc ánh sáng xanh đang tắt
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
-              <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
-            </svg>
-          )}
+          <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isBlueFilterOn ? 'text-amber-500' : 'text-gray-700 dark:text-gray-300'}`} viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+          </svg>
         </button>
         <button 
-          className={`w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors ${isFullscreen ? 'ring-2 ring-purple-400' : ''}`}
+          className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
           aria-label="Bật/tắt chế độ toàn màn hình"
           onClick={toggleFullscreen}
+          type="button"
         >
           {isFullscreen ? (
-            // Icon khi đang ở chế độ toàn màn hình
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M5 4a1 1 0 00-1 1v4a1 1 0 01-2 0V5a3 3 0 013-3h4a1 1 0 010 2H5zm10 8a1 1 0 01-1 1h-4a1 1 0 010-2h4a1 1 0 011 1zm3-4a1 1 0 00-1-1h-4a1 1 0 010-2h4a3 3 0 013 3v4a1 1 0 01-2 0V8zM5 8a1 1 0 00-1 1v4a3 3 0 003 3h4a1 1 0 000-2H7a1 1 0 01-1-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+            // Icon thoát toàn màn hình
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5 4a1 1 0 00-1 1v4a1 1 0 01-2 0V5a3 3 0 013-3h4a1 1 0 010 2H5zM1 10a1 1 0 011-1h4a1 1 0 010 2H2a1 1 0 01-1-1zm14-3a1 1 0 011 1v4a1 1 0 01-2 0V8a1 1 0 011-1zm-10 9a1 1 0 00-1-1H5a1 1 0 000 2h4a1 1 0 001-1zm5-1a1 1 0 011-1h4a1 1 0 010 2h-4a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
           ) : (
-            // Icon khi không ở chế độ toàn màn hình
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+            // Icon toàn màn hình
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 011.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 011.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
             </svg>
           )}

@@ -52,19 +52,19 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
     <div className="progress-container">
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center">
-          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 mr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
           <div>
-            <h3 className="text-gray-800 font-semibold text-lg">Tiến độ bài làm</h3>
-            <p className="text-gray-500 text-sm">{progressStatus}</p>
+            <h3 className="text-gray-800 dark:text-white font-semibold text-lg">Tiến độ bài làm</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">{progressStatus}</p>
           </div>
         </div>
         
-        <div className="rounded-full bg-blue-100 px-4 py-1 text-center">
-          <span className="font-bold text-blue-700 text-lg">{completionPercentage}%</span>
+        <div className="rounded-full bg-blue-100 dark:bg-blue-900/30 px-4 py-1 text-center">
+          <span className="font-bold text-blue-700 dark:text-blue-300 text-lg">{completionPercentage}%</span>
         </div>
       </div>
       
@@ -77,18 +77,18 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
       </div>
       
       <div className="grid grid-cols-3 gap-4 mt-3">
-      <div className="bg-green-50 rounded-lg p-3 text-center">
-          <div className="text-green-600 font-bold text-xl">{currentQuestion + 1}/{totalQuestions}</div>
-          <div className="text-gray-600 text-xs">Câu hiện tại</div>
+      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+          <div className="text-green-600 dark:text-green-400 font-bold text-xl">{currentQuestion + 1}/{totalQuestions}</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xs">Câu hiện tại</div>
         </div>
-        <div className="bg-blue-50 rounded-lg p-3 text-center">
-          <div className="text-blue-600 font-bold text-xl">{answeredCount}</div>
-          <div className="text-gray-600 text-xs">Đã trả lời</div>
+        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+          <div className="text-blue-600 dark:text-blue-400 font-bold text-xl">{answeredCount}</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xs">Đã trả lời</div>
         </div>
         
-        <div className="bg-yellow-50 rounded-lg p-3 text-center">
-          <div className="text-yellow-600 font-bold text-xl">{unansweredCount}</div>
-          <div className="text-gray-600 text-xs">Chưa trả lời</div>
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3 text-center">
+          <div className="text-yellow-600 dark:text-yellow-400 font-bold text-xl">{unansweredCount}</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xs">Chưa trả lời</div>
         </div>
         
         

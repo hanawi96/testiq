@@ -37,7 +37,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
   const skeletonClass = !isDataLoaded ? 'animate-pulse' : '';
   
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 mt-6 border border-gray-100">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mt-6 border border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between">
         {/* Professional Previous Button */}
         <motion.button
@@ -45,8 +45,8 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
           disabled={currentQuestion === 0 || !isDataLoaded}
           className={`group flex items-center justify-center w-11 h-11 rounded-lg border transition-all duration-200 ${
             currentQuestion === 0 || !isDataLoaded
-              ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
-              : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 active:bg-gray-100'
+              ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-500 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-white active:bg-gray-100 dark:active:bg-gray-600'
           }`}
           whileHover={currentQuestion > 0 && isDataLoaded ? { scale: 1.02 } : {}}
           whileTap={currentQuestion > 0 && isDataLoaded ? { scale: 0.98 } : {}}
@@ -67,7 +67,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                 {currentQuestion >= 5 && (
                   <button
                     onClick={() => onJumpToQuestion(Math.max(0, currentQuestion - 5))}
-                    className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
+                    className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-medium transition-all duration-200"
                     title="Nhảy về 5 câu trước"
                     disabled={!isDataLoaded}
                   >
@@ -101,15 +101,15 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                     
                     if (!isDataLoaded) {
                       // Khi dữ liệu chưa tải, tất cả các nút đều có màu xám với hiệu ứng loading
-                      buttonClass += 'bg-gray-200 text-gray-400';
+                      buttonClass += 'bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-400';
                     } else {
                       // Khi dữ liệu đã tải, áp dụng màu sắc dựa trên trạng thái
                       if (index === currentQuestion) {
-                        buttonClass += 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200';
+                        buttonClass += 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200 dark:ring-blue-800';
                       } else if (answers[index] !== null) {
                         buttonClass += 'bg-green-500 text-white hover:bg-green-600';
                       } else {
-                        buttonClass += 'bg-gray-200 text-gray-600 hover:bg-gray-300';
+                        buttonClass += 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
                       }
                     }
                     
@@ -128,7 +128,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                 })()}
                 
                 {/* Progress indicator */}
-                <div className={`mx-2 px-3 py-1.5 bg-gray-100 rounded-full text-xs text-gray-600 font-medium border ${!isDataLoaded ? 'opacity-70' : ''}`}>
+                <div className={`mx-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-300 font-medium border border-gray-200 dark:border-gray-600 ${!isDataLoaded ? 'opacity-70' : ''}`}>
                   {currentQuestion + 1}/{totalQuestions}
                 </div>
                 
@@ -136,7 +136,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                 {currentQuestion < totalQuestions - 6 && (
                   <button
                     onClick={() => onJumpToQuestion(Math.min(totalQuestions - 1, currentQuestion + 5))}
-                    className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium transition-all duration-200"
+                    className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-medium transition-all duration-200"
                     title="Nhảy tới 5 câu sau"
                     disabled={!isDataLoaded}
                   >
@@ -153,15 +153,15 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
                   
                   if (!isDataLoaded) {
                     // Khi dữ liệu chưa tải, tất cả các nút đều có màu xám với hiệu ứng loading
-                    buttonClass += 'bg-gray-200 text-gray-400';
+                    buttonClass += 'bg-gray-200 dark:bg-gray-600 text-gray-400 dark:text-gray-400';
                   } else {
                     // Khi dữ liệu đã tải, áp dụng màu sắc dựa trên trạng thái
                     if (index === currentQuestion) {
-                      buttonClass += 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200';
+                      buttonClass += 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200 dark:ring-blue-800';
                     } else if (answers[index] !== null) {
                       buttonClass += 'bg-green-500 text-white hover:bg-green-600';
                     } else {
-                      buttonClass += 'bg-gray-200 text-gray-600 hover:bg-gray-300';
+                      buttonClass += 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600';
                     }
                   }
                   
@@ -193,7 +193,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
               disabled={isSubmitting || !isDataLoaded}
               className={`flex items-center px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                 isSubmitting || !isDataLoaded
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-600'
                   : 'bg-green-600 text-white hover:bg-green-700 border border-green-600 hover:border-green-700 shadow-sm hover:shadow-md'
               }`}
               initial={{ opacity: 0 }}
@@ -229,7 +229,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
       </div>
       
       {/* Keyboard shortcuts hint */}
-      <div className={`mt-4 text-center text-xs text-gray-500 ${!isDataLoaded ? 'opacity-70' : ''}`}>
+      <div className={`mt-4 text-center text-xs text-gray-500 dark:text-gray-400 ${!isDataLoaded ? 'opacity-70' : ''}`}>
         Phím tắt: 1-4 hoặc ↑ ↓ ← → (chọn đáp án) • Enter (xác nhận)
       </div>
     </div>

@@ -43,7 +43,7 @@ export default function EyeRestPopup({
       {isOpen && (
         <div className="fixed top-4 left-0 right-0 flex justify-center z-50">
           <motion.div
-            className="bg-green-50 border border-green-200 rounded-lg shadow-md p-3 max-w-md w-full flex items-center"
+            className="bg-green-50 dark:bg-green-900/40 border border-green-200 dark:border-green-700 rounded-lg shadow-md p-3 max-w-md w-full flex items-center"
             style={{ height: '80px' }}
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -51,14 +51,14 @@ export default function EyeRestPopup({
             transition={{ duration: 0.2 }}
           >
             <div className="flex-shrink-0 mr-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-800">
                 <span className="text-xl" role="img" aria-label="nghỉ mắt">👁️</span>
               </div>
             </div>
             
             <div className="flex-grow">
-              <h3 className="text-sm font-medium text-green-800">Nghỉ mắt 10 giây?</h3>
-              <p className="text-xs text-green-700">
+              <h3 className="text-sm font-medium text-green-800 dark:text-green-300">Nghỉ mắt 10 giây?</h3>
+              <p className="text-xs text-green-700 dark:text-green-400">
                 Bạn đã làm bài test liên tục trong 10 giây
               </p>
             </div>
@@ -66,19 +66,19 @@ export default function EyeRestPopup({
             <div className="flex-shrink-0 flex items-center gap-2">
               <button
                 onClick={onSkip}
-                className="py-1.5 px-3 text-xs rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                className="py-1.5 px-3 text-xs rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Bỏ qua
               </button>
               <button
                 onClick={onStartRest}
-                className="py-1.5 px-3 text-xs rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors"
+                className="py-1.5 px-3 text-xs rounded-md bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
               >
                 Nghỉ ngay
               </button>
             </div>
             
-            <div className="absolute bottom-1 right-3 text-xs text-green-600">
+            <div className="absolute bottom-1 right-3 text-xs text-green-600 dark:text-green-400">
               {timeRemaining}s
             </div>
           </motion.div>

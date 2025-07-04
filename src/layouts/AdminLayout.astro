@@ -15,6 +15,21 @@ import SEO from '../components/seo/SEO.astro';
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
+  <!-- Dark mode script - thêm trước khi trang tải để tránh nhấp nháy -->
+  <script is:inline>
+    // Lấy theme từ localStorage hoặc preferences
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    // Áp dụng class dark nếu cần
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+  
   <SEO 
     title={`${title} - Admin`}
     description={description}
@@ -26,7 +41,7 @@ import SEO from '../components/seo/SEO.astro';
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 </head>
-<body class="bg-gray-50 min-h-screen font-[Inter]">
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen font-[Inter]">
   
   <!-- Modern Admin Header -->
   <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
