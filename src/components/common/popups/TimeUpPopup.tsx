@@ -339,26 +339,13 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
               </div>
             
             <div className="flex gap-3 mt-6">
-              {onRetakeTest && (
-                <button
-                  onClick={onRetakeTest}
-                  disabled={isSubmitting}
-                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-none ${
-                    isSubmitting
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  Làm lại
-                </button>
-              )}
-              
+              {/* Xem kết quả button - 70% width - moved to left */}
               <button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}
-                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-none ${
+                className={`w-[70%] px-4 py-3 rounded-lg font-medium transition-none ${
                   isFormValid && !isSubmitting
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg'
+                    ? 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 hover:shadow-lg'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 }`}
               >
@@ -389,6 +376,21 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                   'Xem kết quả'
                 )}
               </button>
+              
+              {/* Làm lại button - 30% width - moved to right */}
+              {onRetakeTest && (
+                <button
+                  onClick={onRetakeTest}
+                  disabled={isSubmitting}
+                  className={`w-[30%] px-4 py-3 rounded-lg font-medium transition-none ${
+                    isSubmitting
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Làm lại
+                </button>
+              )}
             </div>
           </motion.div>
         </motion.div>

@@ -2,6 +2,7 @@
  * Component hiển thị một câu hỏi IQ và các lựa chọn
  */
 import React, { memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import QuestionCard from '../../../core/QuestionCard';
 import type { Question } from '../../../../../utils/test';
 
@@ -33,18 +34,31 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
 }) => {
   // Sử dụng key để đảm bảo component được tạo mới hoàn toàn khi câu hỏi thay đổi
   return (
-    <div key={`question-container-${question.id}`}>
-      <QuestionCard
-        question={question}
-        selectedAnswer={currentAnswer}
-        onAnswerSelect={onAnswerSelect}
-        highlightedAnswer={highlightedAnswer}
-        isReviewMode={answersDisabled}
-        isInReviewMode={isReviewMode}
-        onSkip={onSkip}
-        onPrevious={onPrevious}
-      />
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div 
+        key={`question-container-${question.id}`}
+        initial={{ x: 100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: -100, opacity: 0 }}
+        transition={{ 
+          type: "tween", 
+          ease: "easeInOut", 
+          duration: 0.3 
+        }}
+        className="question-transition-container"
+      >
+        <QuestionCard
+          question={question}
+          selectedAnswer={currentAnswer}
+          onAnswerSelect={onAnswerSelect}
+          highlightedAnswer={highlightedAnswer}
+          isReviewMode={answersDisabled}
+          isInReviewMode={isReviewMode}
+          onSkip={onSkip}
+          onPrevious={onPrevious}
+        />
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

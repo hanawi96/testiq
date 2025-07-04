@@ -164,7 +164,10 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
       </div>
       
       {/* Keyboard shortcuts hint */}
-      <div className={`mt-4 text-center text-xs text-gray-500 dark:text-gray-400 ${!isDataLoaded ? 'opacity-70' : ''}`}>
+      <div 
+        className={`mt-4 text-center text-xs text-gray-500 dark:text-gray-400 keyboard-shortcuts ${!isDataLoaded ? 'opacity-70' : ''}`}
+        style={{fontSize: '12px', lineHeight: '1.2'}}
+      >
         Phím tắt: 1-4 hoặc ↑ ↓ (chọn đáp án) ← → (chuyển câu hỏi) • Enter (xác nhận)
       </div>
       

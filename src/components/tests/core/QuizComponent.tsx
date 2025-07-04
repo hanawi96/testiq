@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import Timer from './Timer';
 import ProgressBar from './ProgressBar';
 import QuestionCard from './QuestionCard';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface QuizData {
   meta: {
@@ -121,6 +122,13 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
       if (navigator.vibrate) {
         console.log(`📱 Vibrating: ${isCorrect ? 50 : 100}ms`);
         navigator.vibrate(isCorrect ? 50 : 100);
+      }
+      
+      // Tự động chuyển sang câu hỏi tiếp theo sau 600ms (đủ thời gian để người dùng thấy hiệu ứng)
+      if (currentQuestion < quizData.questions.length - 1) {
+        setTimeout(() => {
+          setCurrentQuestion(currentQuestion + 1);
+        }, 600);
       }
     } else {
       console.error('❌ Question not found!');
@@ -269,19 +277,29 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
 
         {/* Question Card */}
         <div className="mb-8" onClick={initAudio}>
-          <QuestionCard
-            question={{
-              id: currentQ.id,
-              type: currentQ.type as any,
-              difficulty: currentQ.difficulty as any,
-              question: currentQ.question,
-              options: currentQ.options,
-              correct: currentQ.correct,
-              explanation: currentQ.explanation
-            }}
-            selectedAnswer={answers[currentQ.id] || null}
-            onAnswerSelect={(answerId) => handleAnswer(currentQ.id, answerId)}
-          />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuestion}
+              initial={{ x: 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -100, opacity: 0 }}
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
+            >
+              <QuestionCard
+                question={{
+                  id: currentQ.id,
+                  type: currentQ.type as any,
+                  difficulty: currentQ.difficulty as any,
+                  question: currentQ.question,
+                  options: currentQ.options,
+                  correct: currentQ.correct,
+                  explanation: currentQ.explanation
+                }}
+                selectedAnswer={answers[currentQ.id] || null}
+                onAnswerSelect={(answerId) => handleAnswer(currentQ.id, answerId)}
+              />
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Navigation */}
@@ -295,7 +313,12 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            ← Quay lại
+            <motion.span 
+              whileHover={{ x: -3 }} 
+              transition={{ duration: 0.2 }}
+            >
+              ← Quay lại
+            </motion.span>
           </button>
 
           <div className="flex items-center space-x-2">
@@ -333,7 +356,12 @@ export default function QuizComponent({ quizData, onComplete }: QuizComponentPro
               onClick={() => setCurrentQuestion(Math.min(quizData.questions.length - 1, currentQuestion + 1))}
               className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200"
             >
-              Tiếp theo →
+              <motion.span 
+                whileHover={{ x: 3 }} 
+                transition={{ duration: 0.2 }}
+              >
+                Tiếp theo →
+              </motion.span>
             </button>
           )}
         </div>

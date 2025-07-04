@@ -500,9 +500,14 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       /* Loại trừ phần tiến độ làm bài và navigation */
       .font-size-${size} .iq-test-content .progress-container,
       .font-size-${size} .iq-test-content .progress-container *,
-      .font-size-${size} .iq-test-content .iq-navigation,
-      .font-size-${size} .iq-test-content .iq-navigation * {
+      .font-size-${size} .iq-test-content .iq-navigation > div:first-child,
+      .font-size-${size} .iq-test-content .iq-navigation > div:first-child * {
         font-size: initial !important;
+      }
+      
+      /* Cho phép phần phím tắt có font-size riêng */
+      .font-size-${size} .iq-test-content .iq-navigation > div.keyboard-shortcuts {
+        font-size: 12px !important;
       }
     `;
     
