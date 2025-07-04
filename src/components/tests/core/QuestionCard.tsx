@@ -63,7 +63,7 @@ const QuestionHeader = memo(({ question, onSkip, onPrevious, isInReviewMode }: {
           <span className="text-2xl">{getTypeIcon(question.type)}</span>
           <div>
             <h3 className="font-semibold text-gray-800 dark:text-gray-200">{getTypeLabel(question.type)}</h3>
-            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
+            <span className={`inline-block px-2 py-1 rounded-lg whitespace-nowrap text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
               {question.difficulty === 'easy' ? 'Dễ' : 
                 question.difficulty === 'medium' ? 'Trung bình' :
                 question.difficulty === 'hard' ? 'Khó' : 'Chuyên gia'}

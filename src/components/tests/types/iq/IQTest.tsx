@@ -445,41 +445,61 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       document.head.appendChild(styleEl);
     }
     
+    // Tính toán tỷ lệ cho border và kích thước
+    const scaleFactor = size / 100;
+    // Chỉ tăng kích thước khi font lớn hơn 100%, nếu nhỏ hơn thì giữ nguyên
+    const borderScaleFactor = scaleFactor > 1 ? scaleFactor : 1;
+    
     // Cập nhật CSS dựa trên kích thước font
     const styleEl = document.getElementById('dynamic-font-size-style') as HTMLStyleElement;
     styleEl.textContent = `
       /* Transition siêu nhanh - chỉ 0.05s */
-      * {
-        transition: font-size 0.05s linear;
+      .iq-test-content .question-content * {
+        transition: font-size 0.05s linear, width 0.05s linear, height 0.05s linear;
       }
       
-      /* Root font size scaling */
-      .font-size-${size} .iq-test-content {
+      /* Root font size scaling - CHỈ áp dụng cho phần nội dung câu hỏi */
+      .font-size-${size} .iq-test-content .question-content {
         font-size: ${size}% !important;
       }
       
-      /* Đảm bảo tất cả các phần tử con đều thay đổi scale theo */
-      .font-size-${size} .iq-test-content p,
-      .font-size-${size} .iq-test-content span,
-      .font-size-${size} .iq-test-content h3,
-      .font-size-${size} .iq-test-content button,
-      .font-size-${size} .iq-test-content div {
+      /* Đảm bảo tất cả các phần tử trong nội dung câu hỏi đều thay đổi scale theo */
+      .font-size-${size} .iq-test-content .question-content p,
+      .font-size-${size} .iq-test-content .question-content span,
+      .font-size-${size} .iq-test-content .question-content h3,
+      .font-size-${size} .iq-test-content .question-content button,
+      .font-size-${size} .iq-test-content .question-content div {
         font-size: inherit;
       }
       
+      /* Điều chỉnh kích thước border cho chữ cái A, B, C, D */
+      .font-size-${size} .iq-test-content .question-content .rounded-full {
+        width: calc(1.5rem * ${borderScaleFactor}) !important;
+        height: calc(1.5rem * ${borderScaleFactor}) !important;
+        border-width: calc(2px * ${Math.sqrt(borderScaleFactor)}) !important;
+      }
+      
       /* Tiêu đề câu hỏi */
-      .font-size-${size} .iq-test-content .text-lg {
+      .font-size-${size} .iq-test-content .question-content .text-lg {
         font-size: 1.125em !important;
       }
       
       /* Đáp án */
-      .font-size-${size} .iq-test-content button span.font-medium {
+      .font-size-${size} .iq-test-content .question-content button span.font-medium {
         font-size: 1em !important;
       }
       
       /* Thể loại câu hỏi */
-      .font-size-${size} .iq-test-content h3.font-semibold {
+      .font-size-${size} .iq-test-content .question-content h3.font-semibold {
         font-size: 1em !important;
+      }
+      
+      /* Loại trừ phần tiến độ làm bài và navigation */
+      .font-size-${size} .iq-test-content .progress-container,
+      .font-size-${size} .iq-test-content .progress-container *,
+      .font-size-${size} .iq-test-content .iq-navigation,
+      .font-size-${size} .iq-test-content .iq-navigation * {
+        font-size: initial !important;
       }
     `;
     
@@ -961,7 +981,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700 iq-test-content">
             <div className="flex flex-col gap-4">
               {/* Question Component */}
-              <div>
+              <div className="question-content">
                 <IQQuestion 
                   key={`question-${currentQuestion}`}
                   question={questions[currentQuestion]}
@@ -978,34 +998,34 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
               </div>
 
               {/* Phần hiển thị tiến độ ở giữa trung tâm */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
-        <IQProgressHeader 
-          currentQuestion={currentQuestion}
-          totalQuestions={questions.length}
-          timeElapsed={timeElapsed}
-          timeLimit={timeLimit}
-          isActive={isActive}
-          onTimeUp={handleTimeUp}
-          answers={answers}
-          onSubmit={submitTest}
-        />
-      </div>
+              <div className="progress-container bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                <IQProgressHeader 
+                  currentQuestion={currentQuestion}
+                  totalQuestions={questions.length}
+                  timeElapsed={timeElapsed}
+                  timeLimit={timeLimit}
+                  isActive={isActive}
+                  onTimeUp={handleTimeUp}
+                  answers={answers}
+                  onSubmit={submitTest}
+                />
+              </div>
 
-      {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
-              <div>
-      <IQNavigation 
-        currentQuestion={currentQuestion}
-        totalQuestions={questions.length}
-        answers={answers}
-        onPrevious={previousQuestion}
-        onNext={nextQuestion}
-        onJumpToQuestion={jumpToQuestion}
-        onSubmit={submitTest}
-        isSubmitting={isSubmitting}
-        isReviewMode={isReviewMode}
-        allAnswered={allAnswered}
-        isDataLoaded={isDataLoaded}
-      />
+              {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
+              <div className="iq-navigation">
+                <IQNavigation 
+                  currentQuestion={currentQuestion}
+                  totalQuestions={questions.length}
+                  answers={answers}
+                  onPrevious={previousQuestion}
+                  onNext={nextQuestion}
+                  onJumpToQuestion={jumpToQuestion}
+                  onSubmit={submitTest}
+                  isSubmitting={isSubmitting}
+                  isReviewMode={isReviewMode}
+                  allAnswered={allAnswered}
+                  isDataLoaded={isDataLoaded}
+                />
               </div>
             </div>
           </div>
