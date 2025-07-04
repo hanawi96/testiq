@@ -78,29 +78,9 @@ export function useIQQuestionManager({
       }
     }
     
-    // Tự động chuyển câu hỏi tiếp theo sau khi trả lời
-    if (!isReviewMode) {
-      // Đợi 600ms để người dùng thấy được phản hồi về câu trả lời
-      setTimeout(() => {
-        // Tìm câu hỏi tiếp theo chưa trả lời
-        const nextUnanswered = findNextUnanswered(currentQuestion + 1);
-        if (nextUnanswered !== -1) {
-          // Có câu hỏi tiếp theo chưa trả lời
-          setCurrentQuestion(nextUnanswered);
-          setJustAnswered(false);
-          setHighlightedAnswer(null);
-          console.log('🔄 Auto advancing to next unanswered question:', nextUnanswered);
-        } else if (currentQuestion < questions.length - 1) {
-          // Không có câu hỏi chưa trả lời nhưng chưa phải câu cuối cùng
-          // Chuyển sang câu kế tiếp
-          setCurrentQuestion(currentQuestion + 1);
-          setJustAnswered(false);
-          setHighlightedAnswer(null);
-          console.log('🔄 Auto advancing to next question:', currentQuestion + 1);
-        }
-      }, 600);
-    }
-  }, [answers, currentQuestion, isTimeUp, playSound, questions, isReviewMode, findNextUnanswered]);
+    // KHÔNG thêm setTimeout - logic chuyển câu hỏi sẽ được xử lý bởi useEffect trong IQTest.tsx
+    // Điều này tránh race condition và khiến việc chuyển câu hỏi mượt mà hơn
+  }, [answers, currentQuestion, isTimeUp, playSound, questions]);
 
   // Chuyển đến câu hỏi tiếp theo
   const nextQuestion = useCallback(() => {

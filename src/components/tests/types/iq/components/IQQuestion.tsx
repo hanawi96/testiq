@@ -19,6 +19,18 @@ interface IQQuestionProps {
   onPrevious?: () => void;
 }
 
+// Cấu hình animation mượt mà hơn
+const animationConfig = {
+  initial: { x: 100, opacity: 0 },
+  animate: { x: 0, opacity: 1 },
+  exit: { x: -100, opacity: 0 },
+  transition: { 
+    type: "tween", 
+    ease: "easeOut", 
+    duration: 0.2  // Giảm thời gian animation
+  }
+};
+
 // Component đơn giản chỉ truyền props xuống QuestionCard
 const IQQuestion: React.FC<IQQuestionProps> = ({
   question,
@@ -34,18 +46,11 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
 }) => {
   // Sử dụng key để đảm bảo component được tạo mới hoàn toàn khi câu hỏi thay đổi
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div 
         key={`question-container-${question.id}`}
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: -100, opacity: 0 }}
-        transition={{ 
-          type: "tween", 
-          ease: "easeInOut", 
-          duration: 0.3 
-        }}
-        className="question-transition-container"
+        {...(showAnimation ? animationConfig : { initial: false })}
+        className="question-transition-container will-change-transform"
       >
         <QuestionCard
           question={question}
@@ -62,17 +67,4 @@ const IQQuestion: React.FC<IQQuestionProps> = ({
   );
 };
 
-// Sử dụng memo để tránh re-render không cần thiết
-export default memo(IQQuestion, (prevProps, nextProps) => {
-  // Nếu câu hỏi thay đổi, luôn re-render
-  if (prevProps.question.id !== nextProps.question.id) {
-    return false;
-  }
-  
-  // Nếu câu hỏi không thay đổi, chỉ re-render khi các props quan trọng khác thay đổi
-  return (
-    prevProps.currentAnswer === nextProps.currentAnswer &&
-    prevProps.highlightedAnswer === nextProps.highlightedAnswer &&
-    prevProps.answersDisabled === nextProps.answersDisabled
-  );
-}); 
+export default memo(IQQuestion); 

@@ -314,10 +314,11 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
             submitTest();
           }
         }
-      }, 100);
+      }, 10); // Giảm thời gian chờ xuống còn 10ms để chuyển câu hỏi gần như ngay lập tức
       
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justAnswered, answers, currentQuestion, findNextUnanswered, isReviewMode, questions.length, isActive, startTime, saveProgress]);
 
   // Lưu trạng thái khi người dùng sắp thoát khỏi trang

@@ -136,15 +136,11 @@ const AnswerOptions = memo(({
   isReviewMode: boolean, 
   highlightedAnswer: number | null 
 }) => {
-  console.log('🔍 Rendering AnswerOptions with highlightedAnswer =', highlightedAnswer);
-  
   return (
     <div className="space-y-3">
       {options.map((option: string, index: number) => {
         const isSelected = selectedAnswer === index;
         const isHighlighted = highlightedAnswer === index;
-        
-        console.log(`🔍 Answer ${index}: isHighlighted=${isHighlighted}, isSelected=${isSelected}`);
         
         // Luôn thêm border vào class chính, không phụ thuộc vào trạng thái
         let buttonClass = 'w-full p-4 text-left border rounded-xl focus:outline-none focus:ring-0';
@@ -160,25 +156,28 @@ const AnswerOptions = memo(({
           buttonClass += ' bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700';
         }
 
+        // Tối ưu hóa xử lý click để tránh độ trễ
+        const handleClick = () => {
+          if (!isReviewMode) {
+            // Gọi callback ngay lập tức không cần thêm checks
+            onAnswerSelect(index);
+          }
+        };
+
         return (
           <motion.button
             key={`answer-${index}`}
             className={buttonClass}
-            onClick={() => !isReviewMode && onAnswerSelect(index)}
+            onClick={handleClick}
             disabled={isReviewMode}
             whileTap={{ scale: 0.98 }}
             initial={false}
-            animate={isSelected ? { 
-              backgroundColor: ["#d1fae5", "#ecfdf5", "#d1fae5"], 
-              transition: { 
-                duration: 0.6,
-                ease: "easeInOut"
-              }
-            } : {}}
+            transition={{ duration: 0.1 }}
+            // Loại bỏ animation phức tạp để tăng hiệu suất
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <motion.div 
+                <div 
                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors duration-150
                     ${isSelected 
                       ? 'border-green-500 dark:border-green-400 bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300'
@@ -186,27 +185,17 @@ const AnswerOptions = memo(({
                         ? 'border-blue-500 dark:border-blue-400 bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300'
                         : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
                     }`}
-                  animate={isSelected ? { scale: [1, 1.3, 1] } : {}}
-                  transition={{ duration: 0.3 }}
                 >
                   {String.fromCharCode(65 + index)}
-                </motion.div>
+                </div>
                 <span className="flex-1 font-medium">{option}</span>
               </div>
               {/* Hiển thị biểu tượng dấu "V" ở bên phải khi đáp án được chọn */}
-              <AnimatePresence>
-                {isSelected && (
-                  <motion.span 
-                    className="text-green-600 dark:text-green-400 font-bold"
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    ✓
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              {isSelected && (
+                <span className="text-green-600 dark:text-green-400 font-bold">
+                  ✓
+                </span>
+              )}
             </div>
           </motion.button>
         );

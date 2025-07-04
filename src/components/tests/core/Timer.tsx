@@ -165,6 +165,37 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
                       percentage > 20 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400';
   }, [currentTimeLeft, initialTime]);
 
+  // Tính toán stroke color và stroke dasharray cho border timer
+  const timerCircleProps = useMemo(() => {
+    // Tính phần trăm thời gian còn lại
+    const percentage = (currentTimeLeft / initialTime) * 100;
+    
+    // Xác định màu cho border dựa trên phần trăm thời gian
+    const strokeColor = percentage > 50 ? '#22c55e' : // green-600
+                       percentage > 20 ? '#ca8a04' : // yellow-600 
+                       '#dc2626'; // red-600
+    
+    const darkStrokeColor = percentage > 50 ? '#4ade80' : // green-400
+                           percentage > 20 ? '#facc15' : // yellow-400
+                           '#f87171'; // red-400
+
+    // Tính toán stroke-dasharray và stroke-dashoffset
+    const radius = 22;
+    const circumference = 2 * Math.PI * radius; // radius = 22
+    const offset = circumference - (percentage / 100) * circumference;
+    
+    return {
+      stroke: isDarkMode ? darkStrokeColor : strokeColor,
+      strokeDasharray: `${circumference} ${circumference}`,
+      strokeDashoffset: offset
+    };
+  }, [currentTimeLeft, initialTime, isDarkMode]);
+
+  // Thêm CSS cho border timer khi component được mount
+  useEffect(() => {
+    // addTimerBorderStyles(); // This line is removed as per the edit hint
+  }, []);
+
   // Hiệu ứng pulse khi còn ít thời gian
   const shouldPulse = currentTimeLeft <= 30;
   
@@ -217,29 +248,60 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
     >
       {/* Controls panel */}
       <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 flex items-center gap-3">
-        {/* Compact Timer */}
+        {/* Compact Timer with Border */}
         <motion.div 
           key={resetKey}
-          className="w-auto px-3 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            animate={{ 
+          className="relative flex items-center justify-center"
+          style={{ width: '52px', height: '52px' }}
+          animate={{ 
             scale: shouldPulse ? [1, 1.05] : 1
-            }}
-            transition={{ 
+          }}
+          transition={{ 
             duration: 0.7, 
             repeat: shouldPulse ? Infinity : 0, 
             repeatType: "reverse" 
           }}
         >
-          <motion.span 
-            key={`time-${resetKey}`}
-            className={`font-bold text-sm ${colorClass}`}
-            animate={{ 
-              opacity: shouldPulse && currentTimeLeft % 2 ? 0.7 : 1
-            }}
-            transition={{ duration: 0.2 }}
-          >
-            {formatTime(currentTimeLeft)}
-          </motion.span>
+          {/* SVG Circle Progress */}
+          <svg className="absolute w-[52px] h-[52px]" viewBox="0 0 50 50">
+            {/* Background circle */}
+            <circle
+              cx="25"
+              cy="25"
+              r="22"
+              fill="none"
+              stroke={isDarkMode ? "rgba(75, 85, 99, 0.2)" : "rgba(229, 231, 235, 0.4)"}
+              strokeWidth="2.5"
+            />
+            {/* Progress circle */}
+            <circle
+              cx="25"
+              cy="25"
+              r="22"
+              fill="none"
+              stroke={timerCircleProps.stroke}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeDasharray={timerCircleProps.strokeDasharray}
+              strokeDashoffset={timerCircleProps.strokeDashoffset}
+              transform="rotate(-90 25 25)"
+              style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+            />
+          </svg>
+          
+          {/* Timer Display */}
+          <div className="relative z-10 w-[42px] h-[42px] rounded-full bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center">
+            <motion.span 
+              key={`time-${resetKey}`}
+              className={`font-bold text-sm ${colorClass}`}
+              animate={{ 
+                opacity: shouldPulse && currentTimeLeft % 2 ? 0.7 : 1
+              }}
+              transition={{ duration: 0.2 }}
+            >
+              {formatTime(currentTimeLeft)}
+            </motion.span>
+          </div>
         </motion.div>
 
         <button 
