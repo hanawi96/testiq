@@ -81,17 +81,17 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
       <div className="grid grid-cols-3 gap-4 mt-3">
       <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
           <div className="text-green-600 dark:text-green-400 font-bold text-xl">{currentQuestion + 1}/{totalQuestions}</div>
-          <div className="text-gray-600 dark:text-gray-400 text-xs">Câu hiện tại</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">Câu hiện tại</div>
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
           <div className="text-blue-600 dark:text-blue-400 font-bold text-xl">{answeredCount}</div>
-          <div className="text-gray-600 dark:text-gray-400 text-xs">Đã trả lời</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">Đã trả lời</div>
         </div>
         
         {unansweredCount > 0 ? (
         <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3 text-center">
           <div className="text-yellow-600 dark:text-yellow-400 font-bold text-xl">{unansweredCount}</div>
-          <div className="text-gray-600 dark:text-gray-400 text-xs">Chưa trả lời</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">Chưa trả lời</div>
         </div>
         ) : (
           <button
