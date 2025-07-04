@@ -14,7 +14,7 @@ export default function EyeRestPopup({
   onSkip, 
   onStartRest, 
   onDisable,
-  autoHideTime = 50 // Tăng thời gian tự động ẩn từ 6 giây lên 50 giây
+  autoHideTime = 5 // Giảm thời gian tự động ẩn từ 50 giây xuống 5 giây
 }: EyeRestPopupProps) {
   // Xử lý tự động ẩn popup sau thời gian quy định
   useEffect(() => {

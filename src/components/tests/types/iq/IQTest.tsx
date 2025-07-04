@@ -113,11 +113,15 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     restTimeRemaining,
     handleSkipRest,
     handleStartRest,
-    handleDisableRest // Thêm hàm này
+    handleDisableRest
   } = useIQEyeRest({
     isActive,
     startTime,
     isReviewMode,
+    timeLimit,
+    timeElapsed,
+    restDuration: 30, // Đặt thời gian nghỉ mắt là 30 giây
+    playSound // Truyền hàm phát âm thanh
   });
   
   // Hook quản lý câu hỏi và trả lời
@@ -839,7 +843,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       {/* Hiển thị thông báo đang nghỉ mắt */}
       {isResting && (
         <div className="fixed top-0 left-0 right-0 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 py-2 text-center font-medium z-50">
-          Đang nghỉ mắt... Còn {restTimeRemaining} giây (Chế độ kiểm thử)
+          Đang nghỉ mắt... Còn {restTimeRemaining} giây
         </div>
       )}
 
