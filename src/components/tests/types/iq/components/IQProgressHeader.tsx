@@ -12,6 +12,7 @@ interface IQProgressHeaderProps {
   isActive: boolean;
   onTimeUp: () => void;
   answers?: (number | null)[]; // Thêm prop answers để tính toán số câu đã trả lời chính xác
+  onSubmit?: () => void; // Thêm prop để xử lý sự kiện nộp bài
 }
 
 const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
@@ -21,7 +22,8 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
   timeLimit,
   isActive,
   onTimeUp,
-  answers = []
+  answers = [],
+  onSubmit
 }) => {
   // Tính toán số câu đã trả lời dựa trên mảng answers thay vì currentQuestion
   const answeredCount = answers.length > 0 
@@ -86,10 +88,26 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
           <div className="text-gray-600 dark:text-gray-400 text-xs">Đã trả lời</div>
         </div>
         
-        <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3 text-center">
-          <div className="text-yellow-600 dark:text-yellow-400 font-bold text-xl">{unansweredCount}</div>
-          <div className="text-gray-600 dark:text-gray-400 text-xs">Chưa trả lời</div>
-        </div>
+        {unansweredCount > 0 ? (
+          <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3 text-center">
+            <div className="text-yellow-600 dark:text-yellow-400 font-bold text-xl">{unansweredCount}</div>
+            <div className="text-gray-600 dark:text-gray-400 text-xs">Chưa trả lời</div>
+          </div>
+        ) : (
+          <button
+            onClick={onSubmit}
+            disabled={!onSubmit}
+            className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3 text-center flex flex-col items-center justify-center transition-colors duration-200 active:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          >
+            <div className="font-bold text-xl flex items-center">
+              <svg className="w-5 h-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Nộp bài
+            </div>
+            <div className="text-gray-100 text-xs">Đã hoàn thành</div>
+          </button>
+        )}
         
         
       </div>

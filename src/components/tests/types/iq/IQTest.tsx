@@ -779,6 +779,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
           isActive={isActive}
           onTimeUp={handleTimeUp}
           answers={answers}
+          onSubmit={submitTest}
         />
       </div>
 
