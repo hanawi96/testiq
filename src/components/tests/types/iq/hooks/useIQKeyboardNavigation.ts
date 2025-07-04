@@ -107,9 +107,23 @@ export function useIQKeyboardNavigation({
       console.log('✅ Keyboard navigation activated');
       window.addEventListener('keydown', handleKeyPress);
       
+      // Thêm CSS để vô hiệu hóa outline cho các button khi sử dụng phím mũi tên
+      const style = document.createElement('style');
+      style.innerHTML = `
+        button:focus {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+      
       return () => {
         console.log('❌ Keyboard navigation deactivated');
         window.removeEventListener('keydown', handleKeyPress);
+        // Xóa style khi component unmount
+        if (style.parentNode) {
+          document.head.removeChild(style);
+        }
       };
     }
   }, [isActive, handleKeyPress]);

@@ -127,8 +127,8 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   useEffect(() => {
     const root = document.documentElement;
     if (isBlueFilterOn) {
-      // Điều chỉnh bộ lọc với tông màu vàng ấm hơn
-      root.style.setProperty('--blue-filter', 'brightness(0.97) sepia(35%) saturate(95%) hue-rotate(320deg) contrast(0.95)');
+      // Điều chỉnh bộ lọc với tông màu vàng ấm rất nhẹ, gần như không đáng kể
+      root.style.setProperty('--blue-filter', 'brightness(0.995) sepia(10%) saturate(92%) hue-rotate(335deg) contrast(0.99)');
       document.body.classList.add('blue-light-filter');
     } else {
       root.style.setProperty('--blue-filter', 'none');
