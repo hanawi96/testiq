@@ -19,11 +19,12 @@ export function useIQEyeRest({
   const [isResting, setIsResting] = useState(false);
   const [restTimeRemaining, setRestTimeRemaining] = useState(0);
   const [lastRestTime, setLastRestTime] = useState<number | null>(null);
+  const [isDisabled, setIsDisabled] = useState(false); // Thêm trạng thái tắt hiển thị
 
   // Xử lý hiển thị popup nghỉ mắt sau khoảng thời gian làm bài liên tục
   useEffect(() => {
-    // Không hiển thị popup nghỉ mắt khi đang ở chế độ review
-    if (isReviewMode) {
+    // Không hiển thị popup nghỉ mắt khi đang ở chế độ review hoặc đã tắt hiển thị
+    if (isReviewMode || isDisabled) {
       setShowRestPopup(false);
       setIsResting(false);
       return;
@@ -44,7 +45,7 @@ export function useIQEyeRest({
       const timeUntilRest = restInterval * 1000 - timeSinceLastRest;
       
       const timeout = setTimeout(() => {
-        if (isActive && !isReviewMode) {
+        if (isActive && !isReviewMode && !isDisabled) {
           console.log('👁️ Đã đến thời gian nghỉ mắt, hiển thị popup');
           setShowRestPopup(true);
         }
@@ -52,7 +53,7 @@ export function useIQEyeRest({
       
       return () => clearTimeout(timeout);
     }
-  }, [isActive, startTime, restInterval, lastRestTime, isResting, isReviewMode]);
+  }, [isActive, startTime, restInterval, lastRestTime, isResting, isReviewMode, isDisabled]);
 
   // Xử lý khi người dùng bỏ qua nghỉ mắt
   const handleSkipRest = useCallback(() => {
@@ -84,11 +85,20 @@ export function useIQEyeRest({
     return () => clearInterval(interval);
   }, [restDuration]);
 
+  // Xử lý khi người dùng tắt vĩnh viễn popup nghỉ mắt
+  const handleDisableRest = useCallback(() => {
+    console.log('👁️ Người dùng đã tắt hiển thị popup nghỉ mắt cho phiên test này');
+    setShowRestPopup(false);
+    setIsDisabled(true); // Đánh dấu đã tắt hiển thị
+    setLastRestTime(Date.now()); // Cũng cập nhật thời gian để tránh hiển thị lại ngay
+  }, []);
+
   return {
     showRestPopup,
     isResting,
     restTimeRemaining,
     handleSkipRest,
-    handleStartRest
+    handleStartRest,
+    handleDisableRest
   };
 } 

@@ -30,7 +30,7 @@ interface TimerProps {
   onTimeUp: () => void;
   isActive: boolean;
   timeElapsed?: number; // optional: time already elapsed in seconds
-  onFontSizeClick?: (event: React.MouseEvent) => void; // Update to pass the event
+  onFontSizeClick?: () => void; // Cập nhật để không cần event parameter
 }
 
 export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0, onFontSizeClick }: TimerProps) {
@@ -311,12 +311,14 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
           <button 
             className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" 
             aria-label="Điều chỉnh cỡ chữ"
-            onClick={(e) => onFontSizeClick(e)} // Pass the event
+            onClick={onFontSizeClick} // Không cần truyền event
+            title="Điều chỉnh kích thước chữ"
             type="button"
           >
-            <svg className="h-5 w-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v4m1 7h6m-6 4h6m-6-4l-4-4m4 4l-4 4" />
-            </svg>
+            <span className="flex items-baseline">
+              <span className="text-xs text-gray-700 dark:text-gray-300">A</span>
+              <span className="text-base text-gray-700 dark:text-gray-300">A</span>
+            </span>
           </button>
         )}
         
