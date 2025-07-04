@@ -97,15 +97,15 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
           <button
             onClick={onSubmit}
             disabled={!onSubmit}
-            className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3 text-center flex flex-col items-center justify-center transition-colors duration-200 active:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-3 text-center flex flex-col items-center justify-center transition-colors duration-200 active:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 min-w-[100px]"
           >
-            <div className="font-bold text-xl flex items-center">
-              <svg className="w-5 h-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <div className="font-bold text-xl flex items-center whitespace-nowrap">
+              <svg className="w-5 h-5 mr-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              Nộp bài
+              <span className="whitespace-nowrap">Nộp bài</span>
             </div>
-            <div className="text-gray-100 text-xs">Đã hoàn thành</div>
+            <div className="text-gray-100 text-xs whitespace-nowrap">Đã hoàn thành</div>
           </button>
         )}
         

@@ -111,7 +111,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
     isActive,
     startTime,
     restInterval: 10, // Thay đổi từ 600 (10 phút) xuống 10 giây để kiểm tra
-    restDuration: 10 // Thay đổi từ 60 xuống 10 giây để kiểm tra nhanh hơn
+    restDuration: 10, // Thay đổi từ 60 xuống 10 giây để kiểm tra nhanh hơn
+    isReviewMode // Truyền trạng thái review mode để vô hiệu hóa popup khi đang xem lại
   });
   
   // Hook quản lý câu hỏi và trả lời
@@ -682,11 +683,14 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       )}
       
       {/* Hiển thị popup nghỉ mắt */}
-      <EyeRestPopup
-        isOpen={showRestPopup}
-        onSkip={handleSkipRest}
-        onStartRest={handleStartRest}
-      />
+      {/* Hiển thị EyeRestPopup chỉ khi không ở chế độ review */}
+      {!isReviewMode && (
+        <EyeRestPopup
+          isOpen={showRestPopup}
+          onSkip={handleSkipRest}
+          onStartRest={handleStartRest}
+        />
+      )}
       
       {/* Hiển thị thông báo đang nghỉ mắt */}
       {isResting && (

@@ -5,13 +5,15 @@ interface UseIQEyeRestProps {
   startTime: number | null; // Thời gian bắt đầu bài test
   restInterval?: number; // Thời gian làm bài liên tục trước khi hiển thị thông báo nghỉ (giây)
   restDuration?: number; // Thời gian nghỉ mắt (giây)
+  isReviewMode?: boolean; // Chế độ xem lại bài làm
 }
 
 export function useIQEyeRest({
   isActive,
   startTime,
   restInterval = 10, // Thay đổi từ 600 (10 phút) xuống 10 giây để kiểm tra
-  restDuration = 60 // Mặc định nghỉ 60 giây
+  restDuration = 60, // Mặc định nghỉ 60 giây
+  isReviewMode = false // Mặc định không phải chế độ review
 }: UseIQEyeRestProps) {
   const [showRestPopup, setShowRestPopup] = useState(false);
   const [isResting, setIsResting] = useState(false);
@@ -20,6 +22,13 @@ export function useIQEyeRest({
 
   // Xử lý hiển thị popup nghỉ mắt sau khoảng thời gian làm bài liên tục
   useEffect(() => {
+    // Không hiển thị popup nghỉ mắt khi đang ở chế độ review
+    if (isReviewMode) {
+      setShowRestPopup(false);
+      setIsResting(false);
+      return;
+    }
+
     if (!isActive || !startTime || isResting) return;
 
     // Nếu đã nghỉ trước đó, tính thời gian từ lần nghỉ cuối
@@ -35,7 +44,7 @@ export function useIQEyeRest({
       const timeUntilRest = restInterval * 1000 - timeSinceLastRest;
       
       const timeout = setTimeout(() => {
-        if (isActive) {
+        if (isActive && !isReviewMode) {
           console.log('👁️ Đã đến thời gian nghỉ mắt, hiển thị popup');
           setShowRestPopup(true);
         }
@@ -43,7 +52,7 @@ export function useIQEyeRest({
       
       return () => clearTimeout(timeout);
     }
-  }, [isActive, startTime, restInterval, lastRestTime, isResting]);
+  }, [isActive, startTime, restInterval, lastRestTime, isResting, isReviewMode]);
 
   // Xử lý khi người dùng bỏ qua nghỉ mắt
   const handleSkipRest = useCallback(() => {
