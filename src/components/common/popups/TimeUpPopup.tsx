@@ -202,13 +202,14 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
         >
           <motion.div
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 relative"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.1 }}
           >
 
 
@@ -323,7 +324,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                         type="button"
                         onClick={() => handleInputChange('gender', option.value)}
                         disabled={isSubmitting}
-                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-none ${
                           userInfo.gender === option.value
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-600 dark:text-gray-300'
@@ -342,7 +343,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                 <button
                   onClick={onRetakeTest}
                   disabled={isSubmitting}
-                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-none ${
                     isSubmitting
                       ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -355,7 +356,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
               <button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}
-                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-none ${
                   isFormValid && !isSubmitting
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'

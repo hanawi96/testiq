@@ -385,20 +385,23 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       // Lấy vị trí của nút để đặt popup gần nút
       const rect = event.currentTarget.getBoundingClientRect();
       
-      // Tính toán vị trí thông minh, đảm bảo không tràn ra khỏi màn hình
-      const popupWidth = 150; // Chiều rộng ước tính của popup
-      let left = rect.left;
-      let top = rect.bottom + window.scrollY + 5;
+      // Popup sẽ nằm dưới button
+      const top = rect.bottom + window.scrollY + 5;
       
-      // Kiểm tra nếu popup sẽ tràn ra khỏi cạnh phải màn hình
-      if (left + popupWidth > window.innerWidth) {
-        left = Math.max(5, window.innerWidth - popupWidth - 10);
-      }
+      // Tính toán vị trí left để button nằm giữa popup
+      // Lấy tọa độ giữa của button icon tăng giảm font size
+      const buttonCenterX = rect.left + rect.width / 2;
+      
+      // Ước lượng độ rộng popup là khoảng 180px
+      const popupWidth = 180;
+      
+      // Tính left để button nằm giữa popup
+      const left = buttonCenterX - popupWidth / 2;
       
       // Đặt vị trí cho popup
       setFontSizePopupPosition({
         top,
-        left
+        left: Math.max(10, left) // Đảm bảo không quá sát lề trái
       });
     }
     

@@ -226,14 +226,14 @@ interface UserInfo {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.1 }}
         >
           <motion.div
             className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100 dark:border-gray-700 relative"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            transition={{ duration: 0.1, ease: "easeOut" }}
           >
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 mb-3">
@@ -343,23 +343,20 @@ interface UserInfo {
                     { value: 'female', label: 'Nữ', icon: '♀️' },
                     { value: 'other', label: 'Khác', icon: '⚧️' }
                   ].map((option) => (
-                    <motion.button
+                    <button
                       key={option.value}
                       type="button"
                       onClick={() => handleInputChange('gender', option.value)}
                       disabled={isAnalyzing}
-                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all duration-75 ${
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-none ${
                         userInfo.gender === option.value
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-600 dark:text-gray-300'
                       } ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-                      whileHover={!isAnalyzing ? { scale: 1.02 } : {}}
-                      whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
-                      transition={{ duration: 0.1, ease: "easeOut" }}
                     >
                       <span className="text-sm">{option.icon}</span>
                       <span className="text-sm font-medium">{option.label}</span>
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -367,16 +364,14 @@ interface UserInfo {
             
             <div className="flex gap-3 mt-8">
               {/* Xem kết quả button - 70% width - moved to left */}
-              <motion.button
+              <button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isAnalyzing}
-                className={`w-[70%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                className={`w-[70%] px-4 py-2.5 rounded-lg font-medium transition-none ${
                   isFormValid && !isAnalyzing
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/25'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 }`}
-                whileHover={isFormValid && !isAnalyzing ? { scale: 1.02, y: -2 } : {}}
-                whileTap={isFormValid && !isAnalyzing ? { scale: 0.98 } : {}}
               >
                 {isAnalyzing ? (
                   <div className="flex items-center justify-center">
@@ -404,22 +399,20 @@ interface UserInfo {
                 ) : (
                   'Xem kết quả'
                 )}
-              </motion.button>
+              </button>
               
               {/* Xem lại button - 30% width - moved to right with green background */}
-              <motion.button
+              <button
                 onClick={onReview}
                 disabled={isAnalyzing}
-                className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-none ${
                 isAnalyzing
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-700'
                   : 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 hover:shadow-lg'
                 }`}
-                whileHover={!isAnalyzing ? { scale: 1.02, y: -2 } : {}}
-                whileTap={!isAnalyzing ? { scale: 0.98 } : {}}
               >
                 Xem lại
-              </motion.button>
+              </button>
             </div>
 
             {/* ✅ Thông báo thời gian còn lại - cập nhật màu sắc cho dark mode */}
