@@ -26,8 +26,18 @@ interface UserInfo {
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', age: '', location: '', countryCode: '', gender: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   // ✅ SMART: Sử dụng validation function tái sử dụng được
   const isFormValid = validateUserInfo(userInfo);
+
+  // Khởi tạo Dark Mode từ localStorage khi component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    setIsDarkMode(shouldBeDark);
+  }, []);
 
   // ✅ Format thời gian còn lại
   const formatTime = (seconds: number): string => {
@@ -77,6 +87,37 @@ interface UserInfo {
 
     loadSavedUserInfo();
   }, [isOpen, preloadedUserInfo]);
+
+  // Theo dõi thay đổi chế độ tối
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+
+    // Lắng nghe sự kiện thay đổi theme
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'theme') {
+        handleThemeChange();
+      }
+    });
+
+    // Lắng nghe thay đổi từ MutationObserver
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          handleThemeChange();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => {
+      window.removeEventListener('storage', handleThemeChange);
+      observer.disconnect();
+    };
+  }, []);
 
   // Trigger confetti when popup opens
   useEffect(() => {
@@ -216,10 +257,11 @@ interface UserInfo {
                   value={userInfo.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   disabled={isAnalyzing}
-                  className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ${
-                    isAnalyzing ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'
+                  className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none dark:bg-gray-700 dark:text-white transition-none ${
+                    isAnalyzing ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                   placeholder="Nhập họ tên của bạn"
+                  style={{WebkitTapHighlightColor: 'transparent'}}
                 />
               </div>
 
@@ -237,15 +279,16 @@ interface UserInfo {
                   value={userInfo.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   disabled={isAnalyzing || isAuthenticatedUser}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 transition-all duration-200 ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-none ${
                     isAuthenticatedUser 
                       ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-300 cursor-not-allowed' 
                       : isAnalyzing 
-                        ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 cursor-not-allowed dark:text-gray-400' 
-                        : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 dark:hover:border-gray-500'
+                        ? 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 cursor-not-allowed dark:text-gray-400' 
+                        : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                   placeholder={isAuthenticatedUser ? "Email đã được xác thực" : "Nhập email của bạn"}
                   title={isAuthenticatedUser ? "Email không thể thay đổi với tài khoản đã đăng nhập" : ""}
+                  style={{WebkitTapHighlightColor: 'transparent'}}
                 />
                
               </div>
@@ -260,13 +303,17 @@ interface UserInfo {
                     value={userInfo.age}
                     onChange={(e) => handleInputChange('age', e.target.value)}
                     disabled={isAnalyzing}
-                    className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ${
-                      isAnalyzing ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'
-                    } [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:m-0`}
+                    className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none dark:bg-gray-700 dark:text-white transition-none ${
+                      isAnalyzing ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'
+                    } [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:m-0 dark:[&::-webkit-inner-spin-button]:bg-gray-700 dark:[&::-webkit-outer-spin-button]:bg-gray-700 dark:[&::-webkit-inner-spin-button]:text-white dark:[&::-webkit-outer-spin-button]:text-white`}
                     placeholder="Tuổi"
                     min="1"
                     max="120"
                     required
+                    style={{
+                      colorScheme: isDarkMode ? 'dark' : 'light',
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
                   />
                 </div>
                 
@@ -365,7 +412,7 @@ interface UserInfo {
                 disabled={isAnalyzing}
                 className={`w-[30%] px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                 isAnalyzing
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-700'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-700'
                   : 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 hover:shadow-lg'
                 }`}
                 whileHover={!isAnalyzing ? { scale: 1.02, y: -2 } : {}}

@@ -33,6 +33,8 @@ const disableAnimationsStyle = `
 }
 `;
 
+
+
 interface IQTestProps {
   questions: Question[];
   timeLimit: number; // in seconds
@@ -342,6 +344,8 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
       window.removeEventListener('keydown', debugKeyPress);
     };
   }, []);
+
+
 
   // ===== CALLBACKS =====
 

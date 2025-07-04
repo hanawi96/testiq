@@ -53,6 +53,9 @@ const QuestionHeader = memo(({ question, onSkip, onPrevious, isInReviewMode }: {
     }
   };
 
+  // Check if this is the first question
+  const isFirstQuestion = question.id === 1;
+
   return (
     <div className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/30 dark:to-blue-900/30 p-4 border-b border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between">
@@ -72,18 +75,24 @@ const QuestionHeader = memo(({ question, onSkip, onPrevious, isInReviewMode }: {
             {onPrevious && (
               <button 
                 onClick={onPrevious}
-                className="flex items-center justify-center w-10 h-10 rounded-l-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors mr-px"
+                className={`flex items-center justify-center transition-colors pr-3 mr-0 ${
+                  isFirstQuestion 
+                    ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed' 
+                    : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300'
+                }`}
                 title="Câu trước"
                 aria-label="Câu trước"
+                disabled={isFirstQuestion}
               >
-                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
             )}
+            <div className="h-6 border-l border-gray-200 dark:border-gray-600 mx-2"></div>
             <button 
               onClick={onSkip}
-              className={`flex items-center px-4 py-2 text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none transition-colors ${onPrevious ? 'border-l border-gray-200 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600' : ''}`}
+              className="flex items-center text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none transition-colors pl-3"
             >
               {isInReviewMode ? 'Next' : 'Bỏ qua'}
               <svg className="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">

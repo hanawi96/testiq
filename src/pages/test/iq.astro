@@ -19,31 +19,31 @@ const locale = getLocale('vi');
 >
   <!-- Phần hiển thị intro ban đầu -->
   <div id="intro-section">
-    <div class="max-w-4xl mx-auto text-center py-20">
-      <div class="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
+    <div class="max-w-4xl mx-auto text-center py-20 dark:bg-gray-900">
+      <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-12 border border-gray-100 dark:border-gray-700">
         <div class="mb-8">
-          <h1 class="text-4xl font-bold text-gray-900 mb-4 font-display">
+          <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4 font-display">
             Test IQ Chuyên Nghiệp
           </h1>
-          <p class="text-xl text-gray-600 mb-6">
+          <p class="text-xl text-gray-600 dark:text-gray-300 mb-6">
             Đánh giá trí tuệ với {iqQuestions.length} câu hỏi trong {Math.floor(testConfig.timeLimit / 60)} phút
           </p>
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-blue-50 p-6 rounded-2xl">
+            <div class="bg-blue-50 dark:bg-blue-900/30 p-6 rounded-2xl">
               <div class="text-3xl mb-2">🧠</div>
-              <h3 class="font-semibold text-gray-900 mb-1">Tư duy logic</h3>
-              <p class="text-sm text-gray-600">Kiểm tra khả năng suy luận và phân tích</p>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-1">Tư duy logic</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-300">Kiểm tra khả năng suy luận và phân tích</p>
             </div>
-            <div class="bg-green-50 p-6 rounded-2xl">
+            <div class="bg-green-50 dark:bg-green-900/30 p-6 rounded-2xl">
               <div class="text-3xl mb-2">⏱️</div>
-              <h3 class="font-semibold text-gray-900 mb-1">Tốc độ xử lý</h3>
-              <p class="text-sm text-gray-600">Đo lường khả năng phản xạ nhanh</p>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-1">Tốc độ xử lý</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-300">Đo lường khả năng phản xạ nhanh</p>
             </div>
-            <div class="bg-purple-50 p-6 rounded-2xl">
+            <div class="bg-purple-50 dark:bg-purple-900/30 p-6 rounded-2xl">
               <div class="text-3xl mb-2">📊</div>
-              <h3 class="font-semibold text-gray-900 mb-1">Phân tích chi tiết</h3>
-              <p class="text-sm text-gray-600">Báo cáo kết quả chuyên sâu</p>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-1">Phân tích chi tiết</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-300">Báo cáo kết quả chuyên sâu</p>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@ const locale = getLocale('vi');
           Bắt Đầu Test Ngay
         </button>
         
-        <p class="text-sm text-gray-500 mt-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
           Mẹo: Sử dụng phím số 1-4 để chọn đáp án nhanh chóng
         </p>
       </div>

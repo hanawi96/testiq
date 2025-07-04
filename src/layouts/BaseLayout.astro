@@ -141,6 +141,64 @@ import SEO from '../components/seo/SEO.astro';
     .dark body.fullscreen-test {
       background-color: #111827;
     }
+
+    /* Loại bỏ tất cả hiệu ứng focus và border trên toàn hệ thống */
+    input,
+    select,
+    textarea,
+    button,
+    [role="combobox"],
+    [role="listbox"],
+    [role="textbox"],
+    [role="button"],
+    .focus-visible {
+      transition: none !important;
+      border-color: inherit !important;
+    }
+
+    input:focus, 
+    select:focus, 
+    textarea:focus, 
+    button:focus,
+    [role="combobox"]:focus,
+    [role="listbox"]:focus,
+    [role="textbox"]:focus,
+    [role="button"]:focus,
+    .focus-visible:focus,
+    input:hover,
+    select:hover,
+    textarea:hover,
+    button:hover,
+    [role="combobox"]:hover,
+    [role="listbox"]:hover,
+    [role="textbox"]:hover,
+    [role="button"]:hover,
+    .focus-visible:hover,
+    input:active,
+    select:active,
+    textarea:active,
+    button:active,
+    [role="combobox"]:active,
+    [role="listbox"]:active,
+    [role="textbox"]:active,
+    [role="button"]:active,
+    .focus-visible:active {
+      outline: none !important;
+      box-shadow: none !important;
+      border-color: inherit !important;
+      -webkit-box-shadow: none !important;
+      -moz-box-shadow: none !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      transition: none !important;
+    }
+
+    /* Đảm bảo không có hiệu ứng nhấp nháy */
+    * {
+      transition-property: background-color, color !important;
+      transition-duration: 0s !important;
+    }
   </style>
 </head>
 

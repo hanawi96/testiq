@@ -165,7 +165,7 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
       
       {/* Keyboard shortcuts hint */}
       <div className={`mt-4 text-center text-xs text-gray-500 dark:text-gray-400 ${!isDataLoaded ? 'opacity-70' : ''}`}>
-        Phím tắt: 1-4 hoặc ↑ ↓ ← → (chọn đáp án) • Enter (xác nhận)
+        Phím tắt: 1-4 hoặc ↑ ↓ (chọn đáp án) ← → (chuyển câu hỏi) • Enter (xác nhận)
       </div>
       
       {/* Chỉ hiển thị khi đã hoàn thành tất cả câu hỏi và đang trong chế độ review */}
