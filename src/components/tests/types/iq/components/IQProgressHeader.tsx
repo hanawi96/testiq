@@ -89,10 +89,10 @@ const IQProgressHeader: React.FC<IQProgressHeaderProps> = ({
         </div>
         
         {unansweredCount > 0 ? (
-          <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3 text-center">
-            <div className="text-yellow-600 dark:text-yellow-400 font-bold text-xl">{unansweredCount}</div>
-            <div className="text-gray-600 dark:text-gray-400 text-xs">Chưa trả lời</div>
-          </div>
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3 text-center">
+          <div className="text-yellow-600 dark:text-yellow-400 font-bold text-xl">{unansweredCount}</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xs">Chưa trả lời</div>
+        </div>
         ) : (
           <button
             onClick={onSubmit}

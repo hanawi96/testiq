@@ -50,7 +50,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   
   // Font Size
   const [fontSize, setFontSize] = React.useState(100); // 100% là mặc định
-  const [showFontSizePopup, setShowFontSizePopup] = React.useState(false);
   
   // Hook âm thanh
   const { playSound } = useIQSounds();
@@ -378,33 +377,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   };
 
   // Font Size Controls
-  const [fontSizePopupPosition, setFontSizePopupPosition] = React.useState({ top: 0, left: 0 });
-  
-  const toggleFontSizePopup = (event?: React.MouseEvent) => {
-    if (event) {
-      // Lấy vị trí của nút để đặt popup gần nút
-      const rect = event.currentTarget.getBoundingClientRect();
-      
-      // Tính toán vị trí thông minh, đảm bảo không tràn ra khỏi màn hình
-      const popupWidth = 150; // Chiều rộng ước tính của popup
-      let left = rect.left;
-      let top = rect.bottom + window.scrollY + 5;
-      
-      // Kiểm tra nếu popup sẽ tràn ra khỏi cạnh phải màn hình
-      if (left + popupWidth > window.innerWidth) {
-        left = Math.max(5, window.innerWidth - popupWidth - 10);
-      }
-      
-      // Đặt vị trí cho popup
-      setFontSizePopupPosition({
-        top,
-        left
-      });
-    }
-    
-    setShowFontSizePopup(!showFontSizePopup);
-  };
-
   const increaseFontSize = () => {
     const newSize = Math.min(fontSize + 10, 150); // Tăng 10%, tối đa 150%
     setFontSize(newSize);
@@ -426,66 +398,17 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   };
 
   const applyFontSize = (size: number) => {
-    // Cách đơn giản nhất: Thêm class động dựa trên font size
-    const rootElement = document.documentElement;
-    
-    // Xóa tất cả class font-size cũ
-    const allSizeClasses = rootElement.className.split(' ').filter(c => c.startsWith('font-size-'));
-    allSizeClasses.forEach(cls => {
-      rootElement.classList.remove(cls);
-    });
-    
-    // Thêm class mới
-    rootElement.classList.add(`font-size-${size}`);
-    
-    // Thêm style động nếu chưa có
-    if (!document.getElementById('dynamic-font-size-style')) {
-      const styleEl = document.createElement('style');
-      styleEl.id = 'dynamic-font-size-style';
-      document.head.appendChild(styleEl);
+    // Áp dụng font size cho các phần tử cần thay đổi
+    const testContainer = document.querySelector('.iq-test-content');
+    if (testContainer) {
+      testContainer.setAttribute('style', `font-size: ${size}%`);
+      
+      // Cập nhật hiển thị kích thước hiện tại
+      console.log(`🔍 Font size đã được điều chỉnh: ${size}%`);
+      
+      // Lưu cài đặt vào localStorage
+      localStorage.setItem('iq_test_font_size', size.toString());
     }
-    
-    // Cập nhật CSS dựa trên kích thước font
-    const styleEl = document.getElementById('dynamic-font-size-style') as HTMLStyleElement;
-    styleEl.textContent = `
-      /* Transition siêu nhanh - chỉ 0.05s */
-      * {
-        transition: font-size 0.05s linear;
-      }
-      
-      /* Root font size scaling */
-      .font-size-${size} .iq-test-content {
-        font-size: ${size}% !important;
-      }
-      
-      /* Đảm bảo tất cả các phần tử con đều thay đổi scale theo */
-      .font-size-${size} .iq-test-content p,
-      .font-size-${size} .iq-test-content span,
-      .font-size-${size} .iq-test-content h3,
-      .font-size-${size} .iq-test-content button,
-      .font-size-${size} .iq-test-content div {
-        font-size: inherit;
-      }
-      
-      /* Tiêu đề câu hỏi */
-      .font-size-${size} .iq-test-content .text-lg {
-        font-size: 1.125em !important;
-      }
-      
-      /* Đáp án */
-      .font-size-${size} .iq-test-content button span.font-medium {
-        font-size: 1em !important;
-      }
-      
-      /* Thể loại câu hỏi */
-      .font-size-${size} .iq-test-content h3.font-semibold {
-        font-size: 1em !important;
-      }
-    `;
-    
-    // Lưu cài đặt vào localStorage
-    localStorage.setItem('iq_test_font_size', size.toString());
-    console.log(`🔍 Font size đã được điều chỉnh: ${size}%`);
   };
 
   // Reset confetti
@@ -776,18 +699,6 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
               </button>
               
               <button 
-                onClick={(e) => toggleFontSizePopup(e)}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors mr-2"
-                aria-label="Điều chỉnh cỡ chữ"
-                type="button"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                </svg>
-                Cỡ chữ
-              </button>
-              
-              <button 
                 onClick={toggleTheme}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 aria-label="Toggle Dark Mode"
@@ -891,126 +802,78 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         isAuthenticatedUser={isAuthenticatedUser}
       />
 
-      {/* Font Size Popup - redesigned as a single row */}
-      {showFontSizePopup && (
-        <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setShowFontSizePopup(false)}
-            style={{ background: 'transparent' }}
-          />
-          <div 
-            className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3"
-            style={{ 
-              top: fontSizePopupPosition.top, 
-              left: fontSizePopupPosition.left 
-            }}
-          >
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={decreaseFontSize}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="Giảm cỡ chữ"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
-                </svg>
-              </button>
-              
-              <div className="font-medium text-gray-700 dark:text-gray-300 text-sm min-w-[40px] text-center">
-                {fontSize}%
-              </div>
-              
-              <button 
-                onClick={increaseFontSize}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="Tăng cỡ chữ"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </button>
-              
-              <div className="w-px h-5 bg-gray-200 dark:bg-gray-600"></div>
-              
-              <button 
-                onClick={resetFontSize}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                aria-label="Đặt lại cỡ chữ"
-                title="Về mặc định (100%)"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-          {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
-          <Timer
-            initialTime={timeLimit}
-            timeElapsed={timeElapsed}
-            isActive={isActive}
-            onTimeUp={handleTimeUp}
-            onFontSizeClick={toggleFontSizePopup}
-          />
-
-          {/* Main test container with shadow and background */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700 iq-test-content">
-            <div className="flex flex-col gap-4">
-              {/* Question Component */}
-              <div>
-                <IQQuestion 
-                  key={`question-${currentQuestion}`}
-                  question={questions[currentQuestion]}
-                  currentAnswer={answers[currentQuestion]}
-                  onAnswerSelect={handleAnswerSelect}
-                  highlightedAnswer={highlightedAnswer}
-                  justAnswered={justAnswered}
-                  answersDisabled={!isActive || isTimeUp}
-                  isReviewMode={isReviewMode}
-                  showAnimation={true}
-                  onSkip={nextQuestion}
-                  onPrevious={previousQuestion}
-                />
-              </div>
-
-              {/* Phần hiển thị tiến độ ở giữa trung tâm */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
-        <IQProgressHeader 
-          currentQuestion={currentQuestion}
-          totalQuestions={questions.length}
-          timeElapsed={timeElapsed}
-          timeLimit={timeLimit}
-          isActive={isActive}
-          onTimeUp={handleTimeUp}
-          answers={answers}
-          onSubmit={submitTest}
-        />
-      </div>
-
-      {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
-              <div>
-      <IQNavigation 
-        currentQuestion={currentQuestion}
-        totalQuestions={questions.length}
-        answers={answers}
-        onPrevious={previousQuestion}
-        onNext={nextQuestion}
-        onJumpToQuestion={jumpToQuestion}
-        onSubmit={submitTest}
-        isSubmitting={isSubmitting}
-        isReviewMode={isReviewMode}
-        allAnswered={allAnswered}
-        isDataLoaded={isDataLoaded}
+      {/* Timer - Hiển thị nổi bật ở góc phải màn hình */}
+      <Timer
+        initialTime={timeLimit}
+        timeElapsed={timeElapsed}
+        isActive={isActive}
+        onTimeUp={handleTimeUp}
+        onFontSizeClick={(action) => {
+          if (action === 'increase') {
+            increaseFontSize();
+          } else if (action === 'decrease') {
+            decreaseFontSize();
+          } else if (action === 'reset') {
+            resetFontSize();
+          } else {
+            // Khi không có action, chỉ toggle panel
+          }
+        }}
       />
-              </div>
-            </div>
+
+      {/* Main test container with shadow and background */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700 iq-test-content">
+        <div className="flex flex-col gap-4">
+          {/* Question Component */}
+          <div>
+            <IQQuestion 
+              key={`question-${currentQuestion}`}
+              question={questions[currentQuestion]}
+              currentAnswer={answers[currentQuestion]}
+              onAnswerSelect={handleAnswerSelect}
+              highlightedAnswer={highlightedAnswer}
+              justAnswered={justAnswered}
+              answersDisabled={!isActive || isTimeUp}
+              isReviewMode={isReviewMode}
+              showAnimation={true}
+              onSkip={nextQuestion}
+              onPrevious={previousQuestion}
+            />
+          </div>
+
+          {/* Phần hiển thị tiến độ ở giữa trung tâm */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+    <IQProgressHeader 
+      currentQuestion={currentQuestion}
+      totalQuestions={questions.length}
+      timeElapsed={timeElapsed}
+      timeLimit={timeLimit}
+      isActive={isActive}
+      onTimeUp={handleTimeUp}
+      answers={answers}
+      onSubmit={submitTest}
+    />
+  </div>
+
+  {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
+          <div>
+            <IQNavigation 
+              currentQuestion={currentQuestion}
+              totalQuestions={questions.length}
+              answers={answers}
+              onPrevious={previousQuestion}
+              onNext={nextQuestion}
+              onJumpToQuestion={jumpToQuestion}
+              onSubmit={submitTest}
+              isSubmitting={isSubmitting}
+              isReviewMode={isReviewMode}
+              allAnswered={allAnswered}
+              isDataLoaded={isDataLoaded}
+            />
           </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+    );
 }
