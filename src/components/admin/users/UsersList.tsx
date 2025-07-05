@@ -345,7 +345,7 @@ export default function UsersList() {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-3">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-          <span className="text-gray-600 font-medium">Đang tải...</span>
+          <span className="text-gray-600 dark:text-gray-400 font-medium">Đang tải...</span>
         </div>
       </div>
     );
@@ -356,28 +356,28 @@ export default function UsersList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
-          <p className="text-gray-600 mt-1">Quản lý tài khoản và quyền hạn người dùng</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý người dùng</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý tài khoản và quyền hạn người dùng</p>
         </div>
         
         {/* Quick Stats */}
         {stats && (
           <div className="flex items-center space-x-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600">{stats.total}</div>
-              <div className="text-xs text-gray-500">Tổng</div>
+              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">{stats.total}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Tổng</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.registered}</div>
-              <div className="text-xs text-gray-500">Đã đăng ký</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.registered}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Đã đăng ký</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{stats.anonymous}</div>
-              <div className="text-xs text-gray-500">Ẩn danh</div>
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.anonymous}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Ẩn danh</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.verified}</div>
-              <div className="text-xs text-gray-500">Đã xác thực</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.verified}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Đã xác thực</div>
             </div>
           </div>
         )}

@@ -1,0 +1,241 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Test Admin Dashboard Dark Mode">
+  <div class="space-y-8">
+    
+    <!-- Header -->
+    <div class="text-center">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+        🌙 Test Admin Dashboard Dark Mode
+      </h1>
+      <p class="text-gray-600 dark:text-gray-400">
+        Kiểm tra giao diện dark mode cho trang admin dashboard
+      </p>
+    </div>
+
+    <!-- Dark Mode Features -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        ✨ Dark Mode Features đã cập nhật
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Loading state với dark text</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Error state với dark background</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Welcome section gradient</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Stats cards với dark backgrounds</span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Quick Actions với dark hover</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Recent Activity dark styling</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Icon colors cho dark mode</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-gray-700 dark:text-gray-300">Hover effects consistency</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Components Updated -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Loading State Demo -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Loading State</h3>
+        <div class="flex items-center justify-center py-8">
+          <div class="text-center">
+            <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">Đang tải dữ liệu...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error State Demo -->
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-red-900 dark:text-red-100 mb-4">Error State</h3>
+        <div class="text-center">
+          <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p class="text-red-700 dark:text-red-300 text-sm">Lỗi truy cập</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Stats Cards Demo -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Stats Cards</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Blue Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Tổng số test</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">1,234</p>
+            </div>
+            <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Green Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Người dùng</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">567</p>
+            </div>
+            <div class="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-green-600 dark:text-green-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Purple Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Test hôm nay</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">89</p>
+            </div>
+            <div class="w-10 h-10 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orange Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Điểm TB</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">112</p>
+            </div>
+            <div class="w-10 h-10 bg-orange-50 dark:bg-orange-900/30 rounded-lg flex items-center justify-center text-orange-600 dark:text-orange-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Quick Actions Demo -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        
+        <div class="group bg-gray-50 dark:bg-gray-700 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border border-gray-200 dark:border-gray-600 hover:border-blue-200 dark:hover:border-blue-700 rounded-lg p-4 transition-all duration-200 cursor-pointer">
+          <div class="flex items-start space-x-4">
+            <div class="text-2xl group-hover:scale-110 transition-transform duration-200">👥</div>
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-900 dark:group-hover:text-blue-200 mb-1">
+                Quản lý người dùng
+              </h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                Xem và quản lý tài khoản người dùng
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group bg-gray-50 dark:bg-gray-700 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border border-gray-200 dark:border-gray-600 hover:border-blue-200 dark:hover:border-blue-700 rounded-lg p-4 transition-all duration-200 cursor-pointer">
+          <div class="flex items-start space-x-4">
+            <div class="text-2xl group-hover:scale-110 transition-transform duration-200">📊</div>
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-900 dark:group-hover:text-blue-200 mb-1">
+                Xem kết quả
+              </h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                Phân tích kết quả test IQ
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group bg-gray-50 dark:bg-gray-700 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border border-gray-200 dark:border-gray-600 hover:border-blue-200 dark:hover:border-blue-700 rounded-lg p-4 transition-all duration-200 cursor-pointer">
+          <div class="flex items-start space-x-4">
+            <div class="text-2xl group-hover:scale-110 transition-transform duration-200">⚙️</div>
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-900 dark:group-hover:text-blue-200 mb-1">
+                Cài đặt
+              </h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                Cấu hình hệ thống
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+      <h2 class="text-xl font-semibold text-blue-900 dark:text-blue-100 mb-4">
+        📋 Hướng dẫn test
+      </h2>
+      <div class="space-y-2 text-blue-800 dark:text-blue-200">
+        <p><strong>1.</strong> Nhấn vào icon 🌙/☀️ ở header để toggle dark mode</p>
+        <p><strong>2.</strong> Kiểm tra tất cả components có đổi màu đúng cách</p>
+        <p><strong>3.</strong> Test hover effects trên Quick Actions</p>
+        <p><strong>4.</strong> Kiểm tra contrast và readability</p>
+        <p><strong>5.</strong> So sánh với trang admin thật: <code>/admin</code></p>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="text-center space-x-4">
+      <a href="/admin" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+        </svg>
+        Admin Dashboard (Real)
+      </a>
+      <a href="/admin/users" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+        </svg>
+        Admin Users
+      </a>
+    </div>
+
+  </div>
+</AdminLayout>
