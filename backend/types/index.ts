@@ -74,6 +74,37 @@ export interface WeeklyTestStats {
   }>;
 }
 
+// Daily comparison statistics for dashboard
+export interface DailyComparisonStats {
+  testsToday: {
+    today: number;
+    yesterday: number;
+    total: number;
+    change: number;
+    changePercent: number;
+  };
+  registeredUsersToday: {
+    today: number;
+    yesterday: number;
+    total: number;
+    change: number;
+    changePercent: number;
+  };
+  anonymousUsersToday: {
+    today: number;
+    yesterday: number;
+    total: number;
+    change: number;
+    changePercent: number;
+  };
+  averageScoreToday: {
+    today: number;
+    yesterday: number;
+    change: number;
+    changePercent: number;
+  };
+}
+
 export interface AdminAction {
   id: string;
   title: string;

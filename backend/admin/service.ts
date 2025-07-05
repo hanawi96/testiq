@@ -1,10 +1,11 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyComparisonStats } from '../types';
 
 // Cache for stats (5 minutes)
 let newUsersStatsCache: { data: NewUsersStats; timestamp: number } | null = null;
 let weeklyTestStatsCache: { data: WeeklyTestStats; timestamp: number } | null = null;
+let dailyComparisonStatsCache: { data: DailyComparisonStats; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -260,6 +261,219 @@ export class AdminService {
   static clearWeeklyTestStatsCache(): void {
     weeklyTestStatsCache = null;
     console.log('AdminService: Weekly test stats cache cleared');
+  }
+
+  /**
+   * Get daily comparison statistics (today vs yesterday)
+   */
+  static async getDailyComparisonStats(): Promise<{
+    data: DailyComparisonStats | null;
+    error: any
+  }> {
+    try {
+      console.log('AdminService: Fetching daily comparison stats');
+
+      // Check cache first
+      const now = Date.now();
+      if (dailyComparisonStatsCache && (now - dailyComparisonStatsCache.timestamp) < CACHE_DURATION) {
+        console.log('AdminService: Using cached daily comparison stats');
+        return { data: dailyComparisonStatsCache.data, error: null };
+      }
+
+      // Calculate dates
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+
+      const todayStr = today.toISOString().split('T')[0];
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      console.log(`AdminService: Comparing ${todayStr} vs ${yesterdayStr}`);
+
+      // Helper function to calculate change
+      const calculateChange = (today: number, yesterday: number) => {
+        const change = today - yesterday;
+        const changePercent = yesterday > 0 ? Math.round((change / yesterday) * 100) : 0;
+        return { change, changePercent };
+      };
+
+      // 1. Tests Today vs Yesterday
+      const { data: testsToday, error: testsError } = await supabase
+        .from('user_test_results')
+        .select('tested_at')
+        .gte('tested_at', todayStr)
+        .lt('tested_at', todayStr + 'T23:59:59.999Z');
+
+      if (testsError) {
+        console.error('AdminService: Error fetching tests today:', testsError);
+        return { data: null, error: testsError };
+      }
+
+      const { data: testsYesterday, error: testsYesterdayError } = await supabase
+        .from('user_test_results')
+        .select('tested_at')
+        .gte('tested_at', yesterdayStr)
+        .lt('tested_at', yesterdayStr + 'T23:59:59.999Z');
+
+      if (testsYesterdayError) {
+        console.error('AdminService: Error fetching tests yesterday:', testsYesterdayError);
+        return { data: null, error: testsYesterdayError };
+      }
+
+      const { data: totalTests, error: totalTestsError } = await supabase
+        .from('user_test_results')
+        .select('id', { count: 'exact' });
+
+      if (totalTestsError) {
+        console.error('AdminService: Error fetching total tests:', totalTestsError);
+        return { data: null, error: totalTestsError };
+      }
+
+      const testsStats = {
+        today: testsToday?.length || 0,
+        yesterday: testsYesterday?.length || 0,
+        total: totalTests?.length || 0,
+        ...calculateChange(testsToday?.length || 0, testsYesterday?.length || 0)
+      };
+
+      // 2. Registered Users Today vs Yesterday
+      const { data: registeredToday, error: regTodayError } = await supabase
+        .from(TABLES.PROFILES)
+        .select('created_at')
+        .gte('created_at', todayStr)
+        .lt('created_at', todayStr + 'T23:59:59.999Z');
+
+      if (regTodayError) {
+        console.error('AdminService: Error fetching registered users today:', regTodayError);
+        return { data: null, error: regTodayError };
+      }
+
+      const { data: registeredYesterday, error: regYesterdayError } = await supabase
+        .from(TABLES.PROFILES)
+        .select('created_at')
+        .gte('created_at', yesterdayStr)
+        .lt('created_at', yesterdayStr + 'T23:59:59.999Z');
+
+      if (regYesterdayError) {
+        console.error('AdminService: Error fetching registered users yesterday:', regYesterdayError);
+        return { data: null, error: regYesterdayError };
+      }
+
+      const { data: totalRegistered, error: totalRegError } = await supabase
+        .from(TABLES.PROFILES)
+        .select('id', { count: 'exact' });
+
+      if (totalRegError) {
+        console.error('AdminService: Error fetching total registered users:', totalRegError);
+        return { data: null, error: totalRegError };
+      }
+
+      const registeredStats = {
+        today: registeredToday?.length || 0,
+        yesterday: registeredYesterday?.length || 0,
+        total: totalRegistered?.length || 0,
+        ...calculateChange(registeredToday?.length || 0, registeredYesterday?.length || 0)
+      };
+
+      // 3. Anonymous Users Today vs Yesterday
+      const { data: anonymousToday, error: anonTodayError } = await supabase
+        .from('anonymous_players')
+        .select('created_at')
+        .gte('created_at', todayStr)
+        .lt('created_at', todayStr + 'T23:59:59.999Z');
+
+      if (anonTodayError) {
+        console.error('AdminService: Error fetching anonymous users today:', anonTodayError);
+        return { data: null, error: anonTodayError };
+      }
+
+      const { data: anonymousYesterday, error: anonYesterdayError } = await supabase
+        .from('anonymous_players')
+        .select('created_at')
+        .gte('created_at', yesterdayStr)
+        .lt('created_at', yesterdayStr + 'T23:59:59.999Z');
+
+      if (anonYesterdayError) {
+        console.error('AdminService: Error fetching anonymous users yesterday:', anonYesterdayError);
+        return { data: null, error: anonYesterdayError };
+      }
+
+      const { data: totalAnonymous, error: totalAnonError } = await supabase
+        .from('anonymous_players')
+        .select('id', { count: 'exact' });
+
+      if (totalAnonError) {
+        console.error('AdminService: Error fetching total anonymous users:', totalAnonError);
+        return { data: null, error: totalAnonError };
+      }
+
+      const anonymousStats = {
+        today: anonymousToday?.length || 0,
+        yesterday: anonymousYesterday?.length || 0,
+        total: totalAnonymous?.length || 0,
+        ...calculateChange(anonymousToday?.length || 0, anonymousYesterday?.length || 0)
+      };
+
+      // 4. Average Score Today vs Yesterday
+      const { data: scoresData, error: scoresError } = await supabase
+        .from('user_test_results')
+        .select('tested_at, score')
+        .gte('tested_at', yesterdayStr)
+        .lt('tested_at', todayStr + 'T23:59:59.999Z');
+
+      if (scoresError) {
+        console.error('AdminService: Error fetching scores:', scoresError);
+        return { data: null, error: scoresError };
+      }
+
+      const todayScores = scoresData?.filter(s => s.tested_at >= todayStr) || [];
+      const yesterdayScores = scoresData?.filter(s => s.tested_at >= yesterdayStr && s.tested_at < todayStr) || [];
+
+      const avgScoreToday = todayScores.length > 0
+        ? Math.round(todayScores.reduce((sum, s) => sum + s.score, 0) / todayScores.length)
+        : 0;
+
+      const avgScoreYesterday = yesterdayScores.length > 0
+        ? Math.round(yesterdayScores.reduce((sum, s) => sum + s.score, 0) / yesterdayScores.length)
+        : 0;
+
+      const scoreStats = {
+        today: avgScoreToday,
+        yesterday: avgScoreYesterday,
+        ...calculateChange(avgScoreToday, avgScoreYesterday)
+      };
+
+      const result: DailyComparisonStats = {
+        testsToday: testsStats,
+        registeredUsersToday: registeredStats,
+        anonymousUsersToday: anonymousStats,
+        averageScoreToday: scoreStats
+      };
+
+      console.log('AdminService: Daily comparison stats calculated successfully', result);
+
+      // Cache the result
+      dailyComparisonStatsCache = {
+        data: result,
+        timestamp: now
+      };
+
+      return {
+        data: result,
+        error: null
+      };
+    } catch (err) {
+      console.error('AdminService: Error fetching daily comparison stats:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Clear daily comparison stats cache
+   */
+  static clearDailyComparisonStatsCache(): void {
+    dailyComparisonStatsCache = null;
+    console.log('AdminService: Daily comparison stats cache cleared');
   }
 
   /**
