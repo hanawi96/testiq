@@ -262,10 +262,10 @@ export default function Header() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       className="text-gray-600 dark:text-gray-400"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      initial={{ opacity: 1 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0 }}
                     >
                       <circle cx="12" cy="12" r="5"/>
                       <line x1="12" y1="1" x2="12" y2="3"/>
@@ -289,10 +289,10 @@ export default function Header() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       className="text-gray-600 dark:text-gray-400"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      initial={{ opacity: 1 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0 }}
                     >
                       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                     </motion.svg>
@@ -314,21 +314,6 @@ export default function Header() {
                   className="group relative flex items-center space-x-2 px-3 py-2.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
                   aria-label="Chọn ngôn ngữ"
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="2" y1="12" x2="22" y2="12"/>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                  </svg>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {currentLanguage.code}
                   </span>

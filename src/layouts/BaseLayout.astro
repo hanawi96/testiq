@@ -209,6 +209,33 @@ import SEO from '../components/seo/SEO.astro';
     /* Đảm bảo không có transition cho các lớp Tailwind dark: */
     *[class*="dark:"] {
       transition: none !important;
+      transition-property: none !important;
+      animation: none !important;
+    }
+    
+    /* Vô hiệu hóa mọi transition liên quan đến màu sắc và background */
+    *, *::before, *::after {
+      transition: none !important;
+      transition-property: none !important;
+      transition-duration: 0s !important;
+      animation-duration: 0s !important;
+    }
+    
+    /* Vô hiệu hóa tất cả transition của các thuộc tính */
+    *[class*="transition"],
+    *[class*="duration"],
+    *[class*="delay"],
+    *[class*="ease"],
+    *[class*="animate"] {
+      transition: none !important;
+      animation: none !important;
+      transition-property: none !important;
+    }
+    
+    /* Vô hiệu hóa hiệu ứng dark mode cho tất cả các phần tử */
+    body, div, span, p, h1, h2, h3, h4, h5, h6, a, button, input, textarea, select {
+      transition: none !important;
+      animation: none !important;
     }
   </style>
 </head>
