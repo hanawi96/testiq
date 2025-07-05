@@ -305,6 +305,10 @@ export default function Header() {
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
+                    // Close user dropdown if open before toggling language dropdown
+                    if (showUserDropdown) {
+                      setShowUserDropdown(false);
+                    }
                     setShowLanguageDropdown(!showLanguageDropdown);
                   }}
                   className="group relative flex items-center space-x-2 px-3 py-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
@@ -359,7 +363,7 @@ export default function Header() {
                         <motion.button
                           key={language.code}
                           onClick={() => selectLanguage(language)}
-                          className={`group w-full flex items-center justify-between px-4 py-3 text-left transition-colors duration-300 !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent ${
+                          className={`group w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 hover:transition-colors hover:duration-300 ${
                             index === 0 ? 'rounded-t-xl' : index === languages.length - 1 ? 'rounded-b-xl' : ''
                           } ${
                             currentLanguage.code === language.code
@@ -401,6 +405,10 @@ export default function Header() {
                   <motion.button
                     onClick={(e) => {
                       e.stopPropagation();
+                      // Close language dropdown if open before toggling user dropdown
+                      if (showLanguageDropdown) {
+                        setShowLanguageDropdown(false);
+                      }
                       setShowUserDropdown(!showUserDropdown);
                     }}
                     className="group relative p-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
