@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { AuthService } from '../../../backend';
+import { AuthService } from '../../../../backend';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');

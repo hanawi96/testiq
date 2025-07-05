@@ -88,6 +88,73 @@ $$;
 -- Grant execute permission
 grant execute on function public.get_best_scores_per_email() to authenticated, anon;
 
+-- ✅ RPC function để lấy users với email từ auth.users
+CREATE OR REPLACE FUNCTION public.get_users_with_email(
+    page_limit INTEGER DEFAULT 10,
+    page_offset INTEGER DEFAULT 0,
+    role_filter TEXT DEFAULT NULL,
+    search_term TEXT DEFAULT NULL,
+    verified_filter BOOLEAN DEFAULT NULL
+)
+RETURNS TABLE (
+    id UUID,
+    email TEXT,
+    email_confirmed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ,
+    last_sign_in_at TIMESTAMPTZ,
+    full_name TEXT,
+    role TEXT,
+    is_verified BOOLEAN,
+    last_login TIMESTAMP,
+    age INTEGER,
+    location TEXT,
+    total_count BIGINT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH filtered_users AS (
+        SELECT
+            up.id,
+            au.email::TEXT, -- Cast to TEXT để tránh type mismatch
+            au.email_confirmed_at, -- từ auth.users (timestamptz)
+            au.created_at, -- từ auth.users (timestamptz)
+            au.last_sign_in_at, -- từ auth.users (timestamptz)
+            up.full_name,
+            up.role,
+            up.is_verified,
+            up.last_login, -- từ user_profiles (timestamp without time zone)
+            up.age,
+            up.location
+        FROM user_profiles up
+        INNER JOIN auth.users au ON up.id = au.id
+        WHERE
+            -- Filter by role
+            (role_filter IS NULL OR up.role = role_filter)
+            -- Filter by verification status
+            AND (verified_filter IS NULL OR up.is_verified = verified_filter)
+            -- Search in full_name or email
+            AND (
+                search_term IS NULL
+                OR up.full_name ILIKE '%' || search_term || '%'
+                OR au.email ILIKE '%' || search_term || '%'
+            )
+        ORDER BY au.created_at DESC -- Dùng created_at từ auth.users
+    )
+    SELECT
+        fu.*,
+        (SELECT COUNT(*) FROM filtered_users) as total_count
+    FROM filtered_users fu
+    LIMIT page_limit
+    OFFSET page_offset;
+END;
+$$;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION public.get_users_with_email(INTEGER, INTEGER, TEXT, TEXT, BOOLEAN) TO authenticated, anon;
+
 -- anonymous_players
 
 create table public.anonymous_players (
@@ -127,3 +194,42 @@ create table public.countries (
 
 -- Migration: Add gender column to anonymous_players if not exists
 ALTER TABLE public.anonymous_players ADD COLUMN IF NOT EXISTS gender text;
+
+
+-- user_profiles
+create table public.user_profiles (
+  id uuid not null,
+  full_name text null,
+  age integer null,
+  gender text null,
+  location text null,
+  avatar_url text null,
+  bio text null,
+  role text not null default 'user'::text,
+  is_verified boolean null default false,
+  last_login timestamp without time zone null,
+  settings jsonb null,
+  created_at timestamp without time zone null default now(),
+  updated_at timestamp without time zone null default now(),
+  country_code character(2) null,
+  email text null,
+  constraint user_profiles_pkey primary key (id),
+  constraint user_profiles_id_fkey foreign KEY (id) references auth.users (id) on delete CASCADE,
+  constraint user_profiles_gender_check check (
+    (
+      gender = any (
+        array['male'::text, 'female'::text, 'other'::text]
+      )
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists idx_user_profiles_role on public.user_profiles using btree (role) TABLESPACE pg_default;
+
+create index IF not exists idx_user_profiles_created_at on public.user_profiles using btree (created_at) TABLESPACE pg_default;
+
+create index IF not exists idx_user_profiles_is_verified on public.user_profiles using btree (is_verified) TABLESPACE pg_default;
+
+create trigger trigger_user_profiles_updated_at BEFORE
+update on user_profiles for EACH row
+execute FUNCTION handle_updated_at ();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AuthService, AdminService } from '../../../backend';
-import type { UserProfile, AdminStats, AdminAction } from '../../../backend';
+import { AuthService, AdminService } from '../../../../backend';
+import type { UserProfile, AdminStats, AdminAction } from '../../../../backend';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);

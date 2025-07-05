@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UsersService } from '../../../backend';
-import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../backend';
+import { UsersService } from '../../../../backend';
+import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
 
 export default function UsersList() {
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
@@ -534,7 +534,7 @@ export default function UsersList() {
                             </span>
                           </div>
                           <div className="text-sm text-gray-500">
-                            {isAnonymousUser(user) ? 'Người chơi ẩn danh' : user.email}
+                            {user.email}
                           </div>
                           {user.age && (
                             <div className="text-xs text-gray-400">

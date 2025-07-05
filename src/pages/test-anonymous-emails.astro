@@ -1,0 +1,139 @@
+---
+// Test page để kiểm tra email của anonymous users
+import { supabase } from '../backend/config/supabase';
+
+let testResults = {
+  anonymousPlayers: null,
+  sampleEmails: [],
+  errors: []
+};
+
+try {
+  console.log('🔍 Testing anonymous players emails...');
+  
+  // Query anonymous_players để kiểm tra email
+  const { data: players, error } = await supabase
+    .from('anonymous_players')
+    .select('id, name, email, age, country_name, created_at')
+    .limit(10);
+  
+  if (error) {
+    testResults.errors.push(`Error: ${error.message}`);
+  } else {
+    testResults.anonymousPlayers = players;
+    testResults.sampleEmails = players
+      ?.filter(p => p.email)
+      ?.map(p => ({ name: p.name, email: p.email })) || [];
+  }
+  
+} catch (err) {
+  testResults.errors.push(`Exception: ${err.message}`);
+}
+---
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Anonymous Emails</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">📧 Test Anonymous Users Emails</h1>
+    
+    <!-- Errors -->
+    {testResults.errors.length > 0 && (
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h2 class="text-lg font-semibold text-red-800 mb-2">❌ Errors:</h2>
+        <ul class="list-disc list-inside space-y-1">
+          {testResults.errors.map(error => (
+            <li class="text-red-700">{error}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    <!-- Results -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Anonymous Players Data -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">👥 Anonymous Players</h2>
+        {testResults.anonymousPlayers ? (
+          <div class="space-y-3">
+            <p><strong>Total Count:</strong> {testResults.anonymousPlayers.length}</p>
+            <p><strong>With Email:</strong> {testResults.sampleEmails.length}</p>
+            
+            <div class="mt-4">
+              <h3 class="font-medium mb-2">Sample Data:</h3>
+              <div class="space-y-2 max-h-64 overflow-y-auto">
+                {testResults.anonymousPlayers.map(player => (
+                  <div class="bg-gray-50 p-3 rounded text-sm">
+                    <div><strong>Name:</strong> {player.name}</div>
+                    <div><strong>Email:</strong> {player.email || 'No email'}</div>
+                    <div><strong>Age:</strong> {player.age || 'N/A'}</div>
+                    <div><strong>Country:</strong> {player.country_name || 'N/A'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p class="text-red-600">❌ No data available</p>
+        )}
+      </div>
+
+      <!-- Email Summary -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">📧 Email Summary</h2>
+        {testResults.sampleEmails.length > 0 ? (
+          <div class="space-y-3">
+            <p class="text-green-600">✅ Found {testResults.sampleEmails.length} anonymous users with emails!</p>
+            
+            <div class="mt-4">
+              <h3 class="font-medium mb-2">Users with Emails:</h3>
+              <div class="space-y-1 max-h-64 overflow-y-auto">
+                {testResults.sampleEmails.map(user => (
+                  <div class="bg-green-50 p-2 rounded text-sm">
+                    <strong>{user.name}</strong> - {user.email}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div class="space-y-3">
+            <p class="text-orange-600">⚠️ No anonymous users with emails found</p>
+            <p class="text-sm text-gray-600">This might be normal if no anonymous users have provided emails yet.</p>
+          </div>
+        )}
+      </div>
+
+    </div>
+
+    <!-- Instructions -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <h2 class="text-xl font-semibold text-blue-800 mb-4">📋 What This Tests</h2>
+      <div class="space-y-2 text-blue-700">
+        <p><strong>Purpose:</strong> Verify that anonymous users' emails are properly stored and can be displayed</p>
+        <ul class="list-disc list-inside ml-4 space-y-1">
+          <li>Checks if <code>anonymous_players</code> table has email data</li>
+          <li>Shows sample of users with emails</li>
+          <li>Confirms emails will be displayed in admin/users page</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-6 text-center space-x-4">
+      <a href="/admin/users" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+        → View Admin Users
+      </a>
+      <a href="/debug-admin-users" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
+        → Debug Data Sources
+      </a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,220 @@
+---
+// Debug page để kiểm tra dữ liệu admin/users
+import { supabase, TABLES } from '../backend/config/supabase';
+
+let debugInfo = {
+  userProfiles: null,
+  anonymousPlayers: null,
+  authUsers: null,
+  rpcFunction: null,
+  errors: []
+};
+
+try {
+  console.log('🔍 Debug: Checking admin/users data sources...');
+  
+  // 1. Check user_profiles table
+  try {
+    const { data: profiles, error: profilesError } = await supabase
+      .from(TABLES.PROFILES)
+      .select('*')
+      .limit(5);
+    
+    if (profilesError) {
+      debugInfo.errors.push(`user_profiles error: ${profilesError.message}`);
+    } else {
+      debugInfo.userProfiles = {
+        count: profiles?.length || 0,
+        sample: profiles?.[0] || null,
+        columns: profiles?.[0] ? Object.keys(profiles[0]) : []
+      };
+    }
+  } catch (err) {
+    debugInfo.errors.push(`user_profiles exception: ${err.message}`);
+  }
+
+  // 2. Check anonymous_players table
+  try {
+    const { data: anonymousPlayers, error: anonymousError } = await supabase
+      .from('anonymous_players')
+      .select('*')
+      .limit(5);
+
+    if (anonymousError) {
+      debugInfo.errors.push(`anonymous_players error: ${anonymousError.message}`);
+    } else {
+      debugInfo.anonymousPlayers = {
+        count: anonymousPlayers?.length || 0,
+        sample: anonymousPlayers?.[0] || null,
+        columns: anonymousPlayers?.[0] ? Object.keys(anonymousPlayers[0]) : []
+      };
+    }
+  } catch (err) {
+    debugInfo.errors.push(`anonymous_players exception: ${err.message}`);
+  }
+
+  // 3. Test RPC function
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_users_with_email', {
+      page_limit: 5,
+      page_offset: 0,
+      role_filter: null,
+      search_term: null,
+      verified_filter: null
+    });
+    
+    if (rpcError) {
+      debugInfo.errors.push(`RPC function error: ${rpcError.message}`);
+    } else {
+      debugInfo.rpcFunction = {
+        count: rpcData?.length || 0,
+        sample: rpcData?.[0] || null,
+        columns: rpcData?.[0] ? Object.keys(rpcData[0]) : []
+      };
+    }
+  } catch (err) {
+    debugInfo.errors.push(`RPC function exception: ${err.message}`);
+  }
+
+  // 4. Check auth.users (if accessible)
+  try {
+    const { data: authData, error: authError } = await supabase
+      .from('auth.users')
+      .select('id, email, created_at')
+      .limit(5);
+    
+    if (authError) {
+      debugInfo.errors.push(`auth.users error: ${authError.message}`);
+    } else {
+      debugInfo.authUsers = {
+        count: authData?.length || 0,
+        sample: authData?.[0] || null
+      };
+    }
+  } catch (err) {
+    debugInfo.errors.push(`auth.users exception: ${err.message}`);
+  }
+
+} catch (error) {
+  debugInfo.errors.push(`General error: ${error.message}`);
+}
+---
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debug Admin Users Data</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">🔍 Debug Admin Users Data Sources</h1>
+    
+    <!-- Errors -->
+    {debugInfo.errors.length > 0 && (
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h2 class="text-lg font-semibold text-red-800 mb-2">❌ Errors Found:</h2>
+        <ul class="list-disc list-inside space-y-1">
+          {debugInfo.errors.map(error => (
+            <li class="text-red-700">{error}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- user_profiles table -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">📊 user_profiles Table</h2>
+        {debugInfo.userProfiles ? (
+          <div class="space-y-3">
+            <p><strong>Count:</strong> {debugInfo.userProfiles.count}</p>
+            <p><strong>Columns:</strong> {debugInfo.userProfiles.columns.join(', ')}</p>
+            <details class="mt-4">
+              <summary class="cursor-pointer font-medium">Sample Data</summary>
+              <pre class="mt-2 bg-gray-100 p-3 rounded text-sm overflow-auto">{JSON.stringify(debugInfo.userProfiles.sample, null, 2)}</pre>
+            </details>
+          </div>
+        ) : (
+          <p class="text-red-600">❌ No data available</p>
+        )}
+      </div>
+
+      <!-- anonymous_players table -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">📊 anonymous_players Table</h2>
+        {debugInfo.anonymousPlayers ? (
+          <div class="space-y-3">
+            <p><strong>Count:</strong> {debugInfo.anonymousPlayers.count}</p>
+            <p><strong>Columns:</strong> {debugInfo.anonymousPlayers.columns.join(', ')}</p>
+            <details class="mt-4">
+              <summary class="cursor-pointer font-medium">Sample Data</summary>
+              <pre class="mt-2 bg-gray-100 p-3 rounded text-sm overflow-auto">{JSON.stringify(debugInfo.anonymousPlayers.sample, null, 2)}</pre>
+            </details>
+          </div>
+        ) : (
+          <p class="text-red-600">❌ No data available</p>
+        )}
+      </div>
+
+      <!-- RPC Function -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">⚙️ get_users_with_email RPC</h2>
+        {debugInfo.rpcFunction ? (
+          <div class="space-y-3">
+            <p class="text-green-600">✅ RPC Function works!</p>
+            <p><strong>Count:</strong> {debugInfo.rpcFunction.count}</p>
+            <p><strong>Columns:</strong> {debugInfo.rpcFunction.columns.join(', ')}</p>
+            <details class="mt-4">
+              <summary class="cursor-pointer font-medium">Sample Data</summary>
+              <pre class="mt-2 bg-gray-100 p-3 rounded text-sm overflow-auto">{JSON.stringify(debugInfo.rpcFunction.sample, null, 2)}</pre>
+            </details>
+          </div>
+        ) : (
+          <p class="text-red-600">❌ RPC Function not working</p>
+        )}
+      </div>
+
+      <!-- auth.users -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">🔐 auth.users Table</h2>
+        {debugInfo.authUsers ? (
+          <div class="space-y-3">
+            <p class="text-green-600">✅ Accessible</p>
+            <p><strong>Count:</strong> {debugInfo.authUsers.count}</p>
+            <details class="mt-4">
+              <summary class="cursor-pointer font-medium">Sample Data</summary>
+              <pre class="mt-2 bg-gray-100 p-3 rounded text-sm overflow-auto">{JSON.stringify(debugInfo.authUsers.sample, null, 2)}</pre>
+            </details>
+          </div>
+        ) : (
+          <p class="text-orange-600">⚠️ Not accessible (normal for client-side)</p>
+        )}
+      </div>
+
+    </div>
+
+    <!-- Summary -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <h2 class="text-xl font-semibold text-blue-800 mb-4">📋 Summary</h2>
+      <div class="space-y-2 text-blue-700">
+        <p><strong>Data Sources for /admin/users:</strong></p>
+        <ul class="list-disc list-inside ml-4 space-y-1">
+          <li><strong>Registered Users:</strong> Direct query from `user_profiles` table</li>
+          <li><strong>Anonymous Users:</strong> Direct query from `anonymous_players` table</li>
+          <li><strong>User Stats:</strong> Aggregation from both sources</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-6 text-center">
+      <a href="/admin/users" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+        ← Back to Admin Users
+      </a>
+    </div>
+  </div>
+</body>
+</html>
