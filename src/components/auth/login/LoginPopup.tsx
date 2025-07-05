@@ -155,7 +155,7 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
         >
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm will-change-opacity"
+            className="absolute inset-0 bg-black/50 will-change-opacity"
             onClick={resetAndClose}
           />
           
