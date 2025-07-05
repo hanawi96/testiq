@@ -151,21 +151,26 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
         >
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm will-change-opacity"
             onClick={resetAndClose}
           />
           
           {/* Modal Content */}
           <div className="relative z-10 flex items-center justify-center min-h-full p-4">
             <motion.div
-              className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg will-change-transform"
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ 
+                duration: 0.15,
+                ease: [0.23, 1, 0.32, 1]
+              }}
+              style={{ translateZ: 0 }}
             >
               {/* Close Button */}
               <button 
@@ -214,10 +219,11 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
               <AnimatePresence mode="wait">
                 <motion.div
                   key={mode}
-                  initial={{ opacity: 0, x: mode === 'register' ? 20 : -20 }}
+                  initial={{ opacity: 0, x: mode === 'register' ? 10 : -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: mode === 'register' ? -20 : 20 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{ opacity: 0, x: mode === 'register' ? -10 : 10 }}
+                  transition={{ duration: 0.12 }}
+                  style={{ willChange: 'opacity, transform' }}
                 >
                   {mode === 'login' ? (
                     <LoginForm 
@@ -256,8 +262,9 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
                   type="button" 
                   onClick={() => handleSocialLogin('google')}
                   className="w-full flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
+                  whileHover={{ scale: 1.005 }}
+                  whileTap={{ scale: 0.995 }}
+                  transition={{ duration: 0.1 }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" className="mr-3">
                     <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -273,8 +280,9 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
                   type="button" 
                   onClick={() => handleSocialLogin('facebook')}
                   className="w-full flex items-center justify-center px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
+                  whileHover={{ scale: 1.005 }}
+                  whileTap={{ scale: 0.995 }}
+                  transition={{ duration: 0.1 }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" className="mr-3">
                     <path fill="#1877f2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
