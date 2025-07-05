@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminCategories from '../../components/admin/categories/AdminCategories.tsx';
+---
+
+<AdminLayout title="Quản lý danh mục - Admin">
+  <AdminCategories client:load />
+</AdminLayout>

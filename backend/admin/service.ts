@@ -57,6 +57,14 @@ export class AdminService {
         category: 'content'
       },
       {
+        id: 'manage-categories',
+        title: 'Quản lý danh mục',
+        description: 'Tạo, sửa, xóa danh mục bài viết',
+        icon: '📁',
+        href: '/admin/categories',
+        category: 'content'
+      },
+      {
         id: 'manage-questions',
         title: 'Quản lý câu hỏi',
         description: 'Thêm, sửa, xóa câu hỏi test',
