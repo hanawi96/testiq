@@ -293,7 +293,19 @@ export class AdminService {
       // Helper function to calculate change
       const calculateChange = (today: number, yesterday: number) => {
         const change = today - yesterday;
-        const changePercent = yesterday > 0 ? Math.round((change / yesterday) * 100) : 0;
+        let changePercent = 0;
+
+        if (yesterday > 0) {
+          // Normal percentage calculation
+          changePercent = Math.round((change / yesterday) * 100);
+        } else if (yesterday === 0 && today > 0) {
+          // When yesterday was 0 but today has data, show 100% increase
+          changePercent = 100;
+        } else if (yesterday === 0 && today === 0) {
+          // Both days are 0, no change
+          changePercent = 0;
+        }
+
         return { change, changePercent };
       };
 
@@ -301,7 +313,7 @@ export class AdminService {
       const { data: testsToday, error: testsError } = await supabase
         .from('user_test_results')
         .select('tested_at')
-        .gte('tested_at', todayStr)
+        .gte('tested_at', todayStr + 'T00:00:00.000Z')
         .lt('tested_at', todayStr + 'T23:59:59.999Z');
 
       if (testsError) {
@@ -312,7 +324,7 @@ export class AdminService {
       const { data: testsYesterday, error: testsYesterdayError } = await supabase
         .from('user_test_results')
         .select('tested_at')
-        .gte('tested_at', yesterdayStr)
+        .gte('tested_at', yesterdayStr + 'T00:00:00.000Z')
         .lt('tested_at', yesterdayStr + 'T23:59:59.999Z');
 
       if (testsYesterdayError) {
@@ -340,7 +352,7 @@ export class AdminService {
       const { data: registeredToday, error: regTodayError } = await supabase
         .from(TABLES.PROFILES)
         .select('created_at')
-        .gte('created_at', todayStr)
+        .gte('created_at', todayStr + 'T00:00:00.000Z')
         .lt('created_at', todayStr + 'T23:59:59.999Z');
 
       if (regTodayError) {
@@ -351,7 +363,7 @@ export class AdminService {
       const { data: registeredYesterday, error: regYesterdayError } = await supabase
         .from(TABLES.PROFILES)
         .select('created_at')
-        .gte('created_at', yesterdayStr)
+        .gte('created_at', yesterdayStr + 'T00:00:00.000Z')
         .lt('created_at', yesterdayStr + 'T23:59:59.999Z');
 
       if (regYesterdayError) {
@@ -379,7 +391,7 @@ export class AdminService {
       const { data: anonymousToday, error: anonTodayError } = await supabase
         .from('anonymous_players')
         .select('created_at')
-        .gte('created_at', todayStr)
+        .gte('created_at', todayStr + 'T00:00:00.000Z')
         .lt('created_at', todayStr + 'T23:59:59.999Z');
 
       if (anonTodayError) {
@@ -390,7 +402,7 @@ export class AdminService {
       const { data: anonymousYesterday, error: anonYesterdayError } = await supabase
         .from('anonymous_players')
         .select('created_at')
-        .gte('created_at', yesterdayStr)
+        .gte('created_at', yesterdayStr + 'T00:00:00.000Z')
         .lt('created_at', yesterdayStr + 'T23:59:59.999Z');
 
       if (anonYesterdayError) {
@@ -418,7 +430,7 @@ export class AdminService {
       const { data: scoresData, error: scoresError } = await supabase
         .from('user_test_results')
         .select('tested_at, score')
-        .gte('tested_at', yesterdayStr)
+        .gte('tested_at', yesterdayStr + 'T00:00:00.000Z')
         .lt('tested_at', todayStr + 'T23:59:59.999Z');
 
       if (scoresError) {
@@ -426,8 +438,13 @@ export class AdminService {
         return { data: null, error: scoresError };
       }
 
-      const todayScores = scoresData?.filter(s => s.tested_at >= todayStr) || [];
-      const yesterdayScores = scoresData?.filter(s => s.tested_at >= yesterdayStr && s.tested_at < todayStr) || [];
+      const todayStart = todayStr + 'T00:00:00.000Z';
+      const todayEnd = todayStr + 'T23:59:59.999Z';
+      const yesterdayStart = yesterdayStr + 'T00:00:00.000Z';
+      const yesterdayEnd = yesterdayStr + 'T23:59:59.999Z';
+
+      const todayScores = scoresData?.filter(s => s.tested_at >= todayStart && s.tested_at <= todayEnd) || [];
+      const yesterdayScores = scoresData?.filter(s => s.tested_at >= yesterdayStart && s.tested_at <= yesterdayEnd) || [];
 
       const avgScoreToday = todayScores.length > 0
         ? Math.round(todayScores.reduce((sum, s) => sum + s.score, 0) / todayScores.length)
@@ -474,6 +491,16 @@ export class AdminService {
   static clearDailyComparisonStatsCache(): void {
     dailyComparisonStatsCache = null;
     console.log('AdminService: Daily comparison stats cache cleared');
+  }
+
+  /**
+   * Clear all admin caches
+   */
+  static clearAllCaches(): void {
+    newUsersStatsCache = null;
+    weeklyTestStatsCache = null;
+    dailyComparisonStatsCache = null;
+    console.log('AdminService: All admin caches cleared');
   }
 
   /**
