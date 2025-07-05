@@ -241,32 +241,31 @@ export default function Header() {
             </nav>
 
             {/* Right side - Always visible controls */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-1">
               {/* Dark Mode Toggle */}
               <motion.button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                className="group relative p-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                title={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+                aria-label={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
               >
                 <AnimatePresence mode="wait">
                   {isDarkMode ? (
                     <motion.svg
                       key="sun"
-                      width="18"
-                      height="18"
+                      width="20"
+                      height="20"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="text-yellow-500"
+                      className="text-gray-600 dark:text-gray-400 transition-colors duration-300"
                       initial={{ rotate: -90, opacity: 0 }}
                       animate={{ rotate: 0, opacity: 1 }}
                       exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
                     >
                       <circle cx="12" cy="12" r="5"/>
                       <line x1="12" y1="1" x2="12" y2="3"/>
@@ -281,19 +280,19 @@ export default function Header() {
                   ) : (
                     <motion.svg
                       key="moon"
-                      width="18"
-                      height="18"
+                      width="20"
+                      height="20"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="text-slate-600"
+                      className="text-gray-600 dark:text-gray-400 transition-colors duration-300"
                       initial={{ rotate: 90, opacity: 0 }}
                       animate={{ rotate: 0, opacity: 1 }}
                       exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
                     >
                       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                     </motion.svg>
@@ -301,34 +300,46 @@ export default function Header() {
                 </AnimatePresence>
               </motion.button>
 
-              {/* Language Selector - Always visible */}
+              {/* Language Selector */}
               <div className="relative language-dropdown">
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowLanguageDropdown(!showLanguageDropdown);
                   }}
-                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="group relative flex items-center space-x-2 px-3 py-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                  aria-label="Chọn ngôn ngữ"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-400 hidden sm:block">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-gray-600 dark:text-gray-400 transition-colors duration-300"
+                  >
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="2" y1="12" x2="22" y2="12"/>
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                   </svg>
-                  <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{currentLanguage.code}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
+                    {currentLanguage.code}
+                  </span>
                   <motion.svg
-                    width="12"
-                    height="12"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-gray-400 hidden sm:block"
-                    style={{ transform: showLanguageDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    className="text-gray-400 dark:text-gray-500 transition-all duration-300"
+                    animate={{ rotate: showLanguageDropdown ? 180 : 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
                   >
                     <polyline points="6,9 12,15 18,9"/>
                   </motion.svg>
@@ -338,26 +349,36 @@ export default function Header() {
                 <AnimatePresence>
                   {showLanguageDropdown && (
                     <motion.div
-                      className="absolute right-0 top-full mt-2 w-48 sm:w-52 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-[70]"
-                      style={{ display: showLanguageDropdown ? 'block' : 'none' }}
+                      className="absolute right-0 top-full mt-3 w-52 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-[70] backdrop-blur-sm"
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
                     >
-                      {languages.map((language) => (
+                      {languages.map((language, index) => (
                         <motion.button
                           key={language.code}
                           onClick={() => selectLanguage(language)}
-                          className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left ${
-                            currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                          className={`group w-full flex items-center justify-between px-4 py-3 text-left transition-colors duration-300 !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent ${
+                            index === 0 ? 'rounded-t-xl' : index === languages.length - 1 ? 'rounded-b-xl' : ''
+                          } ${
+                            currentLanguage.code === language.code
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-gray-700 dark:text-gray-300'
                           }`}
+                          whileTap={{ scale: 0.98 }}
                         >
-                          <div className="flex flex-col">
-                            <span className="text-xs sm:text-sm font-medium">{language.name}</span>
+                          <div className="flex flex-col space-y-0.5">
+                            <span className="text-sm font-medium">{language.name}</span>
                             <span className="text-xs text-gray-500 dark:text-gray-400">{language.code}</span>
                           </div>
                           {currentLanguage.code === language.code && (
                             <motion.div
-                              style={{ display: currentLanguage.code === language.code ? 'block' : 'none' }}
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ duration: 0.2, ease: "easeOut" }}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
                                 <polyline points="20,6 9,17 4,12"/>
                               </svg>
                             </motion.div>
@@ -382,9 +403,8 @@ export default function Header() {
                       e.stopPropagation();
                       setShowUserDropdown(!showUserDropdown);
                     }}
-                    className="flex items-center p-2 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="group relative p-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                    aria-label="Menu người dùng"
                   >
                     {(() => {
                       const anonymousUser = getAnonymousUserInfo();
@@ -393,7 +413,7 @@ export default function Header() {
                       const avatarColor = generateAvatarColor(displayName);
 
                       return (
-                        <div className={`w-6 h-6 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-xs`}>
+                        <div className={`relative w-8 h-8 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm`}>
                           {avatarLetter}
                         </div>
                       );
@@ -404,20 +424,43 @@ export default function Header() {
                   <AnimatePresence>
                     {showUserDropdown && (
                       <motion.div
-                        style={{ display: showUserDropdown ? 'block' : 'none' }}
-                        className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+                        className="absolute top-full right-0 mt-3 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden backdrop-blur-sm"
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                       >
                         {/* User Info Header */}
-                        <div className="flex justify-center px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-b border-gray-200 dark:border-gray-700">
+                        <div className="px-6 py-4 bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-700/50 border-b border-gray-100 dark:border-gray-700">
                           {(() => {
                             const anonymousUser = getAnonymousUserInfo();
-                            const displayName = user?.email ? getUsername(user.email) : (anonymousUser?.name || 'Người dùng');
-                            const avatarLetter = displayName.charAt(0).toUpperCase();
-                            const avatarColor = generateAvatarColor(displayName);
+                            const displayEmail = user?.email || null;
+                            const displayName = anonymousUser?.name || 'Người dùng ẩn danh';
+                            const displayInfo = anonymousUser ? `${anonymousUser.age} tuổi, ${anonymousUser.location}` : 'Thông tin không có sẵn';
 
                             return (
-                              <div className={`w-8 h-8 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
-                                {avatarLetter}
+                              <div className="text-center">
+                                {user ? (
+                                  // Registered user - show email
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {displayEmail}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                      Tài khoản đã đăng ký
+                                    </p>
+                                  </div>
+                                ) : (
+                                  // Anonymous user - show name and info
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {displayName}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                      {displayInfo}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             );
                           })()}
