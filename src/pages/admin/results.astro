@@ -1,0 +1,42 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminResults from '@/components/admin/results/AdminResults.tsx';
+---
+
+<AdminLayout title="Quản lý kết quả test">
+  <AdminResults client:load />
+</AdminLayout>
+
+<style>
+  /* Custom scrollbar for table */
+  :global(.overflow-x-auto::-webkit-scrollbar) {
+    height: 8px;
+  }
+  
+  :global(.overflow-x-auto::-webkit-scrollbar-track) {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  
+  :global(.overflow-x-auto::-webkit-scrollbar-thumb) {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  :global(.overflow-x-auto::-webkit-scrollbar-thumb:hover) {
+    background: #94a3b8;
+  }
+
+  /* Dark mode scrollbar */
+  :global(.dark .overflow-x-auto::-webkit-scrollbar-track) {
+    background: #374151;
+  }
+  
+  :global(.dark .overflow-x-auto::-webkit-scrollbar-thumb) {
+    background: #6b7280;
+  }
+  
+  :global(.dark .overflow-x-auto::-webkit-scrollbar-thumb:hover) {
+    background: #9ca3af;
+  }
+</style>
