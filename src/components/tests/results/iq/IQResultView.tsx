@@ -6,7 +6,7 @@ import TestHistory from '../common/TestHistory';
 import ResultTabs from '../common/ResultTabs';
 import IQSkillsAnalysis from './IQSkillsAnalysis';
 import IQCareerSuggestions from './IQCareerSuggestions';
-import DetailedAnalysis from '../DetailedAnalysis';
+import DetailedAnalysis from '../common/DetailedAnalysis';
 import Confetti, { useConfetti } from '../../../common/effects/Confetti';
 import { convertRealHistoryToTimeline } from '../common/utils';
 import { getIQLevel, getSkillAnalysis, getCareerSuggestions } from './types';

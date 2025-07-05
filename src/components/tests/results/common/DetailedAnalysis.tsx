@@ -143,7 +143,7 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
                 />
               )}
             </div>
-            <div className="w-12 text-sm font-medium text-gray-900 dark:text-gray-200">{item.percent}%</div>
+            <div className="w-12 text-sm font-medium text-gray-900 dark:text-white">{item.percent}%</div>
           </div>
         ))}
       </div>
@@ -153,7 +153,7 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
           <span className="text-xl">🎯</span>
           <span className="font-semibold">Vị trí của bạn:</span>
         </div>
-        <p className="text-blue-700 dark:text-blue-400 mt-1">
+        <p className="text-blue-700 dark:text-white mt-1">
           Top {100 - percentile}% toàn cầu - Thông minh hơn {percentile}% dân số thế giới
         </p>
       </div>

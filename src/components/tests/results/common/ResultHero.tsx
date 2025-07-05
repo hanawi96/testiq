@@ -59,7 +59,7 @@ const ResultHero: React.FC<ResultHeroProps> = ({
   
   // Isolated animated components to prevent re-render of static content
   const AnimatedScore = ({ score }: { score: number }) => (
-    <div className="text-7xl font-bold text-gray-900 mb-4">
+    <div className="text-7xl font-bold text-gray-900 dark:text-purple-400 mb-4">
       {score}
     </div>
   );

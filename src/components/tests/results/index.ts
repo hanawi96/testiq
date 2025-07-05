@@ -1,4 +1,4 @@
-export { default as DetailedAnalysis } from './DetailedAnalysis';
+export { default as DetailedAnalysis } from './common/DetailedAnalysis';
 export { IQResultView } from './iq';
 
 // Re-export legacy component để đảm bảo khả năng tương thích ngược
