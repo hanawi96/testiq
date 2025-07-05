@@ -328,21 +328,25 @@ export default function Header() {
                     strokeLinejoin="round"
                     className="text-gray-400 dark:text-gray-500"
                     animate={{ rotate: showLanguageDropdown ? 180 : 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    transition={{ duration: 0.08, ease: "easeInOut" }}
                   >
                     <polyline points="6,9 12,15 18,9"/>
                   </motion.svg>
                 </motion.button>
                 
-                {/* Language Dropdown */}
+                {/* Language Dropdown - Siêu nhanh và mượt */}
                 <AnimatePresence>
                   {showLanguageDropdown && (
                     <motion.div
                       className="absolute right-0 top-full mt-3 w-52 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-[70] backdrop-blur-sm"
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{
+                        duration: 0.08,
+                        ease: [0.25, 0.46, 0.45, 0.94],
+                        type: "tween"
+                      }}
                     >
                       {languages.map((language, index) => (
                         <motion.button
@@ -413,15 +417,19 @@ export default function Header() {
                     })()}
                   </motion.button>
 
-                  {/* User Dropdown */}
+                  {/* User Dropdown - Siêu nhanh và mượt */}
                   <AnimatePresence>
                     {showUserDropdown && (
                       <motion.div
                         className="absolute top-full right-0 mt-3 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden backdrop-blur-sm"
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                        transition={{
+                          duration: 0.08,
+                          ease: [0.25, 0.46, 0.45, 0.94],
+                          type: "tween"
+                        }}
                       >
                         {/* User Info Header */}
                         <div className="px-6 py-4 bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-700/50 border-b border-gray-100 dark:border-gray-700">
@@ -605,7 +613,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Siêu nhanh */}
         <AnimatePresence>
           {showMobileMenu && (
             <motion.div
@@ -613,7 +621,11 @@ export default function Header() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{
+                duration: 0.12,
+                ease: [0.25, 0.46, 0.45, 0.94],
+                type: "tween"
+              }}
             >
               <div className="px-4 py-6 space-y-4">
                 {/* Mobile Navigation Links */}
@@ -623,7 +635,7 @@ export default function Header() {
                     onClick={closeMobileMenu}
                     className="block py-3 px-4 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
                     whileHover={{ x: 4 }}
-                    transition={{ duration: 0.1 }}
+                    transition={{ duration: 0.05 }}
                   >
                     🏠 Home
                   </motion.a>
@@ -632,7 +644,7 @@ export default function Header() {
                     onClick={closeMobileMenu}
                     className="block py-3 px-4 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
                     whileHover={{ x: 4 }}
-                    transition={{ duration: 0.1 }}
+                    transition={{ duration: 0.05 }}
                   >
                     🧠 IQ Test
                   </motion.a>
@@ -641,7 +653,7 @@ export default function Header() {
                     onClick={closeMobileMenu}
                     className="block py-3 px-4 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
                     whileHover={{ x: 4 }}
-                    transition={{ duration: 0.1 }}
+                    transition={{ duration: 0.05 }}
                   >
                     💝 EQ Test
                   </motion.a>
@@ -650,7 +662,7 @@ export default function Header() {
                     onClick={closeMobileMenu}
                     className="block py-3 px-4 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
                     whileHover={{ x: 4 }}
-                    transition={{ duration: 0.1 }}
+                    transition={{ duration: 0.05 }}
                   >
                     🏆 Bảng xếp hạng
                   </motion.a>
@@ -659,7 +671,7 @@ export default function Header() {
                     onClick={closeMobileMenu}
                     className="block py-3 px-4 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
                     whileHover={{ x: 4 }}
-                    transition={{ duration: 0.1 }}
+                    transition={{ duration: 0.05 }}
                   >
                     📝 Blog
                   </motion.a>
@@ -668,7 +680,7 @@ export default function Header() {
                     onClick={closeMobileMenu}
                     className="block py-3 px-4 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
                     whileHover={{ x: 4 }}
-                    transition={{ duration: 0.1 }}
+                    transition={{ duration: 0.05 }}
                   >
                     ℹ️ About
                   </motion.a>
@@ -852,7 +864,7 @@ export default function Header() {
         </AnimatePresence>
       </header>
 
-      {/* Backdrop for dropdowns */}
+      {/* Backdrop for dropdowns - Siêu nhanh */}
       <AnimatePresence>
         {(showLanguageDropdown || showMobileMenu || showUserDropdown) && (
           <motion.div
@@ -860,6 +872,7 @@ export default function Header() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.05 }}
             onClick={(e) => {
               e.stopPropagation();
               setShowLanguageDropdown(false);

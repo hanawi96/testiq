@@ -151,7 +151,7 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.08 }}
         >
           {/* Backdrop */}
           <div 
@@ -163,12 +163,13 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
           <div className="relative z-10 flex items-center justify-center min-h-full p-4">
             <motion.div
               className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg will-change-transform"
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              initial={{ scale: 0.96, opacity: 0, y: 8 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ 
-                duration: 0.15,
-                ease: [0.23, 1, 0.32, 1]
+              exit={{ scale: 0.96, opacity: 0, y: 8 }}
+              transition={{
+                duration: 0.08,
+                ease: [0.25, 0.46, 0.45, 0.94],
+                type: "tween"
               }}
               style={{ translateZ: 0 }}
             >
@@ -219,10 +220,14 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
               <AnimatePresence mode="wait">
                 <motion.div
                   key={mode}
-                  initial={{ opacity: 0, x: mode === 'register' ? 10 : -10 }}
+                  initial={{ opacity: 0, x: mode === 'register' ? 6 : -6 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: mode === 'register' ? -10 : 10 }}
-                  transition={{ duration: 0.12 }}
+                  exit={{ opacity: 0, x: mode === 'register' ? -6 : 6 }}
+                  transition={{
+                    duration: 0.06,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                    type: "tween"
+                  }}
                   style={{ willChange: 'opacity, transform' }}
                 >
                   {mode === 'login' ? (
