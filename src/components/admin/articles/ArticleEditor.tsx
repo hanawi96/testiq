@@ -1,17 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { CategoriesService } from '../../../../backend';
+import type { Category } from '../../../../backend';
 
 // Lazy load ToastEditor chỉ khi ở client
 const ToastEditor = React.lazy(() => import('./ToastEditor'));
-
-// Demo categories
-const DEMO_CATEGORIES = [
-  { id: 1, name: 'Công nghệ', slug: 'cong-nghe' },
-  { id: 2, name: 'Giáo dục', slug: 'giao-duc' },
-  { id: 3, name: 'Sức khỏe', slug: 'suc-khoe' },
-  { id: 4, name: 'Kinh doanh', slug: 'kinh-doanh' },
-  { id: 5, name: 'Du lịch', slug: 'du-lich' },
-  { id: 6, name: 'Thể thao', slug: 'the-thao' }
-];
 
 // Demo authors
 const DEMO_AUTHORS = [
@@ -71,7 +63,7 @@ export default function ArticleEditor() {
     slug: '',
     status: 'draft',
     focus_keyword: '',
-    categories: [] as number[],
+    categories: [] as string[],
     tags: [] as string[],
     featured_image: '',
     is_public: true,
@@ -86,6 +78,28 @@ export default function ArticleEditor() {
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [isClient, setIsClient] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  // Load categories from database
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await CategoriesService.getAllCategories();
+        if (!error && data) {
+          setCategories(data);
+        } else {
+          console.error('Error loading categories:', error);
+        }
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   // Chỉ render editor khi ở client
   useEffect(() => {
@@ -154,7 +168,7 @@ export default function ArticleEditor() {
     }
   };
 
-  const handleCategoryToggle = (categoryId: number) => {
+  const handleCategoryToggle = (categoryId: string) => {
     setFormData(prev => ({
       ...prev,
       categories: prev.categories.includes(categoryId)
@@ -513,22 +527,33 @@ export default function ArticleEditor() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {DEMO_CATEGORIES.map((cat) => (
-                  <label
-                    key={cat.id}
-                    className="relative flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.categories.includes(cat.id)}
-                      onChange={() => handleCategoryToggle(cat.id)}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {cat.name}
-                    </span>
-                  </label>
-                ))}
+                {categoriesLoading ? (
+                  <div className="col-span-2 text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Đang tải danh mục...</p>
+                  </div>
+                ) : categories.length === 0 ? (
+                  <div className="col-span-2 text-center py-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Không có danh mục nào</p>
+                  </div>
+                ) : (
+                  categories.map((cat) => (
+                    <label
+                      key={cat.id}
+                      className="relative flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.categories.includes(cat.id)}
+                        onChange={() => handleCategoryToggle(cat.id)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {cat.name}
+                      </span>
+                    </label>
+                  ))
+                )}
               </div>
 
               {formData.categories.length > 0 && (
@@ -543,7 +568,7 @@ export default function ArticleEditor() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {formData.categories.map(catId => {
-                      const category = DEMO_CATEGORIES.find(cat => cat.id === catId);
+                      const category = categories.find(cat => cat.id === catId);
                       return category ? (
                         <span
                           key={catId}

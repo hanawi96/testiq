@@ -54,4 +54,8 @@ export const TABLES = {
   PROFILES: 'user_profiles',
   TEST_RESULTS: 'user_test_results',
   QUESTIONS: 'questions',
-} as const; 
+  CATEGORIES: 'categories',
+  ARTICLES: 'articles',
+  COUNTRIES: 'countries',
+  ANONYMOUS_PLAYERS: 'anonymous_players',
+} as const;

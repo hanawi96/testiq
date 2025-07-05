@@ -233,3 +233,136 @@ create index IF not exists idx_user_profiles_is_verified on public.user_profiles
 create trigger trigger_user_profiles_updated_at BEFORE
 update on user_profiles for EACH row
 execute FUNCTION handle_updated_at ();
+
+
+
+-- categories
+create table public.categories (
+  id uuid not null default gen_random_uuid (),
+  name text not null,
+  slug text not null,
+  description text null,
+  meta_title text null,
+  meta_description text null,
+  color text null default '#3B82F6'::text,
+  parent_id uuid null,
+  sort_order integer null default 0,
+  is_active boolean null default true,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint categories_pkey primary key (id),
+  constraint categories_slug_key unique (slug),
+  constraint categories_parent_id_fkey foreign KEY (parent_id) references categories (id) on delete set null
+) TABLESPACE pg_default;
+
+create index IF not exists idx_categories_slug on public.categories using btree (slug) TABLESPACE pg_default;
+
+
+
+
+-- articles
+create table public.articles (
+  id uuid not null default gen_random_uuid (),
+  title text not null,
+  slug text not null,
+  slug_history text[] null default array[]::text[],
+  content text not null,
+  excerpt text null,
+  lang text null default 'vi'::text,
+  article_type public.article_type null default 'article'::article_type,
+  status public.article_status null default 'draft'::article_status,
+  featured boolean null default false,
+  author_id uuid null,
+  category_id uuid null,
+  parent_id uuid null,
+  meta_title text null,
+  meta_description text null,
+  focus_keyword text null,
+  keywords text[] null,
+  canonical_url text null,
+  og_title text null,
+  og_description text null,
+  og_image text null,
+  og_type text null default 'article'::text,
+  twitter_title text null,
+  twitter_description text null,
+  twitter_image text null,
+  twitter_card_type text null default 'summary_large_image'::text,
+  cover_image text null,
+  cover_image_alt text null,
+  gallery_images jsonb null,
+  schema_type public.schema_type null default 'Article'::schema_type,
+  author_schema jsonb null,
+  organization_schema jsonb null,
+  faq_schema jsonb null,
+  howto_schema jsonb null,
+  breadcrumb_schema jsonb null,
+  word_count integer null default 0,
+  character_count integer null default 0,
+  reading_time integer null default 0,
+  paragraph_count integer null default 0,
+  heading_count jsonb null,
+  content_score integer null default 0,
+  readability_score numeric(5, 2) null,
+  keyword_density numeric(5, 2) null,
+  robots_directive text null default 'index,follow'::text,
+  sitemap_include boolean null default true,
+  sitemap_priority numeric(2, 1) null default 0.8,
+  sitemap_changefreq public.sitemap_changefreq null default 'weekly'::sitemap_changefreq,
+  internal_links jsonb null,
+  external_links jsonb null,
+  related_articles uuid[] null,
+  view_count integer null default 0,
+  unique_views integer null default 0,
+  bounce_rate numeric(5, 2) null,
+  avg_time_on_page integer null,
+  social_shares jsonb null,
+  backlinks_count integer null default 0,
+  search_index tsvector null,
+  indexed_at timestamp with time zone null,
+  last_crawled_at timestamp with time zone null,
+  published_at timestamp with time zone null,
+  scheduled_at timestamp with time zone null,
+  expires_at timestamp with time zone null,
+  version integer null default 1,
+  revision_notes text null,
+  last_modified_by uuid null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint articles_pkey primary key (id),
+  constraint articles_slug_key unique (slug),
+  constraint articles_author_id_fkey foreign KEY (author_id) references auth.users (id) on delete set null,
+  constraint articles_category_id_fkey foreign KEY (category_id) references categories (id) on delete set null,
+  constraint articles_last_modified_by_fkey foreign KEY (last_modified_by) references auth.users (id),
+  constraint articles_parent_id_fkey foreign KEY (parent_id) references articles (id) on delete set null
+) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_slug on public.articles using btree (slug) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_status on public.articles using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_published_at on public.articles using btree (published_at desc) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_author_id on public.articles using btree (author_id) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_category_id on public.articles using btree (category_id) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_featured on public.articles using btree (featured) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_search on public.articles using gin (search_index) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_keywords on public.articles using gin (keywords) TABLESPACE pg_default;
+
+create index IF not exists idx_articles_fulltext on public.articles using gin (
+  to_tsvector(
+    'english'::regconfig,
+    (
+      (((title || ' '::text) || content) || ' '::text) || COALESCE(excerpt, ''::text)
+    )
+  )
+) TABLESPACE pg_default;
+
+create trigger trigger_update_article_metrics BEFORE INSERT
+or
+update on articles for EACH row
+execute FUNCTION update_article_metrics ();

@@ -14,7 +14,10 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'active' as 'active' | 'inactive'
+    status: 'active' as 'active' | 'inactive',
+    meta_title: '',
+    meta_description: '',
+    color: '#3B82F6'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,14 +32,20 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         setFormData({
           name: category.name,
           description: category.description,
-          status: category.status
+          status: category.status,
+          meta_title: category.meta_title || '',
+          meta_description: category.meta_description || '',
+          color: category.color || '#3B82F6'
         });
       } else {
         // Create mode - reset form
         setFormData({
           name: '',
           description: '',
-          status: 'active'
+          status: 'active',
+          meta_title: '',
+          meta_description: '',
+          color: '#3B82F6'
         });
       }
       setError('');
@@ -78,14 +87,20 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         result = await CategoriesService.updateCategory(category.id, {
           name: formData.name.trim(),
           description: formData.description.trim(),
-          status: formData.status
+          status: formData.status,
+          meta_title: formData.meta_title.trim() || undefined,
+          meta_description: formData.meta_description.trim() || undefined,
+          color: formData.color
         });
       } else {
         // Create new category
         result = await CategoriesService.createCategory({
           name: formData.name.trim(),
           description: formData.description.trim(),
-          status: formData.status
+          status: formData.status,
+          meta_title: formData.meta_title.trim() || undefined,
+          meta_description: formData.meta_description.trim() || undefined,
+          color: formData.color
         });
       }
 
@@ -140,7 +155,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl"
+            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -202,7 +217,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
               </div>
 
               {/* Status Field */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Trạng thái
                 </label>
@@ -217,6 +232,66 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
                   <option value="active">Hoạt động</option>
                   <option value="inactive">Không hoạt động</option>
                 </select>
+              </div>
+
+              {/* Color Field */}
+              <div className="mb-4">
+                <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Màu sắc
+                </label>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="color"
+                    id="color"
+                    name="color"
+                    value={formData.color}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    value={formData.color}
+                    onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                    disabled={isLoading}
+                    placeholder="#3B82F6"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              {/* Meta Title Field */}
+              <div className="mb-4">
+                <label htmlFor="meta_title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Meta Title (SEO)
+                </label>
+                <input
+                  type="text"
+                  id="meta_title"
+                  name="meta_title"
+                  value={formData.meta_title}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  placeholder="Tiêu đề SEO cho danh mục..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                />
+              </div>
+
+              {/* Meta Description Field */}
+              <div className="mb-6">
+                <label htmlFor="meta_description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Meta Description (SEO)
+                </label>
+                <textarea
+                  id="meta_description"
+                  name="meta_description"
+                  value={formData.meta_description}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  rows={2}
+                  placeholder="Mô tả SEO cho danh mục..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 resize-none"
+                />
               </div>
 
               {/* Actions */}

@@ -21,6 +21,7 @@ export default function AdminCategories() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
 
   const limit = 10;
 
@@ -28,20 +29,24 @@ export default function AdminCategories() {
   const fetchCategories = useCallback(async (page: number = currentPage) => {
     console.log(`🔍 Fetch categories page ${page}`);
     setError('');
-    
+    setConnectionStatus('checking');
+
     try {
       const { data, error: fetchError } = await CategoriesService.getCategories(page, limit, filters);
-      
+
       if (fetchError || !data) {
-        setError('Không thể tải danh sách danh mục');
+        setConnectionStatus('disconnected');
+        setError(fetchError?.message || 'Không thể tải danh sách danh mục');
         return;
       }
-      
+
       console.log(`✅ Loaded categories page ${page}`);
+      setConnectionStatus('connected');
       setCategoriesData(data);
-      
-    } catch (err) {
-      setError('Có lỗi xảy ra khi tải dữ liệu');
+
+    } catch (err: any) {
+      setConnectionStatus('disconnected');
+      setError(err?.message || 'Có lỗi xảy ra khi tải dữ liệu');
     }
   }, [currentPage, filters]);
 
@@ -218,14 +223,34 @@ export default function AdminCategories() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý danh mục</h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý danh mục</h1>
+            {/* Connection Status */}
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'connected' ? 'bg-green-500' :
+                connectionStatus === 'disconnected' ? 'bg-red-500' :
+                'bg-yellow-500 animate-pulse'
+              }`}></div>
+              <span className={`text-xs font-medium ${
+                connectionStatus === 'connected' ? 'text-green-600 dark:text-green-400' :
+                connectionStatus === 'disconnected' ? 'text-red-600 dark:text-red-400' :
+                'text-yellow-600 dark:text-yellow-400'
+              }`}>
+                {connectionStatus === 'connected' ? 'Đã kết nối' :
+                 connectionStatus === 'disconnected' ? 'Mất kết nối' :
+                 'Đang kiểm tra...'}
+              </span>
+            </div>
+          </div>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý danh mục bài viết trên website</p>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+            disabled={connectionStatus !== 'connected'}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -242,12 +267,33 @@ export default function AdminCategories() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
         >
-          <div className="flex">
-            <svg className="h-5 w-5 text-red-400 dark:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start">
+            <svg className="h-5 w-5 text-red-400 dark:text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div className="ml-3">
+            <div className="ml-3 flex-1">
+              <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
+                Có lỗi xảy ra
+              </h4>
               <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              <div className="mt-3 flex space-x-3">
+                <button
+                  onClick={() => {
+                    setError('');
+                    fetchCategories(currentPage);
+                    fetchStats();
+                  }}
+                  className="text-sm bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-1 rounded-md hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                >
+                  Thử lại
+                </button>
+                <button
+                  onClick={() => setError('')}
+                  className="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -291,7 +337,7 @@ export default function AdminCategories() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200"
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg"
             >
               <div className="flex items-center justify-between">
                 <div>

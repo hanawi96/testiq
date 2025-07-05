@@ -1,3 +1,77 @@
+import { supabase } from '../config/supabase';
+
+// Error handling utilities
+class CategoriesError extends Error {
+  constructor(message: string, public code?: string, public details?: any) {
+    super(message);
+    this.name = 'CategoriesError';
+  }
+}
+
+const handleDatabaseError = (error: any, operation: string) => {
+  console.error(`CategoriesService: Database error during ${operation}:`, error);
+
+  // Map common Supabase errors to user-friendly messages
+  if (error?.code === 'PGRST116') {
+    return new CategoriesError('Không tìm thấy dữ liệu', 'NOT_FOUND', error);
+  }
+
+  if (error?.code === '23505') {
+    return new CategoriesError('Dữ liệu đã tồn tại', 'DUPLICATE', error);
+  }
+
+  if (error?.code === '23503') {
+    return new CategoriesError('Không thể thực hiện do ràng buộc dữ liệu', 'CONSTRAINT_VIOLATION', error);
+  }
+
+  if (error?.message?.includes('connection')) {
+    return new CategoriesError('Không thể kết nối đến cơ sở dữ liệu', 'CONNECTION_ERROR', error);
+  }
+
+  if (error?.message?.includes('timeout')) {
+    return new CategoriesError('Thao tác quá thời gian chờ', 'TIMEOUT', error);
+  }
+
+  // Generic error
+  return new CategoriesError(
+    error?.message || 'Có lỗi xảy ra khi thao tác với cơ sở dữ liệu',
+    'DATABASE_ERROR',
+    error
+  );
+};
+
+// Retry utility for critical operations
+const retryOperation = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> => {
+  let lastError: any;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry on certain errors
+      if (error?.code === '23505' || error?.code === '23503' || error?.code === 'PGRST116') {
+        throw error;
+      }
+
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      console.warn(`CategoriesService: Attempt ${attempt} failed, retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 1.5; // Exponential backoff
+    }
+  }
+
+  throw lastError;
+};
+
 export interface Category {
   id: string;
   name: string;
@@ -8,6 +82,11 @@ export interface Category {
   display_order: number;
   created_at: string;
   updated_at: string;
+  // Additional fields from database
+  meta_title?: string;
+  meta_description?: string;
+  color?: string;
+  parent_id?: string;
 }
 
 export interface CategoryStats {
@@ -35,175 +114,60 @@ export interface CategoriesListResponse {
   hasPrev: boolean;
 }
 
+// Database row interface (matches database schema)
+interface CategoryRow {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  color: string | null;
+  parent_id: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export class CategoriesService {
-  // Demo data - 15 realistic categories
-  private static demoCategories: Category[] = [
-    {
-      id: '1',
-      name: 'Hướng dẫn Test IQ',
-      slug: 'huong-dan-test-iq',
-      description: 'Các bài viết hướng dẫn cách làm test IQ hiệu quả',
-      status: 'active',
-      article_count: 15,
-      display_order: 1,
-      created_at: '2024-01-01T10:00:00Z',
-      updated_at: '2024-01-15T14:30:00Z'
-    },
-    {
-      id: '2',
-      name: 'Phân tích Kết quả',
-      slug: 'phan-tich-ket-qua',
-      description: 'Giải thích ý nghĩa và cách đọc kết quả test IQ',
-      status: 'active',
-      article_count: 8,
-      display_order: 2,
-      created_at: '2024-01-02T11:00:00Z',
-      updated_at: '2024-01-16T15:45:00Z'
-    },
-    {
-      id: '3',
-      name: 'Lịch sử & Nghiên cứu',
-      slug: 'lich-su-nghien-cuu',
-      description: 'Lịch sử phát triển và các nghiên cứu về trí tuệ nhân tạo',
-      status: 'active',
-      article_count: 5,
-      display_order: 3,
-      created_at: '2024-01-03T12:00:00Z',
-      updated_at: '2024-01-17T16:20:00Z'
-    },
-    {
-      id: '4',
-      name: 'Tips & Tricks',
-      slug: 'tips-tricks',
-      description: 'Mẹo và thủ thuật để cải thiện điểm số test IQ',
-      status: 'active',
-      article_count: 12,
-      display_order: 4,
-      created_at: '2024-01-04T13:00:00Z',
-      updated_at: '2024-01-18T17:10:00Z'
-    },
-    {
-      id: '5',
-      name: 'Câu hỏi Thường gặp',
-      slug: 'cau-hoi-thuong-gap',
-      description: 'Các câu hỏi phổ biến về test IQ và trả lời',
-      status: 'active',
-      article_count: 6,
-      display_order: 5,
-      created_at: '2024-01-05T14:00:00Z',
-      updated_at: '2024-01-19T18:00:00Z'
-    },
-    {
-      id: '6',
-      name: 'Test IQ cho Trẻ em',
-      slug: 'test-iq-tre-em',
-      description: 'Hướng dẫn và thông tin về test IQ dành cho trẻ em',
-      status: 'active',
-      article_count: 9,
-      display_order: 6,
-      created_at: '2024-01-06T15:00:00Z',
-      updated_at: '2024-01-20T19:15:00Z'
-    },
-    {
-      id: '7',
-      name: 'Tâm lý học Nhận thức',
-      slug: 'tam-ly-hoc-nhan-thuc',
-      description: 'Kiến thức về tâm lý học và nhận thức liên quan đến IQ',
-      status: 'active',
-      article_count: 7,
-      display_order: 7,
-      created_at: '2024-01-07T16:00:00Z',
-      updated_at: '2024-01-21T20:30:00Z'
-    },
-    {
-      id: '8',
-      name: 'Các loại Test Trí tuệ',
-      slug: 'cac-loai-test-tri-tue',
-      description: 'Giới thiệu các dạng test đo lường trí tuệ khác nhau',
-      status: 'active',
-      article_count: 11,
-      display_order: 8,
-      created_at: '2024-01-08T17:00:00Z',
-      updated_at: '2024-01-22T21:45:00Z'
-    },
-    {
-      id: '9',
-      name: 'Cải thiện IQ',
-      slug: 'cai-thien-iq',
-      description: 'Phương pháp và bài tập để nâng cao chỉ số IQ',
-      status: 'active',
-      article_count: 14,
-      display_order: 9,
-      created_at: '2024-01-09T18:00:00Z',
-      updated_at: '2024-01-23T22:20:00Z'
-    },
-    {
-      id: '10',
-      name: 'Test IQ Online',
-      slug: 'test-iq-online',
-      description: 'Thông tin về test IQ trực tuyến và độ tin cậy',
-      status: 'active',
-      article_count: 10,
-      display_order: 10,
-      created_at: '2024-01-10T19:00:00Z',
-      updated_at: '2024-01-24T23:10:00Z'
-    },
-    {
-      id: '11',
-      name: 'Nghiên cứu Khoa học',
-      slug: 'nghien-cuu-khoa-hoc',
-      description: 'Các nghiên cứu khoa học mới nhất về trí tuệ',
-      status: 'inactive',
-      article_count: 3,
-      display_order: 11,
-      created_at: '2024-01-11T20:00:00Z',
-      updated_at: '2024-01-25T10:30:00Z'
-    },
-    {
-      id: '12',
-      name: 'IQ và Thành công',
-      slug: 'iq-va-thanh-cong',
-      description: 'Mối quan hệ giữa chỉ số IQ và thành công trong cuộc sống',
-      status: 'active',
-      article_count: 8,
-      display_order: 12,
-      created_at: '2024-01-12T21:00:00Z',
-      updated_at: '2024-01-26T11:45:00Z'
-    },
-    {
-      id: '13',
-      name: 'Sai lầm Thường gặp',
-      slug: 'sai-lam-thuong-gap',
-      description: 'Những hiểu lầm và sai lầm phổ biến về test IQ',
-      status: 'active',
-      article_count: 6,
-      display_order: 13,
-      created_at: '2024-01-13T22:00:00Z',
-      updated_at: '2024-01-27T12:20:00Z'
-    },
-    {
-      id: '14',
-      name: 'Chuẩn bị Test IQ',
-      slug: 'chuan-bi-test-iq',
-      description: 'Hướng dẫn chuẩn bị tâm lý và kỹ thuật trước khi làm test',
-      status: 'inactive',
-      article_count: 4,
-      display_order: 14,
-      created_at: '2024-01-14T23:00:00Z',
-      updated_at: '2024-01-28T13:15:00Z'
-    },
-    {
-      id: '15',
-      name: 'Công cụ & Ứng dụng',
-      slug: 'cong-cu-ung-dung',
-      description: 'Các công cụ và ứng dụng hỗ trợ luyện tập IQ',
-      status: 'active',
-      article_count: 7,
-      display_order: 15,
-      created_at: '2024-01-15T10:30:00Z',
-      updated_at: '2024-01-29T14:40:00Z'
+  /**
+   * Check database connection health
+   */
+  private static async checkConnection(): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .select('id')
+        .limit(1);
+
+      return !error;
+    } catch (err) {
+      console.error('CategoriesService: Connection check failed:', err);
+      return false;
     }
-  ];
+  }
+
+  /**
+   * Transform database row to Category interface
+   */
+  private static transformCategoryRow(row: CategoryRow, articleCount: number = 0): Category {
+    return {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      description: row.description || '',
+      status: row.is_active ? 'active' : 'inactive',
+      article_count: articleCount,
+      display_order: row.sort_order,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      meta_title: row.meta_title || undefined,
+      meta_description: row.meta_description || undefined,
+      color: row.color || undefined,
+      parent_id: row.parent_id || undefined
+    };
+  }
 
   /**
    * Generate slug from name
@@ -220,29 +184,55 @@ export class CategoriesService {
       .trim();
   }
 
+
   /**
    * Get categories statistics
    */
   static async getStats(): Promise<{ data: CategoryStats | null; error: any }> {
     try {
-      console.log('CategoriesService: Calculating statistics');
+      console.log('CategoriesService: Calculating statistics from database');
 
-      const categories = this.demoCategories;
+      // Get categories count by status
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('id, is_active');
+
+      if (categoriesError) {
+        const error = handleDatabaseError(categoriesError, 'fetching categories for stats');
+        return { data: null, error };
+      }
+
+      // Get total articles count
+      const { count: totalArticles, error: articlesError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact' })
+        .not('category_id', 'is', null);
+
+      if (articlesError) {
+        console.warn('CategoriesService: Error fetching articles count:', articlesError);
+        // Don't fail the whole operation for articles count error
+      }
+
+      const categories = categoriesData || [];
+      const total = categories.length;
+      const active = categories.filter(c => c.is_active).length;
+      const inactive = total - active;
+      const articlesCount = totalArticles || 0;
 
       const stats: CategoryStats = {
-        total: categories.length,
-        active: categories.filter(c => c.status === 'active').length,
-        inactive: categories.filter(c => c.status === 'inactive').length,
-        totalArticles: categories.reduce((sum, c) => sum + c.article_count, 0),
-        avgArticlesPerCategory: Math.round(categories.reduce((sum, c) => sum + c.article_count, 0) / categories.length)
+        total,
+        active,
+        inactive,
+        totalArticles: articlesCount,
+        avgArticlesPerCategory: total > 0 ? Math.round(articlesCount / total) : 0
       };
 
-      console.log('CategoriesService: Stats calculated successfully');
+      console.log('CategoriesService: Stats calculated successfully:', stats);
       return { data: stats, error: null };
 
     } catch (err) {
-      console.error('CategoriesService: Error calculating stats:', err);
-      return { data: null, error: err };
+      const error = handleDatabaseError(err, 'calculating stats');
+      return { data: null, error };
     }
   }
 
@@ -255,54 +245,101 @@ export class CategoriesService {
     filters: CategoriesFilters = {}
   ): Promise<{ data: CategoriesListResponse | null; error: any }> {
     try {
-      console.log('CategoriesService: Fetching categories', { page, limit, filters });
+      console.log('CategoriesService: Fetching categories from database', { page, limit, filters });
 
-      let categories = [...this.demoCategories];
+      // Build query
+      let query = supabase
+        .from('categories')
+        .select('*');
 
-      // Apply filters
+      // Apply search filter
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        categories = categories.filter(category =>
-          category.name.toLowerCase().includes(searchTerm) ||
-          category.description.toLowerCase().includes(searchTerm) ||
-          category.slug.toLowerCase().includes(searchTerm)
-        );
+        const searchTerm = filters.search.trim();
+        query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`);
       }
 
+      // Apply status filter
       if (filters.status && filters.status !== 'all') {
-        categories = categories.filter(category => category.status === filters.status);
+        const isActive = filters.status === 'active';
+        query = query.eq('is_active', isActive);
       }
 
       // Apply sorting
       const sortBy = filters.sort_by || 'display_order';
       const sortOrder = filters.sort_order || 'asc';
 
-      categories.sort((a, b) => {
-        let aValue: any = a[sortBy as keyof Category];
-        let bValue: any = b[sortBy as keyof Category];
+      // Map sort_by to database column names
+      const dbSortBy = sortBy === 'display_order' ? 'sort_order' : sortBy;
 
-        if (sortBy === 'created_at' || sortBy === 'updated_at') {
-          aValue = new Date(aValue).getTime();
-          bValue = new Date(bValue).getTime();
-        }
+      if (sortBy === 'article_count') {
+        // For article_count, we'll sort after getting the data
+        query = query.order('sort_order', { ascending: true });
+      } else {
+        query = query.order(dbSortBy, { ascending: sortOrder === 'asc' });
+      }
 
-        if (typeof aValue === 'string') {
-          aValue = aValue.toLowerCase();
-          bValue = bValue.toLowerCase();
-        }
+      // Get total count for pagination
+      const { count: totalCount, error: countError } = await supabase
+        .from('categories')
+        .select('id', { count: 'exact' });
 
-        if (sortOrder === 'asc') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
+      if (countError) {
+        console.error('CategoriesService: Error getting total count:', countError);
+        return { data: null, error: countError };
+      }
+
+      // Execute main query
+      const { data: categoriesData, error: categoriesError } = await query;
+
+      if (categoriesError) {
+        console.error('CategoriesService: Error fetching categories:', categoriesError);
+        return { data: null, error: categoriesError };
+      }
+
+      if (!categoriesData) {
+        return { data: null, error: new Error('No categories data returned') };
+      }
+
+      // Get article counts for each category
+      const categoryIds = categoriesData.map(c => c.id);
+      const { data: articleCounts, error: articleCountError } = await supabase
+        .from('articles')
+        .select('category_id')
+        .in('category_id', categoryIds);
+
+      if (articleCountError) {
+        console.warn('CategoriesService: Error fetching article counts:', articleCountError);
+      }
+
+      // Count articles per category
+      const articleCountMap: Record<string, number> = {};
+      if (articleCounts) {
+        articleCounts.forEach(article => {
+          if (article.category_id) {
+            articleCountMap[article.category_id] = (articleCountMap[article.category_id] || 0) + 1;
+          }
+        });
+      }
+
+      // Transform to Category interface
+      let categories = categoriesData.map(row =>
+        this.transformCategoryRow(row, articleCountMap[row.id] || 0)
+      );
+
+      // Apply article_count sorting if needed
+      if (sortBy === 'article_count') {
+        categories.sort((a, b) => {
+          return sortOrder === 'asc'
+            ? a.article_count - b.article_count
+            : b.article_count - a.article_count;
+        });
+      }
 
       // Apply pagination
       const offset = (page - 1) * limit;
       const paginatedCategories = categories.slice(offset, offset + limit);
 
-      const total = categories.length;
+      const total = totalCount || 0;
       const totalPages = Math.ceil(total / limit);
 
       const response: CategoriesListResponse = {
@@ -337,34 +374,84 @@ export class CategoriesService {
     name: string;
     description: string;
     status: 'active' | 'inactive';
+    meta_title?: string;
+    meta_description?: string;
+    color?: string;
+    parent_id?: string;
   }): Promise<{ data: Category | null; error: any }> {
     try {
-      console.log('CategoriesService: Creating category:', data);
+      console.log('CategoriesService: Creating category in database:', data);
 
-      // Check if name already exists
-      const existingCategory = this.demoCategories.find(c =>
-        c.name.toLowerCase() === data.name.toLowerCase()
-      );
+      const name = data.name.trim();
+      const slug = this.generateSlug(name);
 
-      if (existingCategory) {
-        return { data: null, error: new Error('Tên danh mục đã tồn tại') };
+      // Check if name or slug already exists
+      const { data: existingCategories, error: checkError } = await supabase
+        .from('categories')
+        .select('id, name, slug')
+        .or(`name.ilike.${name},slug.eq.${slug}`);
+
+      if (checkError) {
+        console.error('CategoriesService: Error checking existing categories:', checkError);
+        return { data: null, error: checkError };
       }
 
-      const newCategory: Category = {
-        id: (this.demoCategories.length + 1).toString(),
-        name: data.name.trim(),
-        slug: this.generateSlug(data.name),
-        description: data.description.trim(),
-        status: data.status,
-        article_count: 0,
-        display_order: this.demoCategories.length + 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      if (existingCategories && existingCategories.length > 0) {
+        const nameExists = existingCategories.some(c => c.name.toLowerCase() === name.toLowerCase());
+        const slugExists = existingCategories.some(c => c.slug === slug);
 
-      this.demoCategories.push(newCategory);
+        if (nameExists) {
+          return { data: null, error: new Error('Tên danh mục đã tồn tại') };
+        }
+        if (slugExists) {
+          return { data: null, error: new Error('Slug đã tồn tại') };
+        }
+      }
 
-      console.log('CategoriesService: Category created successfully');
+      // Get next sort_order
+      const { data: maxOrderData, error: maxOrderError } = await supabase
+        .from('categories')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1);
+
+      if (maxOrderError) {
+        console.warn('CategoriesService: Error getting max sort_order:', maxOrderError);
+      }
+
+      const nextSortOrder = maxOrderData && maxOrderData.length > 0
+        ? (maxOrderData[0].sort_order || 0) + 1
+        : 1;
+
+      // Insert new category
+      const { data: insertedData, error: insertError } = await supabase
+        .from('categories')
+        .insert({
+          name,
+          slug,
+          description: data.description.trim() || null,
+          meta_title: data.meta_title || null,
+          meta_description: data.meta_description || null,
+          color: data.color || '#3B82F6',
+          parent_id: data.parent_id || null,
+          sort_order: nextSortOrder,
+          is_active: data.status === 'active'
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('CategoriesService: Error inserting category:', insertError);
+        return { data: null, error: insertError };
+      }
+
+      if (!insertedData) {
+        return { data: null, error: new Error('Không thể tạo danh mục') };
+      }
+
+      const newCategory = this.transformCategoryRow(insertedData, 0);
+
+      console.log('CategoriesService: Category created successfully:', newCategory.id);
       return { data: newCategory, error: null };
 
     } catch (err) {
@@ -383,37 +470,124 @@ export class CategoriesService {
       description: string;
       status: 'active' | 'inactive';
       display_order: number;
+      meta_title: string;
+      meta_description: string;
+      color: string;
+      parent_id: string;
     }>
   ): Promise<{ data: Category | null; error: any }> {
     try {
-      console.log('CategoriesService: Updating category:', { categoryId, data });
+      console.log('CategoriesService: Updating category in database:', { categoryId, data });
 
-      const categoryIndex = this.demoCategories.findIndex(c => c.id === categoryId);
-      if (categoryIndex === -1) {
+      // Check if category exists
+      const { data: existingCategory, error: checkError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('id', categoryId)
+        .single();
+
+      if (checkError) {
+        console.error('CategoriesService: Error checking category:', checkError);
+        return { data: null, error: checkError };
+      }
+
+      if (!existingCategory) {
         return { data: null, error: new Error('Không tìm thấy danh mục') };
       }
 
-      // Check name uniqueness if name is being updated
-      if (data.name) {
-        const existingCategory = this.demoCategories.find(c =>
-          c.id !== categoryId && c.name.toLowerCase() === data.name!.toLowerCase()
-        );
+      // Prepare update data
+      const updateData: any = {};
 
-        if (existingCategory) {
-          return { data: null, error: new Error('Tên danh mục đã tồn tại') };
+      if (data.name !== undefined) {
+        const name = data.name.trim();
+        const slug = this.generateSlug(name);
+
+        // Check name/slug uniqueness
+        const { data: conflictCategories, error: conflictError } = await supabase
+          .from('categories')
+          .select('id, name, slug')
+          .neq('id', categoryId)
+          .or(`name.ilike.${name},slug.eq.${slug}`);
+
+        if (conflictError) {
+          console.error('CategoriesService: Error checking conflicts:', conflictError);
+          return { data: null, error: conflictError };
         }
+
+        if (conflictCategories && conflictCategories.length > 0) {
+          const nameExists = conflictCategories.some(c => c.name.toLowerCase() === name.toLowerCase());
+          const slugExists = conflictCategories.some(c => c.slug === slug);
+
+          if (nameExists) {
+            return { data: null, error: new Error('Tên danh mục đã tồn tại') };
+          }
+          if (slugExists) {
+            return { data: null, error: new Error('Slug đã tồn tại') };
+          }
+        }
+
+        updateData.name = name;
+        updateData.slug = slug;
       }
 
-      const updatedCategory = {
-        ...this.demoCategories[categoryIndex],
-        ...data,
-        slug: data.name ? this.generateSlug(data.name) : this.demoCategories[categoryIndex].slug,
-        updated_at: new Date().toISOString()
-      };
+      if (data.description !== undefined) {
+        updateData.description = data.description.trim() || null;
+      }
 
-      this.demoCategories[categoryIndex] = updatedCategory;
+      if (data.status !== undefined) {
+        updateData.is_active = data.status === 'active';
+      }
 
-      console.log('CategoriesService: Category updated successfully');
+      if (data.display_order !== undefined) {
+        updateData.sort_order = data.display_order;
+      }
+
+      if (data.meta_title !== undefined) {
+        updateData.meta_title = data.meta_title || null;
+      }
+
+      if (data.meta_description !== undefined) {
+        updateData.meta_description = data.meta_description || null;
+      }
+
+      if (data.color !== undefined) {
+        updateData.color = data.color || null;
+      }
+
+      if (data.parent_id !== undefined) {
+        updateData.parent_id = data.parent_id || null;
+      }
+
+      // Update in database
+      const { data: updatedData, error: updateError } = await supabase
+        .from('categories')
+        .update(updateData)
+        .eq('id', categoryId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('CategoriesService: Error updating category:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      if (!updatedData) {
+        return { data: null, error: new Error('Không thể cập nhật danh mục') };
+      }
+
+      // Get article count
+      const { count: articleCount, error: countError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact' })
+        .eq('category_id', categoryId);
+
+      if (countError) {
+        console.warn('CategoriesService: Error getting article count:', countError);
+      }
+
+      const updatedCategory = this.transformCategoryRow(updatedData, articleCount || 0);
+
+      console.log('CategoriesService: Category updated successfully:', categoryId);
       return { data: updatedCategory, error: null };
 
     } catch (err) {
@@ -427,23 +601,51 @@ export class CategoriesService {
    */
   static async deleteCategory(categoryId: string): Promise<{ data: boolean; error: any }> {
     try {
-      console.log('CategoriesService: Deleting category:', categoryId);
+      console.log('CategoriesService: Deleting category from database:', categoryId);
 
-      const categoryIndex = this.demoCategories.findIndex(c => c.id === categoryId);
-      if (categoryIndex === -1) {
-        return { data: false, error: new Error('Không tìm thấy danh mục') };
+      // Check if category exists and get article count
+      const { count: articleCount, error: countError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact' })
+        .eq('category_id', categoryId);
+
+      if (countError) {
+        console.error('CategoriesService: Error checking article count:', countError);
+        return { data: false, error: countError };
       }
-
-      const category = this.demoCategories[categoryIndex];
 
       // Check if category has articles
-      if (category.article_count > 0) {
-        return { data: false, error: new Error(`Không thể xóa danh mục có ${category.article_count} bài viết`) };
+      if (articleCount && articleCount > 0) {
+        return { data: false, error: new Error(`Không thể xóa danh mục có ${articleCount} bài viết`) };
       }
 
-      this.demoCategories.splice(categoryIndex, 1);
+      // Check if category has child categories
+      const { count: childCount, error: childError } = await supabase
+        .from('categories')
+        .select('id', { count: 'exact' })
+        .eq('parent_id', categoryId);
 
-      console.log('CategoriesService: Category deleted successfully');
+      if (childError) {
+        console.error('CategoriesService: Error checking child categories:', childError);
+        return { data: false, error: childError };
+      }
+
+      if (childCount && childCount > 0) {
+        return { data: false, error: new Error(`Không thể xóa danh mục có ${childCount} danh mục con`) };
+      }
+
+      // Delete category
+      const { error: deleteError } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId);
+
+      if (deleteError) {
+        console.error('CategoriesService: Error deleting category:', deleteError);
+        return { data: false, error: deleteError };
+      }
+
+      console.log('CategoriesService: Category deleted successfully:', categoryId);
       return { data: true, error: null };
 
     } catch (err) {
@@ -460,22 +662,24 @@ export class CategoriesService {
     status: 'active' | 'inactive'
   ): Promise<{ data: number; error: any }> {
     try {
-      console.log('CategoriesService: Bulk updating categories status:', { categoryIds, status });
+      console.log('CategoriesService: Bulk updating categories status in database:', { categoryIds, status });
 
-      let updatedCount = 0;
-      const now = new Date().toISOString();
+      if (!categoryIds || categoryIds.length === 0) {
+        return { data: 0, error: null };
+      }
 
-      categoryIds.forEach(id => {
-        const categoryIndex = this.demoCategories.findIndex(c => c.id === id);
-        if (categoryIndex !== -1) {
-          this.demoCategories[categoryIndex] = {
-            ...this.demoCategories[categoryIndex],
-            status,
-            updated_at: now
-          };
-          updatedCount++;
-        }
-      });
+      const { data: updatedData, error: updateError } = await supabase
+        .from('categories')
+        .update({ is_active: status === 'active' })
+        .in('id', categoryIds)
+        .select('id');
+
+      if (updateError) {
+        console.error('CategoriesService: Error in bulk update:', updateError);
+        return { data: 0, error: updateError };
+      }
+
+      const updatedCount = updatedData ? updatedData.length : 0;
 
       console.log('CategoriesService: Bulk update completed:', updatedCount, 'categories updated');
       return { data: updatedCount, error: null };
@@ -494,21 +698,38 @@ export class CategoriesService {
     newOrder: number
   ): Promise<{ data: Category | null; error: any }> {
     try {
-      console.log('CategoriesService: Updating display order:', { categoryId, newOrder });
+      console.log('CategoriesService: Updating display order in database:', { categoryId, newOrder });
 
-      const categoryIndex = this.demoCategories.findIndex(c => c.id === categoryId);
-      if (categoryIndex === -1) {
+      const { data: updatedData, error: updateError } = await supabase
+        .from('categories')
+        .update({ sort_order: newOrder })
+        .eq('id', categoryId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('CategoriesService: Error updating display order:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      if (!updatedData) {
         return { data: null, error: new Error('Không tìm thấy danh mục') };
       }
 
-      this.demoCategories[categoryIndex] = {
-        ...this.demoCategories[categoryIndex],
-        display_order: newOrder,
-        updated_at: new Date().toISOString()
-      };
+      // Get article count
+      const { count: articleCount, error: countError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact' })
+        .eq('category_id', categoryId);
+
+      if (countError) {
+        console.warn('CategoriesService: Error getting article count:', countError);
+      }
+
+      const updatedCategory = this.transformCategoryRow(updatedData, articleCount || 0);
 
       console.log('CategoriesService: Display order updated successfully');
-      return { data: this.demoCategories[categoryIndex], error: null };
+      return { data: updatedCategory, error: null };
 
     } catch (err) {
       console.error('CategoriesService: Error updating display order:', err);
@@ -521,11 +742,34 @@ export class CategoriesService {
    */
   static async getCategoryById(categoryId: string): Promise<{ data: Category | null; error: any }> {
     try {
-      const category = this.demoCategories.find(c => c.id === categoryId);
+      console.log('CategoriesService: Getting category by ID from database:', categoryId);
 
-      if (!category) {
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('id', categoryId)
+        .single();
+
+      if (categoryError) {
+        console.error('CategoriesService: Error getting category by ID:', categoryError);
+        return { data: null, error: categoryError };
+      }
+
+      if (!categoryData) {
         return { data: null, error: new Error('Không tìm thấy danh mục') };
       }
+
+      // Get article count
+      const { count: articleCount, error: countError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact' })
+        .eq('category_id', categoryId);
+
+      if (countError) {
+        console.warn('CategoriesService: Error getting article count:', countError);
+      }
+
+      const category = this.transformCategoryRow(categoryData, articleCount || 0);
 
       return { data: category, error: null };
 
@@ -540,11 +784,49 @@ export class CategoriesService {
    */
   static async getAllCategories(): Promise<{ data: Category[] | null; error: any }> {
     try {
-      const activeCategories = this.demoCategories
-        .filter(c => c.status === 'active')
-        .sort((a, b) => a.display_order - b.display_order);
+      console.log('CategoriesService: Getting all active categories from database');
 
-      return { data: activeCategories, error: null };
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (categoriesError) {
+        console.error('CategoriesService: Error getting all categories:', categoriesError);
+        return { data: null, error: categoriesError };
+      }
+
+      if (!categoriesData) {
+        return { data: [], error: null };
+      }
+
+      // Get article counts for all categories
+      const categoryIds = categoriesData.map(c => c.id);
+      const { data: articleCounts, error: articleCountError } = await supabase
+        .from('articles')
+        .select('category_id')
+        .in('category_id', categoryIds);
+
+      if (articleCountError) {
+        console.warn('CategoriesService: Error fetching article counts:', articleCountError);
+      }
+
+      // Count articles per category
+      const articleCountMap: Record<string, number> = {};
+      if (articleCounts) {
+        articleCounts.forEach(article => {
+          if (article.category_id) {
+            articleCountMap[article.category_id] = (articleCountMap[article.category_id] || 0) + 1;
+          }
+        });
+      }
+
+      const categories = categoriesData.map(row =>
+        this.transformCategoryRow(row, articleCountMap[row.id] || 0)
+      );
+
+      return { data: categories, error: null };
 
     } catch (err) {
       console.error('CategoriesService: Error getting all categories:', err);
