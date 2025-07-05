@@ -245,7 +245,7 @@ export default function Header() {
               {/* Dark Mode Toggle */}
               <motion.button
                 onClick={toggleTheme}
-                className="group relative p-2.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                className="group relative p-2 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
                 title={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
                 aria-label={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
               >
@@ -311,7 +311,7 @@ export default function Header() {
                     }
                     setShowLanguageDropdown(!showLanguageDropdown);
                   }}
-                  className="group relative flex items-center space-x-2 px-3 py-2.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                  className="group relative flex items-center space-x-1 px-2 py-1.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
                   aria-label="Chọn ngôn ngữ"
                 >
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -396,7 +396,7 @@ export default function Header() {
                       }
                       setShowUserDropdown(!showUserDropdown);
                     }}
-                    className="group relative p-2.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                    className="group relative p-1.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
                     aria-label="Menu người dùng"
                   >
                     {(() => {
