@@ -570,7 +570,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
         {(userProfile.testHistory?.length || 0) > 0 && (
           <button
             onClick={() => window.location.href = '/test-history'}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium"
+            className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium"
           >
             <span>Xem tất cả</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

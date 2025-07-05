@@ -46,7 +46,7 @@ const AnonymousUserWarning = ({ onRegisterClick }: { onRegisterClick: () => void
         </p>
         <button
           onClick={onRegisterClick}
-          className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 text-white rounded-xl font-medium transition-colors duration-200"
+          className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 text-white rounded-xl font-medium"
         >
           <span className="mr-2">🔐</span>
           Đăng ký tài khoản để lưu dữ liệu
