@@ -1,0 +1,209 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Test Popup Positioning">
+  <div class="space-y-8">
+    
+    <!-- Header -->
+    <div class="text-center">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+        🎯 Test Quick Edit Popup Positioning
+      </h1>
+      <p class="text-gray-600 dark:text-gray-400">
+        Debug positioning của quick edit popups
+      </p>
+    </div>
+
+    <!-- Test Buttons -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        Test Buttons ở các vị trí khác nhau
+      </h2>
+      
+      <!-- Top Left -->
+      <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Top Left</h3>
+        <div class="flex items-center space-x-4">
+          <button 
+            id="test-tags-1"
+            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50"
+            data-quick-edit-button="tags"
+          >
+            🏷️ Tags Editor
+          </button>
+          <button 
+            id="test-author-1"
+            class="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/50"
+            data-quick-edit-button="author"
+          >
+            ✏️ Author Editor
+          </button>
+        </div>
+      </div>
+
+      <!-- Center -->
+      <div class="mb-8 text-center">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Center</h3>
+        <div class="inline-flex items-center space-x-4">
+          <button 
+            id="test-tags-2"
+            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50"
+            data-quick-edit-button="tags"
+          >
+            🏷️ Tags Editor
+          </button>
+          <button 
+            id="test-author-2"
+            class="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/50"
+            data-quick-edit-button="author"
+          >
+            ✏️ Author Editor
+          </button>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="mb-8 text-right">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Right</h3>
+        <div class="inline-flex items-center space-x-4">
+          <button 
+            id="test-tags-3"
+            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50"
+            data-quick-edit-button="tags"
+          >
+            🏷️ Tags Editor
+          </button>
+          <button 
+            id="test-author-3"
+            class="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/50"
+            data-quick-edit-button="author"
+          >
+            ✏️ Author Editor
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Debug Info -->
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
+      <h2 class="text-xl font-semibold text-yellow-900 dark:text-yellow-100 mb-4">
+        🐛 Debug Information
+      </h2>
+      <div id="debug-info" class="space-y-2 text-sm text-yellow-800 dark:text-yellow-200">
+        <p>Click vào buttons để xem debug info...</p>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+      <h2 class="text-xl font-semibold text-blue-900 dark:text-blue-100 mb-4">
+        📋 Hướng dẫn test
+      </h2>
+      <div class="space-y-2 text-blue-800 dark:text-blue-200">
+        <p><strong>1.</strong> Click vào các buttons ở vị trí khác nhau</p>
+        <p><strong>2.</strong> Kiểm tra popup có hiển thị ngay bên dưới button không</p>
+        <p><strong>3.</strong> Scroll trang và test lại</p>
+        <p><strong>4.</strong> Resize window và test responsive</p>
+        <p><strong>5.</strong> Xem debug info để kiểm tra coordinates</p>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="text-center">
+      <a href="/admin/articles" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Back to Admin Articles
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Test Popup -->
+  <div id="test-popup" class="fixed z-50 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden">
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Test Popup</h3>
+        <button id="close-popup" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <p class="text-sm text-gray-600 dark:text-gray-400">
+        This is a test popup to verify positioning logic.
+      </p>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  // Test positioning logic
+  function testPositioning(event, type) {
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const popup = document.getElementById('test-popup');
+    const debugInfo = document.getElementById('debug-info');
+    
+    // Same logic as in AdminArticles
+    const popupWidth = 320;
+    const popupHeight = 200;
+    
+    let left = rect.left;
+    let top = rect.bottom + 8;
+    
+    // Adjust horizontal position if popup would overflow viewport
+    if (left + popupWidth > window.innerWidth) {
+      left = window.innerWidth - popupWidth - 16;
+    }
+    if (left < 16) {
+      left = 16;
+    }
+    
+    // Adjust vertical position if popup would overflow viewport
+    if (top + popupHeight > window.innerHeight) {
+      top = rect.top - popupHeight - 8;
+    }
+    
+    // Show popup
+    popup.style.top = top + 'px';
+    popup.style.left = left + 'px';
+    popup.classList.remove('hidden');
+    
+    // Update debug info
+    debugInfo.innerHTML = `
+      <p><strong>Button:</strong> ${button.textContent}</p>
+      <p><strong>Button rect:</strong> left=${rect.left.toFixed(1)}, top=${rect.top.toFixed(1)}, bottom=${rect.bottom.toFixed(1)}</p>
+      <p><strong>Viewport:</strong> width=${window.innerWidth}, height=${window.innerHeight}</p>
+      <p><strong>Calculated position:</strong> left=${left.toFixed(1)}, top=${top.toFixed(1)}</p>
+      <p><strong>Popup size:</strong> width=${popupWidth}, height=${popupHeight}</p>
+      <p><strong>Overflow check:</strong> right=${(left + popupWidth).toFixed(1)}, bottom=${(top + popupHeight).toFixed(1)}</p>
+    `;
+  }
+  
+  // Add event listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    // Test buttons
+    document.querySelectorAll('[data-quick-edit-button]').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const type = button.getAttribute('data-quick-edit-button');
+        testPositioning(e, type);
+      });
+    });
+    
+    // Close popup
+    document.getElementById('close-popup').addEventListener('click', () => {
+      document.getElementById('test-popup').classList.add('hidden');
+    });
+    
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+      const popup = document.getElementById('test-popup');
+      if (!popup.contains(e.target) && !e.target.closest('[data-quick-edit-button]')) {
+        popup.classList.add('hidden');
+      }
+    });
+  });
+</script>

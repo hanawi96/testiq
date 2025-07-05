@@ -190,26 +190,24 @@ export default function AdminArticles() {
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
     const popupWidth = 320; // QuickTagsEditor width (w-80 = 320px)
     const popupHeight = 400; // Estimated popup height
 
-    // Calculate optimal position
-    let left = rect.left + window.scrollX;
-    let top = rect.bottom + window.scrollY + 8;
+    // Calculate position relative to viewport (for fixed positioning)
+    let left = rect.left;
+    let top = rect.bottom + 8;
 
-    // Adjust horizontal position if popup would overflow
-    if (left + popupWidth > viewportWidth) {
-      left = viewportWidth - popupWidth - 16; // 16px margin from edge
+    // Adjust horizontal position if popup would overflow viewport
+    if (left + popupWidth > window.innerWidth) {
+      left = window.innerWidth - popupWidth - 16;
     }
     if (left < 16) {
-      left = 16; // Minimum 16px margin from left edge
+      left = 16;
     }
 
-    // Adjust vertical position if popup would overflow
-    if (top + popupHeight > window.scrollY + viewportHeight) {
-      top = rect.top + window.scrollY - popupHeight - 8; // Show above button
+    // Adjust vertical position if popup would overflow viewport
+    if (top + popupHeight > window.innerHeight) {
+      top = rect.top - popupHeight - 8; // Show above button
     }
 
     setQuickTagsEditor({
@@ -232,26 +230,24 @@ export default function AdminArticles() {
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
     const popupWidth = 288; // QuickAuthorEditor width (w-72 = 288px)
     const popupHeight = 300; // Estimated popup height
 
-    // Calculate optimal position
-    let left = rect.left + window.scrollX;
-    let top = rect.bottom + window.scrollY + 8;
+    // Calculate position relative to viewport (for fixed positioning)
+    let left = rect.left;
+    let top = rect.bottom + 8;
 
-    // Adjust horizontal position if popup would overflow
-    if (left + popupWidth > viewportWidth) {
-      left = viewportWidth - popupWidth - 16; // 16px margin from edge
+    // Adjust horizontal position if popup would overflow viewport
+    if (left + popupWidth > window.innerWidth) {
+      left = window.innerWidth - popupWidth - 16;
     }
     if (left < 16) {
-      left = 16; // Minimum 16px margin from left edge
+      left = 16;
     }
 
-    // Adjust vertical position if popup would overflow
-    if (top + popupHeight > window.scrollY + viewportHeight) {
-      top = rect.top + window.scrollY - popupHeight - 8; // Show above button
+    // Adjust vertical position if popup would overflow viewport
+    if (top + popupHeight > window.innerHeight) {
+      top = rect.top - popupHeight - 8; // Show above button
     }
 
     setQuickAuthorEditor({
