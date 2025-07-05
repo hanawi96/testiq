@@ -245,7 +245,7 @@ export default function Header() {
               {/* Dark Mode Toggle */}
               <motion.button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -308,7 +308,7 @@ export default function Header() {
                     e.stopPropagation();
                     setShowLanguageDropdown(!showLanguageDropdown);
                   }}
-                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -317,7 +317,6 @@ export default function Header() {
                     <line x1="2" y1="12" x2="22" y2="12"/>
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                   </svg>
-                  <span className="text-base sm:text-lg">{currentLanguage.flag}</span>
                   <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{currentLanguage.code}</span>
                   <motion.svg
                     width="12"
@@ -346,18 +345,16 @@ export default function Header() {
                         <motion.button
                           key={language.code}
                           onClick={() => selectLanguage(language)}
-                          className={`w-full flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left ${
+                          className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left ${
                             currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          <span className="text-lg sm:text-xl">{language.flag}</span>
                           <div className="flex flex-col">
                             <span className="text-xs sm:text-sm font-medium">{language.name}</span>
                             <span className="text-xs text-gray-500 dark:text-gray-400">{language.code}</span>
                           </div>
                           {currentLanguage.code === language.code && (
                             <motion.div
-                              className="ml-auto"
                               style={{ display: currentLanguage.code === language.code ? 'block' : 'none' }}
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
@@ -385,7 +382,7 @@ export default function Header() {
                       e.stopPropagation();
                       setShowUserDropdown(!showUserDropdown);
                     }}
-                    className="flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50"
+                    className="flex items-center p-2 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -394,27 +391,13 @@ export default function Header() {
                       const displayName = user?.email ? getUsername(user.email) : (anonymousUser?.name || 'Người dùng');
                       const avatarLetter = displayName.charAt(0).toUpperCase();
                       const avatarColor = generateAvatarColor(displayName);
-                      
+
                       return (
-                        <>
-                          <div className={`w-8 h-8 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
-                            {avatarLetter}
-                    </div>
-                    <span className="text-sm font-medium">
-                            {displayName}
-                    </span>
-                        </>
+                        <div className={`w-6 h-6 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-xs`}>
+                          {avatarLetter}
+                        </div>
                       );
                     })()}
-                    <motion.svg 
-                      className="w-4 h-4" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                      style={{ transform: showUserDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </motion.svg>
                   </motion.button>
 
                   {/* User Dropdown */}
@@ -425,31 +408,19 @@ export default function Header() {
                         className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
                       >
                         {/* User Info Header */}
-                        <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-b border-gray-200 dark:border-gray-700">
-                          <div className="flex items-center space-x-3">
-                            {(() => {
-                              const anonymousUser = getAnonymousUserInfo();
-                              const displayName = user?.email ? getUsername(user.email) : (anonymousUser?.name || 'Người dùng');
-                              const avatarLetter = displayName.charAt(0).toUpperCase();
-                              const avatarColor = generateAvatarColor(displayName);
-                              
-                              return (
-                                <>
-                                  <div className={`w-10 h-10 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold`}>
-                                    {avatarLetter}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                                      {displayName}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {user?.email || (anonymousUser ? `${anonymousUser.age} tuổi, ${anonymousUser.location}` : 'Người dùng ẩn danh')}
-                              </p>
-                            </div>
-                                </>
-                              );
-                            })()}
-                          </div>
+                        <div className="flex justify-center px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-b border-gray-200 dark:border-gray-700">
+                          {(() => {
+                            const anonymousUser = getAnonymousUserInfo();
+                            const displayName = user?.email ? getUsername(user.email) : (anonymousUser?.name || 'Người dùng');
+                            const avatarLetter = displayName.charAt(0).toUpperCase();
+                            const avatarColor = generateAvatarColor(displayName);
+
+                            return (
+                              <div className={`w-8 h-8 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
+                                {avatarLetter}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Anonymous User Warning */}
@@ -677,17 +648,9 @@ export default function Header() {
                   ) : user ? (
                     <div className="space-y-3">
                       {/* User Info */}
-                      <div className="flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="flex justify-center px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
+                        <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
                           {user.email ? getUsername(user.email).charAt(0).toUpperCase() : 'U'}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                            {user.email ? getUsername(user.email) : 'User'}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {user.email}
-                          </p>
                         </div>
                       </div>
 
@@ -738,26 +701,16 @@ export default function Header() {
                   ) : getAnonymousUserInfo() ? (
                     <div className="space-y-3">
                       {/* Anonymous User Info */}
-                      <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg">
+                      <div className="flex justify-center px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg">
                         {(() => {
                           const anonymousUser = getAnonymousUserInfo();
                           const displayName = anonymousUser?.name || 'Người dùng';
                           const avatarLetter = displayName.charAt(0).toUpperCase();
                           const avatarColor = generateAvatarColor(displayName);
-                          
+
                           return (
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-10 h-10 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold`}>
-                                {avatarLetter}
-                              </div>
-                              <div>
-                                <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                                  {displayName}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {anonymousUser ? `${anonymousUser.age} tuổi, ${anonymousUser.location}` : 'Người dùng ẩn danh'}
-                                </p>
-                              </div>
+                            <div className={`w-6 h-6 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-xs`}>
+                              {avatarLetter}
                             </div>
                           );
                         })()}
