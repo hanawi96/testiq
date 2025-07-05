@@ -1,9 +1,10 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction, NewUsersStats } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats } from '../types';
 
-// Cache for new users stats (5 minutes)
+// Cache for stats (5 minutes)
 let newUsersStatsCache: { data: NewUsersStats; timestamp: number } | null = null;
+let weeklyTestStatsCache: { data: WeeklyTestStats; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -152,6 +153,113 @@ export class AdminService {
   static clearNewUsersStatsCache(): void {
     newUsersStatsCache = null;
     console.log('AdminService: New users stats cache cleared');
+  }
+
+  /**
+   * Get weekly test statistics for the last 6 weeks
+   */
+  static async getWeeklyTestStats(): Promise<{
+    data: WeeklyTestStats | null;
+    error: any
+  }> {
+    try {
+      console.log('AdminService: Fetching weekly test stats for last 6 weeks');
+
+      // Check cache first
+      const now = Date.now();
+      if (weeklyTestStatsCache && (now - weeklyTestStatsCache.timestamp) < CACHE_DURATION) {
+        console.log('AdminService: Using cached weekly test stats');
+        return { data: weeklyTestStatsCache.data, error: null };
+      }
+
+      // Calculate date range for last 6 weeks
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - (6 * 7)); // 6 weeks ago
+
+      // Format dates for SQL queries
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      const startDateStr = formatDate(startDate);
+      const endDateStr = formatDate(endDate);
+
+      console.log(`AdminService: Querying tests from ${startDateStr} to ${endDateStr}`);
+
+      // Query all test results from user_test_results
+      const { data: testResults, error: testError } = await supabase
+        .from('user_test_results')
+        .select('tested_at')
+        .gte('tested_at', startDateStr)
+        .lte('tested_at', endDateStr + 'T23:59:59.999Z')
+        .order('tested_at', { ascending: true });
+
+      if (testError) {
+        console.error('AdminService: Error fetching test results:', testError);
+        return { data: null, error: testError };
+      }
+
+      // Process data by week
+      const weeklyData: Array<{ weekStart: string; weekEnd: string; weekLabel: string; testCount: number }> = [];
+
+      // Generate 6 weeks of data
+      for (let i = 5; i >= 0; i--) {
+        const weekStart = new Date(endDate);
+        weekStart.setDate(endDate.getDate() - (i * 7) - (endDate.getDay() || 7) + 1); // Start of week (Monday)
+
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6); // End of week (Sunday)
+
+        const weekStartStr = formatDate(weekStart);
+        const weekEndStr = formatDate(weekEnd);
+
+        // Count tests for this week
+        const testCount = testResults?.filter(test => {
+          const testDate = new Date(test.tested_at).toISOString().split('T')[0];
+          return testDate >= weekStartStr && testDate <= weekEndStr;
+        }).length || 0;
+
+        // Create week label
+        const weekLabel = `${weekStart.getDate()}/${weekStart.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`;
+
+        weeklyData.push({
+          weekStart: weekStartStr,
+          weekEnd: weekEndStr,
+          weekLabel,
+          testCount
+        });
+      }
+
+      // Calculate total tests
+      const totalTests = weeklyData.reduce((sum, week) => sum + week.testCount, 0);
+
+      console.log('AdminService: Weekly test stats calculated successfully', { totalTests, weeklyDataLength: weeklyData.length });
+
+      const result = {
+        totalTests,
+        weeklyData
+      };
+
+      // Cache the result
+      weeklyTestStatsCache = {
+        data: result,
+        timestamp: now
+      };
+
+      return {
+        data: result,
+        error: null
+      };
+    } catch (err) {
+      console.error('AdminService: Error fetching weekly test stats:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Clear weekly test stats cache
+   */
+  static clearWeeklyTestStatsCache(): void {
+    weeklyTestStatsCache = null;
+    console.log('AdminService: Weekly test stats cache cleared');
   }
 
   /**

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { AuthService, AdminService } from '../../../../backend';
 import type { UserProfile, AdminStats, AdminAction } from '../../../../backend';
 import NewUsersChart from './NewUsersChart';
+import WeeklyTestChart from './WeeklyTestChart';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -231,6 +232,9 @@ export default function AdminDashboard() {
 
       {/* New Users Chart */}
       <NewUsersChart />
+
+      {/* Weekly Test Chart */}
+      <WeeklyTestChart />
 
       {/* Recent Activity */}
       <motion.div

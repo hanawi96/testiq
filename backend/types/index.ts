@@ -63,6 +63,17 @@ export interface NewUsersStats {
   }>;
 }
 
+// Weekly test statistics for dashboard
+export interface WeeklyTestStats {
+  totalTests: number;
+  weeklyData: Array<{
+    weekStart: string;
+    weekEnd: string;
+    weekLabel: string;
+    testCount: number;
+  }>;
+}
+
 export interface AdminAction {
   id: string;
   title: string;
