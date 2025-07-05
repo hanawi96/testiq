@@ -26,8 +26,11 @@ export function useIQKeyboardNavigation({
 }: UseKeyboardNavigationProps) {
   // Xử lý phím bấm
   const handleKeyPress = useCallback((e: KeyboardEvent) => {
-    if (!isActive) return;
-    
+    if (!isActive) {
+      console.log('🚫 Keyboard navigation disabled - ignoring key:', e.key);
+      return;
+    }
+
     console.log('🎮 Key press detected:', e.key, 'currentAnswer:', currentAnswer);
     
     // Arrow keys for navigation
@@ -87,8 +90,10 @@ export function useIQKeyboardNavigation({
     else if (/^[1-9]$/.test(e.key)) {
       const answerIndex = parseInt(e.key) - 1;
       if (answerIndex < totalAnswers) {
-        console.log(`✅ Number ${e.key} pressed - selecting answer: ${answerIndex}`);
+        console.log(`✅ Number ${e.key} pressed - selecting answer: ${answerIndex} (keyboard navigation active)`);
         onAnswerSelect(answerIndex);
+      } else {
+        console.log(`⚠️ Number ${e.key} pressed but answer index ${answerIndex} >= totalAnswers ${totalAnswers}`);
       }
     }
     
@@ -109,7 +114,7 @@ export function useIQKeyboardNavigation({
   useEffect(() => {
     // Chỉ đăng ký event listener khi isActive là true
     if (isActive) {
-      console.log('✅ Keyboard navigation activated');
+      console.log('✅ Keyboard navigation activated - number keys 1-4 will select answers');
       window.addEventListener('keydown', handleKeyPress);
       
       // Thêm CSS để vô hiệu hóa outline cho các button khi sử dụng phím mũi tên
@@ -123,13 +128,15 @@ export function useIQKeyboardNavigation({
       document.head.appendChild(style);
       
       return () => {
-        console.log('❌ Keyboard navigation deactivated');
+        console.log('❌ Keyboard navigation deactivated - number keys disabled');
         window.removeEventListener('keydown', handleKeyPress);
         // Xóa style khi component unmount
         if (style.parentNode) {
           document.head.removeChild(style);
         }
       };
+    } else {
+      console.log('🚫 Keyboard navigation disabled - popup is open or test inactive');
     }
   }, [isActive, handleKeyPress]);
 } 

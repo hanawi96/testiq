@@ -164,13 +164,13 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   } = useIQSaveProgress({ questions, timeLimit });
   console.log('🔍 DEBUG: IQTest - useIQSaveProgress hook đã được gọi và trả về kết quả');
   
-  // Hook điều hướng bàn phím
+  // Hook điều hướng bàn phím - vô hiệu hóa khi popup đang hiển thị
   useIQKeyboardNavigation({
     onAnswerSelect: handleAnswerSelect,
     totalAnswers: questions[currentQuestion]?.options.length || 4,
     onNextQuestion: nextQuestion,
     onPrevQuestion: previousQuestion,
-    isActive: true, // Luôn kích hoạt tính năng điều hướng bàn phím
+    isActive: !showCongratulationsPopup && !showTimeUpPopup && !showProgressPopup, // Vô hiệu hóa khi có popup
     highlightedAnswer: highlightedAnswer,
     setHighlightedAnswer: setHighlightedAnswer,
     currentAnswer: answers[currentQuestion] // Truyền đáp án hiện tại để bỏ qua khi di chuyển
@@ -1024,7 +1024,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
 
       {/* Navigation - Luôn hiển thị nhưng chỉ áp dụng màu sắc khi dữ liệu đã được tải */}
               <div className="iq-navigation">
-      <IQNavigation 
+      <IQNavigation
         currentQuestion={currentQuestion}
         totalQuestions={questions.length}
         answers={answers}
@@ -1036,6 +1036,7 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
         isReviewMode={isReviewMode}
         allAnswered={allAnswered}
         isDataLoaded={isDataLoaded}
+        isKeyboardDisabled={showCongratulationsPopup || showTimeUpPopup || showProgressPopup}
       />
               </div>
             </div>

@@ -16,6 +16,7 @@ interface IQNavigationProps {
   isReviewMode: boolean;
   allAnswered: boolean;
   isDataLoaded?: boolean;
+  isKeyboardDisabled?: boolean; // Thêm prop để hiển thị trạng thái keyboard
 }
 
 const IQNavigation: React.FC<IQNavigationProps> = ({
@@ -29,7 +30,8 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
   isSubmitting,
   isReviewMode,
   allAnswered,
-  isDataLoaded = true
+  isDataLoaded = true,
+  isKeyboardDisabled = false
 }) => {
   const currentAnswer = answers[currentQuestion];
   
@@ -164,11 +166,19 @@ const IQNavigation: React.FC<IQNavigationProps> = ({
       </div>
       
       {/* Keyboard shortcuts hint */}
-      <div 
-        className={`mt-4 text-center text-xs text-gray-500 dark:text-gray-400 keyboard-shortcuts ${!isDataLoaded ? 'opacity-70' : ''}`}
+      <div
+        className={`mt-4 text-center text-xs keyboard-shortcuts ${
+          !isDataLoaded || isKeyboardDisabled
+            ? 'opacity-50 text-gray-400 dark:text-gray-500'
+            : 'text-gray-500 dark:text-gray-400'
+        }`}
         style={{fontSize: '12px', lineHeight: '1.2'}}
       >
-        Phím tắt: 1-4 hoặc ↑ ↓ (chọn đáp án) ← → (chuyển câu hỏi) • Enter (xác nhận)
+        {isKeyboardDisabled ? (
+          'Phím tắt tạm thời vô hiệu hóa (popup đang mở)'
+        ) : (
+          'Phím tắt: 1-4 hoặc ↑ ↓ (chọn đáp án) ← → (chuyển câu hỏi) • Enter (xác nhận)'
+        )}
       </div>
       
       {/* Chỉ hiển thị khi đã hoàn thành tất cả câu hỏi và đang trong chế độ review */}
