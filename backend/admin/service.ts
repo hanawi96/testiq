@@ -105,12 +105,12 @@ export class AdminService {
         category: 'analytics'
       },
       {
-        id: 'backup',
-        title: 'Backup dữ liệu',
-        description: 'Sao lưu và khôi phục',
-        icon: '💾',
-        href: '/admin/backup',
-        category: 'system'
+        id: 'manage-media',
+        title: 'Quản lý Media',
+        description: 'Upload, quản lý hình ảnh và file media',
+        icon: '🖼️',
+        href: '/admin/media',
+        category: 'content'
       }
     ];
   }
