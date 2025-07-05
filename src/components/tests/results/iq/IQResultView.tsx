@@ -196,30 +196,30 @@ const IQResultView: React.FC<ResultComponentProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pt-24 pb-8">
       <Confetti trigger={showConfetti} type="success" />
-      
+
       <div className="max-w-6xl mx-auto px-4">
         <div className="space-y-8">
           {/* Hero Section */}
-          <ResultHero 
+          <ResultHero
             score={results.score}
             percentile={results.percentile}
             iqLevel={iqLevel}
             userInfo={userInfo}
             onRetake={onRetake}
           />
-          
+
           {/* Tab Navigation */}
           <ResultTabs
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             tabs={tabs}
           />
-          
+
           {/* Tab Content */}
           <AnimatePresence mode="wait">
-            <motion.div 
+            <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

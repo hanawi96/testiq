@@ -55,8 +55,8 @@ const ProgressiveLoader = ({ progress }: { progress: number }) => (
 
 // Optimized skeleton with better animations
 const OptimizedSkeleton = ({ className = '', delay = 0 }: { className?: string; delay?: number }) => (
-  <div 
-    className={`bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse rounded ${className}`}
+  <div
+    className={`bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-pulse rounded ${className}`}
     style={{ animationDelay: `${delay}ms` }}
   />
 );
@@ -93,7 +93,7 @@ const ContentLoader = ({ children, isLoading, skeleton }: {
 
 // Smart skeleton components
 const SkeletonProfile = () => (
-  <div className="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-3xl p-8 text-center relative overflow-hidden">
+  <div className="bg-gradient-to-br from-indigo-50 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-3xl p-8 text-center relative overflow-hidden">
     <div className="relative z-10">
       <div className="mb-6">
         <OptimizedSkeleton className="w-24 h-24 rounded-full mx-auto" />
@@ -108,7 +108,7 @@ const SkeletonProfile = () => (
       </div>
       <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
+          <div key={i} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4">
             <OptimizedSkeleton className="h-6 w-8 mx-auto mb-1" delay={i * 100} />
             <OptimizedSkeleton className="h-3 w-12 mx-auto" delay={i * 100 + 50} />
           </div>
@@ -119,14 +119,14 @@ const SkeletonProfile = () => (
 );
 
 const SkeletonTestList = () => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
     <div className="flex items-center justify-between mb-6">
       <OptimizedSkeleton className="h-6 w-40" />
       <OptimizedSkeleton className="h-8 w-24 rounded-xl" delay={100} />
     </div>
     <div className="space-y-3">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="p-4 rounded-xl border border-gray-200">
+        <div key={i} className="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <OptimizedSkeleton className="w-12 h-12 rounded-full" delay={i * 100} />
@@ -147,13 +147,13 @@ const SkeletonTestList = () => (
 );
 
 const SkeletonPersonalInfo = () => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
     <OptimizedSkeleton className="h-6 w-32 mb-6" />
     <div className="grid md:grid-cols-2 gap-6">
       {[...Array(2)].map((col) => (
         <div key={col} className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
+            <div key={i} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
               <OptimizedSkeleton className="w-10 h-10 rounded-full" delay={col * 200 + i * 100} />
               <div className="space-y-2">
                 <OptimizedSkeleton className="w-16 h-3" delay={col * 200 + i * 100 + 50} />
@@ -386,8 +386,8 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
   }, []);
 
   const HeroSection = () => (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-3xl p-8 text-center relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/10 to-purple-400/10"></div>
+    <div className="bg-gradient-to-br from-indigo-50 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-3xl p-8 text-center relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 dark:from-indigo-400/5 dark:to-purple-400/5"></div>
       <div className="relative z-10">
         {/* Avatar */}
         <div className="mb-6">
@@ -398,10 +398,10 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
         {/* User Info */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">
             {userProfile.name}
           </h1>
-          <div className="flex items-center justify-center space-x-4 text-sm text-gray-600">
+          <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
             {userProfile.age && (
               <span className="flex items-center">
                 <span className="mr-1">🎂</span>
@@ -423,17 +423,17 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-blue-600">{userProfile.totalTests || 0}</div>
-            <div className="text-xs text-gray-600">Bài test</div>
+          <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userProfile.totalTests || 0}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Bài test</div>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-green-600">{profileStats.average || 0}</div>
-            <div className="text-xs text-gray-600">Điểm TB</div>
+          <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{profileStats.average || 0}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Điểm TB</div>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4">
-            <div className="text-2xl font-bold text-purple-600">{profileStats.best || 0}</div>
-            <div className="text-xs text-gray-600">Tốt nhất</div>
+          <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{profileStats.best || 0}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Tốt nhất</div>
           </div>
         </div>
       </div>
@@ -442,20 +442,20 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
   const AnonymousUserWarning = () => (
     isAuthenticated === false && (
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+      <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-2xl p-4">
         <div className="flex items-center space-x-3">
-          <svg className="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
           <div className="flex-1">
-            <h4 className="font-semibold text-amber-800 mb-1">⚠️ Tài khoản tạm thời</h4>
-            <p className="text-sm text-amber-700 mb-3">
-              Dữ liệu profile và kết quả test của bạn chỉ được lưu trên thiết bị này. 
+            <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-1">⚠️ Tài khoản tạm thời</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+              Dữ liệu profile và kết quả test của bạn chỉ được lưu trên thiết bị này.
               Khi xóa dữ liệu trình duyệt, mọi thông tin sẽ bị mất vĩnh viễn.
             </p>
-            <button 
+            <button
               onClick={() => window.location.href = '/admin/login'}
-              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-lg hover:bg-amber-700 dark:hover:bg-amber-600 transition-colors text-sm font-medium"
             >
               🔐 Đăng ký tài khoản để lưu dữ liệu
             </button>
@@ -466,67 +466,67 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
   );
 
   const PersonalInfo = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 mb-6 flex items-center">
         <span className="mr-2">👤</span>
         Thông tin cá nhân
       </h3>
-      
+
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-blue-600">🏷️</span>
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <span className="text-blue-600 dark:text-blue-400">🏷️</span>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Tên</div>
-              <div className="font-semibold text-gray-900">{userProfile.name}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Tên</div>
+              <div className="font-semibold text-gray-900 dark:text-gray-200">{userProfile.name}</div>
             </div>
           </div>
 
           {userProfile.age && (
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600">🎂</span>
+            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <span className="text-green-600 dark:text-green-400">🎂</span>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Tuổi</div>
-                <div className="font-semibold text-gray-900">{userProfile.age} tuổi</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Tuổi</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-200">{userProfile.age} tuổi</div>
               </div>
             </div>
           )}
 
           {userProfile.location && (
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600">📍</span>
+            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                <span className="text-purple-600 dark:text-purple-400">📍</span>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Địa điểm</div>
-                <div className="font-semibold text-gray-900">{userProfile.location}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Địa điểm</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-200">{userProfile.location}</div>
               </div>
             </div>
           )}
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-              <span className="text-orange-600">📅</span>
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+              <span className="text-orange-600 dark:text-orange-400">📅</span>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Ngày tham gia</div>
-              <div className="font-semibold text-gray-900">{profileStats.joinDate}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Ngày tham gia</div>
+              <div className="font-semibold text-gray-900 dark:text-gray-200">{profileStats.joinDate}</div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-              <span className="text-red-600">🎯</span>
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+              <span className="text-red-600 dark:text-red-400">🎯</span>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Trạng thái</div>
-              <div className="font-semibold text-green-600">Đang hoạt động</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Trạng thái</div>
+              <div className="font-semibold text-green-600 dark:text-green-400">Đang hoạt động</div>
             </div>
           </div>
         </div>
@@ -535,14 +535,14 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
   );
 
   const RecentTestsOverview = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-gray-900 flex items-center">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 flex items-center">
           <span className="mr-2">📝</span>
           10 bài test gần nhất
         </h3>
         {(userProfile.testHistory?.length || 0) > 0 && (
-          <button 
+          <button
             onClick={() => window.location.href = '/test-history'}
             className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium"
           >
@@ -567,28 +567,28 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
               const testNumber = (userProfile.testHistory?.length || 0) - index;
               
               return (
-                <motion.div 
+                <motion.div
                   key={`${test.timestamp || index}-${test.iq}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
-                  className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md"
+                  className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700 dark:to-gray-800/50 rounded-xl hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-600 hover:shadow-md"
                 >
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 ${iqColor.bg} rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
                       <span className={`${iqColor.text} font-bold text-sm`}>{test.iq}</span>
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">
+                      <div className="font-semibold text-gray-900 dark:text-gray-200 group-hover:text-blue-900 dark:group-hover:text-blue-300">
                         Bài test IQ #{testNumber}
                       </div>
-                      <div className="text-sm text-gray-500 flex items-center space-x-3">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-3">
                         <span>{date.toLocaleDateString('vi-VN')}</span>
-                        <span className="text-gray-400">•</span>
+                        <span className="text-gray-400 dark:text-gray-500">•</span>
                         <span>{timeAgo}</span>
                         {test.totalTime && (
                           <>
-                            <span className="text-gray-400">•</span>
+                            <span className="text-gray-400 dark:text-gray-500">•</span>
                             <span>{formatTimeDisplay(test.totalTime)}</span>
                           </>
                         )}
@@ -597,7 +597,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
                   </div>
                   <div className="text-right">
                     <div className={`text-xl font-bold ${iqColor.text}`}>{test.iq}</div>
-                    <div className="text-xs text-gray-500">điểm</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">điểm</div>
                   </div>
                 </motion.div>
               );
@@ -605,14 +605,14 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">Chưa có bài test nào</h4>
-            <p className="text-gray-500 mb-6">Hãy bắt đầu với bài test IQ đầu tiên của bạn</p>
-            <button 
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-200 mb-2">Chưa có bài test nào</h4>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Hãy bắt đầu với bài test IQ đầu tiên của bạn</p>
+            <button
               onClick={() => window.location.href = '/test/iq'}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
             >
@@ -627,7 +627,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
 
   const TabNavigation = () => (
-    <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-2 shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="flex space-x-2">
         {[
           { id: 'overview', label: 'Tổng quan', icon: '📊' },
@@ -639,7 +639,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
             className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all ${
               activeTab === tab.id
                 ? 'bg-blue-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
             <span>{tab.icon}</span>
@@ -671,12 +671,12 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
         );
       case 'settings':
         return (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 mb-6 flex items-center">
               <span className="mr-2">⚙️</span>
               Cài đặt tài khoản
             </h3>
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <div className="text-4xl mb-2">🔧</div>
               <p>Chức năng đang phát triển</p>
             </div>
@@ -688,10 +688,10 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-24 pb-8">
       {/* Loading indicator for background updates */}
       {loadingProgress < 100 && <ProgressiveLoader progress={loadingProgress} />}
-      
+
       <div className="max-w-4xl mx-auto px-4">
         <div className="space-y-6">
           <ContentLoader
@@ -700,10 +700,10 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
           >
             <HeroSection />
           </ContentLoader>
-          
+
           {isAuthenticated === false && <AnonymousUserWarning />}
           <TabNavigation />
-          
+
           <AnimatePresence mode="wait">
             <motion.div
               key={`${activeTab}-${dataReady}`}

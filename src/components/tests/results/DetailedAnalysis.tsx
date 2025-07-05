@@ -111,12 +111,12 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
   const lifestyleTips = getLifestyleTips();
 
   const PerformanceChart = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 mb-6 flex items-center">
         <span className="mr-2">📊</span>
         So sánh với cộng đồng
       </h3>
-      
+
       <div className="space-y-4">
         {[
           { label: 'Thiên tài (140+)', percent: 2, isUser: score >= 140 },
@@ -126,16 +126,16 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
           { label: 'Dưới TB (<85)', percent: 10, isUser: score < 85 }
         ].map((item, index) => (
           <div key={index} className="flex items-center">
-            <div className="w-32 text-sm text-gray-600">{item.label}</div>
-            <div className="flex-1 mx-4 h-4 bg-gray-200 rounded-full relative overflow-hidden">
-              <motion.div 
+            <div className="w-32 text-sm text-gray-600 dark:text-gray-400">{item.label}</div>
+            <div className="flex-1 mx-4 h-4 bg-gray-200 dark:bg-gray-700 rounded-full relative overflow-hidden">
+              <motion.div
                 className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${item.percent}%` }}
                 transition={{ delay: index * 0.1, duration: 0.8 }}
               />
               {item.isUser && (
-                <motion.div 
+                <motion.div
                   className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full transform translate-x-2 -translate-y-0"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -143,17 +143,17 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
                 />
               )}
             </div>
-            <div className="w-12 text-sm font-medium text-gray-900">{item.percent}%</div>
+            <div className="w-12 text-sm font-medium text-gray-900 dark:text-gray-200">{item.percent}%</div>
           </div>
         ))}
       </div>
-      
-      <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-        <div className="flex items-center space-x-2 text-blue-800">
+
+      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+        <div className="flex items-center space-x-2 text-blue-800 dark:text-blue-300">
           <span className="text-xl">🎯</span>
           <span className="font-semibold">Vị trí của bạn:</span>
         </div>
-        <p className="text-blue-700 mt-1">
+        <p className="text-blue-700 dark:text-blue-400 mt-1">
           Top {100 - percentile}% toàn cầu - Thông minh hơn {percentile}% dân số thế giới
         </p>
       </div>
@@ -161,26 +161,26 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
   );
 
   const InsightsSection = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 mb-6 flex items-center">
         <span className="mr-2">💡</span>
         Phân tích chuyên sâu
       </h3>
-      
+
       <div className="grid md:grid-cols-2 gap-4">
         {insights.map((insight, index) => (
-          <motion.div 
+          <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className={`p-4 rounded-xl border-l-4 border-${insight.color}-500 bg-${insight.color}-50`}
+            className={`p-4 rounded-xl border-l-4 border-${insight.color}-500 bg-${insight.color}-50 dark:bg-${insight.color}-900/30`}
           >
             <div className="flex items-start space-x-3">
               <span className="text-2xl">{insight.icon}</span>
               <div>
-                <h4 className={`font-semibold text-${insight.color}-800`}>{insight.title}</h4>
-                <p className={`text-sm text-${insight.color}-700 mt-1`}>{insight.description}</p>
+                <h4 className={`font-semibold text-${insight.color}-800 dark:text-${insight.color}-300`}>{insight.title}</h4>
+                <p className={`text-sm text-${insight.color}-700 dark:text-${insight.color}-400 mt-1`}>{insight.description}</p>
               </div>
             </div>
           </motion.div>
@@ -190,25 +190,25 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
   );
 
   const RecommendationsSection = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 mb-6 flex items-center">
         <span className="mr-2">🚀</span>
         Lộ trình phát triển
       </h3>
-      
+
       <div className="grid md:grid-cols-3 gap-6">
         {recommendations.map((rec, index) => (
-          <motion.div 
+          <motion.div
             key={index}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.2 }}
-            className={`p-4 rounded-xl bg-${rec.color}-50 border border-${rec.color}-200`}
+            className={`p-4 rounded-xl bg-${rec.color}-50 dark:bg-${rec.color}-900/30 border border-${rec.color}-200 dark:border-${rec.color}-700`}
           >
-            <h4 className={`font-semibold text-${rec.color}-800 mb-3`}>{rec.category}</h4>
+            <h4 className={`font-semibold text-${rec.color}-800 dark:text-${rec.color}-300 mb-3`}>{rec.category}</h4>
             <ul className="space-y-2">
               {rec.items.map((item, i) => (
-                <li key={i} className={`text-sm text-${rec.color}-700 flex items-start`}>
+                <li key={i} className={`text-sm text-${rec.color}-700 dark:text-${rec.color}-400 flex items-start`}>
                   <span className="mr-2 text-xs">•</span>
                   <span>{item}</span>
                 </li>
@@ -221,15 +221,15 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
   );
 
   const LifestyleSection = () => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 mb-6 flex items-center">
         <span className="mr-2">🌱</span>
         Lối sống tối ưu hóa trí não
       </h3>
-      
+
       <div className="grid md:grid-cols-3 gap-6">
         {lifestyleTips.map((tip, index) => (
-          <motion.div 
+          <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -237,10 +237,10 @@ const DetailedAnalysis: React.FC<AnalysisProps> = ({ score, percentile, timeTake
             className="text-center"
           >
             <div className="text-4xl mb-3">{tip.icon}</div>
-            <h4 className="font-semibold text-gray-900 mb-3">{tip.title}</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-gray-200 mb-3">{tip.title}</h4>
             <ul className="space-y-2">
               {tip.tips.map((item, i) => (
-                <li key={i} className="text-sm text-gray-600">
+                <li key={i} className="text-sm text-gray-600 dark:text-gray-400">
                   {item}
                 </li>
               ))}

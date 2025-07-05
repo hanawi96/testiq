@@ -27,16 +27,16 @@ const QuickStats: React.FC<QuickStatsProps> = ({
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
       {stats.map((stat, index) => (
-        <motion.div 
+        <motion.div
           key={index}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
-          className={`bg-${stat.color}-50 rounded-xl p-4 text-center`}
+          className={`bg-${stat.color}-50 dark:bg-${stat.color}-900/30 rounded-xl p-4 text-center`}
         >
           <div className="text-2xl mb-1">{stat.icon}</div>
-          <div className={`text-lg font-bold text-${stat.color}-600`}>{stat.value}</div>
-          <div className="text-xs text-gray-600">{stat.label}</div>
+          <div className={`text-lg font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400">{stat.label}</div>
         </motion.div>
       ))}
     </div>

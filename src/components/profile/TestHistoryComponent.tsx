@@ -16,9 +16,9 @@ interface Props {
   initialData?: any;
 }
 
-// Simple skeleton
+// Simple skeleton với dark mode support
 const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div className={`bg-gray-200 animate-pulse rounded ${className}`} />
+  <div className={`bg-gray-200 dark:bg-gray-700 animate-pulse rounded ${className}`} />
 );
 
 const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
@@ -176,54 +176,54 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
     );
   }
 
-  // 🎯 MAIN UI - CLEAN & SIMPLE
+  // 🎯 MAIN UI - CLEAN & SIMPLE với dark mode support
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pt-24 pb-8">
       <div className="max-w-6xl mx-auto px-4 space-y-6">
-        
-        {/* Hero Section */}
-        <motion.section 
+
+        {/* Hero Section với dark mode styling */}
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-slate-50 via-white to-blue-50 rounded-3xl p-8 text-center"
+          className="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-700 rounded-3xl p-8 text-center"
         >
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Lịch sử <span className="text-blue-600">Test IQ</span>
+
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-200 mb-2">
+            Lịch sử <span className="text-blue-600 dark:text-blue-400">Test IQ</span>
           </h1>
-          <p className="text-gray-600 mb-6">Theo dõi hành trình phát triển trí tuệ</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">Theo dõi hành trình phát triển trí tuệ</p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
-            <div className="bg-white/80 rounded-xl p-3 border">
-              <div className="text-xl font-bold text-blue-600">{stats.total}</div>
-              <div className="text-xs text-gray-600">Tổng test</div>
+            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.total}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Tổng test</div>
             </div>
-            <div className="bg-white/80 rounded-xl p-3 border">
-              <div className="text-xl font-bold text-purple-600">{stats.best}</div>
-              <div className="text-xs text-gray-600">Cao nhất</div>
+            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+              <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{stats.best}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Cao nhất</div>
             </div>
-            <div className="bg-white/80 rounded-xl p-3 border">
-              <div className="text-xl font-bold text-green-600">{stats.average}</div>
-              <div className="text-xs text-gray-600">Trung bình</div>
+            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">{stats.average}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Trung bình</div>
             </div>
-            <div className="bg-white/80 rounded-xl p-3 border">
-              <div className="text-xl font-bold text-orange-600">+{stats.improvement}</div>
-              <div className="text-xs text-gray-600">Cải thiện</div>
+            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+              <div className="text-xl font-bold text-orange-600 dark:text-orange-400">+{stats.improvement}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Cải thiện</div>
             </div>
           </div>
         </motion.section>
 
-        {/* Filters */}
-        <motion.div 
+        {/* Filters với dark mode styling */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-4"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-4"
         >
           <div className="flex flex-col md:flex-row gap-3 justify-between">
             <div className="relative flex-1 max-w-md">
@@ -232,16 +232,16 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
                 placeholder="Tìm kiếm theo điểm số..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
               />
-              <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
             >
               <option value="newest">Mới nhất</option>
               <option value="oldest">Cũ nhất</option>
@@ -251,27 +251,27 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
           </div>
         </motion.div>
 
-        {/* Test List */}
-        <motion.div 
+        {/* Test List với dark mode styling */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl p-4"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-4"
         >
-          <h3 className="text-lg font-bold mb-4 flex items-center">
+          <h3 className="text-lg font-bold mb-4 flex items-center text-gray-900 dark:text-gray-200">
             📈 Danh sách bài test
           </h3>
 
           {currentItems.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">📝</div>
-              <h4 className="text-lg font-semibold mb-2">
+              <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-200">
                 {searchTerm ? 'Không tìm thấy' : 'Chưa có bài test'}
               </h4>
               {!searchTerm && (
-                <button 
+                <button
                   onClick={() => window.location.href = '/test/iq'}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
                 >
                   Làm bài test ngay
                 </button>
@@ -290,22 +290,24 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className={`p-4 rounded-xl border hover:shadow-md transition-all ${
-                      isTop ? 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200' : 'border-gray-200'
+                    className={`p-4 rounded-xl border hover:shadow-md ${
+                      isTop
+                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border-purple-200 dark:border-purple-700'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700'
                     }`}
                   >
                     <div className="flex justify-between">
                       <div className="flex space-x-3">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white text-sm ${
-                          isTop ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gray-500'
+                          isTop ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gray-500 dark:bg-gray-600'
                         }`}>
                           #{filteredHistory.length - globalIndex}
                         </div>
                         <div>
-                          <h4 className="font-semibold">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-200">
                             {isTop ? 'Bài test mới nhất' : `Test IQ #${filteredHistory.length - globalIndex}`}
                           </h4>
-                          <div className="text-sm text-gray-500 flex space-x-4">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 flex space-x-4">
                             <span>{test.date}</span>
                             <span>•</span>
                             <span>{formatTime(test.timeTaken)}</span>
@@ -314,17 +316,19 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
                           </div>
                         </div>
                         {isTop && (
-                          <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">
+                          <span className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full">
                             ✨ Mới
                           </span>
                         )}
                       </div>
-                      
+
                       <div className="text-right">
-                        <div className={`text-2xl font-bold ${isTop ? 'text-purple-600' : 'text-gray-700'}`}>
+                        <div className={`text-2xl font-bold ${
+                          isTop ? 'text-purple-600 dark:text-purple-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}>
                           {test.score}
                         </div>
-                        <div className={`text-xs px-2 py-1 rounded-full bg-${iqLevel.color}-100 text-${iqLevel.color}-700`}>
+                        <div className={`text-xs px-2 py-1 rounded-full bg-${iqLevel.color}-100 dark:bg-${iqLevel.color}-900/30 text-${iqLevel.color}-700 dark:text-${iqLevel.color}-300`}>
                           {iqLevel.icon} {iqLevel.level}
                         </div>
                       </div>
@@ -336,24 +340,24 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
           )}
         </motion.div>
 
-        {/* Pagination */}
+        {/* Pagination với dark mode styling */}
         {totalPages > 1 && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-2xl p-4"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4"
           >
             <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 Trang {currentPage}/{totalPages} • {filteredHistory.length} kết quả
               </div>
-              
+
               <div className="flex space-x-1">
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 text-gray-700 dark:text-gray-300"
                 >
                   ←
                 </button>
@@ -361,13 +365,15 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const page = i + Math.max(1, currentPage - 2);
                   if (page > totalPages) return null;
-                  
+
                   return (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
                       className={`w-8 h-8 flex items-center justify-center rounded ${
-                        currentPage === page ? 'bg-blue-600 text-white' : 'border hover:bg-gray-50'
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
                       {page}
@@ -378,7 +384,7 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 text-gray-700 dark:text-gray-300"
                 >
                   →
                 </button>
