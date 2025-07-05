@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService } from '../../../../backend';
 import type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from '../../../../backend';
+import QuickTagsEditor from './QuickTagsEditor';
+import QuickAuthorEditor from './QuickAuthorEditor';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
@@ -18,6 +20,16 @@ export default function AdminArticles() {
   const [selectedArticles, setSelectedArticles] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Quick editors state
+  const [quickTagsEditor, setQuickTagsEditor] = useState<{
+    articleId: string;
+    position: { top: number; left: number };
+  } | null>(null);
+  const [quickAuthorEditor, setQuickAuthorEditor] = useState<{
+    articleId: string;
+    position: { top: number; left: number };
+  } | null>(null);
 
   const limit = 10;
 
@@ -147,7 +159,7 @@ export default function AdminArticles() {
   // Handle delete article
   const handleDeleteArticle = async (articleId: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa bài viết này?')) return;
-    
+
     setIsUpdating(true);
     try {
       const { error } = await ArticlesService.deleteArticle(articleId);
@@ -161,6 +173,110 @@ export default function AdminArticles() {
       setError('Có lỗi xảy ra khi xóa');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  // Handle quick tags edit with toggle behavior
+  const handleQuickTagsEdit = (event: React.MouseEvent, articleId: string) => {
+    event.stopPropagation();
+
+    // Close author editor if open
+    setQuickAuthorEditor(null);
+
+    // Toggle: if same article editor is open, close it
+    if (quickTagsEditor?.articleId === articleId) {
+      setQuickTagsEditor(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const popupWidth = 320; // QuickTagsEditor width (w-80 = 320px)
+    const popupHeight = 400; // Estimated popup height
+
+    // Calculate optimal position
+    let left = rect.left + window.scrollX;
+    let top = rect.bottom + window.scrollY + 8;
+
+    // Adjust horizontal position if popup would overflow
+    if (left + popupWidth > viewportWidth) {
+      left = viewportWidth - popupWidth - 16; // 16px margin from edge
+    }
+    if (left < 16) {
+      left = 16; // Minimum 16px margin from left edge
+    }
+
+    // Adjust vertical position if popup would overflow
+    if (top + popupHeight > window.scrollY + viewportHeight) {
+      top = rect.top + window.scrollY - popupHeight - 8; // Show above button
+    }
+
+    setQuickTagsEditor({
+      articleId,
+      position: { top, left }
+    });
+  };
+
+  // Handle quick author edit with toggle behavior
+  const handleQuickAuthorEdit = (event: React.MouseEvent, articleId: string) => {
+    event.stopPropagation();
+
+    // Close tags editor if open
+    setQuickTagsEditor(null);
+
+    // Toggle: if same article editor is open, close it
+    if (quickAuthorEditor?.articleId === articleId) {
+      setQuickAuthorEditor(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const popupWidth = 288; // QuickAuthorEditor width (w-72 = 288px)
+    const popupHeight = 300; // Estimated popup height
+
+    // Calculate optimal position
+    let left = rect.left + window.scrollX;
+    let top = rect.bottom + window.scrollY + 8;
+
+    // Adjust horizontal position if popup would overflow
+    if (left + popupWidth > viewportWidth) {
+      left = viewportWidth - popupWidth - 16; // 16px margin from edge
+    }
+    if (left < 16) {
+      left = 16; // Minimum 16px margin from left edge
+    }
+
+    // Adjust vertical position if popup would overflow
+    if (top + popupHeight > window.scrollY + viewportHeight) {
+      top = rect.top + window.scrollY - popupHeight - 8; // Show above button
+    }
+
+    setQuickAuthorEditor({
+      articleId,
+      position: { top, left }
+    });
+  };
+
+  // Handle tags update
+  const handleTagsUpdate = (articleId: string, newTags: string[]) => {
+    if (articlesData) {
+      const updatedArticles = articlesData.articles.map(article =>
+        article.id === articleId ? { ...article, tags: newTags } : article
+      );
+      setArticlesData({ ...articlesData, articles: updatedArticles });
+    }
+  };
+
+  // Handle author update
+  const handleAuthorUpdate = (articleId: string, newAuthor: string) => {
+    if (articlesData) {
+      const updatedArticles = articlesData.articles.map(article =>
+        article.id === articleId ? { ...article, author: newAuthor } : article
+      );
+      setArticlesData({ ...articlesData, articles: updatedArticles });
     }
   };
 
@@ -498,19 +614,31 @@ export default function AdminArticles() {
                               {article.excerpt}
                             </div>
                             <div className="flex items-center space-x-2 mt-2">
-                              {article.tags.slice(0, 3).map((tag, index) => (
-                                <span
-                                  key={index}
-                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                              {article.tags.length > 3 && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  +{article.tags.length - 3} khác
-                                </span>
-                              )}
+                              <div className="flex items-center space-x-2">
+                                {article.tags.slice(0, 3).map((tag, index) => (
+                                  <span
+                                    key={index}
+                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                                {article.tags.length > 3 && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    +{article.tags.length - 3} khác
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={(e) => handleQuickTagsEdit(e, article.id)}
+                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                                title="Chỉnh sửa tags"
+                                data-quick-edit-button="tags"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -518,9 +646,23 @@ export default function AdminArticles() {
 
                       {/* Author */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-100">{article.author}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {article.reading_time} phút đọc
+                        <div className="flex items-center space-x-2">
+                          <div>
+                            <div className="text-sm text-gray-900 dark:text-gray-100">{article.author}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {article.reading_time} phút đọc
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => handleQuickAuthorEdit(e, article.id)}
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                            title="Chỉnh sửa tác giả"
+                            data-quick-edit-button="author"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
                         </div>
                       </td>
 
@@ -652,6 +794,31 @@ export default function AdminArticles() {
           )}
         </div>
       )}
+
+      {/* Quick Editors */}
+      <AnimatePresence>
+        {quickTagsEditor && (
+          <QuickTagsEditor
+            articleId={quickTagsEditor.articleId}
+            currentTags={articlesData?.articles.find(a => a.id === quickTagsEditor.articleId)?.tags || []}
+            onUpdate={handleTagsUpdate}
+            onClose={() => setQuickTagsEditor(null)}
+            position={quickTagsEditor.position}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {quickAuthorEditor && (
+          <QuickAuthorEditor
+            articleId={quickAuthorEditor.articleId}
+            currentAuthor={articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.author || ''}
+            onUpdate={handleAuthorUpdate}
+            onClose={() => setQuickAuthorEditor(null)}
+            position={quickAuthorEditor.position}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

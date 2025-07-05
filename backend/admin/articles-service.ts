@@ -468,4 +468,64 @@ export class ArticlesService {
     const tags = [...new Set(this.demoArticles.flatMap(a => a.tags))];
     return tags.sort();
   }
+
+  /**
+   * Update article tags
+   */
+  static async updateTags(
+    articleId: string,
+    tags: string[]
+  ): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Updating article tags:', { articleId, tags });
+
+      const articleIndex = this.demoArticles.findIndex(a => a.id === articleId);
+      if (articleIndex === -1) {
+        return { data: null, error: new Error('Article not found') };
+      }
+
+      this.demoArticles[articleIndex] = {
+        ...this.demoArticles[articleIndex],
+        tags: [...tags],
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('ArticlesService: Article tags updated successfully');
+      return { data: this.demoArticles[articleIndex], error: null };
+
+    } catch (err) {
+      console.error('ArticlesService: Error updating article tags:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Update article author
+   */
+  static async updateAuthor(
+    articleId: string,
+    author: string
+  ): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Updating article author:', { articleId, author });
+
+      const articleIndex = this.demoArticles.findIndex(a => a.id === articleId);
+      if (articleIndex === -1) {
+        return { data: null, error: new Error('Article not found') };
+      }
+
+      this.demoArticles[articleIndex] = {
+        ...this.demoArticles[articleIndex],
+        author: author.trim(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('ArticlesService: Article author updated successfully');
+      return { data: this.demoArticles[articleIndex], error: null };
+
+    } catch (err) {
+      console.error('ArticlesService: Error updating article author:', err);
+      return { data: null, error: err };
+    }
+  }
 }
