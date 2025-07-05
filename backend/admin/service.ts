@@ -49,6 +49,14 @@ export class AdminService {
         category: 'content'
       },
       {
+        id: 'manage-articles',
+        title: 'Quản lý bài viết',
+        description: 'Xem, sửa, xóa các bài viết',
+        icon: '📰',
+        href: '/admin/articles',
+        category: 'content'
+      },
+      {
         id: 'manage-questions',
         title: 'Quản lý câu hỏi',
         description: 'Thêm, sửa, xóa câu hỏi test',

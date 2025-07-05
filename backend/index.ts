@@ -6,6 +6,7 @@ export { AuthService } from './auth/service';
 export { UsersService } from './admin/users-service';
 export { AdminService } from './admin/service';
 export { ResultsService } from './admin/results-service';
+export { ArticlesService } from './admin/articles-service';
 
 // Configuration
 export { supabase, supabaseConfig, TABLES } from './config/supabase';
@@ -19,6 +20,7 @@ export {
 // Export types
 export type { UserWithProfile, UsersListResponse, UsersFilters } from './admin/users-service';
 export type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from './admin/results-service';
+export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from './admin/articles-service';
 export type { AdminStats, AdminAction } from './types';
 export * from './types';
 
