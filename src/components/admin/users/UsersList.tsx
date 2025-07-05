@@ -320,9 +320,9 @@ export default function UsersList() {
   // Get role badge
   const getRoleBadge = (role: string) => {
     const styles = {
-      admin: 'bg-red-100 text-red-700 border-red-200',
-      mod: 'bg-blue-100 text-blue-700 border-blue-200',
-      user: 'bg-gray-100 text-gray-700 border-gray-200'
+      admin: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+      mod: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+      user: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
     };
     return styles[role as keyof typeof styles] || styles.user;
   };
@@ -330,9 +330,9 @@ export default function UsersList() {
   // Get user type badge
   const getUserTypeBadge = (userType: 'registered' | 'anonymous' | undefined) => {
     if (userType === 'anonymous') {
-      return 'bg-orange-100 text-orange-700 border-orange-200';
+      return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800';
     }
-    return 'bg-green-100 text-green-700 border-green-200';
+    return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
   };
 
   // Check if user is anonymous
@@ -384,21 +384,21 @@ export default function UsersList() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tìm kiếm</label>
             <div className="relative">
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Tên, email, địa điểm..."
-                className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg outline-none focus:outline-none focus:ring-0 focus:border-gray-300"
+                className="w-full pr-10 pl-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 style={{ textIndent: '6px' }}
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
@@ -406,11 +406,11 @@ export default function UsersList() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Loại người dùng</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại người dùng</label>
             <select
               value={filters.user_type || 'all'}
               onChange={(e) => handleFilterChange({ user_type: e.target.value === 'all' ? undefined : e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">Tất cả</option>
               <option value="registered">Đã đăng ký</option>
@@ -419,11 +419,11 @@ export default function UsersList() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Vai trò</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vai trò</label>
             <select
               value={filters.role || 'all'}
               onChange={(e) => handleFilterChange({ role: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">Tất cả</option>
               <option value="admin">Admin</option>
@@ -434,16 +434,16 @@ export default function UsersList() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Trạng thái</label>
             <select
               value={filters.verified === undefined ? 'all' : filters.verified.toString()}
               onChange={(e) => {
                 const value = e.target.value;
-                handleFilterChange({ 
+                handleFilterChange({
                   verified: value === 'all' ? undefined : value === 'true'
                 });
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">Tất cả</option>
               <option value="true">Đã xác thực</option>
@@ -458,47 +458,47 @@ export default function UsersList() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 border border-red-200 rounded-lg p-4"
+          className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
         >
           <div className="flex">
-            <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 text-red-400 dark:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div className="ml-3">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           </div>
         </motion.div>
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {usersData?.users.length === 0 ? (
           <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Không có người dùng nào</h3>
-            <p className="mt-1 text-sm text-gray-500">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có người dùng nào</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Người dùng
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Vai trò
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Ngày tham gia
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Đăng nhập cuối
                   </th>
                   <th className="relative px-6 py-3">
@@ -506,21 +506,21 @@ export default function UsersList() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {usersData?.users.map((user) => (
                   <tr
                     key={user.id}
-                    className="hover:bg-gray-50"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     {/* User Info */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-12 mr-4">
                           <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-                            isAnonymousUser(user) ? 'bg-orange-100' : 'bg-primary-100'
+                            isAnonymousUser(user) ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-primary-100 dark:bg-primary-900/30'
                           }`}>
                             <span className={`text-lg font-semibold ${
-                              isAnonymousUser(user) ? 'text-orange-700' : 'text-primary-700'
+                              isAnonymousUser(user) ? 'text-orange-700 dark:text-orange-400' : 'text-primary-700 dark:text-primary-400'
                             }`}>
                               {user.full_name.charAt(0).toUpperCase()}
                             </span>
@@ -528,16 +528,16 @@ export default function UsersList() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.full_name}</div>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getUserTypeBadge(user.user_type)}`}>
                               {user.user_type === 'anonymous' ? 'Ẩn danh' : 'Đã đăng ký'}
                             </span>
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {user.email}
                           </div>
                           {user.age && (
-                            <div className="text-xs text-gray-400">
+                            <div className="text-xs text-gray-400 dark:text-gray-500">
                               Tuổi: {user.age}{user.location && `, ${user.location}`}
                             </div>
                           )}
@@ -640,8 +640,8 @@ export default function UsersList() {
 
       {/* Fixed positioned dropdown */}
       {openDropdown && dropdownPosition && (
-        <div 
-          className="fixed w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50"
+        <div
+          className="fixed w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50"
           style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left
@@ -650,7 +650,7 @@ export default function UsersList() {
           <div className="py-1">
             <button
               onClick={() => handleEditUser(openDropdown)}
-              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors outline-none"
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors outline-none"
             >
               <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -659,7 +659,7 @@ export default function UsersList() {
             </button>
             <button
               onClick={() => handleDeleteUser(openDropdown)}
-              className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors outline-none"
+              className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors outline-none"
             >
               <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -678,7 +678,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(1)}
               disabled={currentPage === 1}
-              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               aria-label="Trang đầu"
             >
               ⇤
@@ -688,7 +688,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={!usersData.hasPrev}
-              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               aria-label="Trang trước"
             >
               ←
@@ -712,8 +712,8 @@ export default function UsersList() {
                     onClick={() => handlePageChange(page)}
                     className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-colors ${
                       page === currentPage
-                        ? 'bg-primary-600 text-white shadow-sm'
-                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                        ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
+                        : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                     aria-label={`Trang ${page}`}
                     aria-current={page === currentPage ? 'page' : undefined}
@@ -728,7 +728,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={!usersData.hasNext}
-              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               aria-label="Trang sau"
             >
               →
@@ -738,7 +738,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(usersData.totalPages)}
               disabled={currentPage === usersData.totalPages}
-              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               aria-label="Trang cuối"
             >
               ⇥
@@ -748,7 +748,7 @@ export default function UsersList() {
           {/* Mobile-only: Jump to page input */}
           {usersData.totalPages > 5 && (
             <div className="flex sm:hidden items-center ml-4 space-x-2">
-              <span className="text-xs text-gray-500">Đến:</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Đến:</span>
               <input
                 type="number"
                 min="1"
@@ -760,7 +760,7 @@ export default function UsersList() {
                     handlePageChange(page);
                   }
                 }}
-                className="w-12 h-8 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className="w-12 h-8 text-xs text-center border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
           )}
