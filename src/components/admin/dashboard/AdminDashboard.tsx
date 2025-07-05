@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AuthService, AdminService } from '../../../../backend';
 import type { UserProfile, AdminStats, AdminAction } from '../../../../backend';
+import NewUsersChart from './NewUsersChart';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -227,6 +228,9 @@ export default function AdminDashboard() {
           ))}
         </div>
       </motion.div>
+
+      {/* New Users Chart */}
+      <NewUsersChart />
 
       {/* Recent Activity */}
       <motion.div

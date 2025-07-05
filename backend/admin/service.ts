@@ -1,6 +1,10 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats } from '../types';
+
+// Cache for new users stats (5 minutes)
+let newUsersStatsCache: { data: NewUsersStats; timestamp: number } | null = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Admin Service
@@ -14,7 +18,7 @@ export class AdminService {
   static async getStats(): Promise<{ stats: AdminStats | null; error: any }> {
     try {
       console.log('AdminService: Fetching dashboard stats');
-      
+
       // Mock data for now - replace with real queries later
       const stats: AdminStats = {
         totalTests: 1234,
@@ -26,13 +30,128 @@ export class AdminService {
       // TODO: Replace with real database queries
       // const { data: testCount } = await supabase.from(TABLES.TEST_RESULTS).select('count');
       // const { data: userCount } = await supabase.from(TABLES.PROFILES).select('count');
-      
+
       console.log('AdminService: Stats retrieved successfully');
       return { stats, error: null };
     } catch (err) {
       console.error('AdminService: Error fetching stats:', err);
       return { stats: null, error: err };
     }
+  }
+
+  /**
+   * Get new users statistics for the last 7 days
+   */
+  static async getNewUsersStats(): Promise<{
+    data: NewUsersStats | null;
+    error: any
+  }> {
+    try {
+      console.log('AdminService: Fetching new users stats for last 7 days');
+
+      // Check cache first
+      const now = Date.now();
+      if (newUsersStatsCache && (now - newUsersStatsCache.timestamp) < CACHE_DURATION) {
+        console.log('AdminService: Using cached new users stats');
+        return { data: newUsersStatsCache.data, error: null };
+      }
+
+      // Calculate date range for last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 6); // 7 days including today
+
+      // Format dates for SQL queries
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      const startDateStr = formatDate(startDate);
+      const endDateStr = formatDate(endDate);
+
+      console.log(`AdminService: Querying users from ${startDateStr} to ${endDateStr}`);
+
+      // Query registered users from user_profiles
+      const { data: registeredUsers, error: registeredError } = await supabase
+        .from(TABLES.PROFILES)
+        .select('created_at')
+        .gte('created_at', startDateStr)
+        .lte('created_at', endDateStr + 'T23:59:59.999Z');
+
+      if (registeredError) {
+        console.error('AdminService: Error fetching registered users:', registeredError);
+        return { data: null, error: registeredError };
+      }
+
+      // Query anonymous users from anonymous_players
+      const { data: anonymousUsers, error: anonymousError } = await supabase
+        .from('anonymous_players')
+        .select('created_at')
+        .gte('created_at', startDateStr)
+        .lte('created_at', endDateStr + 'T23:59:59.999Z');
+
+      if (anonymousError) {
+        console.error('AdminService: Error fetching anonymous users:', anonymousError);
+        return { data: null, error: anonymousError };
+      }
+
+      // Process data by day
+      const dailyData: Array<{ date: string; registeredUsers: number; anonymousUsers: number; total: number }> = [];
+
+      for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+        const dateStr = formatDate(currentDate);
+
+        // Count registered users for this day
+        const registeredCount = registeredUsers?.filter(user => {
+          const userDate = new Date(user.created_at).toISOString().split('T')[0];
+          return userDate === dateStr;
+        }).length || 0;
+
+        // Count anonymous users for this day
+        const anonymousCount = anonymousUsers?.filter(user => {
+          const userDate = new Date(user.created_at).toISOString().split('T')[0];
+          return userDate === dateStr;
+        }).length || 0;
+
+        dailyData.push({
+          date: dateStr,
+          registeredUsers: registeredCount,
+          anonymousUsers: anonymousCount,
+          total: registeredCount + anonymousCount
+        });
+      }
+
+      // Calculate total new users
+      const totalNewUsers = dailyData.reduce((sum, day) => sum + day.total, 0);
+
+      console.log('AdminService: New users stats calculated successfully', { totalNewUsers, dailyDataLength: dailyData.length });
+
+      const result = {
+        totalNewUsers,
+        dailyData
+      };
+
+      // Cache the result
+      newUsersStatsCache = {
+        data: result,
+        timestamp: now
+      };
+
+      return {
+        data: result,
+        error: null
+      };
+    } catch (err) {
+      console.error('AdminService: Error fetching new users stats:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Clear new users stats cache
+   */
+  static clearNewUsersStatsCache(): void {
+    newUsersStatsCache = null;
+    console.log('AdminService: New users stats cache cleared');
   }
 
   /**

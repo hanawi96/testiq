@@ -52,6 +52,17 @@ export interface AdminStats {
   averageScore: number;
 }
 
+// New users statistics for dashboard
+export interface NewUsersStats {
+  totalNewUsers: number;
+  dailyData: Array<{
+    date: string;
+    registeredUsers: number;
+    anonymousUsers: number;
+    total: number;
+  }>;
+}
+
 export interface AdminAction {
   id: string;
   title: string;
