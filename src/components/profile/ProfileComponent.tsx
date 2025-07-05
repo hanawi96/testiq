@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getUserRealTestHistory, type TestResult, getAnonymousUserInfo } from '@/utils/test';
+import LoginPopup from '@/components/auth/login/LoginPopup';
 
 interface UserProfile {
   name: string;
@@ -150,7 +152,7 @@ const SkeletonPersonalInfo = () => (
   <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
     <OptimizedSkeleton className="h-6 w-32 mb-6" />
     <div className="grid md:grid-cols-2 gap-6">
-      {[...Array(2)].map((col) => (
+      {[...Array(2)].map((_, col) => (
         <div key={col} className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
@@ -171,6 +173,8 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [dataReady, setDataReady] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [prefilledEmail, setPrefilledEmail] = useState('');
   
   // 🚀 CLEAN INIT: Always start fresh, load from correct source based on auth
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
@@ -203,6 +207,28 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     
     return { average, best, joinDate };
   }, [userProfile.testHistory]);
+
+  // Handle opening register popup with prefilled email
+  const handleOpenRegisterPopup = async () => {
+    try {
+      // Lấy email từ localStorage nếu có
+      const anonymousUserInfo = getAnonymousUserInfo();
+      if (anonymousUserInfo?.email) {
+        setPrefilledEmail(anonymousUserInfo.email);
+      }
+      setShowLoginPopup(true);
+    } catch (error) {
+      console.warn('⚠️ Could not get anonymous user info:', error);
+      setShowLoginPopup(true);
+    }
+  };
+
+  // Handle successful authentication
+  const handleAuthSuccess = () => {
+    setShowLoginPopup(false);
+    // Reload page để cập nhật trạng thái authentication
+    window.location.reload();
+  };
 
   // 💯 SMART DATA LOADING: Auth-first, then fallback (page reload on auth change)
   useEffect(() => {
@@ -454,7 +480,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
               Khi xóa dữ liệu trình duyệt, mọi thông tin sẽ bị mất vĩnh viễn.
             </p>
             <button
-              onClick={() => window.location.href = '/admin/login'}
+              onClick={handleOpenRegisterPopup}
               className="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-lg hover:bg-amber-700 dark:hover:bg-amber-600 transition-colors text-sm font-medium"
             >
               🔐 Đăng ký tài khoản để lưu dữ liệu
@@ -718,6 +744,15 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Login/Register Popup */}
+      <LoginPopup
+        isOpen={showLoginPopup}
+        onClose={() => setShowLoginPopup(false)}
+        onAuthSuccess={handleAuthSuccess}
+        initialMode="register"
+        prefilledEmail={prefilledEmail}
+      />
     </div>
   );
 };

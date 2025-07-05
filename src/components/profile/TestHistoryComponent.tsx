@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAnonymousUserInfo } from '@/utils/test';
+import LoginPopup from '@/components/auth/login/LoginPopup';
 
 interface TestHistoryItem {
   id: number;
@@ -21,10 +23,48 @@ const Skeleton = ({ className = '' }: { className?: string }) => (
   <div className={`bg-gray-200 dark:bg-gray-700 animate-pulse rounded ${className}`} />
 );
 
+// Anonymous User Warning Component
+const AnonymousUserWarning = ({ onRegisterClick }: { onRegisterClick: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6"
+  >
+    <div className="flex items-start space-x-4">
+      <div className="flex-shrink-0">
+        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center">
+          <span className="text-lg">⚠️</span>
+        </div>
+      </div>
+      <div className="flex-1">
+        <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-200 mb-2">
+          Tài khoản tạm thời
+        </h3>
+        <p className="text-amber-700 dark:text-amber-300 mb-4 leading-relaxed">
+          Dữ liệu test của bạn đang được lưu tạm thời trên thiết bị này.
+          Để đồng bộ và bảo vệ dữ liệu trên mọi thiết bị, hãy tạo tài khoản.
+        </p>
+        <button
+          onClick={onRegisterClick}
+          className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 text-white rounded-xl font-medium transition-colors duration-200"
+        >
+          <span className="mr-2">🔐</span>
+          Đăng ký tài khoản để lưu dữ liệu
+        </button>
+      </div>
+    </div>
+  </motion.div>
+);
+
 const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
   // 🚀 SIMPLE STATES - CHỈ 2 STATE CHÍNH
   const [isLoading, setIsLoading] = useState(true);
   const [testHistory, setTestHistory] = useState<TestHistoryItem[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Popup states
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [prefilledEmail, setPrefilledEmail] = useState('');
   
   // UI states
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,9 +79,19 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Import utils
         const testUtils = await import('@/utils/test');
+
+        // Check authentication
+        const backend = await import('@/backend').catch(() => null);
+        const isAuth = await (backend?.AuthService?.getCurrentUser?.()
+          .then(result => !!result?.user)
+          .catch(() => false)) || false;
+
+        if (mounted) {
+          setIsAuthenticated(isAuth);
+        }
         
         // Get data - CHỈ 1 NGUỒN DUY NHẤT
         const rawHistory = await testUtils.getUserRealTestHistory() || [];
@@ -75,6 +125,25 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
       mounted = false; 
     };
   }, []);
+
+  // Handle popup functions
+  const handleOpenRegisterPopup = async () => {
+    try {
+      const anonymousUserInfo = getAnonymousUserInfo();
+      if (anonymousUserInfo?.email) {
+        setPrefilledEmail(anonymousUserInfo.email);
+      }
+      setShowLoginPopup(true);
+    } catch (error) {
+      console.warn('⚠️ Could not get anonymous user info:', error);
+      setShowLoginPopup(true);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowLoginPopup(false);
+    window.location.reload(); // Reload để cập nhật auth state
+  };
 
   // Helper functions
   const formatTime = useCallback((seconds: number) => {
@@ -217,6 +286,11 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
             </div>
           </div>
         </motion.section>
+
+        {/* Anonymous User Warning */}
+        {isAuthenticated === false && (
+          <AnonymousUserWarning onRegisterClick={handleOpenRegisterPopup} />
+        )}
 
         {/* Filters với dark mode styling */}
         <motion.div
@@ -393,6 +467,15 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
           </motion.div>
         )}
       </div>
+
+      {/* Login Popup */}
+      <LoginPopup
+        isOpen={showLoginPopup}
+        onClose={() => setShowLoginPopup(false)}
+        onAuthSuccess={handleAuthSuccess}
+        initialMode="register"
+        prefilledEmail={prefilledEmail}
+      />
     </div>
   );
 };

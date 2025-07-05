@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginForm from './LoginForm';
 import RegisterForm from '../register/RegisterForm';
@@ -8,17 +8,33 @@ interface LoginPopupProps {
   isOpen: boolean;
   onClose: () => void;
   onAuthSuccess?: () => void;
+  initialMode?: 'login' | 'register';
+  prefilledEmail?: string;
 }
 
 type AuthMode = 'login' | 'register';
 
-export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopupProps) {
-  const [mode, setMode] = useState<AuthMode>('login');
+export default function LoginPopup({ isOpen, onClose, onAuthSuccess, initialMode = 'login', prefilledEmail: externalPrefilledEmail }: LoginPopupProps) {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [prefilledEmail, setPrefilledEmail] = useState(''); // Auto-fill email after register
   const [prefilledPassword, setPrefilledPassword] = useState(''); // Auto-fill password after register
+
+  // Set external prefilled email when popup opens
+  useEffect(() => {
+    if (isOpen && externalPrefilledEmail) {
+      setPrefilledEmail(externalPrefilledEmail);
+    }
+  }, [isOpen, externalPrefilledEmail]);
+
+  // Reset mode when popup opens with initialMode
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
 
   const handleLoginSubmit = async (data: { email: string; password: string }) => {
     setIsLoading(true);
@@ -239,10 +255,11 @@ export default function LoginPopup({ isOpen, onClose, onAuthSuccess }: LoginPopu
                       prefilledPassword={prefilledPassword}
                     />
                   ) : (
-                    <RegisterForm 
+                    <RegisterForm
                       onSubmit={handleRegisterSubmit}
                       isLoading={isLoading}
                       error={error}
+                      prefilledEmail={prefilledEmail}
                     />
                   )}
                 </motion.div>

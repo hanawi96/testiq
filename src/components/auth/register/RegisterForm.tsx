@@ -5,9 +5,10 @@ interface RegisterFormProps {
   onSubmit: (data: { email: string; password: string; confirmPassword: string }) => void;
   isLoading: boolean;
   error: string;
+  prefilledEmail?: string;
 }
 
-export default function RegisterForm({ onSubmit, isLoading, error }: RegisterFormProps) {
+export default function RegisterForm({ onSubmit, isLoading, error, prefilledEmail }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -25,6 +26,13 @@ export default function RegisterForm({ onSubmit, isLoading, error }: RegisterFor
     
     setIsDarkMode(shouldBeDark);
   }, []);
+
+  // Set prefilled email when provided
+  useEffect(() => {
+    if (prefilledEmail) {
+      setFormData(prev => ({ ...prev, email: prefilledEmail }));
+    }
+  }, [prefilledEmail]);
 
   // Theo dõi thay đổi chế độ tối
   useEffect(() => {
