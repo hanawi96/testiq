@@ -245,7 +245,7 @@ export default function Header() {
               {/* Dark Mode Toggle */}
               <motion.button
                 onClick={toggleTheme}
-                className="group relative p-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                className="group relative p-2.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
                 title={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
                 aria-label={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
               >
@@ -261,7 +261,7 @@ export default function Header() {
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="text-gray-600 dark:text-gray-400 transition-colors duration-300"
+                      className="text-gray-600 dark:text-gray-400"
                       initial={{ rotate: -90, opacity: 0 }}
                       animate={{ rotate: 0, opacity: 1 }}
                       exit={{ rotate: 90, opacity: 0 }}
@@ -288,7 +288,7 @@ export default function Header() {
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="text-gray-600 dark:text-gray-400 transition-colors duration-300"
+                      className="text-gray-600 dark:text-gray-400"
                       initial={{ rotate: 90, opacity: 0 }}
                       animate={{ rotate: 0, opacity: 1 }}
                       exit={{ rotate: -90, opacity: 0 }}
@@ -311,7 +311,7 @@ export default function Header() {
                     }
                     setShowLanguageDropdown(!showLanguageDropdown);
                   }}
-                  className="group relative flex items-center space-x-2 px-3 py-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                  className="group relative flex items-center space-x-2 px-3 py-2.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
                   aria-label="Chọn ngôn ngữ"
                 >
                   <svg
@@ -323,13 +323,13 @@ export default function Header() {
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-gray-600 dark:text-gray-400 transition-colors duration-300"
+                    className="text-gray-600 dark:text-gray-400"
                   >
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="2" y1="12" x2="22" y2="12"/>
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                   </svg>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {currentLanguage.code}
                   </span>
                   <motion.svg
@@ -341,7 +341,7 @@ export default function Header() {
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-gray-400 dark:text-gray-500 transition-all duration-300"
+                    className="text-gray-400 dark:text-gray-500"
                     animate={{ rotate: showLanguageDropdown ? 180 : 0 }}
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                   >
@@ -411,7 +411,7 @@ export default function Header() {
                       }
                       setShowUserDropdown(!showUserDropdown);
                     }}
-                    className="group relative p-2.5 rounded-full transition-colors duration-300 focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
+                    className="group relative p-2.5 rounded-full focus:outline-none !bg-transparent hover:!bg-transparent active:!bg-transparent focus:!bg-transparent focus-visible:!bg-transparent"
                     aria-label="Menu người dùng"
                   >
                     {(() => {

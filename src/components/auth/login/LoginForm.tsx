@@ -15,6 +15,16 @@ export default function LoginForm({ onSubmit, isLoading, error, prefilledEmail, 
     email: prefilledEmail || '',
     password: prefilledPassword || ''
   });
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Khởi tạo Dark Mode từ localStorage khi component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    setIsDarkMode(shouldBeDark);
+  }, []);
 
   // 🚀 SMART: Auto-update credentials when prefilled values change
   useEffect(() => {
@@ -24,6 +34,37 @@ export default function LoginForm({ onSubmit, isLoading, error, prefilledEmail, 
       password: prefilledPassword || prev.password
     }));
   }, [prefilledEmail, prefilledPassword]);
+
+  // Theo dõi thay đổi chế độ tối
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+
+    // Lắng nghe sự kiện thay đổi theme
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'theme') {
+        handleThemeChange();
+      }
+    });
+
+    // Lắng nghe thay đổi từ MutationObserver
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          handleThemeChange();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => {
+      window.removeEventListener('storage', handleThemeChange);
+      observer.disconnect();
+    };
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -44,9 +85,10 @@ export default function LoginForm({ onSubmit, isLoading, error, prefilledEmail, 
           required 
           value={formData.email}
           onChange={(e) => handleInputChange('email', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+          className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 dark:hover:border-gray-500" 
           placeholder="your@email.com"
           disabled={isLoading}
+          style={{WebkitTapHighlightColor: 'transparent', colorScheme: isDarkMode ? 'dark' : 'light'}}
         />
       </div>
       
@@ -59,9 +101,10 @@ export default function LoginForm({ onSubmit, isLoading, error, prefilledEmail, 
             required 
             value={formData.password}
             onChange={(e) => handleInputChange('password', e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 dark:hover:border-gray-500" 
             placeholder="••••••••"
             disabled={isLoading}
+            style={{WebkitTapHighlightColor: 'transparent', colorScheme: isDarkMode ? 'dark' : 'light'}}
           />
           <button 
             type="button" 
