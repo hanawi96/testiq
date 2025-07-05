@@ -195,7 +195,7 @@ export default function AdminArticles() {
 
     // Calculate position relative to viewport (for fixed positioning)
     let left = rect.left;
-    let top = rect.bottom + 8;
+    let top = rect.bottom + 4;
 
     // Adjust horizontal position if popup would overflow viewport
     if (left + popupWidth > window.innerWidth) {
@@ -207,7 +207,7 @@ export default function AdminArticles() {
 
     // Adjust vertical position if popup would overflow viewport
     if (top + popupHeight > window.innerHeight) {
-      top = rect.top - popupHeight - 8; // Show above button
+      top = rect.top - popupHeight - 4; // Show above button
     }
 
     setQuickTagsEditor({
@@ -235,7 +235,7 @@ export default function AdminArticles() {
 
     // Calculate position relative to viewport (for fixed positioning)
     let left = rect.left;
-    let top = rect.bottom + 8;
+    let top = rect.bottom + 4;
 
     // Adjust horizontal position if popup would overflow viewport
     if (left + popupWidth > window.innerWidth) {
@@ -247,7 +247,7 @@ export default function AdminArticles() {
 
     // Adjust vertical position if popup would overflow viewport
     if (top + popupHeight > window.innerHeight) {
-      top = rect.top - popupHeight - 8; // Show above button
+      top = rect.top - popupHeight - 4; // Show above button
     }
 
     setQuickAuthorEditor({

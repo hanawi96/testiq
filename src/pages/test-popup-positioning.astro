@@ -152,7 +152,7 @@ import AdminLayout from '../layouts/AdminLayout.astro';
     const popupHeight = 200;
     
     let left = rect.left;
-    let top = rect.bottom + 8;
+    let top = rect.bottom + 4;
     
     // Adjust horizontal position if popup would overflow viewport
     if (left + popupWidth > window.innerWidth) {
@@ -164,7 +164,7 @@ import AdminLayout from '../layouts/AdminLayout.astro';
     
     // Adjust vertical position if popup would overflow viewport
     if (top + popupHeight > window.innerHeight) {
-      top = rect.top - popupHeight - 8;
+      top = rect.top - popupHeight - 4;
     }
     
     // Show popup
