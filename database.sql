@@ -366,3 +366,28 @@ create trigger trigger_update_article_metrics BEFORE INSERT
 or
 update on articles for EACH row
 execute FUNCTION update_article_metrics ();
+
+
+
+-- article_categories
+create table public.article_categories (
+  id uuid not null default gen_random_uuid (),
+  article_id uuid not null,
+  category_id uuid not null,
+  created_at timestamp with time zone not null default now(),
+  constraint article_categories_pkey primary key (id),
+  constraint unique_article_category unique (article_id, category_id),
+  constraint fk_article_categories_article_id foreign KEY (article_id) references articles (id) on delete CASCADE,
+  constraint fk_article_categories_category_id foreign KEY (category_id) references categories (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_article_categories_article_id on public.article_categories using btree (article_id) TABLESPACE pg_default;
+
+create index IF not exists idx_article_categories_category_id on public.article_categories using btree (category_id) TABLESPACE pg_default;
+
+create index IF not exists idx_article_categories_composite on public.article_categories using btree (article_id, category_id) TABLESPACE pg_default;
+
+create trigger trigger_update_category_count_on_article_categories
+after INSERT
+or DELETE on article_categories for EACH row
+execute FUNCTION update_category_article_count ();

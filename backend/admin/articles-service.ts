@@ -97,6 +97,11 @@ export interface Article {
   author_name?: string;
   category_name?: string;
   category_slug?: string;
+
+  // Multiple categories support
+  category_ids?: string[];
+  category_names?: string[];
+  categories?: any[];
 }
 
 export interface ArticleStats {
@@ -146,6 +151,67 @@ export class ArticlesService {
           slug
         )
       `);
+  }
+
+  /**
+   * Get categories for articles efficiently using junction table (batch operation)
+   */
+  private static async getCategoriesForArticles(articles: any[]): Promise<any[]> {
+    if (!articles || articles.length === 0) {
+      return [];
+    }
+
+    const articleIds = articles.map(article => article.id);
+
+    // Fetch all article-category relationships in one query
+    const { data: articleCategories, error: relationError } = await supabase
+      .from('article_categories')
+      .select(`
+        article_id,
+        category_id,
+        categories:category_id (
+          id,
+          name,
+          slug,
+          description
+        )
+      `)
+      .in('article_id', articleIds);
+
+    if (relationError) {
+      console.error('ArticlesService: Error fetching article categories:', relationError);
+      return articles;
+    }
+
+    // Group categories by article ID
+    const articleCategoriesMap = new Map<string, any[]>();
+
+    articleCategories?.forEach(relation => {
+      const articleId = relation.article_id;
+      if (!articleCategoriesMap.has(articleId)) {
+        articleCategoriesMap.set(articleId, []);
+      }
+      if (relation.categories) {
+        articleCategoriesMap.get(articleId)!.push(relation.categories);
+      }
+    });
+
+    // Map categories to articles
+    return articles.map(article => {
+      const categories = articleCategoriesMap.get(article.id) || [];
+      const categoryNames = categories.map(cat => cat.name);
+      const categoryIds = categories.map(cat => cat.id);
+
+      return {
+        ...article,
+        categories,
+        category_names: categoryNames,
+        category_ids: categoryIds,
+        // Keep backward compatibility
+        category_name: categoryNames.length > 0 ? categoryNames[0] : (article.category_name || null),
+        category_id: categoryIds.length > 0 ? categoryIds[0] : (article.category_id || null)
+      };
+    });
   }
 
   /**
@@ -358,8 +424,11 @@ export class ArticlesService {
         return { data: null, error: new Error('Không thể tải danh sách bài viết') };
       }
 
+      // Get categories for articles using junction table
+      const articlesWithCategories = await this.getCategoriesForArticles(articlesData);
+
       // Transform articles
-      const articles = articlesData.map(article => this.transformArticle(article));
+      const articles = articlesWithCategories.map(article => this.transformArticle(article));
 
       const total = totalCount || 0;
       const totalPages = Math.ceil(total / limit);
@@ -641,6 +710,124 @@ export class ArticlesService {
 
     } catch (err) {
       console.error('ArticlesService: Error updating article author:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Update article category
+   */
+  static async updateCategory(
+    articleId: string,
+    categoryId: string | null
+  ): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Updating article category in database:', { articleId, categoryId });
+
+      const { data: updatedData, error: updateError } = await supabase
+        .from('articles')
+        .update({
+          category_id: categoryId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', articleId)
+        .select(`
+          *,
+          categories!category_id (
+            name,
+            slug
+          )
+        `)
+        .single();
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article category:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      if (!updatedData) {
+        return { data: null, error: new Error('Không thể cập nhật danh mục bài viết') };
+      }
+
+      const transformedArticle = this.transformArticle(updatedData);
+
+      console.log('ArticlesService: Article category updated successfully:', articleId);
+      return { data: transformedArticle, error: null };
+
+    } catch (err) {
+      console.error('ArticlesService: Error updating article category:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Update article categories using junction table (multiple categories)
+   */
+  static async updateCategories(
+    articleId: string,
+    categoryIds: string[]
+  ): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Updating article categories using junction table:', { articleId, categoryIds });
+
+      // Validate category IDs exist and are active
+      if (categoryIds.length > 0) {
+        const { data: validCategories, error: validationError } = await supabase
+          .from('categories')
+          .select('id')
+          .in('id', categoryIds)
+          .eq('is_active', true);
+
+        if (validationError) {
+          console.error('ArticlesService: Error validating categories:', validationError);
+          return { data: null, error: validationError };
+        }
+
+        const validCategoryIds = validCategories?.map(c => c.id) || [];
+        const invalidIds = categoryIds.filter(id => !validCategoryIds.includes(id));
+
+        if (invalidIds.length > 0) {
+          return { data: null, error: new Error(`Danh mục không hợp lệ: ${invalidIds.join(', ')}`) };
+        }
+      }
+
+      // Use the database function to update categories atomically
+      const { error: updateError } = await supabase.rpc('update_article_categories', {
+        article_uuid: articleId,
+        new_category_ids: categoryIds
+      });
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article categories:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      // Update article's updated_at timestamp
+      const { data: updatedData, error: timestampError } = await supabase
+        .from('articles')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', articleId)
+        .select('*')
+        .single();
+
+      if (timestampError) {
+        console.error('ArticlesService: Error updating article timestamp:', timestampError);
+        return { data: null, error: timestampError };
+      }
+
+      if (!updatedData) {
+        return { data: null, error: new Error('Không thể cập nhật bài viết') };
+      }
+
+      // Get categories with full details
+      const articlesWithCategories = await this.getCategoriesForArticles([updatedData]);
+      const transformedArticle = this.transformArticle(articlesWithCategories[0]);
+
+      console.log('ArticlesService: Article categories updated successfully:', articleId);
+
+      return { data: transformedArticle, error: null };
+    } catch (err) {
+      console.error('ArticlesService: Exception in updateCategories:', err);
       return { data: null, error: err };
     }
   }

@@ -4,6 +4,7 @@ import { ArticlesService } from '../../../../backend';
 import type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from '../../../../backend';
 import QuickTagsEditor from './QuickTagsEditor';
 import QuickAuthorEditor from './QuickAuthorEditor';
+import QuickMultipleCategoryEditor from './QuickMultipleCategoryEditor';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
@@ -27,6 +28,11 @@ export default function AdminArticles() {
     position: { top: number; left: number };
   } | null>(null);
   const [quickAuthorEditor, setQuickAuthorEditor] = useState<{
+    articleId: string;
+    position: { top: number; left: number };
+  } | null>(null);
+
+  const [quickCategoryEditor, setQuickCategoryEditor] = useState<{
     articleId: string;
     position: { top: number; left: number };
   } | null>(null);
@@ -201,8 +207,9 @@ export default function AdminArticles() {
   const handleQuickTagsEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
 
-    // Close author editor if open
+    // Close other editors
     setQuickAuthorEditor(null);
+    setQuickCategoryEditor(null);
 
     // Toggle: if same article editor is open, close it
     if (quickTagsEditor?.articleId === articleId) {
@@ -277,6 +284,47 @@ export default function AdminArticles() {
     });
   };
 
+  // Handle quick category edit with toggle behavior
+  const handleQuickCategoryEdit = (event: React.MouseEvent, articleId: string) => {
+    event.stopPropagation();
+
+    // Close other editors
+    setQuickTagsEditor(null);
+    setQuickAuthorEditor(null);
+
+    // Toggle: if same article editor is open, close it
+    if (quickCategoryEditor?.articleId === articleId) {
+      setQuickCategoryEditor(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const popupWidth = 288; // QuickCategoryEditor width (w-72 = 288px)
+    const popupHeight = 320; // Estimated popup height
+
+    // Calculate position relative to viewport (for fixed positioning)
+    let left = rect.left;
+    let top = rect.bottom + 4;
+
+    // Adjust horizontal position if popup would overflow viewport
+    if (left + popupWidth > window.innerWidth) {
+      left = window.innerWidth - popupWidth - 16;
+    }
+    if (left < 16) {
+      left = 16;
+    }
+
+    // Adjust vertical position if popup would overflow viewport
+    if (top + popupHeight > window.innerHeight) {
+      top = rect.top - popupHeight - 4; // Show above button
+    }
+
+    setQuickCategoryEditor({
+      articleId,
+      position: { top, left }
+    });
+  };
+
   // Handle tags update
   const handleTagsUpdate = (articleId: string, newTags: string[]) => {
     if (articlesData) {
@@ -294,6 +342,42 @@ export default function AdminArticles() {
         article.id === articleId ? { ...article, author: newAuthor } : article
       );
       setArticlesData({ ...articlesData, articles: updatedArticles });
+    }
+  };
+
+  // Handle category update (multiple categories)
+  const handleCategoryUpdate = async (articleId: string, categoryIds: string[]) => {
+    try {
+      setIsLoading(true);
+
+      const { data: updatedArticle, error } = await ArticlesService.updateCategories(articleId, categoryIds);
+
+      if (error) {
+        console.error('Error updating categories:', error);
+        setError(error.message || 'Không thể cập nhật danh mục');
+        return;
+      }
+
+      if (updatedArticle) {
+        // Update the article in the current data
+        setArticlesData(prev => {
+          if (!prev) return prev;
+
+          return {
+            ...prev,
+            articles: prev.articles.map(article =>
+              article.id === articleId ? updatedArticle : article
+            )
+          };
+        });
+      }
+
+      setQuickCategoryEditor(null);
+    } catch (err) {
+      console.error('Exception updating categories:', err);
+      setError('Có lỗi xảy ra khi cập nhật danh mục');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -634,16 +718,30 @@ export default function AdminArticles() {
                               {article.excerpt}
                             </div>
                             {/* Category info for mobile */}
-                            <div className="sm:hidden mt-2">
-                              {article.category_name ? (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(article.category_name)}`}>
-                                  📁 {article.category_name}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
-                                  📁 Chưa phân loại
-                                </span>
-                              )}
+                            <div className="sm:hidden mt-2 flex items-center space-x-2">
+                              <div className="flex flex-wrap gap-1">
+                                {article.category_names && article.category_names.length > 0 ? (
+                                  article.category_names.map((categoryName, index) => (
+                                    <span key={index} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(categoryName)}`}>
+                                      📁 {categoryName}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
+                                    📁 Chưa phân loại
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={(e) => handleQuickCategoryEdit(e, article.id)}
+                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                                title="Chỉnh sửa danh mục"
+                                data-quick-edit-button="category"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
                             </div>
                             <div className="flex items-center space-x-2 mt-2">
                               <div className="flex items-center space-x-2">
@@ -678,16 +776,30 @@ export default function AdminArticles() {
 
                       {/* Categories */}
                       <td className="hidden sm:table-cell px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {article.category_name ? (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(article.category_name)}`}>
-                              {article.category_name}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
-                              Chưa phân loại
-                            </span>
-                          )}
+                        <div className="flex items-center space-x-2">
+                          <div className="flex flex-wrap gap-1">
+                            {article.category_names && article.category_names.length > 0 ? (
+                              article.category_names.map((categoryName, index) => (
+                                <span key={index} className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(categoryName)}`}>
+                                  {categoryName}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
+                                Chưa phân loại
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => handleQuickCategoryEdit(e, article.id)}
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                            title="Chỉnh sửa danh mục"
+                            data-quick-edit-button="category"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
                         </div>
                       </td>
 
@@ -863,6 +975,19 @@ export default function AdminArticles() {
             onUpdate={handleAuthorUpdate}
             onClose={() => setQuickAuthorEditor(null)}
             position={quickAuthorEditor.position}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {quickCategoryEditor && (
+          <QuickMultipleCategoryEditor
+            articleId={quickCategoryEditor.articleId}
+            currentCategoryIds={articlesData?.articles.find(a => a.id === quickCategoryEditor.articleId)?.category_ids || []}
+            currentCategoryNames={articlesData?.articles.find(a => a.id === quickCategoryEditor.articleId)?.category_names || []}
+            onUpdate={handleCategoryUpdate}
+            onClose={() => setQuickCategoryEditor(null)}
+            position={quickCategoryEditor.position}
           />
         )}
       </AnimatePresence>
