@@ -411,7 +411,7 @@ export default function UsersList() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý người dùng</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý tài khoản và quyền hạn người dùng</p>
@@ -420,7 +420,7 @@ export default function UsersList() {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -428,29 +428,61 @@ export default function UsersList() {
             <span>Thêm người dùng mới</span>
           </button>
         </div>
-        
-        {/* Quick Stats */}
-        {stats && (
-          <div className="flex items-center space-x-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">{stats.total}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Tổng</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.registered}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Đã đăng ký</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.anonymous}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Chưa đăng ký</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.verified}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Đã xác thực</div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            {
+              title: 'Tổng người dùng',
+              value: stats.total.toString(),
+              icon: '👥',
+              bgColor: 'bg-blue-50 dark:bg-blue-900/30',
+              textColor: 'text-blue-600 dark:text-blue-400'
+            },
+            {
+              title: 'Đã đăng ký',
+              value: stats.registered.toString(),
+              icon: '✅',
+              bgColor: 'bg-green-50 dark:bg-green-900/30',
+              textColor: 'text-green-600 dark:text-green-400'
+            },
+            {
+              title: 'Chưa đăng ký',
+              value: stats.anonymous.toString(),
+              icon: '👤',
+              bgColor: 'bg-orange-50 dark:bg-orange-900/30',
+              textColor: 'text-orange-600 dark:text-orange-400'
+            },
+            {
+              title: 'Đã xác thực',
+              value: stats.verified.toString(),
+              icon: '🔐',
+              bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+              textColor: 'text-purple-600 dark:text-purple-400'
+            }
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.title}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
+                </div>
+                <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center ${stat.textColor}`}>
+                  <span className="text-2xl">{stat.icon}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -540,8 +572,25 @@ export default function UsersList() {
         </motion.div>
       )}
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Users Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* Table Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Danh sách người dùng</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {usersData ? `Hiển thị ${usersData.users.length} trên ${usersData.total} người dùng` : 'Đang tải...'}
+              </p>
+            </div>
+            {usersData && usersData.totalPages > 1 && (
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Trang {currentPage} / {usersData.totalPages}
+              </div>
+            )}
+          </div>
+        </div>
+
         {usersData?.users.length === 0 ? (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
