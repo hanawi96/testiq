@@ -174,7 +174,7 @@ export default function AdminResults() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý kết quả test</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Phân tích và quản lý kết quả test IQ của người dùng</p>
@@ -209,7 +209,7 @@ export default function AdminResults() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {[
             { 
               title: 'Tổng số test', 

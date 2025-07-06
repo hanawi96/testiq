@@ -131,7 +131,7 @@ export default function EnhancedStatsCards({ className = '' }: Props) {
 
   // Compact loading skeleton
   const CompactLoadingSkeleton = () => (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${className}`}>
+    <div className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${className}`}>
       {[1, 2, 3, 4].map(i => (
         <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
           {/* Header skeleton */}
@@ -180,7 +180,7 @@ export default function EnhancedStatsCards({ className = '' }: Props) {
   }
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${className}`}>
+    <div className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${className}`}>
       {/* Tests Today */}
       <CompactStatCard
         title="Bài test hôm nay"
