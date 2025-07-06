@@ -5,6 +5,7 @@ import type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } fro
 import QuickTagsEditor from './QuickTagsEditor';
 import QuickAuthorEditor from './QuickAuthorEditor';
 import QuickMultipleCategoryEditor from './QuickMultipleCategoryEditor';
+import CategoryDisplay from './CategoryDisplay';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
@@ -719,22 +720,17 @@ export default function AdminArticles() {
                             </div>
                             {/* Category info for mobile */}
                             <div className="sm:hidden mt-2 flex items-center space-x-2">
-                              <div className="flex flex-wrap gap-1">
-                                {article.category_names && article.category_names.length > 0 ? (
-                                  article.category_names.map((categoryName, index) => (
-                                    <span key={index} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(categoryName)}`}>
-                                      📁 {categoryName}
-                                    </span>
-                                  ))
-                                ) : (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
-                                    📁 Chưa phân loại
-                                  </span>
-                                )}
-                              </div>
+                              <CategoryDisplay
+                                categories={article.category_names || []}
+                                maxVisible={2}
+                                getCategoryColor={getCategoryColor}
+                                className="flex-1"
+                                showIcon={true}
+                                iconPrefix="📁"
+                              />
                               <button
                                 onClick={(e) => handleQuickCategoryEdit(e, article.id)}
-                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0"
                                 title="Chỉnh sửa danh mục"
                                 data-quick-edit-button="category"
                               >
@@ -777,22 +773,15 @@ export default function AdminArticles() {
                       {/* Categories */}
                       <td className="hidden sm:table-cell px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <div className="flex flex-wrap gap-1">
-                            {article.category_names && article.category_names.length > 0 ? (
-                              article.category_names.map((categoryName, index) => (
-                                <span key={index} className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(categoryName)}`}>
-                                  {categoryName}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
-                                Chưa phân loại
-                              </span>
-                            )}
-                          </div>
+                          <CategoryDisplay
+                            categories={article.category_names || []}
+                            maxVisible={3}
+                            getCategoryColor={getCategoryColor}
+                            className="max-w-xs"
+                          />
                           <button
                             onClick={(e) => handleQuickCategoryEdit(e, article.id)}
-                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0"
                             title="Chỉnh sửa danh mục"
                             data-quick-edit-button="category"
                           >
