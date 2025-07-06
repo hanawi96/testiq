@@ -710,7 +710,7 @@ export default function UsersList() {
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-colors ${
+                    className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg ${
                       page === currentPage
                         ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
                         : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'

@@ -1,0 +1,245 @@
+/* Admin Layout Optimizations */
+
+/* Ensure full width utilization */
+.admin-main-content {
+  width: 100%;
+  max-width: none;
+}
+
+/* Responsive table improvements for full width */
+.admin-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 800px; /* Minimum width for proper table display */
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 1023px) {
+  .admin-main-content {
+    padding-left: 0;
+  }
+  
+  .admin-table {
+    min-width: 600px; /* Smaller minimum on mobile */
+  }
+}
+
+/* Tablet responsive adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .admin-table {
+    min-width: 700px;
+  }
+}
+
+/* Desktop optimizations */
+@media (min-width: 1024px) {
+  .admin-main-content {
+    /* Full width minus sidebar (256px) */
+    width: calc(100vw - 256px);
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1440px) {
+  .admin-main-content {
+    /* Ensure we use full available space */
+    width: calc(100vw - 256px);
+  }
+}
+
+/* Ultra-wide screen optimizations */
+@media (min-width: 1920px) {
+  .admin-main-content {
+    width: calc(100vw - 256px);
+  }
+}
+
+/* Sidebar collapsed state adjustments */
+.admin-sidebar-collapsed + .admin-main-content {
+  width: calc(100vw - 64px); /* Collapsed sidebar is 64px */
+}
+
+@media (min-width: 1024px) {
+  .admin-sidebar-collapsed + .admin-main-content {
+    padding-left: 64px; /* Adjust for collapsed sidebar */
+  }
+}
+
+/* Smooth transitions for layout changes */
+.admin-main-content {
+  transition: width 0.3s ease-in-out, padding-left 0.3s ease-in-out;
+}
+
+/* Ensure content doesn't get cut off */
+.admin-content-wrapper {
+  min-height: calc(100vh - 64px); /* Full height minus header */
+  width: 100%;
+}
+
+/* Card and panel full width optimizations */
+.admin-card,
+.admin-panel {
+  width: 100%;
+  max-width: none;
+}
+
+/* Grid layouts for admin components */
+.admin-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.admin-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.admin-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Stats cards responsive */
+@media (min-width: 1024px) {
+  .admin-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .admin-stats-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 1920px) {
+  .admin-stats-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* Form layouts full width */
+.admin-form-full {
+  width: 100%;
+  max-width: none;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Button groups full width */
+.admin-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+@media (min-width: 1024px) {
+  .admin-button-group {
+    justify-content: flex-end;
+  }
+}
+
+/* Pagination full width */
+.admin-pagination {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Search and filter bars */
+.admin-search-bar {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 767px) {
+  .admin-search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Bulk actions bar */
+.admin-bulk-actions {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Modal and popup positioning for full width layout */
+.admin-modal {
+  max-width: min(90vw, 800px);
+  width: 100%;
+}
+
+.admin-popup {
+  max-width: min(80vw, 400px);
+  width: 100%;
+}
+
+/* Scrollable content areas */
+.admin-scrollable {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.admin-scrollable::-webkit-scrollbar {
+  height: 6px;
+}
+
+.admin-scrollable::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.admin-scrollable::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.admin-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dark mode scrollbar */
+.dark .admin-scrollable::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .admin-scrollable::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark .admin-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

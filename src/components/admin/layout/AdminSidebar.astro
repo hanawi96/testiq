@@ -1,0 +1,282 @@
+---
+export interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '' } = Astro.props;
+
+// Menu items
+const menuItems = [
+  {
+    id: 'dashboard',
+    title: 'Dashboard',
+    href: '/admin',
+    icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z M8 5a2 2 0 012-2h4a2 2 0 012 2v4H8V5z'
+  },
+  {
+    id: 'articles',
+    title: 'Bài viết',
+    href: '/admin/articles',
+    icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
+  },
+  {
+    id: 'categories',
+    title: 'Danh mục',
+    href: '/admin/categories',
+    icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
+  },
+  {
+    id: 'users',
+    title: 'Người dùng',
+    href: '/admin/users',
+    icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
+  },
+  {
+    id: 'results',
+    title: 'Kết quả',
+    href: '/admin/results',
+    icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+  },
+  {
+    id: 'media',
+    title: 'Media',
+    href: '/admin/media',
+    icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+  },
+  {
+    id: 'settings',
+    title: 'Cài đặt',
+    href: '/admin/settings',
+    icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z'
+  }
+];
+
+// Check if menu item is active
+function isActive(href: string) {
+  if (href === '/admin') {
+    return currentPath === '/admin' || currentPath === '/admin/';
+  }
+  return currentPath.startsWith(href);
+}
+---
+
+<!-- Mobile Overlay -->
+<div id="mobile-overlay" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden hidden"></div>
+
+<!-- Sidebar -->
+<div id="admin-sidebar" class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+  
+  <!-- Logo Section -->
+  <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+      </div>
+      <div id="sidebar-brand">
+        <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Admin</h1>
+        <p class="text-xs text-gray-500 dark:text-gray-400">IQ Test System</p>
+      </div>
+    </div>
+    
+    <!-- Collapse Toggle - Desktop -->
+    <button
+      id="sidebar-collapse-btn"
+      class="hidden lg:flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+
+    <!-- Close Button - Mobile -->
+    <button
+      id="sidebar-close-btn"
+      class="lg:hidden flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Navigation Menu -->
+  <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+    {menuItems.map((item) => (
+      <a
+        href={item.href}
+        class={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+          isActive(item.href)
+            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+        }`}
+      >
+        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon}></path>
+        </svg>
+        <span class="sidebar-text truncate">{item.title}</span>
+      </a>
+    ))}
+  </nav>
+
+  <!-- Bottom Section -->
+  <div class="p-3 border-t border-gray-200 dark:border-gray-700">
+    <!-- Dark Mode Toggle -->
+    <button
+      id="sidebar-theme-toggle"
+      class="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg"
+    >
+      <svg class="w-5 h-5 mr-3 flex-shrink-0 theme-icon-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+      </svg>
+      <svg class="w-5 h-5 mr-3 flex-shrink-0 theme-icon-dark hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+      </svg>
+      <span class="sidebar-text theme-text">Dark Mode</span>
+    </button>
+
+    <!-- Back to Site -->
+    <a
+      href="/"
+      class="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg mt-1"
+    >
+      <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+      </svg>
+      <span class="sidebar-text">Về trang chủ</span>
+    </a>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    const collapseBtn = document.getElementById('sidebar-collapse-btn');
+    const closeBtn = document.getElementById('sidebar-close-btn');
+    const themeToggle = document.getElementById('sidebar-theme-toggle');
+    const sidebarTexts = document.querySelectorAll('.sidebar-text');
+    const sidebarBrand = document.getElementById('sidebar-brand');
+    const themeIconLight = document.querySelector('.theme-icon-light');
+    const themeIconDark = document.querySelector('.theme-icon-dark');
+    const themeText = document.querySelector('.theme-text');
+
+    let isCollapsed = localStorage.getItem('admin-sidebar-collapsed') === 'true';
+    let isMobileOpen = false;
+
+    // Initialize sidebar state
+    function initSidebar() {
+      if (isCollapsed) {
+        sidebar?.classList.add('collapsed');
+        sidebar?.classList.remove('w-64');
+        sidebar?.classList.add('w-16');
+        sidebarTexts.forEach(text => text.classList.add('hidden'));
+        sidebarBrand?.classList.add('hidden');
+        collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M9 5l7 7-7 7');
+      }
+      updateThemeIcon();
+    }
+
+    // Toggle sidebar collapse
+    function toggleCollapse() {
+      isCollapsed = !isCollapsed;
+      localStorage.setItem('admin-sidebar-collapsed', isCollapsed.toString());
+      
+      if (isCollapsed) {
+        sidebar?.classList.add('collapsed');
+        sidebar?.classList.remove('w-64');
+        sidebar?.classList.add('w-16');
+        sidebarTexts.forEach(text => text.classList.add('hidden'));
+        sidebarBrand?.classList.add('hidden');
+        collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M9 5l7 7-7 7');
+      } else {
+        sidebar?.classList.remove('collapsed');
+        sidebar?.classList.remove('w-16');
+        sidebar?.classList.add('w-64');
+        sidebarTexts.forEach(text => text.classList.remove('hidden'));
+        sidebarBrand?.classList.remove('hidden');
+        collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M15 19l-7-7 7-7');
+      }
+    }
+
+    // Toggle mobile sidebar
+    function toggleMobile() {
+      isMobileOpen = !isMobileOpen;
+      
+      if (isMobileOpen) {
+        sidebar?.classList.remove('-translate-x-full');
+        overlay?.classList.remove('hidden');
+      } else {
+        sidebar?.classList.add('-translate-x-full');
+        overlay?.classList.add('hidden');
+      }
+    }
+
+    // Update theme icon
+    function updateThemeIcon() {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        themeIconLight?.classList.remove('hidden');
+        themeIconDark?.classList.add('hidden');
+        if (themeText) themeText.textContent = 'Light Mode';
+      } else {
+        themeIconLight?.classList.add('hidden');
+        themeIconDark?.classList.remove('hidden');
+        if (themeText) themeText.textContent = 'Dark Mode';
+      }
+    }
+
+    // Toggle theme
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.contains('dark');
+      
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+      
+      updateThemeIcon();
+    }
+
+    // Event listeners
+    collapseBtn?.addEventListener('click', toggleCollapse);
+    closeBtn?.addEventListener('click', toggleMobile);
+    overlay?.addEventListener('click', toggleMobile);
+    themeToggle?.addEventListener('click', toggleTheme);
+
+    // Make functions globally available
+    window.adminSidebar = {
+      toggleMobile,
+      toggleCollapse,
+      isCollapsed: () => isCollapsed,
+      isMobileOpen: () => isMobileOpen
+    };
+
+    // Initialize
+    initSidebar();
+  });
+</script>
+
+<style>
+  #admin-sidebar.collapsed .sidebar-text {
+    display: none;
+  }
+  
+  #admin-sidebar.collapsed #sidebar-brand {
+    display: none;
+  }
+  
+  @media (max-width: 1023px) {
+    #admin-sidebar {
+      transform: translateX(-100%);
+    }
+    
+    #admin-sidebar.mobile-open {
+      transform: translateX(0);
+    }
+  }
+</style>
