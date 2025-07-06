@@ -1,4 +1,4 @@
-import { supabase, TABLES } from '../config/supabase';
+import { supabase, supabaseAdmin, TABLES } from '../config/supabase';
 
 export interface UserWithProfile {
   id: string;
@@ -30,6 +30,14 @@ export interface UsersFilters {
   search?: string;
   verified?: boolean;
   user_type?: 'registered' | 'anonymous';
+}
+
+export interface CreateUserData {
+  email: string;
+  fullName: string;
+  password: string;
+  role: 'user' | 'admin' | 'editor' | 'author' | 'reviewer';
+  isVerified: boolean;
 }
 
 /**
@@ -343,4 +351,96 @@ export class UsersService {
       return { data: null, error: err };
     }
   }
-} 
+
+  /**
+   * Create new user with profile - using same method as regular signup
+   */
+  static async createUser(userData: CreateUserData): Promise<{ success: boolean; error: any }> {
+    try {
+      console.log('UsersService: Creating new user:', { email: userData.email, role: userData.role });
+
+      // Create user in Supabase Auth (same as regular signup)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            full_name: userData.fullName
+          },
+          // Auto-confirm email if verified is true
+          emailRedirectTo: undefined,
+          captchaToken: undefined
+        }
+      });
+
+      if (authError) {
+        console.error('UsersService: Error creating auth user:', authError);
+        return { success: false, error: authError };
+      }
+
+      if (!authData.user) {
+        console.error('UsersService: No user data returned from auth');
+        return { success: false, error: { message: 'No user data returned' } };
+      }
+
+      console.log('UsersService: Auth user created, now creating profile via RPC...');
+
+      // Create user profile using RPC function (same as regular signup)
+      try {
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_user_profile', {
+          user_id: authData.user.id,
+          user_email: userData.email,
+          display_name: userData.fullName,
+          user_role: userData.role // Pass role to RPC function
+        });
+
+        if (rpcError) {
+          console.error('UsersService: RPC profile creation error:', rpcError);
+
+          // Try to delete the auth user if profile creation failed
+          try {
+            await supabase.auth.admin.deleteUser(authData.user.id);
+          } catch (cleanupError) {
+            console.error('UsersService: Error cleaning up auth user:', cleanupError);
+          }
+
+          return { success: false, error: rpcError };
+        }
+
+        console.log('UsersService: Profile created successfully via RPC');
+
+        // If user should be verified, update the auth user
+        if (userData.isVerified) {
+          console.log('UsersService: Auto-verifying user email...');
+          // Note: This might require admin privileges, but let's try
+          try {
+            await supabase.auth.admin.updateUserById(authData.user.id, {
+              email_confirm: true
+            });
+          } catch (verifyError) {
+            console.warn('UsersService: Could not auto-verify email:', verifyError);
+            // Don't fail the whole operation for this
+          }
+        }
+
+        return { success: true, error: null };
+
+      } catch (rpcErr) {
+        console.error('UsersService: RPC call failed with exception:', rpcErr);
+
+        // Try to delete the auth user if profile creation failed
+        try {
+          await supabase.auth.admin.deleteUser(authData.user.id);
+        } catch (cleanupError) {
+          console.error('UsersService: Error cleaning up auth user:', cleanupError);
+        }
+
+        return { success: false, error: rpcErr };
+      }
+
+    } catch (err) {
+      console.error('UsersService: Unexpected error creating user:', err);
+      return { success: false, error: err };
+    }
+  }
+}

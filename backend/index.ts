@@ -11,7 +11,7 @@ export { CategoriesService } from './admin/categories-service';
 export { MediaService } from './admin/media-service';
 
 // Configuration
-export { supabase, supabaseConfig, TABLES } from './config/supabase';
+export { supabase, supabaseAdmin, supabaseConfig, TABLES } from './config/supabase';
 
 // Test results service (unified approach)
 export { 
@@ -20,7 +20,7 @@ export {
 } from './utils/user-test-results-service';
 
 // Export types
-export type { UserWithProfile, UsersListResponse, UsersFilters } from './admin/users-service';
+export type { UserWithProfile, UsersListResponse, UsersFilters, CreateUserData } from './admin/users-service';
 export type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from './admin/results-service';
 export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from './admin/articles-service';
 export type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from './admin/categories-service';

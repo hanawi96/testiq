@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UsersService } from '../../../../backend';
 import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
+import CreateUserModal from './CreateUserModal';
 
 export default function UsersList() {
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
@@ -20,6 +21,7 @@ export default function UsersList() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number} | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   
   // Cache for instant pagination and filtering
   const cache = useRef<Map<string, UsersListResponse>>(new Map());
@@ -277,6 +279,15 @@ export default function UsersList() {
     alert(`Chức năng sửa user ${userId} sẽ được triển khai sau`);
   };
 
+  // Handle create user success
+  const handleCreateUserSuccess = () => {
+    // Clear cache and refresh data
+    cache.current.clear();
+    fetchUsers(1); // Reset to first page
+    fetchStats();
+    setCurrentPage(1);
+  };
+
   // Handle delete user
   const handleDeleteUser = (userId: string) => {
     console.log('Delete user:', userId);
@@ -358,6 +369,18 @@ export default function UsersList() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý người dùng</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý tài khoản và quyền hạn người dùng</p>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Thêm người dùng mới</span>
+          </button>
         </div>
         
         {/* Quick Stats */}
@@ -766,6 +789,13 @@ export default function UsersList() {
           )}
         </div>
       )}
+
+      {/* Create User Modal */}
+      <CreateUserModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateUserSuccess}
+      />
     </div>
   );
-} 
+}

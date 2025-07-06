@@ -3,12 +3,17 @@ import { createClient } from '@supabase/supabase-js';
 // Environment variables - using provided credentials
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'https://qovhiztkfgjppfiqtake.supabase.co';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmhpenRrZmdqcHBmaXF0YWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5MDIzMjYsImV4cCI6MjA2NjQ3ODMyNn0.0ALtY_sAoCEAqJoov1u5NSqj26yxKsEvYSTZECqaaEE';
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Validate configuration
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Supabase configuration missing. Please check your environment variables.');
 } else {
   console.log('✅ Supabase configuration loaded successfully');
+}
+
+if (!supabaseServiceKey) {
+  console.warn('⚠️ Supabase Service Role Key missing. Admin operations will not work.');
 }
 
 // Create Supabase client with optimized configuration
@@ -33,6 +38,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
 });
+
+// Create admin client with service role key for admin operations
+export const supabaseAdmin = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+  global: {
+    headers: {
+      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+    },
+  },
+}) : null;
 
 // Storage configuration
 export const storageConfig = {
