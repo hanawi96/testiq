@@ -468,6 +468,7 @@ export class CategoriesService {
     data: Partial<{
       name: string;
       description: string;
+      slug: string;
       status: 'active' | 'inactive';
       display_order: number;
       meta_title: string;
@@ -500,7 +501,7 @@ export class CategoriesService {
 
       if (data.name !== undefined) {
         const name = data.name.trim();
-        const slug = this.generateSlug(name);
+        const slug = data.slug !== undefined ? data.slug.trim() : this.generateSlug(name);
 
         // Check name/slug uniqueness
         const { data: conflictCategories, error: conflictError } = await supabase
@@ -527,6 +528,27 @@ export class CategoriesService {
         }
 
         updateData.name = name;
+        updateData.slug = slug;
+      } else if (data.slug !== undefined) {
+        // Update only slug
+        const slug = data.slug.trim();
+
+        // Check slug uniqueness
+        const { data: conflictCategories, error: conflictError } = await supabase
+          .from('categories')
+          .select('id, slug')
+          .neq('id', categoryId)
+          .eq('slug', slug);
+
+        if (conflictError) {
+          console.error('CategoriesService: Error checking slug conflicts:', conflictError);
+          return { data: null, error: conflictError };
+        }
+
+        if (conflictCategories && conflictCategories.length > 0) {
+          return { data: null, error: new Error('Slug đã tồn tại') };
+        }
+
         updateData.slug = slug;
       }
 

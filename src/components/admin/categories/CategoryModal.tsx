@@ -14,6 +14,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    slug: '',
     status: 'active' as 'active' | 'inactive',
     meta_title: '',
     meta_description: '',
@@ -24,6 +25,19 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
 
   const isEdit = !!category;
 
+  // Generate slug from name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens
+      .trim();
+  };
+
   // Reset form when modal opens/closes or category changes
   useEffect(() => {
     if (isOpen) {
@@ -32,6 +46,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         setFormData({
           name: category.name,
           description: category.description,
+          slug: category.slug,
           status: category.status,
           meta_title: category.meta_title || '',
           meta_description: category.meta_description || '',
@@ -42,6 +57,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         setFormData({
           name: '',
           description: '',
+          slug: '',
           status: 'active',
           meta_title: '',
           meta_description: '',
@@ -55,10 +71,20 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+
+    if (name === 'name') {
+      // Auto-generate slug when name changes
+      setFormData(prev => ({
+        ...prev,
+        name: value,
+        slug: generateSlug(value)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   // Handle form submission
@@ -69,6 +95,18 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
     // Validation
     if (!formData.name.trim()) {
       setError('Tên danh mục không được để trống');
+      return;
+    }
+
+    if (!formData.slug.trim()) {
+      setError('Slug URL không được để trống');
+      return;
+    }
+
+    // Validate slug format
+    const slugRegex = /^[a-z0-9-]+$/;
+    if (!slugRegex.test(formData.slug)) {
+      setError('Slug chỉ được chứa chữ thường, số và dấu gạch ngang');
       return;
     }
 
@@ -216,22 +254,37 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
                 />
               </div>
 
-              {/* Status Field */}
+              {/* Slug Field */}
               <div className="mb-4">
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Trạng thái
+                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Slug URL <span className="text-red-500">*</span>
                 </label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Không hoạt động</option>
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="slug"
+                    name="slug"
+                    value={formData.slug}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    placeholder="slug-url-danh-muc"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.name) }))}
+                      disabled={isLoading || !formData.name}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Tạo lại slug từ tên"
+                    >
+                      🔄
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  URL: /category/{formData.slug || 'slug-url'}
+                </p>
               </div>
 
               {/* Color Field */}

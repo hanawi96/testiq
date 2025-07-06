@@ -22,6 +22,10 @@ export default function AdminCategories() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [tempSlug, setTempSlug] = useState('');
+  const [optimisticSlugs, setOptimisticSlugs] = useState<Record<string, string>>({});
+  const [pendingSlugUpdates, setPendingSlugUpdates] = useState<Set<string>>(new Set());
 
   const limit = 10;
 
@@ -75,6 +79,14 @@ export default function AdminCategories() {
     
     loadData();
   }, [filters]);
+
+  // Cleanup optimistic updates on unmount
+  useEffect(() => {
+    return () => {
+      setOptimisticSlugs({});
+      setPendingSlugUpdates(new Set());
+    };
+  }, []);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -205,6 +217,129 @@ export default function AdminCategories() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Generate slug from name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens
+      .trim();
+  };
+
+  // Handle quick edit slug
+  const handleSlugEdit = (categoryId: string, currentSlug: string) => {
+    // Don't allow editing if there's a pending update
+    if (isSlugPending(categoryId)) {
+      return;
+    }
+
+    setEditingSlug(categoryId);
+    setTempSlug(currentSlug);
+  };
+
+  // Save slug edit with optimistic UI update
+  const handleSlugSave = async (categoryId: string) => {
+    if (!tempSlug.trim()) {
+      setError('Slug không được để trống');
+      return;
+    }
+
+    // Validate slug format
+    const slugRegex = /^[a-z0-9-]+$/;
+    if (!slugRegex.test(tempSlug)) {
+      setError('Slug chỉ được chứa chữ thường, số và dấu gạch ngang');
+      return;
+    }
+
+    const newSlug = tempSlug.trim();
+
+    // Cancel any pending update for this category
+    if (pendingSlugUpdates.has(categoryId)) {
+      console.log('Cancelling previous slug update for category:', categoryId);
+    }
+
+    // 1. OPTIMISTIC UPDATE: Close edit mode and show new slug immediately
+    setEditingSlug(null);
+    setTempSlug('');
+    setOptimisticSlugs(prev => ({ ...prev, [categoryId]: newSlug }));
+    setPendingSlugUpdates(prev => new Set(prev).add(categoryId));
+
+    // 2. BACKGROUND API CALL
+    try {
+      const { error } = await CategoriesService.updateCategory(categoryId, {
+        slug: newSlug
+      });
+
+      // 3. HANDLE API RESPONSE
+      if (error) {
+        // REVERT: API failed, restore original slug and show error
+        console.error('Slug update failed, reverting:', error);
+        setOptimisticSlugs(prev => {
+          const updated = { ...prev };
+          delete updated[categoryId];
+          return updated;
+        });
+        setError(error.message || 'Không thể cập nhật slug');
+
+        // Optionally refresh data to ensure consistency
+        fetchCategories();
+      } else {
+        // SUCCESS: Remove optimistic state, let real data take over
+        console.log('Slug update successful');
+        setOptimisticSlugs(prev => {
+          const updated = { ...prev };
+          delete updated[categoryId];
+          return updated;
+        });
+
+        // Clear any existing errors
+        setError('');
+
+        // Refresh data to get the latest state from server
+        fetchCategories();
+      }
+    } catch (err: any) {
+      // REVERT: Network error, restore original slug
+      console.error('Slug update error, reverting:', err);
+      setOptimisticSlugs(prev => {
+        const updated = { ...prev };
+        delete updated[categoryId];
+        return updated;
+      });
+      setError(err?.message || 'Có lỗi xảy ra khi cập nhật slug');
+
+      // Refresh data to ensure consistency
+      fetchCategories();
+    } finally {
+      // 4. CLEANUP: Remove from pending updates
+      setPendingSlugUpdates(prev => {
+        const updated = new Set(prev);
+        updated.delete(categoryId);
+        return updated;
+      });
+    }
+  };
+
+  // Cancel slug edit
+  const handleSlugCancel = () => {
+    setEditingSlug(null);
+    setTempSlug('');
+  };
+
+  // Get display slug (optimistic or real)
+  const getDisplaySlug = (category: Category): string => {
+    return optimisticSlugs[category.id] || category.slug;
+  };
+
+  // Check if slug is being updated
+  const isSlugPending = (categoryId: string): boolean => {
+    return pendingSlugUpdates.has(categoryId);
   };
 
   if (isLoading && !categoriesData) {
@@ -515,7 +650,7 @@ export default function AdminCategories() {
                   {categoriesData.categories.map((category) => (
                     <tr
                       key={category.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                      className="group hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       {/* Category Info */}
                       <td className="px-6 py-4">
@@ -533,8 +668,77 @@ export default function AdminCategories() {
                             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                               {category.description}
                             </div>
-                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                              Slug: {category.slug}
+                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center space-x-2">
+                              <span>Slug:</span>
+                              {editingSlug === category.id ? (
+                                <div className="flex items-center space-x-1">
+                                  <input
+                                    type="text"
+                                    value={tempSlug}
+                                    onChange={(e) => setTempSlug(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleSlugSave(category.id);
+                                      } else if (e.key === 'Escape') {
+                                        handleSlugCancel();
+                                      }
+                                    }}
+                                    className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary-500 focus:border-transparent"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => setTempSlug(generateSlug(category.name))}
+                                    className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                                    title="Tạo slug từ tên"
+                                  >
+                                    🔄
+                                  </button>
+                                  <button
+                                    onClick={() => handleSlugSave(category.id)}
+                                    className="p-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
+                                    title="Lưu"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={handleSlugCancel}
+                                    className="p-1 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                                    title="Hủy"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-1">
+                                  <span className={`font-mono ${
+                                    isSlugPending(category.id)
+                                      ? 'text-yellow-600 dark:text-yellow-400'
+                                      : 'text-blue-600 dark:text-blue-400'
+                                  }`}>
+                                    {getDisplaySlug(category)}
+                                  </span>
+                                  {isSlugPending(category.id) && (
+                                    <div className="flex items-center">
+                                      <div className="w-3 h-3 border border-yellow-500 border-t-transparent rounded-full animate-spin" title="Đang cập nhật..."></div>
+                                      <span className="text-xs text-yellow-600 dark:text-yellow-400 ml-1">Đang lưu...</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={() => handleSlugEdit(category.id, getDisplaySlug(category))}
+                                    disabled={isSlugPending(category.id)}
+                                    className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title={isSlugPending(category.id) ? "Đang cập nhật..." : "Chỉnh sửa slug"}
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
