@@ -7,10 +7,11 @@ interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onOptimisticUpdate?: (updatedCategory: Partial<Category>) => void;
   category?: Category | null; // null for create, Category for edit
 }
 
-export default function CategoryModal({ isOpen, onClose, onSuccess, category }: CategoryModalProps) {
+export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimisticUpdate, category }: CategoryModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -119,12 +120,14 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
 
     try {
       let result;
-      
+
       if (isEdit && category) {
         // Update existing category
+        console.log('CategoryModal: Updating category:', category.id, formData);
         result = await CategoriesService.updateCategory(category.id, {
           name: formData.name.trim(),
           description: formData.description.trim(),
+          slug: formData.slug.trim(),
           status: formData.status,
           meta_title: formData.meta_title.trim() || undefined,
           meta_description: formData.meta_description.trim() || undefined,
@@ -132,6 +135,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         });
       } else {
         // Create new category
+        console.log('CategoryModal: Creating category:', formData);
         result = await CategoriesService.createCategory({
           name: formData.name.trim(),
           description: formData.description.trim(),
@@ -142,14 +146,37 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, category }: 
         });
       }
 
+      console.log('CategoryModal: API result:', result);
+
       if (result.error) {
+        console.error('CategoryModal: Error:', result.error);
         setError(result.error.message || 'Có lỗi xảy ra');
         return;
       }
 
-      // Success
-      onSuccess();
+      console.log('CategoryModal: Success, updated category:', result.data);
+
+      // Success - optimistic update for immediate UI feedback
+      if (isEdit && onOptimisticUpdate) {
+        const optimisticData = {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          slug: formData.slug.trim(),
+          status: formData.status,
+          meta_title: formData.meta_title.trim() || undefined,
+          meta_description: formData.meta_description.trim() || undefined,
+          color: formData.color,
+          updated_at: new Date().toISOString()
+        };
+        console.log('CategoryModal: Applying optimistic update:', optimisticData);
+        onOptimisticUpdate(optimisticData);
+      }
+
+      // Close modal immediately for better UX
       onClose();
+
+      // Then refresh data in background to ensure consistency
+      onSuccess();
 
     } catch (err) {
       setError('Có lỗi xảy ra khi lưu danh mục');

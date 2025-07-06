@@ -1100,8 +1100,21 @@ export default function AdminCategories() {
           setEditingCategory(null);
         }}
         onSuccess={async () => {
+          // Refresh data to get latest state
           await fetchCategories(currentPage);
           await fetchStats();
+        }}
+        onOptimisticUpdate={(updatedCategory) => {
+          // Immediately update local state for better UX
+          if (categoriesData && editingCategory) {
+            const updatedCategories = categoriesData.categories.map(cat =>
+              cat.id === editingCategory.id ? { ...cat, ...updatedCategory } : cat
+            );
+            setCategoriesData({
+              ...categoriesData,
+              categories: updatedCategories
+            });
+          }
         }}
         category={editingCategory}
       />
