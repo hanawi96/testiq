@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminProfile from '../../components/admin/profile/AdminProfile.tsx';
+---
+
+<AdminLayout title="Hồ sơ Admin">
+  <AdminProfile client:load />
+</AdminLayout>
