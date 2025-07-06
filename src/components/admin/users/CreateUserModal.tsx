@@ -15,6 +15,14 @@ interface CreateUserForm {
   isVerified: boolean;
 }
 
+interface CreateUserFormErrors {
+  email?: string;
+  fullName?: string;
+  password?: string;
+  role?: string;
+  isVerified?: string;
+}
+
 const ROLES = [
   { value: 'user', label: 'User', description: 'Người dùng thông thường', color: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' },
   { value: 'admin', label: 'Admin', description: 'Toàn quyền quản lý hệ thống', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
@@ -31,7 +39,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
     role: 'user',
     isVerified: false
   });
-  const [errors, setErrors] = useState<Partial<CreateUserForm>>({});
+  const [errors, setErrors] = useState<CreateUserFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -64,7 +72,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   }, [isOpen]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CreateUserForm> = {};
+    const newErrors: CreateUserFormErrors = {};
 
     // Email validation
     if (!form.email.trim()) {
