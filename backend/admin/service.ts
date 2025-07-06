@@ -1,10 +1,11 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyComparisonStats } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats } from '../types';
 
 // Cache for stats (5 minutes)
 let newUsersStatsCache: { data: NewUsersStats; timestamp: number } | null = null;
 let weeklyTestStatsCache: { data: WeeklyTestStats; timestamp: number } | null = null;
+let dailyTestStatsCache: { data: DailyTestStats; timestamp: number } | null = null;
 let dailyComparisonStatsCache: { data: DailyComparisonStats; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -261,6 +262,121 @@ export class AdminService {
   static clearWeeklyTestStatsCache(): void {
     weeklyTestStatsCache = null;
     console.log('AdminService: Weekly test stats cache cleared');
+  }
+
+  /**
+   * Get daily test statistics for the last 7 days
+   */
+  static async getDailyTestStats(): Promise<{
+    data: DailyTestStats | null;
+    error: any
+  }> {
+    try {
+      console.log('AdminService: Fetching daily test stats for last 7 days');
+
+      // Check cache first
+      const now = Date.now();
+      if (dailyTestStatsCache && (now - dailyTestStatsCache.timestamp) < CACHE_DURATION) {
+        console.log('AdminService: Using cached daily test stats');
+        return { data: dailyTestStatsCache.data, error: null };
+      }
+
+      // Calculate date range for last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 6); // 7 days total (including today)
+
+      // Format dates for SQL queries
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      const startDateStr = formatDate(startDate);
+      const endDateStr = formatDate(endDate);
+
+      console.log(`AdminService: Querying daily tests from ${startDateStr} to ${endDateStr}`);
+
+      // Query all test results from user_test_results
+      const { data: testResults, error: testError } = await supabase
+        .from('user_test_results')
+        .select('tested_at')
+        .gte('tested_at', startDateStr)
+        .lte('tested_at', endDateStr + 'T23:59:59.999Z')
+        .order('tested_at', { ascending: true });
+
+      if (testError) {
+        console.error('AdminService: Error fetching daily test results:', testError);
+        return { data: null, error: testError };
+      }
+
+      console.log(`AdminService: Found ${testResults?.length || 0} test results for daily stats`);
+
+      // Group by day and count tests
+      const dailyData: Array<{
+        date: string;
+        dateLabel: string;
+        testCount: number;
+      }> = [];
+
+      // Create array for all 7 days
+      for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+        const dateStr = formatDate(currentDate);
+
+        // Count tests for this day
+        const testsForDay = testResults?.filter(result => {
+          const resultDate = new Date(result.tested_at).toISOString().split('T')[0];
+          return resultDate === dateStr;
+        }) || [];
+
+        // Create date label (e.g., "T2 15/1", "T3 16/1")
+        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        const dayName = dayNames[currentDate.getDay()];
+        const dateLabel = `${dayName} ${currentDate.getDate()}/${currentDate.getMonth() + 1}`;
+
+        dailyData.push({
+          date: dateStr,
+          dateLabel,
+          testCount: testsForDay.length
+        });
+      }
+
+      // Calculate total tests and average
+      const totalTests = dailyData.reduce((sum, day) => sum + day.testCount, 0);
+      const averagePerDay = Math.round(totalTests / 7);
+
+      console.log('AdminService: Daily test stats calculated successfully', {
+        totalTests,
+        averagePerDay,
+        dailyDataLength: dailyData.length
+      });
+
+      const result = {
+        totalTests,
+        averagePerDay,
+        dailyData
+      };
+
+      // Cache the result
+      dailyTestStatsCache = {
+        data: result,
+        timestamp: now
+      };
+
+      return {
+        data: result,
+        error: null
+      };
+    } catch (err) {
+      console.error('AdminService: Error fetching daily test stats:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Clear daily test stats cache
+   */
+  static clearDailyTestStatsCache(): void {
+    dailyTestStatsCache = null;
+    console.log('AdminService: Daily test stats cache cleared');
   }
 
   /**

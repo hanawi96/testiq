@@ -4,6 +4,7 @@ import { AuthService, AdminService } from '../../../../backend';
 import type { UserProfile, AdminStats, AdminAction } from '../../../../backend';
 import NewUsersChart from './NewUsersChart';
 import WeeklyTestChart from './WeeklyTestChart';
+import DailyTestChart from './DailyTestChart';
 import EnhancedStatsCards from './EnhancedStatsCards';
 
 export default function AdminDashboard() {
@@ -163,8 +164,14 @@ export default function AdminDashboard() {
       {/* New Users Chart */}
       <NewUsersChart />
 
-      {/* Weekly Test Chart */}
-      <WeeklyTestChart />
+      {/* Charts Grid - Daily and Weekly Test Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        {/* Daily Test Chart */}
+        <DailyTestChart />
+
+        {/* Weekly Test Chart */}
+        <WeeklyTestChart />
+      </div>
 
       {/* Recent Activity */}
       <motion.div

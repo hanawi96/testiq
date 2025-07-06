@@ -74,6 +74,17 @@ export interface WeeklyTestStats {
   }>;
 }
 
+// Daily test statistics for dashboard (7 days)
+export interface DailyTestStats {
+  totalTests: number;
+  averagePerDay: number;
+  dailyData: Array<{
+    date: string;
+    dateLabel: string;
+    testCount: number;
+  }>;
+}
+
 // Daily comparison statistics for dashboard
 export interface DailyComparisonStats {
   testsToday: {
