@@ -594,7 +594,7 @@ export default function UsersList() {
                     {/* Status */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {isAnonymousUser(user) ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
                           <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                           </svg>
@@ -604,11 +604,11 @@ export default function UsersList() {
                         <button
                           onClick={() => handleVerificationToggle(user.id)}
                           disabled={actionLoading === `verify-${user.id}`}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium outline-none ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border outline-none transition-all ${
                             user.is_verified
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          } ${actionLoading === `verify-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800'
+                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+                          } ${actionLoading === `verify-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80 hover:scale-105'}`}
                         >
                           {actionLoading === `verify-${user.id}` ? (
                             <div className="w-3 h-3 border border-current border-r-transparent rounded-full animate-spin mr-1"></div>
@@ -627,12 +627,12 @@ export default function UsersList() {
                     </td>
 
                     {/* Join Date */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {formatDate(user.created_at)}
                     </td>
 
                     {/* Last Login */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(user.last_sign_in_at)}
                     </td>
 
@@ -640,12 +640,12 @@ export default function UsersList() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {isAnonymousUser(user) ? (
                         <div className="flex justify-end">
-                          <span className="text-xs text-gray-400 italic">Chỉ xem</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 italic">Chỉ xem</span>
                         </div>
                       ) : (
-                        <button 
+                        <button
                           onClick={(e) => handleDropdownToggle(user.id, e)}
-                          className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 outline-none"
+                          className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 outline-none transition-colors"
                         >
                           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
