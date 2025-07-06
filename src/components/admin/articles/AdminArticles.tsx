@@ -611,7 +611,7 @@ export default function AdminArticles() {
                             </div>
                             <div className="flex items-center space-x-2 mt-2">
                               <div className="flex items-center space-x-2">
-                                {article.tags.slice(0, 3).map((tag, index) => (
+                                {(article.tags || []).slice(0, 3).map((tag, index) => (
                                   <span
                                     key={index}
                                     className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
@@ -619,9 +619,9 @@ export default function AdminArticles() {
                                     {tag}
                                   </span>
                                 ))}
-                                {article.tags.length > 3 && (
+                                {(article.tags || []).length > 3 && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    +{article.tags.length - 3} khác
+                                    +{(article.tags || []).length - 3} khác
                                   </span>
                                 )}
                               </div>
@@ -644,7 +644,7 @@ export default function AdminArticles() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <div>
-                            <div className="text-sm text-gray-900 dark:text-gray-100">{article.author}</div>
+                            <div className="text-sm text-gray-900 dark:text-gray-100">{article.author || 'Unknown Author'}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
                               {article.reading_time} phút đọc
                             </div>
@@ -677,7 +677,7 @@ export default function AdminArticles() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                            <span>{formatNumber(article.views)}</span>
+                            <span>{formatNumber(article.views || 0)}</span>
                           </div>
                         </div>
                       </td>

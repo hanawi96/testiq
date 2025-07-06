@@ -2,20 +2,101 @@ export interface Article {
   id: string;
   title: string;
   slug: string;
-  excerpt: string;
+  slug_history?: string[];
   content: string;
-  author: string;
+  excerpt?: string;
+  lang?: string;
+  article_type?: 'article' | 'page' | 'post';
   status: 'published' | 'draft' | 'archived';
-  featured_image?: string;
-  tags: string[];
-  views: number;
-  likes: number;
+  featured?: boolean;
+  author_id?: string;
+  category_id?: string;
+  parent_id?: string;
+
+  // SEO fields
+  meta_title?: string;
+  meta_description?: string;
+  focus_keyword?: string;
+  keywords?: string[];
+  canonical_url?: string;
+
+  // Open Graph fields
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
+  og_type?: string;
+
+  // Twitter fields
+  twitter_title?: string;
+  twitter_description?: string;
+  twitter_image?: string;
+  twitter_card_type?: string;
+
+  // Media fields
+  cover_image?: string;
+  cover_image_alt?: string;
+  gallery_images?: any;
+
+  // Schema fields
+  schema_type?: string;
+  author_schema?: any;
+  organization_schema?: any;
+  faq_schema?: any;
+  howto_schema?: any;
+  breadcrumb_schema?: any;
+
+  // Content analysis
+  word_count?: number;
+  character_count?: number;
+  reading_time?: number; // in minutes
+  paragraph_count?: number;
+  heading_count?: any;
+  content_score?: number;
+  readability_score?: number;
+  keyword_density?: number;
+
+  // SEO settings
+  robots_directive?: string;
+  sitemap_include?: boolean;
+  sitemap_priority?: number;
+  sitemap_changefreq?: string;
+
+  // Links and relations
+  internal_links?: any;
+  external_links?: any;
+  related_articles?: string[];
+
+  // Analytics
+  view_count?: number;
+  unique_views?: number;
+  bounce_rate?: number;
+  avg_time_on_page?: number;
+  social_shares?: any;
+  backlinks_count?: number;
+
+  // Search
+  search_index?: any;
+  indexed_at?: string;
+  last_crawled_at?: string;
+
+  // Publishing
+  published_at?: string;
+  scheduled_at?: string;
+  expires_at?: string;
+
+  // Versioning
+  version?: number;
+  revision_notes?: string;
+  last_modified_by?: string;
+
+  // Timestamps
   created_at: string;
   updated_at: string;
-  published_at?: string;
-  seo_title?: string;
-  seo_description?: string;
-  reading_time: number; // in minutes
+
+  // Computed fields for UI (will be joined from other tables)
+  author_name?: string;
+  category_name?: string;
+  category_slug?: string;
 }
 
 export interface ArticleStats {
@@ -49,204 +130,114 @@ export interface ArticlesListResponse {
   hasPrev: boolean;
 }
 
+import { supabase } from '../config/supabase';
+
 export class ArticlesService {
-  // Demo data - 20 realistic articles
-  private static demoArticles: Article[] = [
-    {
-      id: '1',
-      title: 'Hướng dẫn làm bài test IQ hiệu quả',
-      slug: 'huong-dan-lam-bai-test-iq-hieu-qua',
-      excerpt: 'Những tips và chiến lược giúp bạn đạt điểm cao trong các bài test IQ',
-      content: 'Nội dung chi tiết về cách làm bài test IQ...',
-      author: 'Admin',
-      status: 'published',
-      featured_image: '/images/iq-test-guide.jpg',
-      tags: ['IQ Test', 'Hướng dẫn', 'Tips'],
-      views: 1250,
-      likes: 89,
-      created_at: '2024-01-15T10:30:00Z',
-      updated_at: '2024-01-16T14:20:00Z',
-      published_at: '2024-01-15T10:30:00Z',
-      seo_title: 'Hướng dẫn làm bài test IQ hiệu quả - Tips từ chuyên gia',
-      seo_description: 'Khám phá những chiến lược và tips hiệu quả để đạt điểm cao trong bài test IQ',
-      reading_time: 8
-    },
-    {
-      id: '2',
-      title: 'Phân tích kết quả test IQ: Ý nghĩa các mức điểm',
-      slug: 'phan-tich-ket-qua-test-iq-y-nghia-cac-muc-diem',
-      excerpt: 'Tìm hiểu ý nghĩa của từng mức điểm IQ và cách diễn giải kết quả',
-      content: 'Nội dung chi tiết về phân tích kết quả IQ...',
-      author: 'Dr. Nguyễn Văn A',
-      status: 'published',
-      featured_image: '/images/iq-analysis.jpg',
-      tags: ['IQ Test', 'Phân tích', 'Kết quả'],
-      views: 2100,
-      likes: 156,
-      created_at: '2024-01-10T09:15:00Z',
-      updated_at: '2024-01-12T16:45:00Z',
-      published_at: '2024-01-10T09:15:00Z',
-      seo_title: 'Phân tích kết quả test IQ - Ý nghĩa các mức điểm',
-      seo_description: 'Hiểu rõ ý nghĩa của điểm IQ và cách diễn giải kết quả test một cách chính xác',
-      reading_time: 12
-    },
-    {
-      id: '3',
-      title: 'Lịch sử và phát triển của test IQ',
-      slug: 'lich-su-va-phat-trien-cua-test-iq',
-      excerpt: 'Khám phá lịch sử hình thành và phát triển của các bài test đo trí tuệ',
-      content: 'Nội dung về lịch sử test IQ...',
-      author: 'Prof. Trần Thị B',
-      status: 'draft',
-      tags: ['Lịch sử', 'IQ Test', 'Giáo dục'],
-      views: 0,
-      likes: 0,
-      created_at: '2024-01-20T11:00:00Z',
-      updated_at: '2024-01-22T13:30:00Z',
-      reading_time: 15
-    },
-    {
-      id: '4',
-      title: 'Các loại test IQ phổ biến hiện nay',
-      slug: 'cac-loai-test-iq-pho-bien-hien-nay',
-      excerpt: 'Tổng quan về các dạng test IQ khác nhau và đặc điểm của từng loại',
-      content: 'Nội dung về các loại test IQ...',
-      author: 'Admin',
-      status: 'published',
-      featured_image: '/images/iq-types.jpg',
-      tags: ['IQ Test', 'Phân loại', 'Giáo dục'],
-      views: 890,
-      likes: 67,
-      created_at: '2024-01-08T14:20:00Z',
-      updated_at: '2024-01-09T10:15:00Z',
-      published_at: '2024-01-08T14:20:00Z',
-      seo_title: 'Các loại test IQ phổ biến - So sánh và phân tích',
-      seo_description: 'Tìm hiểu về các dạng test IQ khác nhau và lựa chọn phù hợp với nhu cầu',
-      reading_time: 10
-    },
-    {
-      id: '5',
-      title: 'Cách cải thiện chỉ số IQ của bạn',
-      slug: 'cach-cai-thien-chi-so-iq-cua-ban',
-      excerpt: 'Những phương pháp khoa học để rèn luyện và nâng cao trí tuệ',
-      content: 'Nội dung về cách cải thiện IQ...',
-      author: 'Dr. Lê Văn C',
-      status: 'published',
-      featured_image: '/images/improve-iq.jpg',
-      tags: ['Cải thiện', 'IQ', 'Rèn luyện'],
-      views: 3200,
-      likes: 245,
-      created_at: '2024-01-05T08:45:00Z',
-      updated_at: '2024-01-07T15:20:00Z',
-      published_at: '2024-01-05T08:45:00Z',
-      seo_title: 'Cách cải thiện chỉ số IQ hiệu quả - Phương pháp khoa học',
-      seo_description: 'Khám phá các phương pháp được chứng minh khoa học để nâng cao trí tuệ',
-      reading_time: 14
-    },
-    {
-      id: '6',
-      title: 'Test IQ cho trẻ em: Những điều cần biết',
-      slug: 'test-iq-cho-tre-em-nhung-dieu-can-biet',
-      excerpt: 'Hướng dẫn đánh giá trí tuệ trẻ em một cách chính xác và phù hợp',
-      content: 'Nội dung về test IQ trẻ em...',
-      author: 'Dr. Phạm Thị D',
-      status: 'published',
-      tags: ['Trẻ em', 'IQ Test', 'Giáo dục'],
-      views: 1800,
-      likes: 134,
-      created_at: '2024-01-12T16:30:00Z',
-      updated_at: '2024-01-14T09:45:00Z',
-      published_at: '2024-01-12T16:30:00Z',
-      reading_time: 11
-    },
-    {
-      id: '7',
-      title: 'Mối quan hệ giữa IQ và thành công trong cuộc sống',
-      slug: 'moi-quan-he-giua-iq-va-thanh-cong-trong-cuoc-song',
-      excerpt: 'Phân tích tác động của chỉ số IQ đến sự nghiệp và cuộc sống',
-      content: 'Nội dung về mối quan hệ IQ và thành công...',
-      author: 'Prof. Hoàng Văn E',
-      status: 'draft',
-      tags: ['IQ', 'Thành công', 'Cuộc sống'],
-      views: 0,
-      likes: 0,
-      created_at: '2024-01-18T12:15:00Z',
-      updated_at: '2024-01-20T14:30:00Z',
-      reading_time: 16
-    },
-    {
-      id: '8',
-      title: 'Những sai lầm thường gặp khi làm test IQ',
-      slug: 'nhung-sai-lam-thuong-gap-khi-lam-test-iq',
-      excerpt: 'Tránh những lỗi phổ biến để có kết quả test chính xác nhất',
-      content: 'Nội dung về sai lầm trong test IQ...',
-      author: 'Admin',
-      status: 'published',
-      featured_image: '/images/iq-mistakes.jpg',
-      tags: ['Sai lầm', 'IQ Test', 'Tips'],
-      views: 1450,
-      likes: 98,
-      created_at: '2024-01-14T10:20:00Z',
-      updated_at: '2024-01-15T11:30:00Z',
-      published_at: '2024-01-14T10:20:00Z',
-      reading_time: 9
-    },
-    {
-      id: '9',
-      title: 'Test IQ online vs Test IQ truyền thống',
-      slug: 'test-iq-online-vs-test-iq-truyen-thong',
-      excerpt: 'So sánh ưu nhược điểm của hai phương pháp test IQ',
-      content: 'Nội dung so sánh test IQ online và truyền thống...',
-      author: 'Dr. Vũ Thị F',
-      status: 'published',
-      tags: ['Online', 'Truyền thống', 'So sánh'],
-      views: 2300,
-      likes: 187,
-      created_at: '2024-01-06T13:45:00Z',
-      updated_at: '2024-01-08T16:20:00Z',
-      published_at: '2024-01-06T13:45:00Z',
-      reading_time: 13
-    },
-    {
-      id: '10',
-      title: 'Chuẩn bị tâm lý trước khi làm test IQ',
-      slug: 'chuan-bi-tam-ly-truoc-khi-lam-test-iq',
-      excerpt: 'Những bước chuẩn bị tinh thần để đạt kết quả tốt nhất',
-      content: 'Nội dung về chuẩn bị tâm lý...',
-      author: 'Dr. Ngô Văn G',
-      status: 'archived',
-      tags: ['Tâm lý', 'Chuẩn bị', 'IQ Test'],
-      views: 750,
-      likes: 45,
-      created_at: '2023-12-20T09:30:00Z',
-      updated_at: '2023-12-22T14:15:00Z',
-      published_at: '2023-12-20T09:30:00Z',
-      reading_time: 7
-    }
-  ];
+  /**
+   * Helper method to build article query with joins
+   */
+  private static buildArticleQuery() {
+    return supabase
+      .from('articles')
+      .select('*');
+  }
+
+  /**
+   * Transform database article to UI format
+   */
+  private static transformArticle(dbArticle: any): Article {
+    return {
+      ...dbArticle,
+      author: dbArticle.author_name || dbArticle.author || 'Unknown Author',
+      tags: Array.isArray(dbArticle.keywords) ? dbArticle.keywords : (Array.isArray(dbArticle.tags) ? dbArticle.tags : []),
+      views: dbArticle.view_count || dbArticle.views || 0,
+      likes: dbArticle.like_count || dbArticle.likes || 0,
+      excerpt: dbArticle.excerpt || '',
+      status: dbArticle.status || 'draft',
+      created_at: dbArticle.created_at || new Date().toISOString(),
+      updated_at: dbArticle.updated_at || new Date().toISOString()
+    };
+  }
+
+  /**
+   * Get articles statistics
+   */
 
   /**
    * Get articles statistics
    */
   static async getStats(): Promise<{ data: ArticleStats | null; error: any }> {
     try {
-      console.log('ArticlesService: Calculating statistics');
+      console.log('ArticlesService: Calculating statistics from database');
 
-      const articles = this.demoArticles;
-      const now = new Date();
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // Get total count by status
+      const { data: statusCounts, error: statusError } = await supabase
+        .from('articles')
+        .select('status')
+        .not('status', 'is', null);
+
+      if (statusError) {
+        console.error('ArticlesService: Error getting status counts:', statusError);
+        return { data: null, error: statusError };
+      }
+
+      // Get total views
+      const { data: viewsData, error: viewsError } = await supabase
+        .from('articles')
+        .select('view_count')
+        .not('view_count', 'is', null);
+
+      if (viewsError) {
+        console.error('ArticlesService: Error getting views:', viewsError);
+        return { data: null, error: viewsError };
+      }
+
+      // Get reading times
+      const { data: readingData, error: readingError } = await supabase
+        .from('articles')
+        .select('reading_time')
+        .not('reading_time', 'is', null);
+
+      if (readingError) {
+        console.error('ArticlesService: Error getting reading times:', readingError);
+        return { data: null, error: readingError };
+      }
+
+      // Get recent articles (last 7 days)
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      const { count: recentCount, error: recentError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact' })
+        .gte('created_at', weekAgo.toISOString());
+
+      if (recentError) {
+        console.error('ArticlesService: Error getting recent articles:', recentError);
+        return { data: null, error: recentError };
+      }
+
+      // Calculate statistics
+      const total = statusCounts?.length || 0;
+      const published = statusCounts?.filter(a => a.status === 'published').length || 0;
+      const draft = statusCounts?.filter(a => a.status === 'draft').length || 0;
+      const archived = statusCounts?.filter(a => a.status === 'archived').length || 0;
+      const totalViews = viewsData?.reduce((sum, a) => sum + (a.view_count || 0), 0) || 0;
+      const avgReadingTime = readingData?.length > 0
+        ? Math.round(readingData.reduce((sum, a) => sum + (a.reading_time || 0), 0) / readingData.length)
+        : 0;
 
       const stats: ArticleStats = {
-        total: articles.length,
-        published: articles.filter(a => a.status === 'published').length,
-        draft: articles.filter(a => a.status === 'draft').length,
-        archived: articles.filter(a => a.status === 'archived').length,
-        totalViews: articles.reduce((sum, a) => sum + a.views, 0),
-        avgReadingTime: Math.round(articles.reduce((sum, a) => sum + a.reading_time, 0) / articles.length),
-        recentArticles: articles.filter(a => new Date(a.created_at) > weekAgo).length
+        total,
+        published,
+        draft,
+        archived,
+        totalViews,
+        avgReadingTime,
+        recentArticles: recentCount || 0
       };
 
-      console.log('ArticlesService: Stats calculated successfully');
+      console.log('ArticlesService: Stats calculated successfully from database:', stats);
       return { data: stats, error: null };
 
     } catch (err) {
@@ -264,83 +255,108 @@ export class ArticlesService {
     filters: ArticlesFilters = {}
   ): Promise<{ data: ArticlesListResponse | null; error: any }> {
     try {
-      console.log('ArticlesService: Fetching articles', { page, limit, filters });
+      console.log('ArticlesService: Fetching articles from database', { page, limit, filters });
 
-      let articles = [...this.demoArticles];
+      // Build base query with joins
+      let query = this.buildArticleQuery();
 
-      // Apply filters
+      // Apply search filter
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        articles = articles.filter(article =>
-          article.title.toLowerCase().includes(searchTerm) ||
-          article.excerpt.toLowerCase().includes(searchTerm) ||
-          article.author.toLowerCase().includes(searchTerm) ||
-          article.tags.some(tag => tag.toLowerCase().includes(searchTerm))
-        );
+        const searchTerm = filters.search.trim();
+        query = query.or(`title.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
       }
 
+      // Apply status filter
       if (filters.status && filters.status !== 'all') {
-        articles = articles.filter(article => article.status === filters.status);
+        query = query.eq('status', filters.status);
       }
 
+      // Apply author filter
       if (filters.author) {
-        articles = articles.filter(article => 
-          article.author.toLowerCase().includes(filters.author!.toLowerCase())
-        );
+        query = query.ilike('author.raw_user_meta_data->>full_name', `%${filters.author}%`);
       }
 
-      if (filters.tag) {
-        articles = articles.filter(article =>
-          article.tags.some(tag => tag.toLowerCase().includes(filters.tag!.toLowerCase()))
-        );
-      }
-
+      // Apply date filters
       if (filters.date_from) {
-        articles = articles.filter(article => 
-          new Date(article.created_at) >= new Date(filters.date_from!)
-        );
+        query = query.gte('created_at', filters.date_from);
       }
 
       if (filters.date_to) {
-        articles = articles.filter(article => 
-          new Date(article.created_at) <= new Date(filters.date_to!)
-        );
+        query = query.lte('created_at', filters.date_to);
       }
 
       // Apply sorting
       const sortBy = filters.sort_by || 'created_at';
       const sortOrder = filters.sort_order || 'desc';
 
-      articles.sort((a, b) => {
-        let aValue: any = a[sortBy as keyof Article];
-        let bValue: any = b[sortBy as keyof Article];
+      // Map UI sort fields to database fields
+      const dbSortBy = sortBy === 'views' ? 'view_count' : sortBy;
+      query = query.order(dbSortBy, { ascending: sortOrder === 'asc' });
 
-        if (sortBy === 'created_at' || sortBy === 'updated_at') {
-          aValue = new Date(aValue).getTime();
-          bValue = new Date(bValue).getTime();
-        }
+      // Get total count for pagination
+      const { count: totalCount, error: countError } = await supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true });
 
-        if (typeof aValue === 'string') {
-          aValue = aValue.toLowerCase();
-          bValue = bValue.toLowerCase();
-        }
+      if (countError) {
+        console.error('ArticlesService: Error getting total count:', countError);
+        console.log('ArticlesService: Falling back to demo data due to database error');
 
-        if (sortOrder === 'asc') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
+        // Fallback to demo data if table doesn't exist
+        const demoResponse = {
+          articles: [
+            {
+              id: '1',
+              title: 'Demo: Hướng dẫn làm bài test IQ hiệu quả',
+              slug: 'demo-huong-dan-lam-bai-test-iq-hieu-qua',
+              excerpt: 'Đây là dữ liệu demo. Vui lòng tạo bảng articles trong database.',
+              content: 'Nội dung demo...',
+              author: 'Demo Author',
+              status: 'published',
+              tags: ['Demo', 'IQ Test'],
+              views: 100,
+              likes: 10,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              published_at: new Date().toISOString(),
+              reading_time: 5
+            }
+          ],
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false
+        };
+
+        return { data: demoResponse, error: null };
+      }
 
       // Apply pagination
       const offset = (page - 1) * limit;
-      const paginatedArticles = articles.slice(offset, offset + limit);
+      query = query.range(offset, offset + limit - 1);
 
-      const total = articles.length;
+      // Execute query
+      const { data: articlesData, error: articlesError } = await query;
+
+      if (articlesError) {
+        console.error('ArticlesService: Error fetching articles:', articlesError);
+        return { data: null, error: articlesError };
+      }
+
+      if (!articlesData) {
+        return { data: null, error: new Error('Không thể tải danh sách bài viết') };
+      }
+
+      // Transform articles
+      const articles = articlesData.map(article => this.transformArticle(article));
+
+      const total = totalCount || 0;
       const totalPages = Math.ceil(total / limit);
 
       const response: ArticlesListResponse = {
-        articles: paginatedArticles,
+        articles,
         total,
         page,
         limit,
@@ -349,8 +365,8 @@ export class ArticlesService {
         hasPrev: page > 1
       };
 
-      console.log('ArticlesService: Articles fetched successfully:', {
-        returned: paginatedArticles.length,
+      console.log('ArticlesService: Articles fetched successfully from database:', {
+        returned: articles.length,
         total,
         page,
         totalPages
@@ -368,26 +384,41 @@ export class ArticlesService {
    * Update article status
    */
   static async updateStatus(
-    articleId: string, 
+    articleId: string,
     status: 'published' | 'draft' | 'archived'
   ): Promise<{ data: Article | null; error: any }> {
     try {
-      console.log('ArticlesService: Updating article status:', { articleId, status });
+      console.log('ArticlesService: Updating article status in database:', { articleId, status });
 
-      const articleIndex = this.demoArticles.findIndex(a => a.id === articleId);
-      if (articleIndex === -1) {
-        return { data: null, error: new Error('Article not found') };
-      }
-
-      this.demoArticles[articleIndex] = {
-        ...this.demoArticles[articleIndex],
+      const updateData: any = {
         status,
-        updated_at: new Date().toISOString(),
-        published_at: status === 'published' ? new Date().toISOString() : this.demoArticles[articleIndex].published_at
+        updated_at: new Date().toISOString()
       };
 
-      console.log('ArticlesService: Article status updated successfully');
-      return { data: this.demoArticles[articleIndex], error: null };
+      // Set published_at when publishing
+      if (status === 'published') {
+        updateData.published_at = new Date().toISOString();
+      }
+
+      const { data: updatedData, error: updateError } = await supabase
+        .from('articles')
+        .update(updateData)
+        .eq('id', articleId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article status:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      if (!updatedData) {
+        return { data: null, error: new Error('Không thể cập nhật trạng thái bài viết') };
+      }
+
+      const transformedArticle = this.transformArticle(updatedData);
+      console.log('ArticlesService: Article status updated successfully in database');
+      return { data: transformedArticle, error: null };
 
     } catch (err) {
       console.error('ArticlesService: Error updating article status:', err);
@@ -400,16 +431,19 @@ export class ArticlesService {
    */
   static async deleteArticle(articleId: string): Promise<{ data: boolean; error: any }> {
     try {
-      console.log('ArticlesService: Deleting article:', articleId);
+      console.log('ArticlesService: Deleting article from database:', articleId);
 
-      const articleIndex = this.demoArticles.findIndex(a => a.id === articleId);
-      if (articleIndex === -1) {
-        return { data: false, error: new Error('Article not found') };
+      const { error: deleteError } = await supabase
+        .from('articles')
+        .delete()
+        .eq('id', articleId);
+
+      if (deleteError) {
+        console.error('ArticlesService: Error deleting article:', deleteError);
+        return { data: false, error: deleteError };
       }
 
-      this.demoArticles.splice(articleIndex, 1);
-
-      console.log('ArticlesService: Article deleted successfully');
+      console.log('ArticlesService: Article deleted successfully from database');
       return { data: true, error: null };
 
     } catch (err) {
@@ -422,29 +456,39 @@ export class ArticlesService {
    * Bulk update articles status
    */
   static async bulkUpdateStatus(
-    articleIds: string[], 
+    articleIds: string[],
     status: 'published' | 'draft' | 'archived'
   ): Promise<{ data: number; error: any }> {
     try {
-      console.log('ArticlesService: Bulk updating articles status:', { articleIds, status });
+      console.log('ArticlesService: Bulk updating articles status in database:', { articleIds, status });
 
-      let updatedCount = 0;
-      const now = new Date().toISOString();
+      if (!articleIds || articleIds.length === 0) {
+        return { data: 0, error: null };
+      }
 
-      articleIds.forEach(id => {
-        const articleIndex = this.demoArticles.findIndex(a => a.id === id);
-        if (articleIndex !== -1) {
-          this.demoArticles[articleIndex] = {
-            ...this.demoArticles[articleIndex],
-            status,
-            updated_at: now,
-            published_at: status === 'published' ? now : this.demoArticles[articleIndex].published_at
-          };
-          updatedCount++;
-        }
-      });
+      const updateData: any = {
+        status,
+        updated_at: new Date().toISOString()
+      };
 
-      console.log('ArticlesService: Bulk update completed:', updatedCount, 'articles updated');
+      // Set published_at when publishing
+      if (status === 'published') {
+        updateData.published_at = new Date().toISOString();
+      }
+
+      const { data: updatedData, error: updateError } = await supabase
+        .from('articles')
+        .update(updateData)
+        .in('id', articleIds)
+        .select('id');
+
+      if (updateError) {
+        console.error('ArticlesService: Error in bulk update:', updateError);
+        return { data: 0, error: updateError };
+      }
+
+      const updatedCount = updatedData?.length || 0;
+      console.log('ArticlesService: Bulk update completed in database:', updatedCount, 'articles updated');
       return { data: updatedCount, error: null };
 
     } catch (err) {
@@ -456,17 +500,59 @@ export class ArticlesService {
   /**
    * Get unique authors
    */
-  static getAuthors(): string[] {
-    const authors = [...new Set(this.demoArticles.map(a => a.author))];
-    return authors.sort();
+  static async getAuthors(): Promise<string[]> {
+    try {
+      const { data: authorsData, error } = await supabase
+        .from('articles')
+        .select(`
+          author:auth.users!articles_author_id_fkey(
+            raw_user_meta_data
+          )
+        `)
+        .not('author_id', 'is', null);
+
+      if (error) {
+        console.error('ArticlesService: Error getting authors:', error);
+        return [];
+      }
+
+      const authors = authorsData
+        ?.map(a => a.author?.raw_user_meta_data?.full_name || 'Unknown Author')
+        .filter((author, index, self) => self.indexOf(author) === index)
+        .sort() || [];
+
+      return authors;
+    } catch (err) {
+      console.error('ArticlesService: Error getting authors:', err);
+      return [];
+    }
   }
 
   /**
    * Get unique tags
    */
-  static getTags(): string[] {
-    const tags = [...new Set(this.demoArticles.flatMap(a => a.tags))];
-    return tags.sort();
+  static async getTags(): Promise<string[]> {
+    try {
+      const { data: tagsData, error } = await supabase
+        .from('articles')
+        .select('keywords')
+        .not('keywords', 'is', null);
+
+      if (error) {
+        console.error('ArticlesService: Error getting tags:', error);
+        return [];
+      }
+
+      const tags = tagsData
+        ?.flatMap(a => a.keywords || [])
+        .filter((tag, index, self) => self.indexOf(tag) === index)
+        .sort() || [];
+
+      return tags;
+    } catch (err) {
+      console.error('ArticlesService: Error getting tags:', err);
+      return [];
+    }
   }
 
   /**
@@ -477,21 +563,31 @@ export class ArticlesService {
     tags: string[]
   ): Promise<{ data: Article | null; error: any }> {
     try {
-      console.log('ArticlesService: Updating article tags:', { articleId, tags });
+      console.log('ArticlesService: Updating article tags in database:', { articleId, tags });
 
-      const articleIndex = this.demoArticles.findIndex(a => a.id === articleId);
-      if (articleIndex === -1) {
-        return { data: null, error: new Error('Article not found') };
+      const { data: updatedData, error: updateError } = await supabase
+        .from('articles')
+        .update({
+          keywords: tags,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', articleId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article tags:', updateError);
+        return { data: null, error: updateError };
       }
 
-      this.demoArticles[articleIndex] = {
-        ...this.demoArticles[articleIndex],
-        tags: [...tags],
-        updated_at: new Date().toISOString()
-      };
+      if (!updatedData) {
+        return { data: null, error: new Error('Không thể cập nhật tags bài viết') };
+      }
 
-      console.log('ArticlesService: Article tags updated successfully');
-      return { data: this.demoArticles[articleIndex], error: null };
+      const transformedArticle = this.transformArticle(updatedData);
+
+      console.log('ArticlesService: Article tags updated successfully in database');
+      return { data: transformedArticle, error: null };
 
     } catch (err) {
       console.error('ArticlesService: Error updating article tags:', err);
@@ -504,24 +600,35 @@ export class ArticlesService {
    */
   static async updateAuthor(
     articleId: string,
-    author: string
+    authorName: string
   ): Promise<{ data: Article | null; error: any }> {
     try {
-      console.log('ArticlesService: Updating article author:', { articleId, author });
+      console.log('ArticlesService: Updating article author in database:', { articleId, authorName });
 
-      const articleIndex = this.demoArticles.findIndex(a => a.id === articleId);
-      if (articleIndex === -1) {
-        return { data: null, error: new Error('Article not found') };
+      // For now, we'll store the author name in a custom field
+      // In the future, this should be linked to actual user IDs
+      const { data: updatedData, error: updateError } = await supabase
+        .from('articles')
+        .update({
+          author_name: authorName.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', articleId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article author:', updateError);
+        return { data: null, error: updateError };
       }
 
-      this.demoArticles[articleIndex] = {
-        ...this.demoArticles[articleIndex],
-        author: author.trim(),
-        updated_at: new Date().toISOString()
-      };
+      if (!updatedData) {
+        return { data: null, error: new Error('Không thể cập nhật tác giả bài viết') };
+      }
 
-      console.log('ArticlesService: Article author updated successfully');
-      return { data: this.demoArticles[articleIndex], error: null };
+      const transformedArticle = this.transformArticle(updatedData);
+      console.log('ArticlesService: Article author updated successfully in database');
+      return { data: transformedArticle, error: null };
 
     } catch (err) {
       console.error('ArticlesService: Error updating article author:', err);

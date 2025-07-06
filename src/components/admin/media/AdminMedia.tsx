@@ -422,47 +422,96 @@ export default function AdminMedia() {
         </div>
       </div>
 
-      {/* Bulk Actions */}
-      <AnimatePresence>
-        {showBulkActions && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  Đã chọn {selectedFiles.length} file
-                </span>
-                <button
-                  onClick={() => {
-                    setSelectedFiles([]);
-                    setShowBulkActions(false);
-                  }}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-                >
-                  Bỏ chọn
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={isUpdating}
-                  className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm rounded-md transition-colors"
-                >
-                  Xóa đã chọn
-                </button>
+      {/* Bulk Actions Container */}
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          {showBulkActions && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                transition: {
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 30,
+                  mass: 0.8,
+                  opacity: { duration: 0.2, ease: "easeOut" },
+                  y: { type: "spring", stiffness: 400, damping: 30 },
+                  scale: { type: "spring", stiffness: 400, damping: 30 }
+                }
+              }}
+              exit={{
+                opacity: 0,
+                y: -15,
+                scale: 0.95,
+                transition: {
+                  duration: 0.2,
+                  ease: [0.4, 0.0, 1, 1],
+                  opacity: { duration: 0.15 },
+                  y: { duration: 0.2, ease: [0.4, 0.0, 1, 1] },
+                  scale: { duration: 0.2, ease: [0.4, 0.0, 1, 1] }
+                }
+              }}
+              className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden mb-4 shadow-sm"
+              style={{ willChange: 'transform, opacity' }}
+              layout
+            >
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Đã chọn {selectedFiles.length} file
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedFiles([]);
+                      setShowBulkActions(false);
+                    }}
+                    disabled={isUpdating}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    Bỏ chọn
+                  </button>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={isUpdating}
+                    className="flex items-center space-x-2 px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white text-sm rounded-md transition-all duration-200"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Đang xóa...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Xóa đã chọn</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
 
       {/* Media Grid/List */}
       {mediaData && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <motion.div
+          layout
+          transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+        >
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -692,7 +741,7 @@ export default function AdminMedia() {
               </div>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Upload Modal */}

@@ -26,8 +26,11 @@ export default function QuickAuthorEditor({
 
   useEffect(() => {
     // Load available authors
-    const authors = ArticlesService.getAuthors();
-    setAvailableAuthors(authors);
+    const loadAuthors = async () => {
+      const authors = await ArticlesService.getAuthors();
+      setAvailableAuthors(authors);
+    };
+    loadAuthors();
 
     // Handle click outside
     const handleClickOutside = (event: MouseEvent) => {

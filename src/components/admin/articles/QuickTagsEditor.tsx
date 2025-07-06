@@ -26,8 +26,11 @@ export default function QuickTagsEditor({
 
   useEffect(() => {
     // Load available tags
-    const tags = ArticlesService.getTags();
-    setAvailableTags(tags);
+    const loadTags = async () => {
+      const tags = await ArticlesService.getTags();
+      setAvailableTags(tags);
+    };
+    loadTags();
 
     // Handle click outside
     const handleClickOutside = (event: MouseEvent) => {
