@@ -396,7 +396,7 @@ export default function UsersList() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.anonymous}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Ẩn danh</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Chưa đăng ký</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.verified}</div>
@@ -553,7 +553,7 @@ export default function UsersList() {
                           <div className="flex items-center space-x-2">
                             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.full_name}</div>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getUserTypeBadge(user.user_type)}`}>
-                              {user.user_type === 'anonymous' ? 'Ẩn danh' : 'Đã đăng ký'}
+                              {user.user_type === 'anonymous' ? 'Chưa đăng ký' : 'Đã đăng ký'}
                             </span>
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -572,7 +572,7 @@ export default function UsersList() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {isAnonymousUser(user) ? (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadge(user.role)}`}>
-                          User (Ẩn danh)
+                          Chưa đăng ký
                         </span>
                       ) : (
                         <select
