@@ -21,13 +21,13 @@ export default function AdminCategories() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [tempSlug, setTempSlug] = useState('');
   const [optimisticSlugs, setOptimisticSlugs] = useState<Record<string, string>>({});
   const [pendingSlugUpdates, setPendingSlugUpdates] = useState<Set<string>>(new Set());
   const [targetStatuses, setTargetStatuses] = useState<Record<string, 'active' | 'inactive'>>({});
   const [pendingStatusUpdates, setPendingStatusUpdates] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState<'activate' | 'deactivate' | null>(null);
 
   const limit = 10;
 
@@ -35,23 +35,19 @@ export default function AdminCategories() {
   const fetchCategories = useCallback(async (page: number = currentPage) => {
     console.log(`🔍 Fetch categories page ${page}`);
     setError('');
-    setConnectionStatus('checking');
 
     try {
       const { data, error: fetchError } = await CategoriesService.getCategories(page, limit, filters);
 
       if (fetchError || !data) {
-        setConnectionStatus('disconnected');
         setError(fetchError?.message || 'Không thể tải danh sách danh mục');
         return;
       }
 
       console.log(`✅ Loaded categories page ${page}`);
-      setConnectionStatus('connected');
       setCategoriesData(data);
 
     } catch (err: any) {
-      setConnectionStatus('disconnected');
       setError(err?.message || 'Có lỗi xảy ra khi tải dữ liệu');
     }
   }, [currentPage, filters]);
@@ -89,6 +85,7 @@ export default function AdminCategories() {
       setPendingSlugUpdates(new Set());
       setTargetStatuses({});
       setPendingStatusUpdates(new Set());
+      setBulkActionLoading(null);
     };
   }, []);
 
@@ -129,25 +126,101 @@ export default function AdminCategories() {
 
 
 
-  // Handle bulk status update
+  // Handle bulk status update with optimistic UI
   const handleBulkStatusUpdate = async (status: 'active' | 'inactive') => {
     if (selectedCategories.length === 0) return;
-    
+
+    const actionType = status === 'active' ? 'activate' : 'deactivate';
+
+    // 1. OPTIMISTIC UPDATE: Set loading state and update UI immediately
+    setBulkActionLoading(actionType);
     setIsUpdating(true);
+
+    // Update all selected categories optimistically
+    selectedCategories.forEach(categoryId => {
+      setTargetStatuses(prev => ({ ...prev, [categoryId]: status }));
+      setPendingStatusUpdates(prev => new Set(prev).add(categoryId));
+    });
+
     try {
+      // 2. BACKGROUND API CALL
       const { data: updatedCount, error } = await CategoriesService.bulkUpdateStatus(selectedCategories, status);
+
       if (!error) {
-        await fetchCategories(currentPage);
-        await fetchStats();
+        // 3. SUCCESS: Update local data immediately
+        if (categoriesData) {
+          const updatedCategories = categoriesData.categories.map(cat =>
+            selectedCategories.includes(cat.id)
+              ? { ...cat, status: status as 'active' | 'inactive' }
+              : cat
+          );
+          setCategoriesData({
+            ...categoriesData,
+            categories: updatedCategories
+          });
+        }
+
+        // Clear optimistic states
+        selectedCategories.forEach(categoryId => {
+          setTargetStatuses(prev => {
+            const updated = { ...prev };
+            delete updated[categoryId];
+            return updated;
+          });
+          setPendingStatusUpdates(prev => {
+            const updated = new Set(prev);
+            updated.delete(categoryId);
+            return updated;
+          });
+        });
+
+        // Clear selections and hide bulk actions
         setSelectedCategories([]);
         setShowBulkActions(false);
-        alert(`Đã cập nhật ${updatedCount} danh mục`);
+        setError('');
+
+        // Update stats and background sync
+        fetchStats();
+        setTimeout(() => fetchCategories(), 100);
+
       } else {
-        setError('Không thể cập nhật trạng thái danh mục');
+        // 4. ERROR: Revert optimistic changes
+        selectedCategories.forEach(categoryId => {
+          setTargetStatuses(prev => {
+            const updated = { ...prev };
+            delete updated[categoryId];
+            return updated;
+          });
+          setPendingStatusUpdates(prev => {
+            const updated = new Set(prev);
+            updated.delete(categoryId);
+            return updated;
+          });
+        });
+
+        setError(`Không thể ${status === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} danh mục`);
+        fetchCategories(); // Refresh to ensure consistency
       }
-    } catch (err) {
-      setError('Có lỗi xảy ra khi cập nhật');
+    } catch (err: any) {
+      // 5. ERROR: Revert optimistic changes
+      selectedCategories.forEach(categoryId => {
+        setTargetStatuses(prev => {
+          const updated = { ...prev };
+          delete updated[categoryId];
+          return updated;
+        });
+        setPendingStatusUpdates(prev => {
+          const updated = new Set(prev);
+          updated.delete(categoryId);
+          return updated;
+        });
+      });
+
+      setError(err?.message || `Có lỗi xảy ra khi ${status === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} danh mục`);
+      fetchCategories(); // Refresh to ensure consistency
     } finally {
+      // 6. CLEANUP
+      setBulkActionLoading(null);
       setIsUpdating(false);
     }
   };
@@ -462,34 +535,14 @@ export default function AdminCategories() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center space-x-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý danh mục</h1>
-            {/* Connection Status */}
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-500' :
-                connectionStatus === 'disconnected' ? 'bg-red-500' :
-                'bg-yellow-500 animate-pulse'
-              }`}></div>
-              <span className={`text-xs font-medium ${
-                connectionStatus === 'connected' ? 'text-green-600 dark:text-green-400' :
-                connectionStatus === 'disconnected' ? 'text-red-600 dark:text-red-400' :
-                'text-yellow-600 dark:text-yellow-400'
-              }`}>
-                {connectionStatus === 'connected' ? 'Đã kết nối' :
-                 connectionStatus === 'disconnected' ? 'Mất kết nối' :
-                 'Đang kiểm tra...'}
-              </span>
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý danh mục</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý danh mục bài viết trên website</p>
         </div>
 
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowCreateModal(true)}
-            disabled={connectionStatus !== 'connected'}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -663,15 +716,24 @@ export default function AdminCategories() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  Đã chọn {selectedCategories.length} danh mục
-                </span>
+                <div className="flex items-center space-x-2">
+                  {bulkActionLoading && (
+                    <div className="w-4 h-4 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    {bulkActionLoading
+                      ? `Đang ${bulkActionLoading === 'activate' ? 'kích hoạt' : 'vô hiệu hóa'} ${selectedCategories.length} danh mục...`
+                      : `Đã chọn ${selectedCategories.length} danh mục`
+                    }
+                  </span>
+                </div>
                 <button
                   onClick={() => {
                     setSelectedCategories([]);
                     setShowBulkActions(false);
                   }}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                  disabled={bulkActionLoading !== null}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 >
                   Bỏ chọn
                 </button>
@@ -679,17 +741,41 @@ export default function AdminCategories() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleBulkStatusUpdate('active')}
-                  disabled={isUpdating}
-                  className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm rounded-md transition-colors"
+                  disabled={isUpdating || bulkActionLoading !== null}
+                  className="flex items-center space-x-2 px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-sm rounded-md transition-all duration-200"
                 >
-                  Kích hoạt
+                  {bulkActionLoading === 'activate' ? (
+                    <>
+                      <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Đang kích hoạt...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Kích hoạt</span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => handleBulkStatusUpdate('inactive')}
-                  disabled={isUpdating}
-                  className="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white text-sm rounded-md transition-colors"
+                  disabled={isUpdating || bulkActionLoading !== null}
+                  className="flex items-center space-x-2 px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm rounded-md transition-all duration-200"
                 >
-                  Vô hiệu hóa
+                  {bulkActionLoading === 'deactivate' ? (
+                    <>
+                      <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Đang vô hiệu hóa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Vô hiệu hóa</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
