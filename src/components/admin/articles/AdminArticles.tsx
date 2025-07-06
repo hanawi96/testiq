@@ -33,6 +33,27 @@ export default function AdminArticles() {
 
   const limit = 10;
 
+  // Generate category color based on category name
+  const getCategoryColor = (categoryName: string) => {
+    const colors = [
+      'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700',
+      'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700',
+      'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700',
+      'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-700',
+      'bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border-pink-200 dark:border-pink-700',
+      'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700',
+      'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-700',
+      'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700'
+    ];
+
+    // Simple hash function to get consistent color for same category name
+    let hash = 0;
+    for (let i = 0; i < categoryName.length; i++) {
+      hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   // Fetch articles data
   const fetchArticles = useCallback(async (page: number = currentPage) => {
     console.log(`🔍 Fetch articles page ${page}`);
@@ -570,6 +591,9 @@ export default function AdminArticles() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Bài viết
                     </th>
+                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Danh mục
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Tác giả
                     </th>
@@ -609,6 +633,18 @@ export default function AdminArticles() {
                             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                               {article.excerpt}
                             </div>
+                            {/* Category info for mobile */}
+                            <div className="sm:hidden mt-2">
+                              {article.category_name ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(article.category_name)}`}>
+                                  📁 {article.category_name}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
+                                  📁 Chưa phân loại
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center space-x-2 mt-2">
                               <div className="flex items-center space-x-2">
                                 {(article.tags || []).slice(0, 3).map((tag, index) => (
@@ -637,6 +673,21 @@ export default function AdminArticles() {
                               </button>
                             </div>
                           </div>
+                        </div>
+                      </td>
+
+                      {/* Categories */}
+                      <td className="hidden sm:table-cell px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {article.category_name ? (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(article.category_name)}`}>
+                              {article.category_name}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
+                              Chưa phân loại
+                            </span>
+                          )}
                         </div>
                       </td>
 

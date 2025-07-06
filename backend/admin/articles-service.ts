@@ -139,7 +139,13 @@ export class ArticlesService {
   private static buildArticleQuery() {
     return supabase
       .from('articles')
-      .select('*');
+      .select(`
+        *,
+        categories!category_id (
+          name,
+          slug
+        )
+      `);
   }
 
   /**
@@ -155,7 +161,10 @@ export class ArticlesService {
       excerpt: dbArticle.excerpt || '',
       status: dbArticle.status || 'draft',
       created_at: dbArticle.created_at || new Date().toISOString(),
-      updated_at: dbArticle.updated_at || new Date().toISOString()
+      updated_at: dbArticle.updated_at || new Date().toISOString(),
+      // Handle category data from join
+      category_name: dbArticle.categories?.name || null,
+      category_slug: dbArticle.categories?.slug || null
     };
   }
 
