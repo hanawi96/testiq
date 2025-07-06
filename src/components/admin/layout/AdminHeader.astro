@@ -136,9 +136,9 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
         class="flex items-center space-x-2 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
       >
         <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-          <span class="text-white text-sm font-medium">A</span>
+          <span id="admin-avatar" class="text-white text-sm font-medium">A</span>
         </div>
-        <span class="hidden md:block font-medium truncate max-w-32">admin</span>
+        <span id="admin-name" class="hidden md:block font-medium truncate max-w-32">admin</span>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
@@ -147,8 +147,14 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
       <!-- User Dropdown -->
       <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
         <div class="p-3 border-b border-gray-200 dark:border-gray-700">
-          <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">admin@example.com</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+          <div id="admin-info-loading" class="animate-pulse hidden">
+            <div class="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+            <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+          </div>
+          <div id="admin-info-content">
+            <p id="admin-email" class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">admin@example.com</p>
+            <span id="admin-role" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Quản trị viên</span>
+          </div>
         </div>
         
         <div class="py-1">
@@ -226,10 +232,31 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
     });
 
     // Logout functionality
-    logoutBtn?.addEventListener('click', function() {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_email');
-      window.location.href = '/admin/login';
+    logoutBtn?.addEventListener('click', async function() {
+      try {
+        // Import Supabase client directly
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          'https://qovhiztkfgjppfiqtake.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmhpenRrZmdqcHBmaXF0YWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5MDIzMjYsImV4cCI6MjA2NjQ3ODMyNn0.0ALtY_sAoCEAqJoov1u5NSqj26yxKsEvYSTZECqaaEE'
+        );
+
+        // Sign out from Supabase
+        await supabase.auth.signOut();
+
+        // Clear localStorage
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_email');
+
+        // Redirect to login
+        window.location.href = '/admin/login';
+      } catch (error) {
+        console.error('AdminHeader: Error during logout:', error);
+        // Force redirect even if logout fails
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_email');
+        window.location.href = '/admin/login';
+      }
     });
 
     // Prevent dropdown close when clicking inside
@@ -238,5 +265,61 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
         e.stopPropagation();
       });
     });
+
+    // Fetch real admin info - SIMPLIFIED
+    async function fetchAdminInfo() {
+      const adminAvatar = document.getElementById('admin-avatar');
+      const adminName = document.getElementById('admin-name');
+      const adminEmail = document.getElementById('admin-email');
+      const adminRole = document.getElementById('admin-role');
+
+      try {
+        // Import Supabase client directly
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          'https://qovhiztkfgjppfiqtake.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmhpenRrZmdqcHBmaXF0YWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5MDIzMjYsImV4cCI6MjA2NjQ3ODMyNn0.0ALtY_sAoCEAqJoov1u5NSqj26yxKsEvYSTZECqaaEE'
+        );
+
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) throw new Error('No user found');
+
+        // Get user profile
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+
+        const adminInfo = {
+          email: user.email || 'admin@example.com',
+          fullName: profile?.full_name || user.email?.split('@')[0] || 'Admin',
+          role: profile?.role || 'admin'
+        };
+
+        // Update UI elements
+        if (adminAvatar) adminAvatar.textContent = adminInfo.fullName.charAt(0).toUpperCase();
+        if (adminName) adminName.textContent = adminInfo.fullName;
+        if (adminEmail) adminEmail.textContent = adminInfo.email;
+        if (adminRole) adminRole.textContent = adminInfo.role === 'admin' ? 'Quản trị viên' : adminInfo.role;
+
+      } catch (error) {
+        console.error('AdminHeader: Error fetching admin info:', error);
+
+        // Fallback to localStorage
+        const fallbackEmail = localStorage.getItem('admin_email') || 'admin@example.com';
+        const fallbackName = fallbackEmail.split('@')[0];
+
+        if (adminAvatar) adminAvatar.textContent = fallbackName.charAt(0).toUpperCase();
+        if (adminName) adminName.textContent = fallbackName;
+        if (adminEmail) adminEmail.textContent = fallbackEmail;
+        if (adminRole) adminRole.textContent = 'Quản trị viên';
+      }
+    }
+
+    // Fetch admin info on page load
+    fetchAdminInfo();
   });
 </script>

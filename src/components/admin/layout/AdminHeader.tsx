@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { AuthService } from '../../../backend';
+import type { UserProfile } from '../../../backend';
 
 interface AdminHeaderProps {
   title?: string;
@@ -6,12 +8,24 @@ interface AdminHeaderProps {
   onToggleMobileSidebar?: () => void;
 }
 
+interface AdminInfo {
+  email: string;
+  fullName: string;
+  role: string;
+  isLoading: boolean;
+}
+
 const AdminHeader: React.FC<AdminHeaderProps> = ({
   title = 'Dashboard',
   breadcrumbs = [],
   onToggleMobileSidebar
 }) => {
-  const [userEmail, setUserEmail] = useState<string>('');
+  const [adminInfo, setAdminInfo] = useState<AdminInfo>({
+    email: '',
+    fullName: '',
+    role: 'admin',
+    isLoading: true
+  });
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notifications] = useState([
     { id: 1, title: 'Người dùng mới đăng ký', time: '2 phút trước', unread: true },
@@ -20,11 +34,69 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
   ]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Get user info
+  // Get real admin info
   useEffect(() => {
-    // In a real app, this would come from auth context
-    const email = localStorage.getItem('admin_email') || 'admin@example.com';
-    setUserEmail(email);
+    const fetchAdminInfo = async () => {
+      try {
+        console.log('AdminHeader: Fetching admin info...');
+
+        // Get current user
+        const { user, error: userError } = await AuthService.getCurrentUser();
+
+        if (userError || !user) {
+          console.error('AdminHeader: Error getting current user:', userError);
+          // Fallback to localStorage
+          const fallbackEmail = localStorage.getItem('admin_email') || 'admin@example.com';
+          setAdminInfo({
+            email: fallbackEmail,
+            fullName: fallbackEmail.split('@')[0],
+            role: 'admin',
+            isLoading: false
+          });
+          return;
+        }
+
+        console.log('AdminHeader: User found:', user.email);
+
+        // Get user profile
+        const { profile, error: profileError } = await AuthService.getUserProfile(user.id);
+
+        if (profileError || !profile) {
+          console.error('AdminHeader: Error getting profile:', profileError);
+          // Use user info without profile
+          setAdminInfo({
+            email: user.email || 'admin@example.com',
+            fullName: user.email?.split('@')[0] || 'Admin',
+            role: 'admin',
+            isLoading: false
+          });
+          return;
+        }
+
+        console.log('AdminHeader: Profile found:', profile.full_name);
+
+        // Set complete admin info
+        setAdminInfo({
+          email: user.email || profile.email || 'admin@example.com',
+          fullName: profile.full_name || user.email?.split('@')[0] || 'Admin',
+          role: profile.role || 'admin',
+          isLoading: false
+        });
+
+      } catch (error) {
+        console.error('AdminHeader: Unexpected error:', error);
+        // Fallback to localStorage
+        const fallbackEmail = localStorage.getItem('admin_email') || 'admin@example.com';
+        setAdminInfo({
+          email: fallbackEmail,
+          fullName: fallbackEmail.split('@')[0],
+          role: 'admin',
+          isLoading: false
+        });
+      }
+    };
+
+    fetchAdminInfo();
   }, []);
 
   // Close dropdowns when clicking outside
@@ -166,12 +238,16 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             className="flex items-center space-x-2 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">
-                {userEmail.charAt(0).toUpperCase()}
-              </span>
+              {adminInfo.isLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <span className="text-white text-sm font-medium">
+                  {adminInfo.fullName.charAt(0).toUpperCase() || adminInfo.email.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <span className="hidden md:block font-medium truncate max-w-32">
-              {userEmail.split('@')[0]}
+              {adminInfo.isLoading ? 'Đang tải...' : (adminInfo.fullName || adminInfo.email.split('@')[0])}
             </span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -182,10 +258,24 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
           {showUserMenu && (
             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
               <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                  {userEmail}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+                {adminInfo.isLoading ? (
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {adminInfo.fullName || adminInfo.email}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {adminInfo.email}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                      {adminInfo.role === 'admin' ? 'Quản trị viên' : adminInfo.role}
+                    </p>
+                  </>
+                )}
               </div>
               
               <div className="py-1">
@@ -212,10 +302,24 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
               
               <div className="border-t border-gray-200 dark:border-gray-700 py-1">
                 <button
-                  onClick={() => {
-                    localStorage.removeItem('admin_token');
-                    localStorage.removeItem('admin_email');
-                    window.location.href = '/admin/login';
+                  onClick={async () => {
+                    try {
+                      // Sign out from Supabase
+                      await AuthService.signOut();
+
+                      // Clear localStorage
+                      localStorage.removeItem('admin_token');
+                      localStorage.removeItem('admin_email');
+
+                      // Redirect to login
+                      window.location.href = '/admin/login';
+                    } catch (error) {
+                      console.error('AdminHeader: Error during logout:', error);
+                      // Force redirect even if logout fails
+                      localStorage.removeItem('admin_token');
+                      localStorage.removeItem('admin_email');
+                      window.location.href = '/admin/login';
+                    }
                   }}
                   className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                 >
