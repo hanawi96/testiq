@@ -8,12 +8,16 @@ export const globalAudioContext = {
   isMuted: false,
   setIsMuted: (value: boolean) => {
     globalAudioContext.isMuted = value;
-    localStorage.setItem('iq_test_muted', value.toString());
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('iq_test_muted', value.toString());
+    }
   },
-  // Khởi tạo từ localStorage
+  // Khởi tạo từ localStorage (chỉ trên client)
   initialize: () => {
-    const savedMuteState = localStorage.getItem('iq_test_muted');
-    globalAudioContext.isMuted = savedMuteState ? savedMuteState === 'true' : false;
+    if (typeof window !== 'undefined') {
+      const savedMuteState = localStorage.getItem('iq_test_muted');
+      globalAudioContext.isMuted = savedMuteState ? savedMuteState === 'true' : false;
+    }
   }
 };
 
