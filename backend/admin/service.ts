@@ -1,12 +1,13 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats, WeeklyNewUsersStats } from '../types';
 
 // Cache for stats (5 minutes)
 let newUsersStatsCache: { data: NewUsersStats; timestamp: number } | null = null;
 let weeklyTestStatsCache: { data: WeeklyTestStats; timestamp: number } | null = null;
 let dailyTestStatsCache: { data: DailyTestStats; timestamp: number } | null = null;
 let dailyComparisonStatsCache: { data: DailyComparisonStats; timestamp: number } | null = null;
+let weeklyNewUsersStatsCache: { data: WeeklyNewUsersStats; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -610,12 +611,153 @@ export class AdminService {
   }
 
   /**
+   * Get weekly new users statistics for the last 6 weeks
+   */
+  static async getWeeklyNewUsersStats(): Promise<{
+    data: WeeklyNewUsersStats | null;
+    error: any
+  }> {
+    try {
+      console.log('AdminService: Fetching weekly new users stats for last 6 weeks');
+
+      // Check cache first
+      const now = Date.now();
+      if (weeklyNewUsersStatsCache && (now - weeklyNewUsersStatsCache.timestamp) < CACHE_DURATION) {
+        console.log('AdminService: Using cached weekly new users stats');
+        return { data: weeklyNewUsersStatsCache.data, error: null };
+      }
+
+      // Calculate date range for last 6 weeks
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - (6 * 7 - 1)); // 6 weeks total (42 days)
+
+      // Format dates for SQL queries
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      const startDateStr = formatDate(startDate);
+      const endDateStr = formatDate(endDate);
+
+      console.log(`AdminService: Querying weekly users from ${startDateStr} to ${endDateStr}`);
+
+      // Query registered users from user_profiles
+      const { data: registeredUsers, error: regError } = await supabase
+        .from('user_profiles')
+        .select('created_at')
+        .gte('created_at', startDateStr + 'T00:00:00.000Z')
+        .lte('created_at', endDateStr + 'T23:59:59.999Z')
+        .order('created_at', { ascending: true });
+
+      if (regError) {
+        console.error('AdminService: Error fetching registered users:', regError);
+        return { data: null, error: regError };
+      }
+
+      // Query anonymous users from anonymous_players
+      const { data: anonymousUsers, error: anonError } = await supabase
+        .from('anonymous_players')
+        .select('created_at')
+        .gte('created_at', startDateStr + 'T00:00:00.000Z')
+        .lte('created_at', endDateStr + 'T23:59:59.999Z')
+        .order('created_at', { ascending: true });
+
+      if (anonError) {
+        console.error('AdminService: Error fetching anonymous users:', anonError);
+        return { data: null, error: anonError };
+      }
+
+      console.log(`AdminService: Found ${registeredUsers?.length || 0} registered users and ${anonymousUsers?.length || 0} anonymous users`);
+
+      // Create weekly data structure
+      const weeklyData = [];
+
+      for (let i = 0; i < 6; i++) {
+        const weekStart = new Date(startDate);
+        weekStart.setDate(startDate.getDate() + (i * 7));
+
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+
+        // Ensure we don't go beyond endDate
+        if (weekEnd > endDate) {
+          weekEnd.setTime(endDate.getTime());
+        }
+
+        const weekStartStr = formatDate(weekStart);
+        const weekEndStr = formatDate(weekEnd);
+
+        // Count registered users for this week
+        const registeredCount = registeredUsers?.filter(user => {
+          const userDate = user.created_at.split('T')[0];
+          return userDate >= weekStartStr && userDate <= weekEndStr;
+        }).length || 0;
+
+        // Count anonymous users for this week
+        const anonymousCount = anonymousUsers?.filter(user => {
+          const userDate = user.created_at.split('T')[0];
+          return userDate >= weekStartStr && userDate <= weekEndStr;
+        }).length || 0;
+
+        // Create week label (e.g., "T6 15/1 - T5 21/1")
+        const weekLabel = `${weekStart.getDate()}/${weekStart.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`;
+
+        weeklyData.push({
+          weekStart: weekStartStr,
+          weekEnd: weekEndStr,
+          weekLabel,
+          registeredUsers: registeredCount,
+          anonymousUsers: anonymousCount,
+          total: registeredCount + anonymousCount
+        });
+      }
+
+      // Calculate totals
+      const totalNewUsers = weeklyData.reduce((sum, week) => sum + week.total, 0);
+      const averagePerWeek = Math.round(totalNewUsers / 6);
+
+      console.log('AdminService: Weekly new users stats calculated successfully', {
+        totalNewUsers,
+        averagePerWeek,
+        weeklyDataLength: weeklyData.length
+      });
+
+      const result = {
+        totalNewUsers,
+        averagePerWeek,
+        weeklyData
+      };
+
+      // Cache the result
+      weeklyNewUsersStatsCache = {
+        data: result,
+        timestamp: now
+      };
+
+      return {
+        data: result,
+        error: null
+      };
+    } catch (err) {
+      console.error('AdminService: Error fetching weekly new users stats:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Clear weekly new users stats cache
+   */
+  static clearWeeklyNewUsersStatsCache(): void {
+    weeklyNewUsersStatsCache = null;
+    console.log('AdminService: Weekly new users stats cache cleared');
+  }
+
+  /**
    * Clear all admin caches
    */
   static clearAllCaches(): void {
     newUsersStatsCache = null;
     weeklyTestStatsCache = null;
     dailyComparisonStatsCache = null;
+    weeklyNewUsersStatsCache = null;
     console.log('AdminService: All admin caches cleared');
   }
 

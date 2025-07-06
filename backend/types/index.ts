@@ -85,6 +85,20 @@ export interface DailyTestStats {
   }>;
 }
 
+// Weekly new users statistics for dashboard (6 weeks)
+export interface WeeklyNewUsersStats {
+  totalNewUsers: number;
+  averagePerWeek: number;
+  weeklyData: Array<{
+    weekStart: string;
+    weekEnd: string;
+    weekLabel: string;
+    registeredUsers: number;
+    anonymousUsers: number;
+    total: number;
+  }>;
+}
+
 // Daily comparison statistics for dashboard
 export interface DailyComparisonStats {
   testsToday: {

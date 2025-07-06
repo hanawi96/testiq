@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { AuthService, AdminService } from '../../../../backend';
 import type { UserProfile, AdminStats, AdminAction } from '../../../../backend';
 import NewUsersChart from './NewUsersChart';
+import WeeklyNewUsersChart from './WeeklyNewUsersChart';
 import WeeklyTestChart from './WeeklyTestChart';
 import DailyTestChart from './DailyTestChart';
 import EnhancedStatsCards from './EnhancedStatsCards';
@@ -161,10 +162,16 @@ export default function AdminDashboard() {
         </div>
       </motion.div>
 
-      {/* New Users Chart */}
-      <NewUsersChart />
+      {/* New Users Charts Grid - Daily and Weekly */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        {/* Daily New Users Chart */}
+        <NewUsersChart />
 
-      {/* Charts Grid - Daily and Weekly Test Charts */}
+        {/* Weekly New Users Chart */}
+        <WeeklyNewUsersChart />
+      </div>
+
+      {/* Test Charts Grid - Daily and Weekly Test Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Daily Test Chart */}
         <DailyTestChart />
