@@ -13,6 +13,10 @@ export interface UserWithProfile {
   age?: number;
   location?: string;
   user_type?: 'registered' | 'anonymous';
+  // Thêm 3 trường mới cho các cột bảng
+  gender?: string | null;
+  country?: string | null;
+  test_count?: number;
 }
 
 export interface UsersListResponse {
@@ -68,8 +72,8 @@ export class UsersService {
       };
 
       console.log('UsersService: Fetching users from user_profiles and anonymous_players...');
-      const [registeredResult, anonymousResult] = await Promise.all([
-        // Query registered users directly from user_profiles
+      const [registeredResult, anonymousResult, testCountsResult] = await Promise.all([
+        // Query registered users directly from user_profiles với gender
         supabase
           .from(TABLES.PROFILES)
           .select(`
@@ -81,19 +85,25 @@ export class UsersService {
             last_login,
             age,
             location,
+            gender,
             created_at,
             updated_at
           `)
           .order('created_at', { ascending: false }),
-        // Query anonymous users from anonymous_players table
+        // Query anonymous users from anonymous_players table với gender và country
         supabase
           .from('anonymous_players')
           .select('id, name, age, country_name, email, created_at, test_score, gender')
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false }),
+        // Query test counts từ user_test_results
+        supabase
+          .from('user_test_results')
+          .select('user_id, email')
       ]);
 
       const { data: registeredUsers, error: registeredError } = registeredResult;
       const { data: anonymousPlayers, error: anonymousError } = anonymousResult;
+      const { data: testResults, error: testCountsError } = testCountsResult;
 
       if (registeredError) {
         console.error('UsersService: Error fetching registered users:', registeredError);
@@ -104,6 +114,25 @@ export class UsersService {
         console.error('UsersService: Error fetching anonymous players:', anonymousError);
         return { data: null, error: anonymousError };
       }
+
+      if (testCountsError) {
+        console.error('UsersService: Error fetching test counts:', testCountsError);
+        // Không return error vì test counts không phải critical
+      }
+
+      // Tạo map để đếm số lần test cho mỗi user
+      const testCountMap = new Map<string, number>();
+      const emailTestCountMap = new Map<string, number>();
+
+      (testResults || []).forEach((result: any) => {
+        if (result.user_id) {
+          // Đếm cho registered users
+          testCountMap.set(result.user_id, (testCountMap.get(result.user_id) || 0) + 1);
+        } else if (result.email) {
+          // Đếm cho anonymous users theo email
+          emailTestCountMap.set(result.email, (emailTestCountMap.get(result.email) || 0) + 1);
+        }
+      });
 
       // Transform anonymous players thành UserWithProfile format
       const transformedAnonymous: UserWithProfile[] = (anonymousPlayers || []).map(player => ({
@@ -118,7 +147,11 @@ export class UsersService {
         last_login: null,
         age: player.age,
         location: player.country_name,
-        user_type: 'anonymous' as const
+        user_type: 'anonymous' as const,
+        // Thêm 3 trường mới
+        gender: player.gender || null,
+        country: player.country_name || null,
+        test_count: emailTestCountMap.get(player.email) || 0
       }));
 
       // Transform registered users và thêm user_type
@@ -134,7 +167,11 @@ export class UsersService {
         last_login: user.last_login,
         age: user.age,
         location: user.location,
-        user_type: 'registered' as const
+        user_type: 'registered' as const,
+        // Thêm 3 trường mới
+        gender: user.gender || null,
+        country: user.location || null, // Sử dụng location làm country cho registered users
+        test_count: testCountMap.get(user.id) || 0
       }));
 
       // Merge cả 2 lists

@@ -351,6 +351,52 @@ export default function UsersList() {
     return user.user_type === 'anonymous';
   };
 
+  // Helper functions để format dữ liệu
+  const formatCountry = (country: string | null | undefined): string => {
+    if (!country || country.trim() === '') return 'Chưa có';
+    return country;
+  };
+
+  const formatGender = (gender: string | null | undefined): string => {
+    if (!gender || gender.trim() === '') return 'Chưa có';
+    // Chuyển đổi giá trị tiếng Anh sang tiếng Việt
+    switch (gender.toLowerCase()) {
+      case 'male':
+        return 'Nam';
+      case 'female':
+        return 'Nữ';
+      case 'other':
+        return 'Khác';
+      default:
+        return gender;
+    }
+  };
+
+  const formatTestCount = (count: number | undefined): { text: string; className: string } => {
+    const testCount = count || 0;
+    if (testCount === 0) {
+      return {
+        text: 'Chưa có',
+        className: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+      };
+    } else if (testCount === 1) {
+      return {
+        text: '1 lần',
+        className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+      };
+    } else if (testCount <= 5) {
+      return {
+        text: `${testCount} lần`,
+        className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      };
+    } else {
+      return {
+        text: `${testCount} lần`,
+        className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+      };
+    }
+  };
+
   if (isLoading && !usersData) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -374,7 +420,7 @@ export default function UsersList() {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -524,6 +570,15 @@ export default function UsersList() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Đăng nhập cuối
                   </th>
+                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Quốc gia
+                  </th>
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Giới tính
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Số lần test IQ
+                  </th>
                   <th className="relative px-6 py-3">
                     <span className="sr-only">Hành động</span>
                   </th>
@@ -604,7 +659,7 @@ export default function UsersList() {
                         <button
                           onClick={() => handleVerificationToggle(user.id)}
                           disabled={actionLoading === `verify-${user.id}`}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border outline-none transition-all ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border outline-none ${
                             user.is_verified
                               ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800'
                               : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
@@ -636,6 +691,28 @@ export default function UsersList() {
                       {formatDate(user.last_sign_in_at)}
                     </td>
 
+                    {/* Country */}
+                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      {formatCountry(user.country)}
+                    </td>
+
+                    {/* Gender */}
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      {formatGender(user.gender)}
+                    </td>
+
+                    {/* Test Count */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      {(() => {
+                        const { text, className } = formatTestCount(user.test_count);
+                        return (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
+                            {text}
+                          </span>
+                        );
+                      })()}
+                    </td>
+
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {isAnonymousUser(user) ? (
@@ -645,7 +722,7 @@ export default function UsersList() {
                       ) : (
                         <button
                           onClick={(e) => handleDropdownToggle(user.id, e)}
-                          className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 outline-none transition-colors"
+                          className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 outline-none"
                         >
                           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -673,7 +750,7 @@ export default function UsersList() {
           <div className="py-1">
             <button
               onClick={() => handleEditUser(openDropdown)}
-              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors outline-none"
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 outline-none"
             >
               <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -682,7 +759,7 @@ export default function UsersList() {
             </button>
             <button
               onClick={() => handleDeleteUser(openDropdown)}
-              className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors outline-none"
+              className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 outline-none"
             >
               <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -701,7 +778,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(1)}
               disabled={currentPage === 1}
-              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang đầu"
             >
               ⇤
@@ -711,7 +788,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={!usersData.hasPrev}
-              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang trước"
             >
               ←
@@ -751,7 +828,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={!usersData.hasNext}
-              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang sau"
             >
               →
@@ -761,7 +838,7 @@ export default function UsersList() {
             <button
               onClick={() => handlePageChange(usersData.totalPages)}
               disabled={currentPage === usersData.totalPages}
-              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang cuối"
             >
               ⇥
