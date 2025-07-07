@@ -472,7 +472,7 @@ export default function NewUsersChart({ className = '' }: Props) {
           <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
           <button
             onClick={() => loadNewUsersData(true)}
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
           >
             Thử lại
           </button>
@@ -507,7 +507,7 @@ export default function NewUsersChart({ className = '' }: Props) {
             <button
               onClick={() => setShowTimeFilter(!showTimeFilter)}
               disabled={isLoading}
-              className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
               title="Chọn khoảng thời gian"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -533,7 +533,7 @@ export default function NewUsersChart({ className = '' }: Props) {
                     <button
                       key={option.value}
                       onClick={() => handleTimeRangeChange(option.value)}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                      className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
                         timeRange === option.value
                           ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -551,7 +551,7 @@ export default function NewUsersChart({ className = '' }: Props) {
           <button
             onClick={() => loadNewUsersData(true)}
             disabled={isLoading}
-            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             title="Làm mới dữ liệu"
           >
             <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -578,7 +578,7 @@ export default function NewUsersChart({ className = '' }: Props) {
 
       {/* Summary Stats */}
       <div
-        className="grid grid-cols-2 gap-2 sm:gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"
         role="region"
         aria-label="Tóm tắt thống kê người dùng mới"
       >
@@ -611,6 +611,36 @@ export default function NewUsersChart({ className = '' }: Props) {
             {Math.round((data?.totalNewUsers || 0) / 7)}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">TB/ngày</div>
+        </motion.div>
+        <motion.div
+          className="text-center p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20"
+          whileHover={{ scale: 1.02 }}
+          transition={{ duration: 0.2 }}
+          role="group"
+          aria-label={`Số người dùng đăng ký: ${data?.dailyData?.reduce((sum, day) => sum + day.registeredUsers, 0) || 0}`}
+        >
+          <div
+            className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400"
+            aria-label={`${data?.dailyData?.reduce((sum, day) => sum + day.registeredUsers, 0) || 0} người dùng đăng ký`}
+          >
+            {data?.dailyData?.reduce((sum, day) => sum + day.registeredUsers, 0) || 0}
+          </div>
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Đăng ký</div>
+        </motion.div>
+        <motion.div
+          className="text-center p-2 sm:p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20"
+          whileHover={{ scale: 1.02 }}
+          transition={{ duration: 0.2 }}
+          role="group"
+          aria-label={`Số người dùng chưa đăng ký: ${data?.dailyData?.reduce((sum, day) => sum + day.anonymousUsers, 0) || 0}`}
+        >
+          <div
+            className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400"
+            aria-label={`${data?.dailyData?.reduce((sum, day) => sum + day.anonymousUsers, 0) || 0} người dùng chưa đăng ký`}
+          >
+            {data?.dailyData?.reduce((sum, day) => sum + day.anonymousUsers, 0) || 0}
+          </div>
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Chưa đăng ký</div>
         </motion.div>
       </div>
     </motion.div>

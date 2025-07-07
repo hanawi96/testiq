@@ -148,7 +148,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           {/* Collapse Toggle - Desktop */}
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="hidden lg:flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"} />
@@ -158,7 +158,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           {/* Close Button - Mobile */}
           <button
             onClick={onCloseMobile}
-            className="lg:hidden flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="lg:hidden flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -203,7 +203,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             className={`
               w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
               hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 
-              rounded-lg transition-colors
+              rounded-lg
               ${isCollapsed ? 'justify-center' : ''}
             `}
           >
@@ -224,7 +224,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             className={`
               w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
               hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 
-              rounded-lg transition-colors mt-1
+              rounded-lg mt-1
               ${isCollapsed ? 'justify-center' : ''}
             `}
           >

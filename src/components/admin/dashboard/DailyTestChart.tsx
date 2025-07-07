@@ -437,7 +437,7 @@ export default function DailyTestChart({ className = '' }: Props) {
           <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
           <button
             onClick={() => loadDailyTestData(true)}
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
           >
             Thử lại
           </button>
@@ -473,7 +473,7 @@ export default function DailyTestChart({ className = '' }: Props) {
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               disabled={isLoading}
-              className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
               title="Chọn khoảng thời gian"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,7 +501,7 @@ export default function DailyTestChart({ className = '' }: Props) {
                         setTimeRange(option.value);
                         setIsDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/30 first:rounded-t-lg last:rounded-b-lg ${
                         timeRange === option.value
                           ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
                           : 'text-gray-700 dark:text-gray-300'
@@ -518,7 +518,7 @@ export default function DailyTestChart({ className = '' }: Props) {
           <button
             onClick={() => loadDailyTestData(true)}
             disabled={isLoading}
-            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             title="Làm mới dữ liệu"
           >
             <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
