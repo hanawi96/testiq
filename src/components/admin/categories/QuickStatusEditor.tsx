@@ -9,24 +9,24 @@ interface QuickStatusEditorProps {
   disabled?: boolean;
 }
 
-const STATUS_OPTIONS = [
-  {
+const STATUS_ACTIONS = {
+  active: {
+    value: 'inactive',
+    label: 'Vô hiệu hóa',
+    description: 'Ẩn danh mục',
+    icon: '⏸',
+    iconBg: 'bg-red-100 dark:bg-red-900/30',
+    iconColor: 'text-red-600 dark:text-red-400'
+  },
+  inactive: {
     value: 'active',
-    label: 'Hoạt động',
-    description: 'Danh mục hiển thị công khai',
+    label: 'Kích hoạt',
+    description: 'Hiển thị công khai',
     icon: '✓',
     iconBg: 'bg-green-100 dark:bg-green-900/30',
     iconColor: 'text-green-600 dark:text-green-400'
-  },
-  {
-    value: 'inactive',
-    label: 'Không hoạt động',
-    description: 'Danh mục bị ẩn khỏi công khai',
-    icon: '⏸',
-    iconBg: 'bg-gray-100 dark:bg-gray-700',
-    iconColor: 'text-gray-600 dark:text-gray-400'
   }
-] as const;
+} as const;
 
 export default function QuickStatusEditor({ 
   categoryId, 
@@ -67,9 +67,9 @@ export default function QuickStatusEditor({
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
 
-    // Popup dimensions
-    const popupHeight = 160;
-    const popupWidth = 260;
+    // Popup dimensions (smaller since only one action)
+    const popupHeight = 140;
+    const popupWidth = 280;
     const spacing = 8;
 
     // Calculate initial position (below button, aligned to left edge)
@@ -119,6 +119,9 @@ export default function QuickStatusEditor({
 
   const popupPosition = isOpen ? getPopupPosition() : { top: 0, left: 0 };
 
+  // Get the action that can be performed based on current status
+  const availableAction = STATUS_ACTIONS[currentStatus];
+
   return (
     <>
       {/* Edit Icon Button */}
@@ -156,53 +159,56 @@ export default function QuickStatusEditor({
                 zIndex: 1000
               }}
             >
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-[260px]">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-[280px]">
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                   <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Chọn trạng thái
+                    Thay đổi trạng thái
                   </h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Trạng thái hiện tại: <span className={currentStatus === 'active'
+                      ? 'text-green-600 dark:text-green-400 font-medium'
+                      : 'text-red-600 dark:text-red-400 font-medium'
+                    }>
+                      {currentStatus === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                    </span>
+                  </p>
                 </div>
 
-                {/* Options */}
-                <div className="py-1">
-                  {STATUS_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleStatusSelect(option.value)}
-                      disabled={isLoading}
-                      className={`
-                        w-full px-4 py-3 text-left transition-colors duration-200
-                        hover:bg-gray-50 dark:hover:bg-gray-700/30
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                        ${option.value === currentStatus ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
-                      `}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className={`
-                          w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                          ${option.iconBg} ${option.iconColor}
-                        `}>
-                          {option.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {option.label}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            {option.description}
-                          </div>
-                        </div>
-                        {option.value === currentStatus && (
-                          <div className="flex-shrink-0">
-                            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        )}
+                {/* Action */}
+                <div className="p-2">
+                  <button
+                    onClick={() => handleStatusSelect(availableAction.value)}
+                    disabled={isLoading}
+                    className="
+                      w-full px-4 py-3 text-left transition-colors duration-200
+                      hover:bg-gray-50 dark:hover:bg-gray-700/30
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                      rounded-lg
+                    "
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`
+                        w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                        ${availableAction.iconBg} ${availableAction.iconColor}
+                      `}>
+                        {availableAction.icon}
                       </div>
-                    </button>
-                  ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {availableAction.label}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {availableAction.description}
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
             </motion.div>
