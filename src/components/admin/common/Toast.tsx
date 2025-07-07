@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface ToastProps {
@@ -24,14 +24,14 @@ const TOAST_COLORS = {
   info: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
 };
 
-export default function Toast({ 
-  id, 
-  type, 
-  title, 
-  message, 
-  duration = 4000, 
-  onClose 
-}: ToastProps) {
+const Toast = forwardRef<HTMLDivElement, ToastProps>(({
+  id,
+  type,
+  title,
+  message,
+  duration = 4000,
+  onClose
+}, ref) => {
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
@@ -48,6 +48,7 @@ export default function Toast({
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, x: 300, scale: 0.95 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 300, scale: 0.95 }}
@@ -92,7 +93,11 @@ export default function Toast({
       )}
     </motion.div>
   );
-}
+});
+
+Toast.displayName = 'Toast';
+
+export default Toast;
 
 // Toast Container Component
 interface ToastContainerProps {

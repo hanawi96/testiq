@@ -44,6 +44,14 @@ export interface CreateUserData {
   isVerified: boolean;
 }
 
+export interface UpdateUserData {
+  fullName?: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  location?: string;
+  role?: 'user' | 'admin' | 'editor' | 'author' | 'reviewer';
+}
+
 /**
  * Users Management Service for Admin
  */
@@ -477,6 +485,62 @@ export class UsersService {
 
     } catch (err) {
       console.error('UsersService: Unexpected error creating user:', err);
+      return { success: false, error: err };
+    }
+  }
+
+  /**
+   * Update user information
+   */
+  static async updateUser(
+    userId: string,
+    userData: UpdateUserData
+  ): Promise<{ success: boolean; error: any }> {
+    try {
+      console.log('UsersService: Updating user:', { userId, userData });
+
+      // Prepare update data
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      };
+
+      if (userData.fullName !== undefined) {
+        updateData.full_name = userData.fullName;
+      }
+
+      if (userData.age !== undefined) {
+        updateData.age = userData.age;
+      }
+
+      if (userData.gender !== undefined) {
+        updateData.gender = userData.gender;
+      }
+
+      if (userData.location !== undefined) {
+        updateData.location = userData.location;
+      }
+
+      if (userData.role !== undefined) {
+        updateData.role = userData.role;
+      }
+
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .update(updateData)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('UsersService: Error updating user:', error);
+        return { success: false, error };
+      }
+
+      console.log('UsersService: User updated successfully');
+      return { success: true, error: null };
+
+    } catch (err) {
+      console.error('UsersService: Unexpected error updating user:', err);
       return { success: false, error: err };
     }
   }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UsersService } from '../../../../backend';
 import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
 import CreateUserModal from './CreateUserModal';
+import EditUserModal from './EditUserModal';
 import QuickRoleEditor from './QuickRoleEditor';
 import { ToastContainer, useToast } from '../common/Toast';
 
@@ -26,6 +27,8 @@ export default function UsersList() {
 
   const [isMobile, setIsMobile] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
   
   // Cache for instant pagination and filtering
   const cache = useRef<Map<string, UsersListResponse>>(new Map());
@@ -271,9 +274,25 @@ export default function UsersList() {
 
   // Handle edit user
   const handleEditUser = (userId: string) => {
-    console.log('Edit user:', userId);
-    // TODO: Implement edit user functionality
-    alert(`Chức năng sửa user ${userId} sẽ được triển khai sau`);
+    const user = usersData?.users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUser(user);
+      setShowEditModal(true);
+    }
+  };
+
+  // Handle edit user modal close
+  const handleEditUserClose = () => {
+    setShowEditModal(false);
+    setSelectedUser(null);
+  };
+
+  // Handle edit user success
+  const handleEditUserSuccess = () => {
+    // Refresh users data
+    fetchUsers();
+    // Show success toast
+    showSuccess('Cập nhật thông tin người dùng thành công!');
   };
 
   // Handle create user success
@@ -888,6 +907,14 @@ export default function UsersList() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateUserSuccess}
+      />
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={showEditModal}
+        onClose={handleEditUserClose}
+        onSuccess={handleEditUserSuccess}
+        user={selectedUser}
       />
 
       {/* Toast Notifications */}

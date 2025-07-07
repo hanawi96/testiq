@@ -21,7 +21,7 @@ export {
 } from './utils/user-test-results-service';
 
 // Export types
-export type { UserWithProfile, UsersListResponse, UsersFilters, CreateUserData } from './admin/users-service';
+export type { UserWithProfile, UsersListResponse, UsersFilters, CreateUserData, UpdateUserData } from './admin/users-service';
 export type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from './admin/results-service';
 export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from './admin/articles-service';
 export type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from './admin/categories-service';
