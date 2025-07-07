@@ -297,9 +297,6 @@ function isDropdownActive(item: any) {
 
     // Initialize sidebar state
     function initSidebar() {
-      // Remove initializing class to show sidebar
-      sidebar?.classList.remove('sidebar-initializing');
-
       if (isCollapsed) {
         sidebar?.classList.add('collapsed');
         sidebar?.classList.remove('w-64');
@@ -309,6 +306,11 @@ function isDropdownActive(item: any) {
         collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M9 5l7 7-7 7');
       }
       updateThemeIcon();
+
+      // Remove initializing class after dropdowns are set up
+      setTimeout(() => {
+        sidebar?.classList.remove('sidebar-initializing');
+      }, 50);
     }
 
     // Toggle sidebar collapse
@@ -462,13 +464,6 @@ function isDropdownActive(item: any) {
             // Use server-side state if available, otherwise use localStorage
             const isOpen = hasServerSideState || localStorageState;
 
-            // Disable all transitions during initialization
-            dropdownContent.style.transition = 'none';
-            if (dropdownArrow) dropdownArrow.style.transition = 'none';
-
-            // Force immediate layout calculation
-            dropdownContent.offsetHeight;
-
             if (isOpen) {
               openDropdowns.add(dropdownId);
               dropdownContent.classList.add('dropdown-open');
@@ -487,15 +482,6 @@ function isDropdownActive(item: any) {
               }
               localStorage.removeItem(`dropdown-${dropdownId}-open`);
             }
-
-            // Force another layout calculation before re-enabling transitions
-            dropdownContent.offsetHeight;
-
-            // Re-enable transitions after state is fully applied
-            setTimeout(() => {
-              dropdownContent.style.transition = '';
-              if (dropdownArrow) dropdownArrow.style.transition = '';
-            }, 0);
           }
 
           // Add click event listener (no debouncing needed with transition guard)
@@ -529,16 +515,40 @@ function isDropdownActive(item: any) {
 </script>
 
 <style>
-  /* Hide sidebar during initialization to prevent flashing */
-  .sidebar-initializing {
-    opacity: 0;
-    visibility: hidden;
+  /* Smooth initialization - sidebar visible but dropdowns disabled during init */
+  .sidebar-initializing .dropdown-content {
+    transition: none !important;
+    overflow: hidden;
+  }
+
+  .sidebar-initializing .dropdown-arrow {
+    transition: none !important;
   }
 
   /* Prevent transitions on server-side rendered states */
   .server-side-open,
   .server-side-rotated {
     transition: none !important;
+  }
+
+  /* Smooth fade-in for sidebar - only on desktop */
+  @media (min-width: 1024px) {
+    #admin-sidebar {
+      opacity: 0;
+      animation: sidebarFadeIn 0.25s ease-out forwards;
+      animation-delay: 0.1s; /* Small delay to ensure DOM is ready */
+    }
+  }
+
+  @keyframes sidebarFadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 
   #admin-sidebar.collapsed .sidebar-text {
@@ -594,13 +604,20 @@ function isDropdownActive(item: any) {
     transform: translateZ(0);
     backface-visibility: hidden;
     contain: layout style;
-    transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
   }
 
-  /* Show sidebar after initialization */
-  #admin-sidebar:not(.sidebar-initializing) {
-    opacity: 1;
-    visibility: visible;
+  /* Mobile responsive behavior */
+  @media (max-width: 1023px) {
+    #admin-sidebar {
+      animation: none !important; /* Disable fade-in on mobile */
+      opacity: 1 !important;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+    }
+
+    #admin-sidebar.mobile-open {
+      transform: translateX(0);
+    }
   }
 
   /* Ensure proper spacing for sub-items */
@@ -628,13 +645,5 @@ function isDropdownActive(item: any) {
     align-items: center;
   }
 
-  @media (max-width: 1023px) {
-    #admin-sidebar {
-      transform: translateX(-100%);
-    }
 
-    #admin-sidebar.mobile-open {
-      transform: translateX(0);
-    }
-  }
 </style>
