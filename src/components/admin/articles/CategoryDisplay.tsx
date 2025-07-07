@@ -52,7 +52,7 @@ const CategoryDisplay: React.FC<CategoryDisplayProps> = ({
       {visibleCategories.map((categoryName, index) => (
         <span
           key={index}
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all duration-300 ${getCategoryColor(categoryName)} ${
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(categoryName)} ${
             index >= maxVisible && !isExpanded ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
           }`}
           style={{
@@ -66,7 +66,7 @@ const CategoryDisplay: React.FC<CategoryDisplayProps> = ({
       {!isExpanded && hiddenCount > 0 && (
         <button
           onClick={() => setIsExpanded(true)}
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 hover:scale-105"
+          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:scale-105"
           title={`Hiển thị ${hiddenCount} danh mục khác`}
         >
           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +79,7 @@ const CategoryDisplay: React.FC<CategoryDisplayProps> = ({
       {isExpanded && hiddenCount > 0 && (
         <button
           onClick={() => setIsExpanded(false)}
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
+          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105"
           title="Thu gọn danh mục"
         >
           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
