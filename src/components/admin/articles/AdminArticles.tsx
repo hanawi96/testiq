@@ -38,6 +38,7 @@ export default function AdminArticles() {
 
   // Loading states for optimistic UI
   const [loadingAuthorIds, setLoadingAuthorIds] = useState<Set<string>>(new Set());
+  const [loadingCategoryIds, setLoadingCategoryIds] = useState<Set<string>>(new Set());
 
   const [quickCategoryEditor, setQuickCategoryEditor] = useState<{
     articleId: string;
@@ -483,39 +484,61 @@ export default function AdminArticles() {
     }
   };
 
-  // Handle category update (multiple categories)
-  const handleCategoryUpdate = async (articleId: string, categoryIds: string[]) => {
+  // Handle category update with optimistic UI and loading state
+  const handleCategoryUpdate = async (articleId: string, categoryIds: string[], categoryNames: string[]) => {
+    if (!articlesData) return;
+
+    // Close popup immediately for fast UX
+    setQuickCategoryEditor(null);
+
+    // Store original article for rollback
+    const originalArticle = articlesData.articles.find(article => article.id === articleId);
+    if (!originalArticle) return;
+
+    // Start loading state
+    setLoadingCategoryIds(prev => new Set(prev).add(articleId));
+
+    // Optimistic UI update
+    const updatedArticles = articlesData.articles.map(article =>
+      article.id === articleId ? {
+        ...article,
+        category_ids: categoryIds,
+        category_names: categoryNames,
+        // Keep backward compatibility
+        category_id: categoryIds.length > 0 ? categoryIds[0] : undefined,
+        category_name: categoryNames.length > 0 ? categoryNames[0] : undefined
+      } : article
+    );
+    setArticlesData({ ...articlesData, articles: updatedArticles });
+
     try {
-      setIsLoading(true);
+      // Call API in background
+      const { error: updateError } = await ArticlesService.updateCategories(articleId, categoryIds);
 
-      const { data: updatedArticle, error } = await ArticlesService.updateCategories(articleId, categoryIds);
+      if (updateError) {
+        // Rollback on error
+        const rolledBackArticles = articlesData.articles.map(article =>
+          article.id === articleId ? originalArticle : article
+        );
+        setArticlesData({ ...articlesData, articles: rolledBackArticles });
 
-      if (error) {
-        console.error('Error updating categories:', error);
-        setError(error.message || 'Không thể cập nhật danh mục');
-        return;
+        // Show error (you can add toast notification here)
+        console.error('Failed to update categories:', updateError);
       }
-
-      if (updatedArticle) {
-        // Update the article in the current data
-        setArticlesData(prev => {
-          if (!prev) return prev;
-
-          return {
-            ...prev,
-            articles: prev.articles.map(article =>
-              article.id === articleId ? updatedArticle : article
-            )
-          };
-        });
-      }
-
-      setQuickCategoryEditor(null);
     } catch (err) {
-      console.error('Exception updating categories:', err);
-      setError('Có lỗi xảy ra khi cập nhật danh mục');
+      // Rollback on exception
+      const rolledBackArticles = articlesData.articles.map(article =>
+        article.id === articleId ? originalArticle : article
+      );
+      setArticlesData({ ...articlesData, articles: rolledBackArticles });
+      console.error('Error updating categories:', err);
     } finally {
-      setIsLoading(false);
+      // Remove loading state
+      setLoadingCategoryIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(articleId);
+        return newSet;
+      });
     }
   };
 
@@ -857,18 +880,28 @@ export default function AdminArticles() {
                             </div>
                             {/* Category info for mobile */}
                             <div className="sm:hidden mt-2 flex items-center space-x-2">
-                              <CategoryDisplay
-                                categories={article.category_names || []}
-                                maxVisible={2}
-                                getCategoryColor={getCategoryColor}
-                                className="flex-1"
-                                showIcon={true}
-                                iconPrefix="📁"
-                              />
+                              {loadingCategoryIds.has(article.id) ? (
+                                <div className="flex items-center space-x-2 flex-1">
+                                  <div className="w-3 h-3 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Đang cập nhật danh mục...
+                                  </div>
+                                </div>
+                              ) : (
+                                <CategoryDisplay
+                                  categories={article.category_names || []}
+                                  maxVisible={2}
+                                  getCategoryColor={getCategoryColor}
+                                  className="flex-1"
+                                  showIcon={true}
+                                  iconPrefix="📁"
+                                />
+                              )}
                               <button
                                 onClick={(e) => handleQuickCategoryEdit(e, article.id)}
                                 onMouseEnter={categoriesPreloadTriggers.onEditHover}
-                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0"
+                                disabled={loadingCategoryIds.has(article.id)}
+                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Chỉnh sửa danh mục"
                                 data-quick-edit-button="category"
                               >
@@ -911,16 +944,26 @@ export default function AdminArticles() {
                       {/* Categories */}
                       <td className="hidden sm:table-cell px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <CategoryDisplay
-                            categories={article.category_names || []}
-                            maxVisible={3}
-                            getCategoryColor={getCategoryColor}
-                            className="max-w-xs"
-                          />
+                          {loadingCategoryIds.has(article.id) ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                Đang cập nhật...
+                              </div>
+                            </div>
+                          ) : (
+                            <CategoryDisplay
+                              categories={article.category_names || []}
+                              maxVisible={3}
+                              getCategoryColor={getCategoryColor}
+                              className="max-w-xs"
+                            />
+                          )}
                           <button
                             onClick={(e) => handleQuickCategoryEdit(e, article.id)}
                             onMouseEnter={categoriesPreloadTriggers.onEditHover}
-                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0"
+                            disabled={loadingCategoryIds.has(article.id)}
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa danh mục"
                             data-quick-edit-button="category"
                           >

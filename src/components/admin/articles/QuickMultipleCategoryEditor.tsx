@@ -19,7 +19,7 @@ interface QuickMultipleCategoryEditorProps {
   articleId: string;
   currentCategoryIds: string[];
   currentCategoryNames: string[];
-  onUpdate: (articleId: string, categoryIds: string[]) => Promise<void>;
+  onUpdate: (articleId: string, categoryIds: string[], categoryNames: string[]) => Promise<void>;
   onClose: () => void;
   position: { top: number; left: number };
 }
@@ -46,14 +46,14 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
     setCategories(instantCategories);
     setIsLoading(false);
 
-    // Background load for better data (non-blocking)
-    if (!isCategoriesDataReady()) {
-      preloadCategoriesData().then(loadedCategories => {
-        setCategories(loadedCategories);
-      }).catch(() => {
-        // Keep instant data on error
-      });
-    }
+    // Always load fresh data in background to ensure completeness
+    preloadCategoriesData().then(loadedCategories => {
+      setCategories(loadedCategories);
+      console.log(`📂 QuickMultipleCategoryEditor: Loaded ${loadedCategories.length} categories`);
+    }).catch(() => {
+      // Keep instant data on error
+      console.warn('📂 QuickMultipleCategoryEditor: Failed to load categories, using instant fallback');
+    });
   }, []);
 
   // Handle click outside to close
@@ -97,18 +97,14 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
   };
 
   const handleSave = async () => {
-    try {
-      setIsSaving(true);
-      setError(null);
-      
-      await onUpdate(articleId, selectedCategoryIds);
-      onClose();
-    } catch (err) {
-      console.error('Error saving categories:', err);
-      setError('Không thể lưu danh mục');
-    } finally {
-      setIsSaving(false);
-    }
+    // Get selected category names for optimistic UI update
+    const selectedCategoryNames = selectedCategoryIds.map(id => {
+      const category = categories.find(cat => cat.id === id);
+      return category?.name || '';
+    }).filter(name => name);
+
+    // Call parent handler (which will close popup and handle API call)
+    await onUpdate(articleId, selectedCategoryIds, selectedCategoryNames);
   };
 
   const handleCancel = () => {

@@ -78,10 +78,10 @@ async function loadCategoriesData(): Promise<Category[]> {
   try {
     // Dynamic import to avoid circular dependencies
     const { CategoriesService } = await import('../../backend/admin/categories-service');
-    const result = await CategoriesService.getCategories();
-    
+    const result = await CategoriesService.getAllCategories();
+
     if (result.data && result.data.length > 0) {
-      console.log('📂 Categories Preloader: Loaded from database');
+      console.log(`📂 Categories Preloader: Loaded ${result.data.length} categories from database`);
       return result.data;
     }
   } catch (error) {
