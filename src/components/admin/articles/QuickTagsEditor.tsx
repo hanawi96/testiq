@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService } from '../../../../backend';
 import { getInstantTagsData, preloadTagsData, isTagsDataReady } from '../../../utils/tags-preloader';
@@ -25,6 +25,13 @@ export default function QuickTagsEditor({
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Autocomplete states
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const newTagInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     // Set instant data immediately to avoid loading delay
     const instantTags = getInstantTagsData();
@@ -41,6 +48,11 @@ export default function QuickTagsEditor({
       });
     }
 
+    // Auto-focus on new tag input when popup opens
+    setTimeout(() => {
+      newTagInputRef.current?.focus();
+    }, 100);
+
     // Handle click outside
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
@@ -50,6 +62,13 @@ export default function QuickTagsEditor({
           !dropdownRef.current.contains(target) &&
           !target.closest('[data-quick-edit-button]')) {
         onClose();
+      }
+
+      // Close suggestions if clicking outside the suggestions area
+      if (suggestionsRef.current && !suggestionsRef.current.contains(target) &&
+          newTagInputRef.current && !newTagInputRef.current.contains(target)) {
+        setShowSuggestions(false);
+        setHighlightedIndex(-1);
       }
     };
 
@@ -65,12 +84,45 @@ export default function QuickTagsEditor({
     );
   };
 
-  const handleAddNewTag = () => {
-    const trimmedTag = newTag.trim();
+  // Debounced filter function for autocomplete
+  const filterSuggestions = useCallback((input: string) => {
+    if (!input.trim()) {
+      setFilteredSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const filtered = availableTags
+      .filter(tag =>
+        tag.toLowerCase().includes(input.toLowerCase()) &&
+        !selectedTags.includes(tag)
+      )
+      .slice(0, 8); // Limit to 8 suggestions for performance
+
+    setFilteredSuggestions(filtered);
+    setShowSuggestions(filtered.length > 0);
+    setHighlightedIndex(-1);
+  }, [availableTags, selectedTags]);
+
+  // Debounce the filter function
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      filterSuggestions(newTag);
+    }, 150); // 150ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [newTag, filterSuggestions]);
+
+  const handleAddNewTag = (tagToAdd?: string) => {
+    const trimmedTag = (tagToAdd || newTag).trim();
     if (trimmedTag && !selectedTags.includes(trimmedTag)) {
       setSelectedTags(prev => [...prev, trimmedTag]);
       setAvailableTags(prev => [...prev, trimmedTag].sort());
       setNewTag('');
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+      // Refocus input after adding tag
+      setTimeout(() => newTagInputRef.current?.focus(), 50);
     }
   };
 
@@ -81,11 +133,66 @@ export default function QuickTagsEditor({
     onClose();
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddNewTag();
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddNewTag();
+      }
+      return;
     }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev =>
+          prev < filteredSuggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev =>
+          prev > 0 ? prev - 1 : filteredSuggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && filteredSuggestions[highlightedIndex]) {
+          handleAddNewTag(filteredSuggestions[highlightedIndex]);
+        } else {
+          handleAddNewTag();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowSuggestions(false);
+        setHighlightedIndex(-1);
+        break;
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTag(e.target.value);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    handleAddNewTag(suggestion);
+  };
+
+  // Function to highlight matching text in suggestions
+  const highlightMatch = (text: string, query: string) => {
+    if (!query.trim()) return text;
+
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <span key={index} className="font-semibold text-primary-600 dark:text-primary-400">
+          {part}
+        </span>
+      ) : part
+    );
   };
 
   return (
@@ -152,27 +259,63 @@ export default function QuickTagsEditor({
           </div>
         </div>
 
-        {/* Add New Tag */}
+        {/* Add New Tag with Autocomplete */}
         <div className="mb-4">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
             Thêm tag mới:
           </label>
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Nhập tag mới..."
-              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-transparent"
-            />
-            <button
-              onClick={handleAddNewTag}
-              disabled={!newTag.trim()}
-              className="px-2 py-1 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded transition-colors"
-            >
-              Thêm
-            </button>
+          <div className="relative">
+            <div className="flex space-x-2">
+              <input
+                ref={newTagInputRef}
+                type="text"
+                value={newTag}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Nhập tag mới..."
+                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-transparent"
+                autoComplete="off"
+              />
+              <button
+                onClick={() => handleAddNewTag()}
+                disabled={!newTag.trim()}
+                className="px-2 py-1 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded transition-colors"
+              >
+                Thêm
+              </button>
+            </div>
+
+            {/* Autocomplete Dropdown */}
+            {showSuggestions && (
+              <div
+                ref={suggestionsRef}
+                className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+              >
+                {filteredSuggestions.length > 0 ? (
+                  filteredSuggestions.map((suggestion, index) => (
+                    <div
+                      key={suggestion}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className={`
+                        px-3 py-2 text-sm cursor-pointer transition-colors
+                        ${index === highlightedIndex
+                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }
+                        ${index === 0 ? 'rounded-t-lg' : ''}
+                        ${index === filteredSuggestions.length - 1 ? 'rounded-b-lg' : ''}
+                      `}
+                    >
+                      {highlightMatch(suggestion, newTag)}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 italic">
+                    Không tìm thấy tag phù hợp
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
