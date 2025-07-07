@@ -5,7 +5,27 @@ export interface Props {
 
 const { currentPath = '' } = Astro.props;
 
-// Menu items
+// 🎯 SMART: Pre-compute server-side states để tránh client-side computation
+const serverSideDropdownStates = new Map();
+
+// Tính toán dropdown states dựa trên currentPath (server-side)
+function computeServerSideDropdownState(currentPath: string, item: any): boolean {
+  if (!item.hasDropdown || !item.subItems) return false;
+  return item.subItems.some((subItem: any) => {
+    if (subItem.href === '/admin') {
+      return currentPath === '/admin' || currentPath === '/admin/';
+    }
+    if (subItem.href === '/admin/users') {
+      return currentPath === '/admin/users' || currentPath === '/admin/users/';
+    }
+    if (subItem.href === '/admin/users/create') {
+      return currentPath === '/admin/users/create' || currentPath === '/admin/users/create/';
+    }
+    return currentPath.startsWith(subItem.href);
+  });
+}
+
+// Menu items với pre-computed states
 const menuItems = [
   {
     id: 'dashboard',
@@ -99,6 +119,14 @@ const menuItems = [
   }
 ];
 
+// 🎯 Pre-compute dropdown states cho tất cả menu items
+menuItems.forEach(item => {
+  if (item.hasDropdown) {
+    const shouldBeOpen = computeServerSideDropdownState(currentPath, item);
+    serverSideDropdownStates.set(item.id, shouldBeOpen);
+  }
+});
+
 // Check if menu item is active
 function isActive(href: string) {
   if (href === '/admin') {
@@ -145,8 +173,10 @@ function isDropdownActive(item: any) {
 <!-- Mobile Overlay -->
 <div id="mobile-overlay" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden hidden"></div>
 
-<!-- Sidebar -->
-<div id="admin-sidebar" class="sidebar-initializing fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+<!-- Sidebar với pre-loaded state -->
+<div id="admin-sidebar"
+     class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700"
+     data-server-dropdown-states={JSON.stringify(Object.fromEntries(serverSideDropdownStates))}>
   
   <!-- Logo Section -->
   <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
@@ -204,13 +234,15 @@ function isDropdownActive(item: any) {
                 </svg>
                 <span class="sidebar-text truncate">{item.title}</span>
               </div>
-              <svg class={`dropdown-arrow w-4 h-4 transition-transform duration-200 sidebar-text ${isDropdownActive(item) ? 'rotate-90 server-side-rotated' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class={`dropdown-arrow w-4 h-4 transition-transform duration-200 sidebar-text ${serverSideDropdownStates.get(item.id) ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
               </svg>
             </button>
 
-            <!-- Dropdown Content -->
-            <div class={`dropdown-content overflow-hidden ${isDropdownActive(item) ? 'dropdown-open server-side-open' : 'dropdown-closed'}`} data-dropdown-content={item.id}>
+            <!-- Dropdown Content với server-side state -->
+            <div class={`dropdown-content overflow-hidden ${serverSideDropdownStates.get(item.id) ? 'dropdown-open' : 'dropdown-closed'}`}
+                 data-dropdown-content={item.id}
+                 data-server-state={serverSideDropdownStates.get(item.id) ? 'open' : 'closed'}>
               <div class="py-1 space-y-1">
                 {item.subItems?.map((subItem: any) => (
                   <a
@@ -292,11 +324,15 @@ function isDropdownActive(item: any) {
     const themeIconDark = document.querySelector('.theme-icon-dark');
     const themeText = document.querySelector('.theme-text');
 
-    let isCollapsed = localStorage.getItem('admin-sidebar-collapsed') === 'true';
+    // 🎯 SMART: Sử dụng pre-loaded state từ window object
+    const preLoadedState = window.__ADMIN_SIDEBAR_STATE__ || { isCollapsed: false, dropdownStates: {}, preLoaded: false };
+    let isCollapsed = preLoadedState.isCollapsed;
     let isMobileOpen = false;
 
-    // Initialize sidebar state
+    // Initialize sidebar state - 🎯 INSTANT với pre-loaded state
     function initSidebar() {
+      console.log('🚀 Initializing sidebar with pre-loaded state:', preLoadedState);
+
       if (isCollapsed) {
         sidebar?.classList.add('collapsed');
         sidebar?.classList.remove('w-64');
@@ -306,11 +342,6 @@ function isDropdownActive(item: any) {
         collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M9 5l7 7-7 7');
       }
       updateThemeIcon();
-
-      // Remove initializing class after dropdowns are set up
-      setTimeout(() => {
-        sidebar?.classList.remove('sidebar-initializing');
-      }, 50);
     }
 
     // Toggle sidebar collapse
@@ -448,7 +479,9 @@ function isDropdownActive(item: any) {
       if (dropdownsInitialized) return;
       dropdownsInitialized = true;
 
-      // Initialize dropdown states from localStorage and server-side state
+      console.log('🎯 Initializing dropdowns with pre-loaded states');
+
+      // Initialize dropdown states - 🚀 INSTANT với pre-loaded data
       const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
       dropdownToggles.forEach(toggle => {
         const dropdownId = toggle.getAttribute('data-dropdown-id');
@@ -457,34 +490,27 @@ function isDropdownActive(item: any) {
           const dropdownArrow = toggle.querySelector('.dropdown-arrow');
 
           if (dropdownContent) {
-            // Check if server-side state exists (based on current path)
-            const hasServerSideState = dropdownContent.classList.contains('server-side-open');
+            // 🎯 PRIORITY: Server-side state > Pre-loaded state > localStorage
+            const serverState = dropdownContent.getAttribute('data-server-state') === 'open';
+            const preLoadedDropdownState = preLoadedState.dropdownStates[dropdownId] || false;
             const localStorageState = localStorage.getItem(`dropdown-${dropdownId}-open`) === 'true';
 
-            // Use server-side state if available, otherwise use localStorage
-            const isOpen = hasServerSideState || localStorageState;
+            // Smart state resolution
+            const isOpen = serverState || preLoadedDropdownState || localStorageState;
 
             if (isOpen) {
               openDropdowns.add(dropdownId);
-              dropdownContent.classList.add('dropdown-open');
-              dropdownContent.classList.remove('dropdown-closed');
-              if (dropdownArrow) {
-                dropdownArrow.classList.add('rotate-90');
-                dropdownArrow.classList.remove('server-side-rotated');
-              }
-              // Update localStorage to match current state
+              // State đã được set từ server-side, chỉ cần sync localStorage
               localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
             } else {
-              dropdownContent.classList.add('dropdown-closed');
-              dropdownContent.classList.remove('dropdown-open', 'server-side-open');
-              if (dropdownArrow) {
-                dropdownArrow.classList.remove('rotate-90', 'server-side-rotated');
-              }
+              // Đảm bảo state consistency
               localStorage.removeItem(`dropdown-${dropdownId}-open`);
             }
+
+            console.log(`📋 Dropdown ${dropdownId}: server=${serverState}, preLoaded=${preLoadedDropdownState}, localStorage=${localStorageState}, final=${isOpen}`);
           }
 
-          // Add click event listener (no debouncing needed with transition guard)
+          // Add click event listener
           toggle.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -515,40 +541,30 @@ function isDropdownActive(item: any) {
 </script>
 
 <style>
-  /* Smooth initialization - sidebar visible but dropdowns disabled during init */
-  .sidebar-initializing .dropdown-content {
+  /* 🎯 INSTANT RENDERING: Sidebar hiển thị ngay lập tức với pre-loaded state */
+  #admin-sidebar {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Smooth transitions chỉ cho user interactions, không cho initial render */
+  .dropdown-content {
+    transition: max-height 0.2s ease-out, opacity 0.15s ease-out;
+    will-change: auto;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .dropdown-arrow {
+    transition: transform 0.2s ease-out;
+    will-change: auto;
+    transform: translateZ(0);
+  }
+
+  /* Disable transitions during page load để tránh flash */
+  .no-transitions * {
     transition: none !important;
-    overflow: hidden;
-  }
-
-  .sidebar-initializing .dropdown-arrow {
-    transition: none !important;
-  }
-
-  /* Prevent transitions on server-side rendered states */
-  .server-side-open,
-  .server-side-rotated {
-    transition: none !important;
-  }
-
-  /* Smooth fade-in for sidebar - only on desktop */
-  @media (min-width: 1024px) {
-    #admin-sidebar {
-      opacity: 0;
-      animation: sidebarFadeIn 0.25s ease-out forwards;
-      animation-delay: 0.1s; /* Small delay to ensure DOM is ready */
-    }
-  }
-
-  @keyframes sidebarFadeIn {
-    from {
-      opacity: 0;
-      transform: translateX(-4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    animation: none !important;
   }
 
   #admin-sidebar.collapsed .sidebar-text {

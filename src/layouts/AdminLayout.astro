@@ -32,6 +32,54 @@ import AdminHeader from '../components/admin/layout/AdminHeader.astro';
     }
   </script>
 
+  <!-- Admin sidebar state pre-loading script - chạy trước khi DOM render -->
+  <script is:inline>
+    // 🎯 PROACTIVE: Pre-load sidebar state để tránh FOUC
+    try {
+      // Đọc sidebar state từ localStorage
+      const isCollapsed = localStorage.getItem('admin-sidebar-collapsed') === 'true';
+
+      // Đọc dropdown states
+      const dropdownStates = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('dropdown-') && key.endsWith('-open')) {
+          const dropdownId = key.replace('dropdown-', '').replace('-open', '');
+          dropdownStates[dropdownId] = localStorage.getItem(key) === 'true';
+        }
+      }
+
+      // Store states globally để AdminSidebar component có thể access
+      window.__ADMIN_SIDEBAR_STATE__ = {
+        isCollapsed,
+        dropdownStates,
+        preLoaded: true
+      };
+
+      console.log('🎯 Pre-loaded admin sidebar state:', window.__ADMIN_SIDEBAR_STATE__);
+
+    } catch (error) {
+      console.warn('⚠️ Failed to pre-load sidebar state:', error);
+      // Fallback state
+      window.__ADMIN_SIDEBAR_STATE__ = {
+        isCollapsed: false,
+        dropdownStates: {},
+        preLoaded: false
+      };
+    }
+
+    // 🎯 PERFORMANCE: Temporarily disable transitions during initial load
+    document.documentElement.classList.add('no-transitions');
+
+    // Re-enable transitions after DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.documentElement.classList.remove('no-transitions');
+        console.log('✅ Transitions re-enabled after initial load');
+      }, 100);
+    });
+  </script>
+
   <SEO
     title={`${title} - Admin`}
     description={description}
