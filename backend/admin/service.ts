@@ -1,9 +1,9 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats, WeeklyNewUsersStats } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats, WeeklyNewUsersStats, NewUsersTimeRange } from '../types';
 
-// Cache for stats (5 minutes)
-let newUsersStatsCache: { data: NewUsersStats; timestamp: number } | null = null;
+// Cache for stats (5 minutes) - separate cache for each time range
+let newUsersStatsCache: Record<string, { data: NewUsersStats; timestamp: number }> = {};
 let weeklyTestStatsCache: { data: WeeklyTestStats; timestamp: number } | null = null;
 let dailyTestStatsCache: { data: DailyTestStats; timestamp: number } | null = null;
 let dailyComparisonStatsCache: { data: DailyComparisonStats; timestamp: number } | null = null;
@@ -44,33 +44,59 @@ export class AdminService {
   }
 
   /**
-   * Get new users statistics for the last 7 days
+   * Get new users statistics for specified time range
    */
-  static async getNewUsersStats(): Promise<{
+  static async getNewUsersStats(timeRange: NewUsersTimeRange = '7d'): Promise<{
     data: NewUsersStats | null;
     error: any
   }> {
     try {
-      console.log('AdminService: Fetching new users stats for last 7 days');
+      console.log(`AdminService: Fetching new users stats for ${timeRange}`);
 
       // Check cache first
+      const cacheKey = `newUsers_${timeRange}`;
       const now = Date.now();
-      if (newUsersStatsCache && (now - newUsersStatsCache.timestamp) < CACHE_DURATION) {
-        console.log('AdminService: Using cached new users stats');
-        return { data: newUsersStatsCache.data, error: null };
+      if (newUsersStatsCache[cacheKey] && (now - newUsersStatsCache[cacheKey].timestamp) < CACHE_DURATION) {
+        console.log(`AdminService: Using cached new users stats for ${timeRange}`);
+        return { data: newUsersStatsCache[cacheKey].data, error: null };
       }
 
-      // Calculate date range for last 7 days
+      // Calculate date range and sampling based on time range
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(endDate.getDate() - 6); // 7 days including today
+      let days: number;
+      let sampleInterval: number = 1; // Sample every N days for performance
+
+      switch (timeRange) {
+        case '7d':
+          days = 7;
+          sampleInterval = 1;
+          break;
+        case '1m':
+          days = 30;
+          sampleInterval = 1;
+          break;
+        case '3m':
+          days = 90;
+          sampleInterval = 3; // Sample every 3 days
+          break;
+        case '6m':
+          days = 180;
+          sampleInterval = 6; // Sample every 6 days
+          break;
+        default:
+          days = 7;
+          sampleInterval = 1;
+      }
+
+      startDate.setDate(endDate.getDate() - (days - 1));
 
       // Format dates for SQL queries
       const formatDate = (date: Date) => date.toISOString().split('T')[0];
       const startDateStr = formatDate(startDate);
       const endDateStr = formatDate(endDate);
 
-      console.log(`AdminService: Querying users from ${startDateStr} to ${endDateStr}`);
+      console.log(`AdminService: Querying users from ${startDateStr} to ${endDateStr} (${days} days, sample interval: ${sampleInterval})`);
 
       // Query registered users from user_profiles
       const { data: registeredUsers, error: registeredError } = await supabase
@@ -96,25 +122,35 @@ export class AdminService {
         return { data: null, error: anonymousError };
       }
 
-      // Process data by day
+      // Process data by day with sampling
       const dailyData: Array<{ date: string; registeredUsers: number; anonymousUsers: number; total: number }> = [];
 
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < days; i += sampleInterval) {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + i);
         const dateStr = formatDate(currentDate);
 
-        // Count registered users for this day
-        const registeredCount = registeredUsers?.filter(user => {
-          const userDate = new Date(user.created_at).toISOString().split('T')[0];
-          return userDate === dateStr;
-        }).length || 0;
+        // For sampling intervals > 1, aggregate data for the interval
+        let registeredCount = 0;
+        let anonymousCount = 0;
 
-        // Count anonymous users for this day
-        const anonymousCount = anonymousUsers?.filter(user => {
-          const userDate = new Date(user.created_at).toISOString().split('T')[0];
-          return userDate === dateStr;
-        }).length || 0;
+        for (let j = 0; j < sampleInterval && (i + j) < days; j++) {
+          const sampleDate = new Date(startDate);
+          sampleDate.setDate(startDate.getDate() + i + j);
+          const sampleDateStr = formatDate(sampleDate);
+
+          // Count registered users for this day
+          registeredCount += registeredUsers?.filter(user => {
+            const userDate = new Date(user.created_at).toISOString().split('T')[0];
+            return userDate === sampleDateStr;
+          }).length || 0;
+
+          // Count anonymous users for this day
+          anonymousCount += anonymousUsers?.filter(user => {
+            const userDate = new Date(user.created_at).toISOString().split('T')[0];
+            return userDate === sampleDateStr;
+          }).length || 0;
+        }
 
         dailyData.push({
           date: dateStr,
@@ -125,17 +161,22 @@ export class AdminService {
       }
 
       // Calculate total new users
-      const totalNewUsers = dailyData.reduce((sum, day) => sum + day.total, 0);
+      const totalNewUsers = (registeredUsers?.length || 0) + (anonymousUsers?.length || 0);
 
-      console.log('AdminService: New users stats calculated successfully', { totalNewUsers, dailyDataLength: dailyData.length });
-
-      const result = {
+      console.log(`AdminService: New users stats calculated successfully for ${timeRange}`, {
         totalNewUsers,
+        dailyDataLength: dailyData.length,
+        sampleInterval
+      });
+
+      const result: NewUsersStats = {
+        totalNewUsers,
+        timeRange,
         dailyData
       };
 
       // Cache the result
-      newUsersStatsCache = {
+      newUsersStatsCache[cacheKey] = {
         data: result,
         timestamp: now
       };
@@ -145,7 +186,7 @@ export class AdminService {
         error: null
       };
     } catch (err) {
-      console.error('AdminService: Error fetching new users stats:', err);
+      console.error(`AdminService: Error fetching new users stats for ${timeRange}:`, err);
       return { data: null, error: err };
     }
   }
@@ -153,9 +194,15 @@ export class AdminService {
   /**
    * Clear new users stats cache
    */
-  static clearNewUsersStatsCache(): void {
-    newUsersStatsCache = null;
-    console.log('AdminService: New users stats cache cleared');
+  static clearNewUsersStatsCache(timeRange?: NewUsersTimeRange): void {
+    if (timeRange) {
+      const cacheKey = `newUsers_${timeRange}`;
+      delete newUsersStatsCache[cacheKey];
+      console.log(`AdminService: New users stats cache cleared for ${timeRange}`);
+    } else {
+      newUsersStatsCache = {};
+      console.log('AdminService: All new users stats cache cleared');
+    }
   }
 
   /**

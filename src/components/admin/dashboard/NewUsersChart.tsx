@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AdminService } from '../../../../backend';
-import type { NewUsersStats } from '../../../../backend';
+import type { NewUsersStats, NewUsersTimeRange } from '../../../../backend';
 
 interface Props {
   className?: string;
@@ -12,10 +12,27 @@ export default function NewUsersChart({ className = '' }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+  const [timeRange, setTimeRange] = useState<NewUsersTimeRange>('7d');
+  const [showTimeFilter, setShowTimeFilter] = useState(false);
 
   useEffect(() => {
     loadNewUsersData();
-  }, []);
+  }, [timeRange]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showTimeFilter) {
+        const target = event.target as Element;
+        if (!target.closest('[data-time-filter]')) {
+          setShowTimeFilter(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showTimeFilter]);
 
   const loadNewUsersData = useCallback(async (forceRefresh = false, retryAttempt = 0) => {
     const maxRetries = 3;
@@ -26,10 +43,10 @@ export default function NewUsersChart({ className = '' }: Props) {
       setError('');
 
       if (forceRefresh) {
-        AdminService.clearNewUsersStatsCache();
+        AdminService.clearNewUsersStatsCache(timeRange);
       }
 
-      const { data: newUsersData, error: newUsersError } = await AdminService.getNewUsersStats();
+      const { data: newUsersData, error: newUsersError } = await AdminService.getNewUsersStats(timeRange);
 
       if (newUsersError) {
         console.error('NewUsersChart: Error loading data:', newUsersError);
@@ -60,7 +77,30 @@ export default function NewUsersChart({ className = '' }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [timeRange]);
+
+  // Time range helper functions
+  const getTimeRangeLabel = (range: NewUsersTimeRange): string => {
+    const labels = {
+      '7d': '7 ngày qua',
+      '1m': '1 tháng qua',
+      '3m': '3 tháng qua',
+      '6m': '6 tháng qua'
+    };
+    return labels[range];
+  };
+
+  const getTimeRangeOptions = (): Array<{ value: NewUsersTimeRange; label: string }> => [
+    { value: '7d', label: '7 ngày' },
+    { value: '1m', label: '1 tháng' },
+    { value: '3m', label: '3 tháng' },
+    { value: '6m', label: '6 tháng' }
+  ];
+
+  const handleTimeRangeChange = (newRange: NewUsersTimeRange) => {
+    setTimeRange(newRange);
+    setShowTimeFilter(false);
+  };
 
   // Chart calculations
   const chartData = useMemo(() => {
@@ -364,7 +404,7 @@ export default function NewUsersChart({ className = '' }: Props) {
             id="new-users-chart-title"
             className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2"
           >
-            Người dùng mới (7 ngày qua)
+            Người dùng mới ({getTimeRangeLabel(timeRange)})
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Thống kê số lượng người dùng mới theo ngày
@@ -372,6 +412,52 @@ export default function NewUsersChart({ className = '' }: Props) {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* Time Range Filter */}
+          <div className="relative" data-time-filter>
+            <button
+              onClick={() => setShowTimeFilter(!showTimeFilter)}
+              disabled={isLoading}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+              title="Chọn khoảng thời gian"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="hidden sm:inline">{getTimeRangeOptions().find(opt => opt.value === timeRange)?.label}</span>
+              <svg className={`w-3 h-3 transition-transform duration-200 ${showTimeFilter ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Time Filter Dropdown */}
+            <AnimatePresence>
+              {showTimeFilter && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
+                >
+                  {getTimeRangeOptions().map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleTimeRangeChange(option.value)}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                        timeRange === option.value
+                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Refresh Button */}
           <button
             onClick={() => loadNewUsersData(true)}
             disabled={isLoading}

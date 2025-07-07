@@ -55,6 +55,7 @@ export interface AdminStats {
 // New users statistics for dashboard
 export interface NewUsersStats {
   totalNewUsers: number;
+  timeRange: string;
   dailyData: Array<{
     date: string;
     registeredUsers: number;
@@ -62,6 +63,9 @@ export interface NewUsersStats {
     total: number;
   }>;
 }
+
+// Time range options for new users stats
+export type NewUsersTimeRange = '7d' | '1m' | '3m' | '6m';
 
 // Weekly test statistics for dashboard
 export interface WeeklyTestStats {
