@@ -885,9 +885,6 @@ export default function AdminArticles() {
                             <div className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
                               {article.title}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                              {article.excerpt}
-                            </div>
                             {/* Category info for mobile */}
                             <div className="sm:hidden mt-2 flex items-center">
                               {loadingCategoryIds.has(article.id) ? (

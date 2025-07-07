@@ -173,6 +173,53 @@ export class ArticlesService {
   }
 
   /**
+   * Get tags for articles efficiently using junction table (batch operation)
+   */
+  private static async getTagsForArticles(articles: any[]): Promise<any[]> {
+    if (!articles || articles.length === 0) {
+      return [];
+    }
+
+    const articleIds = articles.map(article => article.id);
+
+    // Fetch all article-tag relationships in one query
+    const { data: articleTags, error: tagError } = await supabase
+      .from('article_tags')
+      .select(`
+        article_id,
+        tag_id,
+        tags:tag_id (
+          id,
+          name,
+          slug
+        )
+      `)
+      .in('article_id', articleIds);
+
+    if (tagError) {
+      console.error('ArticlesService: Error fetching article tags:', tagError);
+      return articles;
+    }
+
+    // Group tags by article_id
+    const tagsByArticle = articleTags?.reduce((acc, relation) => {
+      if (!acc[relation.article_id]) {
+        acc[relation.article_id] = [];
+      }
+      if (relation.tags) {
+        acc[relation.article_id].push(relation.tags.name);
+      }
+      return acc;
+    }, {} as Record<string, string[]>) || {};
+
+    // Add tags to articles
+    return articles.map(article => ({
+      ...article,
+      tags: tagsByArticle[article.id] || []
+    }));
+  }
+
+  /**
    * Get categories for articles efficiently using junction table (batch operation)
    */
   private static async getCategoriesForArticles(articles: any[]): Promise<any[]> {
@@ -337,7 +384,7 @@ export class ArticlesService {
       ...dbArticle,
       // Use user_profiles data if available, fallback to existing author field
       author: dbArticle.user_profiles?.full_name || dbArticle.author_name || dbArticle.author || 'Unknown Author',
-      tags: Array.isArray(dbArticle.keywords) ? dbArticle.keywords : (Array.isArray(dbArticle.tags) ? dbArticle.tags : []),
+      tags: Array.isArray(dbArticle.tags) ? dbArticle.tags : (Array.isArray(dbArticle.keywords) ? dbArticle.keywords : []),
       views: dbArticle.view_count || dbArticle.views || 0,
       likes: dbArticle.like_count || dbArticle.likes || 0,
       excerpt: dbArticle.excerpt || '',
@@ -560,8 +607,11 @@ export class ArticlesService {
       // Get categories for articles using junction table
       const articlesWithCategories = await this.getCategoriesForArticles(articlesData);
 
+      // Get tags for articles using junction table
+      const articlesWithTags = await this.getTagsForArticles(articlesWithCategories);
+
       // Get user profiles for articles (manual join)
-      const articlesWithProfiles = await this.getUserProfilesForArticles(articlesWithCategories);
+      const articlesWithProfiles = await this.getUserProfilesForArticles(articlesWithTags);
 
       // Transform articles
       const articles = articlesWithProfiles.map(article => this.transformArticle(article));
@@ -743,26 +793,21 @@ export class ArticlesService {
   }
 
   /**
-   * Get unique tags
+   * Get unique tags from tags table
    */
   static async getTags(): Promise<string[]> {
     try {
       const { data: tagsData, error } = await supabase
-        .from('articles')
-        .select('keywords')
-        .not('keywords', 'is', null);
+        .from('tags')
+        .select('name')
+        .order('usage_count', { ascending: false });
 
       if (error) {
         console.error('ArticlesService: Error getting tags:', error);
         return [];
       }
 
-      const tags = tagsData
-        ?.flatMap(a => a.keywords || [])
-        .filter((tag, index, self) => self.indexOf(tag) === index)
-        .sort() || [];
-
-      return tags;
+      return tagsData?.map(tag => tag.name) || [];
     } catch (err) {
       console.error('ArticlesService: Error getting tags:', err);
       return [];
@@ -770,7 +815,7 @@ export class ArticlesService {
   }
 
   /**
-   * Update article tags
+   * Update article tags using tags and article_tags tables
    */
   static async updateTags(
     articleId: string,
@@ -779,26 +824,74 @@ export class ArticlesService {
     try {
       console.log('ArticlesService: Updating article tags in database:', { articleId, tags });
 
+      // 1. Create new tags if they don't exist
+      for (const tagName of tags) {
+        const slug = tagName.toLowerCase().replace(/\s+/g, '-');
+        await supabase
+          .from('tags')
+          .upsert({
+            name: tagName,
+            slug: slug
+          }, {
+            onConflict: 'name',
+            ignoreDuplicates: true
+          });
+      }
+
+      // 2. Get tag IDs
+      const { data: tagIds, error: tagError } = await supabase
+        .from('tags')
+        .select('id, name')
+        .in('name', tags);
+
+      if (tagError) {
+        console.error('ArticlesService: Error getting tag IDs:', tagError);
+        return { data: null, error: tagError };
+      }
+
+      // 3. Delete existing article_tags relationships
+      await supabase
+        .from('article_tags')
+        .delete()
+        .eq('article_id', articleId);
+
+      // 4. Insert new relationships
+      if (tagIds && tagIds.length > 0) {
+        const relationships = tagIds.map(tag => ({
+          article_id: articleId,
+          tag_id: tag.id
+        }));
+
+        const { error: insertError } = await supabase
+          .from('article_tags')
+          .insert(relationships);
+
+        if (insertError) {
+          console.error('ArticlesService: Error inserting article_tags:', insertError);
+          return { data: null, error: insertError };
+        }
+      }
+
+      // 5. Update article updated_at
       const { data: updatedData, error: updateError } = await supabase
         .from('articles')
-        .update({
-          keywords: tags,
-          updated_at: new Date().toISOString()
-        })
+        .update({ updated_at: new Date().toISOString() })
         .eq('id', articleId)
         .select()
         .single();
 
       if (updateError) {
-        console.error('ArticlesService: Error updating article tags:', updateError);
+        console.error('ArticlesService: Error updating article:', updateError);
         return { data: null, error: updateError };
       }
 
       if (!updatedData) {
-        return { data: null, error: new Error('Không thể cập nhật tags bài viết') };
+        return { data: null, error: new Error('Không thể cập nhật bài viết') };
       }
 
-      const transformedArticle = this.transformArticle(updatedData);
+      // Get tags with full details
+      const articlesWithTags = await this.getTagsForArticles([updatedData]);
+      const transformedArticle = this.transformArticle(articlesWithTags[0]);
 
       console.log('ArticlesService: Article tags updated successfully in database');
       return { data: transformedArticle, error: null };
@@ -1014,9 +1107,10 @@ export class ArticlesService {
         return { data: null, error: new Error('Không thể cập nhật bài viết') };
       }
 
-      // Get categories with full details
+      // Get categories and tags with full details
       const articlesWithCategories = await this.getCategoriesForArticles([updatedData]);
-      const transformedArticle = this.transformArticle(articlesWithCategories[0]);
+      const articlesWithTags = await this.getTagsForArticles(articlesWithCategories);
+      const transformedArticle = this.transformArticle(articlesWithTags[0]);
 
       console.log('ArticlesService: Article categories updated successfully:', articleId);
 

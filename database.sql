@@ -403,3 +403,18 @@ create table public.article_tags (
   constraint article_tags_article_id_fkey foreign KEY (article_id) references articles (id) on delete CASCADE,
   constraint article_tags_tag_id_fkey foreign KEY (tag_id) references tags (id) on delete CASCADE
 ) TABLESPACE pg_default;
+
+create table public.tags (
+  id uuid not null default gen_random_uuid (),
+  name text not null,
+  slug text not null,
+  description text null,
+  color text null default '#EF4444'::text,
+  usage_count integer null default 0,
+  created_at timestamp with time zone null default now(),
+  constraint tags_pkey primary key (id),
+  constraint tags_name_key unique (name),
+  constraint tags_slug_key unique (slug)
+) TABLESPACE pg_default;
+
+create index IF not exists idx_tags_slug on public.tags using btree (slug) TABLESPACE pg_default;
