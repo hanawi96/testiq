@@ -77,11 +77,17 @@ export default function QuickTagsEditor({
   }, [onClose]);
 
   const handleTagToggle = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
+    const selectedTagsLower = selectedTags.map(t => t.toLowerCase());
+    const tagLower = tag.toLowerCase();
+
+    if (selectedTagsLower.includes(tagLower)) {
+      // Remove tag (case-insensitive)
+      setSelectedTags(prev => prev.filter(t => t.toLowerCase() !== tagLower));
+    } else {
+      // Add tag (normalized)
+      const normalizedTag = normalizeTag(tag);
+      setSelectedTags(prev => [...prev, normalizedTag]);
+    }
   };
 
   // Debounced filter function for autocomplete
@@ -92,10 +98,13 @@ export default function QuickTagsEditor({
       return;
     }
 
+    const inputLower = input.toLowerCase();
+    const selectedTagsLower = selectedTags.map(tag => tag.toLowerCase());
+
     const filtered = availableTags
       .filter(tag =>
-        tag.toLowerCase().includes(input.toLowerCase()) &&
-        !selectedTags.includes(tag)
+        tag.toLowerCase().includes(inputLower) &&
+        !selectedTagsLower.includes(tag.toLowerCase())
       )
       .slice(0, 8); // Limit to 8 suggestions for performance
 
@@ -115,15 +124,47 @@ export default function QuickTagsEditor({
 
   const handleAddNewTag = (tagToAdd?: string) => {
     const trimmedTag = (tagToAdd || newTag).trim();
-    if (trimmedTag && !selectedTags.includes(trimmedTag)) {
-      setSelectedTags(prev => [...prev, trimmedTag]);
-      setAvailableTags(prev => [...prev, trimmedTag].sort());
+    if (!trimmedTag) return;
+
+    // Case-insensitive duplicate check
+    const selectedTagsLower = selectedTags.map(tag => tag.toLowerCase());
+    const trimmedTagLower = trimmedTag.toLowerCase();
+
+    if (selectedTagsLower.includes(trimmedTagLower)) {
+      // Tag already exists (case-insensitive), just clear input and show feedback
       setNewTag('');
       setShowSuggestions(false);
       setHighlightedIndex(-1);
-      // Refocus input after adding tag
       setTimeout(() => newTagInputRef.current?.focus(), 50);
+      return;
     }
+
+    // Normalize tag: capitalize first letter, rest lowercase for common tags
+    const normalizedTag = normalizeTag(trimmedTag);
+
+    setSelectedTags(prev => [...prev, normalizedTag]);
+    setAvailableTags(prev => [...prev, normalizedTag].sort());
+    setNewTag('');
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    // Refocus input after adding tag
+    setTimeout(() => newTagInputRef.current?.focus(), 50);
+  };
+
+  // Normalize tag function
+  const normalizeTag = (tag: string): string => {
+    const trimmed = tag.trim();
+
+    // Special cases for common tech tags (keep uppercase)
+    const upperCaseTags = ['SEO', 'API', 'UI', 'UX', 'CSS', 'HTML', 'SQL', 'JSON', 'XML', 'HTTP', 'HTTPS', 'REST', 'GraphQL', 'JWT', 'OAuth', 'AI', 'ML', 'IoT', 'VR', 'AR'];
+    const upperTag = trimmed.toUpperCase();
+
+    if (upperCaseTags.includes(upperTag)) {
+      return upperTag;
+    }
+
+    // For other tags, capitalize first letter
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
   };
 
   const handleSave = () => {
@@ -237,7 +278,10 @@ export default function QuickTagsEditor({
           <div className="max-h-32 overflow-y-auto">
             <div className="flex flex-wrap gap-1">
               {availableTags.map(tag => {
-                const isSelected = selectedTags.includes(tag);
+                // Case-insensitive check for selected state
+                const selectedTagsLower = selectedTags.map(t => t.toLowerCase());
+                const isSelected = selectedTagsLower.includes(tag.toLowerCase());
+
                 return (
                   <button
                     key={tag}
