@@ -723,15 +723,6 @@ export default function AdminArticles() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Danh sách bài viết ({articlesData.total.toLocaleString()})
               </h3>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={selectedArticles.length === articlesData.articles.length && articlesData.articles.length > 0}
-                  onChange={handleSelectAll}
-                  className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Chọn tất cả</span>
-              </div>
             </div>
           </div>
 
@@ -749,7 +740,15 @@ export default function AdminArticles() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Bài viết
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedArticles.length === articlesData.articles.length && articlesData.articles.length > 0}
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span>Bài viết</span>
+                      </div>
                     </th>
                     <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Danh mục
