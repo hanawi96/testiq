@@ -5,6 +5,7 @@ import type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } fro
 import QuickTagsEditor from './QuickTagsEditor';
 import QuickAuthorEditor from './QuickAuthorEditor';
 import QuickMultipleCategoryEditor from './QuickMultipleCategoryEditor';
+import LinkAnalysisModal from './LinkAnalysisModal';
 import QuickStatusEditor from './QuickStatusEditor';
 import CategoryDisplay from './CategoryDisplay';
 import { categoriesPreloadTriggers } from '../../../utils/categories-preloader';
@@ -39,6 +40,12 @@ export default function AdminArticles() {
   // Loading states for optimistic UI
   const [loadingAuthorIds, setLoadingAuthorIds] = useState<Set<string>>(new Set());
   const [loadingCategoryIds, setLoadingCategoryIds] = useState<Set<string>>(new Set());
+
+  // Link analysis modal
+  const [linkAnalysisModal, setLinkAnalysisModal] = useState<{
+    articleId: string;
+    articleTitle: string;
+  } | null>(null);
 
   const [quickCategoryEditor, setQuickCategoryEditor] = useState<{
     articleId: string;
@@ -848,6 +855,9 @@ export default function AdminArticles() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Thống kê
                     </th>
+                    <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Links
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Ngày
                     </th>
@@ -956,6 +966,43 @@ export default function AdminArticles() {
                                   <span>{formatNumber(article.word_count)}</span>
                                 </div>
                               )}
+
+                              {/* Links for mobile - compact display */}
+                              <div className="lg:hidden flex items-center space-x-2">
+                                {/* Internal Links */}
+                                <div className="flex items-center space-x-1">
+                                  <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                  </svg>
+                                  <span className="text-green-600 dark:text-green-400 text-xs">
+                                    {article.internal_links && Array.isArray(article.internal_links) ? article.internal_links.length : 0}
+                                  </span>
+                                </div>
+
+                                {/* External Links */}
+                                <div className="flex items-center space-x-1">
+                                  <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                  <span className="text-blue-600 dark:text-blue-400 text-xs">
+                                    {article.external_links && Array.isArray(article.external_links) ? article.external_links.length : 0}
+                                  </span>
+                                </div>
+
+                                {/* Analyze button for mobile */}
+                                <button
+                                  onClick={() => setLinkAnalysisModal({
+                                    articleId: article.id,
+                                    articleTitle: article.title
+                                  })}
+                                  className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                                  title="Phân tích links"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1066,6 +1113,65 @@ export default function AdminArticles() {
                               <span>{formatNumber(article.word_count)} từ</span>
                             </div>
                           )}
+                        </div>
+                      </td>
+
+                      {/* Links */}
+                      <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {/* Internal Links */}
+                            {article.internal_links && Array.isArray(article.internal_links) && article.internal_links.length > 0 ? (
+                              <div className="flex items-center space-x-1">
+                                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                  {article.internal_links.length}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-1">
+                                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                <span className="text-sm text-gray-400 dark:text-gray-500">0</span>
+                              </div>
+                            )}
+
+                            {/* External Links */}
+                            {article.external_links && Array.isArray(article.external_links) && article.external_links.length > 0 ? (
+                              <div className="flex items-center space-x-1">
+                                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                  {article.external_links.length}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-1">
+                                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                <span className="text-sm text-gray-400 dark:text-gray-500">0</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Analyze button */}
+                          <button
+                            onClick={() => setLinkAnalysisModal({
+                              articleId: article.id,
+                              articleTitle: article.title
+                            })}
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                            title="Phân tích links"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </button>
                         </div>
                       </td>
 
@@ -1201,6 +1307,16 @@ export default function AdminArticles() {
           />
         )}
       </AnimatePresence>
+
+      {/* Link Analysis Modal */}
+      {linkAnalysisModal && (
+        <LinkAnalysisModal
+          articleId={linkAnalysisModal.articleId}
+          articleTitle={linkAnalysisModal.articleTitle}
+          isOpen={true}
+          onClose={() => setLinkAnalysisModal(null)}
+        />
+      )}
     </div>
   );
 }

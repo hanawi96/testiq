@@ -147,6 +147,7 @@ export interface ArticlesListResponse {
 }
 
 import { supabase } from '../config/supabase';
+import { LinkAnalyzer, type LinkAnalysis } from '../utils/link-analyzer';
 
 export class ArticlesService {
   /**
@@ -275,6 +276,57 @@ export class ArticlesService {
         user_profiles: userProfile || null
       };
     });
+  }
+
+  /**
+   * Phân tích links trong content của bài viết
+   */
+  static async analyzeArticleLinks(articleId: string): Promise<{ data: LinkAnalysis | null; error: any }> {
+    try {
+      console.log('ArticlesService: Analyzing links for article:', articleId);
+
+      // Fetch article content
+      const { data: article, error: fetchError } = await supabase
+        .from('articles')
+        .select('content, slug')
+        .eq('id', articleId)
+        .single();
+
+      if (fetchError) {
+        console.error('ArticlesService: Error fetching article for link analysis:', fetchError);
+        return { data: null, error: fetchError };
+      }
+
+      if (!article) {
+        return { data: null, error: new Error('Article not found') };
+      }
+
+      // Analyze links in content
+      const baseDomain = process.env.SITE_URL || 'localhost:4322';
+      const linkAnalysis = LinkAnalyzer.analyzeContent(article.content, baseDomain);
+
+      // Update article with link analysis
+      const { error: updateError } = await supabase
+        .from('articles')
+        .update({
+          internal_links: linkAnalysis.internal_links,
+          external_links: linkAnalysis.external_links,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', articleId);
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article with link analysis:', updateError);
+        return { data: linkAnalysis, error: updateError };
+      }
+
+      console.log(`ArticlesService: Link analysis completed - ${linkAnalysis.total_internal} internal, ${linkAnalysis.total_external} external links`);
+      return { data: linkAnalysis, error: null };
+
+    } catch (err) {
+      console.error('ArticlesService: Error analyzing article links:', err);
+      return { data: null, error: err };
+    }
   }
 
   /**

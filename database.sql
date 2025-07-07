@@ -391,3 +391,15 @@ create trigger trigger_update_category_count_on_article_categories
 after INSERT
 or DELETE on article_categories for EACH row
 execute FUNCTION update_category_article_count ();
+
+
+
+
+-- tags
+create table public.article_tags (
+  article_id uuid not null,
+  tag_id uuid not null,
+  constraint article_tags_pkey primary key (article_id, tag_id),
+  constraint article_tags_article_id_fkey foreign KEY (article_id) references articles (id) on delete CASCADE,
+  constraint article_tags_tag_id_fkey foreign KEY (tag_id) references tags (id) on delete CASCADE
+) TABLESPACE pg_default;
