@@ -157,11 +157,13 @@ return preloadCountryData();
 - ❌ **Popup Load Time**: 500-2000ms (database/JSON fetch)
 - ❌ **User Experience**: Loading spinner visible
 - ❌ **Critical Path**: Blocked on network requests
+- ❌ **Flag Loading**: External URL dependency (country-code-au6g.vercel.app)
 
 ### **After Implementation:**
 - ✅ **Popup Load Time**: 0ms (instant fallback)
 - ✅ **User Experience**: Immediate dropdown response
 - ✅ **Critical Path**: Never blocked, always responsive
+- ✅ **Flag Loading**: Local files (/flag/*.svg) - faster and more reliable
 
 ### **Preload Success Rates:**
 - 🎯 **App Init**: ~95% (background preload)

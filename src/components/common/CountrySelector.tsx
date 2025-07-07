@@ -120,7 +120,7 @@ export default function CountrySelector({
 
   // Get flag image URL
   const getFlagUrl = (countryCode: string) => {
-    return `https://country-code-au6g.vercel.app/${countryCode}.svg`;
+    return `/flag/${countryCode}.svg`;
   };
 
   if (loading) {

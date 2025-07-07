@@ -30,16 +30,16 @@ const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 // Fallback countries for offline/error scenarios
 const FALLBACK_COUNTRIES: Country[] = [
-  { id: 'VN', name: 'Việt Nam', code: 'VN', emoji: '🇻🇳' },
-  { id: 'US', name: 'United States', code: 'US', emoji: '🇺🇸' },
-  { id: 'SG', name: 'Singapore', code: 'SG', emoji: '🇸🇬' },
-  { id: 'CA', name: 'Canada', code: 'CA', emoji: '🇨🇦' },
-  { id: 'AU', name: 'Australia', code: 'AU', emoji: '🇦🇺' },
-  { id: 'GB', name: 'United Kingdom', code: 'GB', emoji: '🇬🇧' },
-  { id: 'DE', name: 'Germany', code: 'DE', emoji: '🇩🇪' },
-  { id: 'FR', name: 'France', code: 'FR', emoji: '🇫🇷' },
-  { id: 'JP', name: 'Japan', code: 'JP', emoji: '🇯🇵' },
-  { id: 'KR', name: 'South Korea', code: 'KR', emoji: '🇰🇷' }
+  { id: 'VN', name: 'Việt Nam', code: 'VN', emoji: '🇻🇳', flag: '/flag/VN.svg' },
+  { id: 'US', name: 'United States', code: 'US', emoji: '🇺🇸', flag: '/flag/US.svg' },
+  { id: 'SG', name: 'Singapore', code: 'SG', emoji: '🇸🇬', flag: '/flag/SG.svg' },
+  { id: 'CA', name: 'Canada', code: 'CA', emoji: '🇨🇦', flag: '/flag/CA.svg' },
+  { id: 'AU', name: 'Australia', code: 'AU', emoji: '🇦🇺', flag: '/flag/AU.svg' },
+  { id: 'GB', name: 'United Kingdom', code: 'GB', emoji: '🇬🇧', flag: '/flag/GB.svg' },
+  { id: 'DE', name: 'Germany', code: 'DE', emoji: '🇩🇪', flag: '/flag/DE.svg' },
+  { id: 'FR', name: 'France', code: 'FR', emoji: '🇫🇷', flag: '/flag/FR.svg' },
+  { id: 'JP', name: 'Japan', code: 'JP', emoji: '🇯🇵', flag: '/flag/JP.svg' },
+  { id: 'KR', name: 'South Korea', code: 'KR', emoji: '🇰🇷', flag: '/flag/KR.svg' }
 ];
 
 export default function UnifiedCountrySelector({
@@ -294,7 +294,11 @@ export default function UnifiedCountrySelector({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-hidden"
+            className="absolute z-[9999] w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-hidden"
+            style={{
+              // Ensure dropdown appears above other elements
+              zIndex: 9999
+            }}
           >
             {/* Search Input */}
             <div className="p-3 border-b border-gray-200 dark:border-gray-700">

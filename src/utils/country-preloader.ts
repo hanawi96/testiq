@@ -14,16 +14,16 @@ let isPreloading = false;
 
 // Fallback countries for instant availability
 const INSTANT_COUNTRIES: Country[] = [
-  { id: 'VN', name: 'Việt Nam', code: 'VN', emoji: '🇻🇳' },
-  { id: 'US', name: 'United States', code: 'US', emoji: '🇺🇸' },
-  { id: 'SG', name: 'Singapore', code: 'SG', emoji: '🇸🇬' },
-  { id: 'CA', name: 'Canada', code: 'CA', emoji: '🇨🇦' },
-  { id: 'AU', name: 'Australia', code: 'AU', emoji: '🇦🇺' },
-  { id: 'GB', name: 'United Kingdom', code: 'GB', emoji: '🇬🇧' },
-  { id: 'DE', name: 'Germany', code: 'DE', emoji: '🇩🇪' },
-  { id: 'FR', name: 'France', code: 'FR', emoji: '🇫🇷' },
-  { id: 'JP', name: 'Japan', code: 'JP', emoji: '🇯🇵' },
-  { id: 'KR', name: 'South Korea', code: 'KR', emoji: '🇰🇷' }
+  { id: 'VN', name: 'Việt Nam', code: 'VN', emoji: '🇻🇳', flag: '/flag/VN.svg' },
+  { id: 'US', name: 'United States', code: 'US', emoji: '🇺🇸', flag: '/flag/US.svg' },
+  { id: 'SG', name: 'Singapore', code: 'SG', emoji: '🇸🇬', flag: '/flag/SG.svg' },
+  { id: 'CA', name: 'Canada', code: 'CA', emoji: '🇨🇦', flag: '/flag/CA.svg' },
+  { id: 'AU', name: 'Australia', code: 'AU', emoji: '🇦🇺', flag: '/flag/AU.svg' },
+  { id: 'GB', name: 'United Kingdom', code: 'GB', emoji: '🇬🇧', flag: '/flag/GB.svg' },
+  { id: 'DE', name: 'Germany', code: 'DE', emoji: '🇩🇪', flag: '/flag/DE.svg' },
+  { id: 'FR', name: 'France', code: 'FR', emoji: '🇫🇷', flag: '/flag/FR.svg' },
+  { id: 'JP', name: 'Japan', code: 'JP', emoji: '🇯🇵', flag: '/flag/JP.svg' },
+  { id: 'KR', name: 'South Korea', code: 'KR', emoji: '🇰🇷', flag: '/flag/KR.svg' }
 ];
 
 /**
@@ -40,7 +40,7 @@ async function loadCountryData(): Promise<Country[]> {
         id: c.id,
         name: c.name,
         code: c.code,
-        flag: `https://country-code-au6g.vercel.app/${c.code}.svg`
+        flag: `/flag/${c.code}.svg`
       }));
       
       console.log('🌍 Preloader: Loaded countries from database');
@@ -61,7 +61,7 @@ async function loadCountryData(): Promise<Country[]> {
         name: c.name,
         code: c.code,
         emoji: c.emoji,
-        flag: `https://country-code-au6g.vercel.app/${c.code}.svg`
+        flag: `/flag/${c.code}.svg`
       }));
       
       // Move Vietnam to first position

@@ -51,7 +51,7 @@ describe('Country Preloader', () => {
         id: 'VN',
         name: 'Việt Nam',
         code: 'VN',
-        flag: 'https://country-code-au6g.vercel.app/VN.svg'
+        flag: '/flag/VN.svg'
       });
     });
 
