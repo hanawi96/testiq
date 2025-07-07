@@ -60,7 +60,7 @@ export default defineConfig({
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom'],
-            ui: ['framer-motion', '@toast-ui/react-editor']
+            ui: ['framer-motion']
           }
         }
       }

@@ -16,8 +16,22 @@ const menuItems = [
   {
     id: 'articles',
     title: 'Bài viết',
-    href: '/admin/articles',
-    icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
+    icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+    hasDropdown: true,
+    subItems: [
+      {
+        id: 'articles-create',
+        title: 'Thêm bài viết',
+        href: '/admin/articles/create',
+        icon: 'M12 4v16m8-8H4'
+      },
+      {
+        id: 'articles-manage',
+        title: 'Quản lý bài viết',
+        href: '/admin/articles',
+        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
+      }
+    ]
   },
   {
     id: 'categories',
@@ -63,6 +77,12 @@ function isActive(href: string) {
     return currentPath === '/admin' || currentPath === '/admin/';
   }
   return currentPath.startsWith(href);
+}
+
+// Check if dropdown should be open (any sub-item is active)
+function isDropdownActive(item: any) {
+  if (!item.hasDropdown || !item.subItems) return false;
+  return item.subItems.some((subItem: any) => isActive(subItem.href));
 }
 ---
 
@@ -110,19 +130,67 @@ function isActive(href: string) {
   <!-- Navigation Menu -->
   <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
     {menuItems.map((item) => (
-      <a
-        href={item.href}
-        class={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
-          isActive(item.href)
-            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
-            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
-        }`}
-      >
-        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon}></path>
-        </svg>
-        <span class="sidebar-text truncate">{item.title}</span>
-      </a>
+      <div class="menu-item-container">
+        {item.hasDropdown ? (
+          <!-- Dropdown Menu Item -->
+          <div>
+            <button
+              class={`dropdown-toggle w-full group flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg ${
+                isDropdownActive(item)
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+              data-dropdown-id={item.id}
+            >
+              <div class="flex items-center">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon}></path>
+                </svg>
+                <span class="sidebar-text truncate">{item.title}</span>
+              </div>
+              <svg class={`dropdown-arrow w-4 h-4 transition-transform duration-200 sidebar-text ${isDropdownActive(item) ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+
+            <!-- Dropdown Content -->
+            <div class={`dropdown-content overflow-hidden ${isDropdownActive(item) ? 'dropdown-open' : 'dropdown-closed'}`} data-dropdown-content={item.id}>
+              <div class="py-1 space-y-1">
+                {item.subItems?.map((subItem: any) => (
+                  <a
+                    href={subItem.href}
+                    class={`group flex items-center px-3 py-2 ml-6 text-sm font-medium rounded-lg ${
+                      isActive(subItem.href)
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                    }`}
+                  >
+                    <svg class="w-4 h-4 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={subItem.icon}></path>
+                    </svg>
+                    <span class="sidebar-text truncate">{subItem.title}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <!-- Regular Menu Item -->
+          <a
+            href={item.href}
+            class={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+              isActive(item.href)
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon}></path>
+            </svg>
+            <span class="sidebar-text truncate">{item.title}</span>
+          </a>
+        )}
+      </div>
     ))}
   </nav>
 
@@ -188,7 +256,7 @@ function isActive(href: string) {
     function toggleCollapse() {
       isCollapsed = !isCollapsed;
       localStorage.setItem('admin-sidebar-collapsed', isCollapsed.toString());
-      
+
       if (isCollapsed) {
         sidebar?.classList.add('collapsed');
         sidebar?.classList.remove('w-64');
@@ -196,6 +264,17 @@ function isActive(href: string) {
         sidebarTexts.forEach(text => text.classList.add('hidden'));
         sidebarBrand?.classList.add('hidden');
         collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M9 5l7 7-7 7');
+
+        // Close all dropdowns when collapsing
+        openDropdowns.forEach(dropdownId => {
+          const dropdownContent = document.querySelector(`[data-dropdown-content="${dropdownId}"]`);
+          const dropdownArrow = document.querySelector(`[data-dropdown-id="${dropdownId}"] .dropdown-arrow`);
+          if (dropdownContent && dropdownArrow) {
+            dropdownContent.classList.remove('dropdown-open');
+            dropdownContent.classList.add('dropdown-closed');
+            dropdownArrow.classList.remove('rotate-90');
+          }
+        });
       } else {
         sidebar?.classList.remove('collapsed');
         sidebar?.classList.remove('w-16');
@@ -203,6 +282,17 @@ function isActive(href: string) {
         sidebarTexts.forEach(text => text.classList.remove('hidden'));
         sidebarBrand?.classList.remove('hidden');
         collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M15 19l-7-7 7-7');
+
+        // Restore dropdown states when expanding
+        openDropdowns.forEach(dropdownId => {
+          const dropdownContent = document.querySelector(`[data-dropdown-content="${dropdownId}"]`);
+          const dropdownArrow = document.querySelector(`[data-dropdown-id="${dropdownId}"] .dropdown-arrow`);
+          if (dropdownContent && dropdownArrow) {
+            dropdownContent.classList.remove('dropdown-closed');
+            dropdownContent.classList.add('dropdown-open');
+            dropdownArrow.classList.add('rotate-90');
+          }
+        });
       }
     }
 
@@ -236,7 +326,7 @@ function isActive(href: string) {
     // Toggle theme
     function toggleTheme() {
       const isDark = document.documentElement.classList.contains('dark');
-      
+
       if (isDark) {
         document.documentElement.classList.remove('dark');
         localStorage.setItem('theme', 'light');
@@ -244,8 +334,74 @@ function isActive(href: string) {
         document.documentElement.classList.add('dark');
         localStorage.setItem('theme', 'dark');
       }
-      
+
       updateThemeIcon();
+    }
+
+    // Dropdown functionality
+    let openDropdowns = new Set();
+
+    function toggleDropdown(dropdownId) {
+      const dropdownContent = document.querySelector(`[data-dropdown-content="${dropdownId}"]`);
+      const dropdownArrow = document.querySelector(`[data-dropdown-id="${dropdownId}"] .dropdown-arrow`);
+
+      if (!dropdownContent || !dropdownArrow) return;
+
+      const isOpen = openDropdowns.has(dropdownId);
+
+      // Use requestAnimationFrame for smoother animations
+      requestAnimationFrame(() => {
+        if (isOpen) {
+          // Close dropdown
+          dropdownContent.classList.remove('dropdown-open');
+          dropdownContent.classList.add('dropdown-closed');
+          dropdownArrow.classList.remove('rotate-90');
+          openDropdowns.delete(dropdownId);
+          localStorage.removeItem(`dropdown-${dropdownId}-open`);
+        } else {
+          // Open dropdown
+          dropdownContent.classList.remove('dropdown-closed');
+          dropdownContent.classList.add('dropdown-open');
+          dropdownArrow.classList.add('rotate-90');
+          openDropdowns.add(dropdownId);
+          localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
+        }
+      });
+    }
+
+    function initDropdowns() {
+      // Initialize dropdown states from localStorage
+      const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+      dropdownToggles.forEach(toggle => {
+        const dropdownId = toggle.getAttribute('data-dropdown-id');
+        if (dropdownId) {
+          const isOpen = localStorage.getItem(`dropdown-${dropdownId}-open`) === 'true';
+          const dropdownContent = document.querySelector(`[data-dropdown-content="${dropdownId}"]`);
+          const dropdownArrow = toggle.querySelector('.dropdown-arrow');
+
+          if (dropdownContent) {
+            if (isOpen) {
+              openDropdowns.add(dropdownId);
+              dropdownContent.classList.add('dropdown-open');
+              dropdownContent.classList.remove('dropdown-closed');
+              if (dropdownArrow) dropdownArrow.classList.add('rotate-90');
+            } else {
+              dropdownContent.classList.add('dropdown-closed');
+              dropdownContent.classList.remove('dropdown-open');
+            }
+          }
+
+          // Add click event listener with debouncing
+          let clickTimeout;
+          toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            clearTimeout(clickTimeout);
+            clickTimeout = setTimeout(() => {
+              toggleDropdown(dropdownId);
+            }, 10);
+          });
+        }
+      });
     }
 
     // Event listeners
@@ -264,6 +420,7 @@ function isActive(href: string) {
 
     // Initialize
     initSidebar();
+    initDropdowns();
   });
 </script>
 
@@ -271,16 +428,54 @@ function isActive(href: string) {
   #admin-sidebar.collapsed .sidebar-text {
     display: none;
   }
-  
+
   #admin-sidebar.collapsed #sidebar-brand {
     display: none;
   }
-  
+
+  /* Hide dropdown content when sidebar is collapsed */
+  #admin-sidebar.collapsed .dropdown-content {
+    display: none;
+  }
+
+  /* Hide dropdown arrow when sidebar is collapsed */
+  #admin-sidebar.collapsed .dropdown-arrow {
+    display: none;
+  }
+
+  /* Fast and smooth transitions for dropdown */
+  .dropdown-content {
+    transition: max-height 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: max-height, opacity;
+  }
+
+  .dropdown-arrow {
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  /* Optimize for better performance */
+  .dropdown-content.dropdown-open {
+    max-height: 200px;
+    opacity: 1;
+  }
+
+  .dropdown-content.dropdown-closed {
+    max-height: 0;
+    opacity: 0;
+  }
+
+  /* Ensure proper spacing for sub-items */
+  .dropdown-content .sidebar-text {
+    font-size: 0.875rem;
+  }
+
   @media (max-width: 1023px) {
     #admin-sidebar {
       transform: translateX(-100%);
     }
-    
+
     #admin-sidebar.mobile-open {
       transform: translateX(0);
     }
