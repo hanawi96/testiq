@@ -427,18 +427,6 @@ export default function UsersList() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý người dùng</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý tài khoản và quyền hạn người dùng</p>
         </div>
-
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Thêm người dùng mới</span>
-          </button>
-        </div>
       </div>
 
       {/* Stats Cards */}
@@ -590,15 +578,18 @@ export default function UsersList() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Danh sách người dùng</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {usersData ? `Hiển thị ${usersData.users.length} trên ${usersData.total} người dùng` : 'Đang tải...'}
-              </p>
             </div>
-            {usersData && usersData.totalPages > 1 && (
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Trang {currentPage} / {usersData.totalPages}
-              </div>
-            )}
+            <div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Thêm người dùng mới</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -624,12 +615,6 @@ export default function UsersList() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Ngày tham gia
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Đăng nhập cuối
-                  </th>
                   <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Quốc gia
                   </th>
@@ -638,6 +623,12 @@ export default function UsersList() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Số lần test IQ
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Ngày tham gia
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Đăng nhập cuối
                   </th>
                   <th className="relative px-6 py-3">
                     <span className="sr-only">Hành động</span>
@@ -735,16 +726,6 @@ export default function UsersList() {
                       )}
                     </td>
 
-                    {/* Join Date */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {formatDate(user.created_at)}
-                    </td>
-
-                    {/* Last Login */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {formatDate(user.last_sign_in_at)}
-                    </td>
-
                     {/* Country */}
                     <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {formatCountry(user.country)}
@@ -765,6 +746,16 @@ export default function UsersList() {
                           </span>
                         );
                       })()}
+                    </td>
+
+                    {/* Join Date */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      {formatDate(user.created_at)}
+                    </td>
+
+                    {/* Last Login */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(user.last_sign_in_at)}
                     </td>
 
                     {/* Actions */}
@@ -824,9 +815,25 @@ export default function UsersList() {
         </div>
       )}
 
+      {/* Pagination Info */}
+      {usersData && (
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+            <div>
+              Hiển thị {usersData.users.length} trên {usersData.total} người dùng
+            </div>
+            {usersData.totalPages > 1 && (
+              <div>
+                Trang {currentPage} / {usersData.totalPages}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Pagination - Clean & Simple */}
       {usersData && usersData.totalPages > 1 && (
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center px-6 py-4">
           <nav className="flex items-center space-x-1 sm:space-x-2">
             {/* First Page - Hidden on mobile */}
             <button

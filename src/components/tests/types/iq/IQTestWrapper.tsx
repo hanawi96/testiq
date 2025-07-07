@@ -5,11 +5,11 @@ import TestProgressPopup from '../../../common/popups/TestProgressPopup';
 import ResultComponent from '../../results/ResultComponent';
 import type { Question, TestResult } from '../../../../utils/test';
 import { convertToResultData } from './utils/iq-result-formatter';
-import { 
-  hasInProgressTest, 
+import {
+  hasInProgressTest,
   getInProgressTestInfo,
-  clearTestState, 
-  loadTestState 
+  clearTestState,
+  loadTestState
 } from '../../../../utils/test-state';
 
 interface IQTestWrapperProps {
@@ -109,15 +109,15 @@ export default function IQTestWrapper({ questions, timeLimit, startImmediately =
   const startNewTest = useCallback(() => {
     // Xóa trạng thái cũ nếu có
     clearTestState();
-    
+
     // Ẩn phần intro
     const introSection = document.getElementById('intro-section');
     if (introSection) introSection.style.display = 'none';
-    
+
     // Hiển thị phần test
     const testSection = document.getElementById('test-section');
     if (testSection) testSection.style.display = 'block';
-    
+
     // Cho phép render test
     setShouldRender(true);
     setShowProgressPopup(false);
@@ -128,11 +128,11 @@ export default function IQTestWrapper({ questions, timeLimit, startImmediately =
     // Ẩn phần intro
     const introSection = document.getElementById('intro-section');
     if (introSection) introSection.style.display = 'none';
-    
+
     // Hiển thị phần test
     const testSection = document.getElementById('test-section');
     if (testSection) testSection.style.display = 'block';
-    
+
     // Cho phép render test
     setShouldRender(true);
     setShowProgressPopup(false);
