@@ -130,7 +130,7 @@ export default function NewUsersChart({ className = '' }: Props) {
   const LineChart = useCallback(() => {
     if (!chartData.length) {
       return (
-        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 flex items-center justify-center h-60">
+        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 flex items-center justify-center h-60 lg:h-72 xl:h-80 2xl:h-96">
           <div className="text-center">
             <svg className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -141,7 +141,8 @@ export default function NewUsersChart({ className = '' }: Props) {
       );
     }
 
-    const width = 480;
+    // Responsive chart dimensions
+    const width = 800;
     const height = 260;
     const padding = 45;
     const chartWidth = width - (padding * 2);
@@ -165,7 +166,13 @@ export default function NewUsersChart({ className = '' }: Props) {
 
     return (
       <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
-        <svg width="100%" height="260" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+        <svg
+          width="100%"
+          height="260"
+          viewBox={`0 0 ${width} ${height}`}
+          className="overflow-visible h-60 lg:h-72 xl:h-80 2xl:h-96"
+          preserveAspectRatio="xMidYMid meet"
+        >
           {/* Background */}
           <rect width="100%" height="100%" fill="transparent" />
 
@@ -344,7 +351,7 @@ export default function NewUsersChart({ className = '' }: Props) {
 
       {/* Chart skeleton */}
       <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4">
-        <div className="h-60 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div className="h-60 lg:h-72 xl:h-80 2xl:h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
       </div>
 
       {/* Stats skeleton */}

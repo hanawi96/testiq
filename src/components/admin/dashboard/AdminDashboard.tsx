@@ -159,21 +159,21 @@ export default function AdminDashboard() {
       </motion.div>
 
       {/* New Users Charts Grid - Daily and Weekly */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 2xl:gap-10">
         {/* Daily New Users Chart */}
-        <NewUsersChart />
+        <NewUsersChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
 
         {/* Weekly New Users Chart */}
-        <WeeklyNewUsersChart />
+        <WeeklyNewUsersChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
       </div>
 
       {/* Test Charts Grid - Daily and Weekly Test Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 2xl:gap-10">
         {/* Daily Test Chart */}
-        <DailyTestChart />
+        <DailyTestChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
 
         {/* Weekly Test Chart */}
-        <WeeklyTestChart />
+        <WeeklyTestChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
       </div>
 
       {/* Recent Activity */}

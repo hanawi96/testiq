@@ -82,7 +82,8 @@ export default function WeeklyTestChart({ className = '' }: Props) {
   const SimpleBarChart = useCallback(() => {
     if (!chartData.length) return null;
 
-    const width = 600;
+    // Responsive chart dimensions
+    const width = 800;
     const height = 280;
     const padding = 50;
     const chartWidth = width - padding * 2;
@@ -94,7 +95,13 @@ export default function WeeklyTestChart({ className = '' }: Props) {
 
     return (
       <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
-        <svg width="100%" height="280" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+        <svg
+          width="100%"
+          height="280"
+          viewBox={`0 0 ${width} ${height}`}
+          className="overflow-visible h-64 lg:h-72 xl:h-80 2xl:h-96"
+          preserveAspectRatio="xMidYMid meet"
+        >
           {/* Background */}
           <rect width="100%" height="100%" fill="transparent" />
           
@@ -261,7 +268,7 @@ export default function WeeklyTestChart({ className = '' }: Props) {
         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
       </div>
       
-      <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded-lg mb-6 animate-pulse flex items-center justify-center">
+      <div className="h-64 lg:h-72 xl:h-80 2xl:h-96 bg-gray-100 dark:bg-gray-700 rounded-lg mb-6 animate-pulse flex items-center justify-center">
         <div className="text-gray-400 dark:text-gray-500 text-sm">Đang tải biểu đồ...</div>
       </div>
       
@@ -294,7 +301,7 @@ export default function WeeklyTestChart({ className = '' }: Props) {
             Thử lại
           </button>
         </div>
-        <div className="h-64 flex items-center justify-center">
+        <div className="h-64 lg:h-72 xl:h-80 2xl:h-96 flex items-center justify-center">
           <div className="text-center">
             <div className="text-red-500 dark:text-red-400 mb-2">⚠️</div>
             <div className="text-gray-500 dark:text-gray-400">{error}</div>
