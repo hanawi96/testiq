@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService } from '../../../../backend';
+import { getInstantTagsData, preloadTagsData, isTagsDataReady } from '../../../utils/tags-preloader';
 
 interface QuickTagsEditorProps {
   articleId: string;
@@ -25,12 +26,20 @@ export default function QuickTagsEditor({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load available tags
-    const loadTags = async () => {
-      const tags = await ArticlesService.getTags();
-      setAvailableTags(tags);
-    };
-    loadTags();
+    // Set instant data immediately to avoid loading delay
+    const instantTags = getInstantTagsData();
+    setAvailableTags(instantTags);
+
+    // Always load fresh data in background to ensure completeness
+    if (!isTagsDataReady()) {
+      preloadTagsData().then(loadedTags => {
+        setAvailableTags(loadedTags);
+        console.log(`🏷️ QuickTagsEditor: Loaded ${loadedTags.length} tags`);
+      }).catch(() => {
+        // Keep instant data on error
+        console.warn('🏷️ QuickTagsEditor: Failed to load tags, using instant fallback');
+      });
+    }
 
     // Handle click outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -132,21 +141,28 @@ export default function QuickTagsEditor({
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
             Tags có sẵn:
           </label>
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {availableTags.map(tag => (
-              <label
-                key={tag}
-                className="flex items-center space-x-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedTags.includes(tag)}
-                  onChange={() => handleTagToggle(tag)}
-                  className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">{tag}</span>
-              </label>
-            ))}
+          <div className="max-h-32 overflow-y-auto">
+            <div className="flex flex-wrap gap-1">
+              {availableTags.map(tag => {
+                const isSelected = selectedTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => handleTagToggle(tag)}
+                    className={`
+                      inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-all duration-200 cursor-pointer
+                      ${isSelected
+                        ? 'bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 opacity-60'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-300'
+                      }
+                    `}
+                    title={isSelected ? 'Click để bỏ chọn' : 'Click để chọn'}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

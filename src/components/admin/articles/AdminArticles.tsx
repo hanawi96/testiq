@@ -10,6 +10,7 @@ import QuickStatusEditor from './QuickStatusEditor';
 import CategoryDisplay from './CategoryDisplay';
 import { categoriesPreloadTriggers } from '../../../utils/categories-preloader';
 import { authorsPreloadTriggers } from '../../../utils/authors-preloader';
+import { tagsPreloadTriggers } from '../../../utils/tags-preloader';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
@@ -129,6 +130,7 @@ export default function AdminArticles() {
     // Trigger preloads on component mount
     categoriesPreloadTriggers.onAppInit();
     authorsPreloadTriggers.onAppInit();
+    tagsPreloadTriggers.onAppInit();
   }, [filters]);
 
   // Handle page change
@@ -212,6 +214,9 @@ export default function AdminArticles() {
   // Handle quick tags edit with toggle behavior
   const handleQuickTagsEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
+
+    // Trigger tags preload when opening popup
+    tagsPreloadTriggers.onUserInteraction();
 
     // Close other editors
     setQuickAuthorEditor(null);
@@ -935,6 +940,7 @@ export default function AdminArticles() {
                               </div>
                               <button
                                 onClick={(e) => handleQuickTagsEdit(e, article.id)}
+                                onMouseEnter={() => tagsPreloadTriggers.onEditHover()}
                                 className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
                                 title="Chỉnh sửa tags"
                                 data-quick-edit-button="tags"
