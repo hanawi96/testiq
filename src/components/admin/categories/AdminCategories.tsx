@@ -423,8 +423,21 @@ export default function AdminCategories() {
         // Optionally refresh data to ensure consistency
         fetchCategories();
       } else {
-        // SUCCESS: Remove optimistic state, let real data take over
+        // SUCCESS: Update local data immediately to avoid delay
         console.log('Slug update successful');
+
+        // Update the category data immediately in local state
+        if (categoriesData) {
+          const updatedCategories = categoriesData.categories.map(cat =>
+            cat.id === categoryId ? { ...cat, slug: newSlug } : cat
+          );
+          setCategoriesData({
+            ...categoriesData,
+            categories: updatedCategories
+          });
+        }
+
+        // Remove optimistic state since we've updated the real data
         setOptimisticSlugs(prev => {
           const updated = { ...prev };
           delete updated[categoryId];
@@ -434,8 +447,9 @@ export default function AdminCategories() {
         // Clear any existing errors
         setError('');
 
-        // Refresh data to get the latest state from server
-        fetchCategories();
+        // Optional: Refresh data in background to ensure consistency
+        // but don't wait for it since we've already updated the UI
+        setTimeout(() => fetchCategories(), 100);
       }
     } catch (err: any) {
       // REVERT: Network error, restore original slug
