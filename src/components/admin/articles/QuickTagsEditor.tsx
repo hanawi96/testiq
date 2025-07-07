@@ -313,7 +313,6 @@ export default function QuickTagsEditor({
             <div className={`
               flex border border-gray-300 dark:border-gray-600 overflow-hidden bg-white dark:bg-gray-700
               ${showSuggestions ? 'rounded-t-[5px] rounded-b-[0px] border-b-0' : 'rounded-[5px]'}
-              focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-transparent
             `}>
               <input
                 ref={newTagInputRef}
@@ -322,7 +321,7 @@ export default function QuickTagsEditor({
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Nhập tag mới..."
-                className="flex-1 px-3 py-2 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 border-0 focus:outline-none focus:ring-0"
+                className="flex-1 px-3 py-2 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 border-0 outline-none focus:outline-none focus:ring-0"
                 autoComplete="off"
               />
               <button
