@@ -92,13 +92,18 @@ export default function UnifiedCountrySelector({
   // Initialize countries on mount
   useEffect(() => {
     const initCountries = async () => {
+      // For admin variant or when instant data is not available, show loading
+      if (variant === 'admin' || !getInstantCountryData().length) {
+        setLoading(true);
+      }
+
       try {
         const loadedCountries = await loadCountries();
         setCountries(loadedCountries);
-        
+
         // Find and set selected country if value provided
         if (value) {
-          const found = loadedCountries.find(c => 
+          const found = loadedCountries.find(c =>
             c.name.toLowerCase() === value.toLowerCase() ||
             c.code.toLowerCase() === value.toLowerCase()
           );
@@ -112,8 +117,43 @@ export default function UnifiedCountrySelector({
       }
     };
 
-    initCountries();
-  }, [value, loadCountries]);
+    // For popup variant, set instant data immediately to avoid loading delay
+    if (variant === 'popup') {
+      const instantCountries = getInstantCountryData();
+      setCountries(instantCountries);
+      setLoading(false);
+
+      // Find and set selected country from instant data
+      if (value) {
+        const found = instantCountries.find(c =>
+          c.name.toLowerCase() === value.toLowerCase() ||
+          c.code.toLowerCase() === value.toLowerCase()
+        );
+        setSelectedCountry(found || null);
+      }
+
+      // Background load for better data (non-blocking)
+      loadCountries().then(loadedCountries => {
+        setCountries(loadedCountries);
+
+        // Update selected country with better data if needed
+        if (value) {
+          const found = loadedCountries.find(c =>
+            c.name.toLowerCase() === value.toLowerCase() ||
+            c.code.toLowerCase() === value.toLowerCase()
+          );
+          if (found && (!selectedCountry || found.code !== selectedCountry.code)) {
+            setSelectedCountry(found);
+          }
+        }
+      }).catch(() => {
+        // Keep instant data on error
+      });
+    } else {
+      // For admin variant, use normal loading
+      initCountries();
+    }
+  }, [value, loadCountries, variant]);
 
   // Smart filtering with fuzzy search
   const filteredCountries = searchTerm.trim()

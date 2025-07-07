@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserWithProfile } from '../../../../backend';
 import UnifiedCountrySelector, { type Country } from '../../common/UnifiedCountrySelector';
+import { getInstantCountryData, preloadTriggers } from '../../../utils/country-preloader';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -54,18 +55,47 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
   const [errors, setErrors] = useState<EditUserFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  // Smart country resolver - find country with proper code and flag
+  const resolveUserCountry = (countryName: string | null): Country | null => {
+    if (!countryName) return null;
+
+    const countries = getInstantCountryData();
+    const searchName = countryName.toLowerCase().trim();
+
+    // Exact match first
+    let found = countries.find(c =>
+      c.name.toLowerCase() === searchName ||
+      c.code.toLowerCase() === searchName
+    );
+
+    if (found) return found;
+
+    // Partial match
+    found = countries.find(c =>
+      c.name.toLowerCase().includes(searchName) ||
+      searchName.includes(c.name.toLowerCase())
+    );
+
+    // Fallback with basic info
+    return found || {
+      id: countryName,
+      name: countryName,
+      code: '',
+      flag: '/flag/VN.svg' // Default flag
+    };
+  };
+
   // Pre-fill form when user data changes
   useEffect(() => {
     if (isOpen && user) {
+      // Trigger additional preload when modal opens
+      preloadTriggers.onUserInteraction();
+
       setForm({
         fullName: user.full_name || '',
         age: user.age || '',
         gender: (user.gender as 'male' | 'female' | 'other') || '',
-        country: user.country_name ? {
-          id: user.country_name,
-          name: user.country_name,
-          code: '', // Will be resolved by UnifiedCountrySelector
-        } : null,
+        country: resolveUserCountry(user.country_name),
         role: user.role
       });
       setErrors({});
@@ -353,7 +383,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
                   onChange={(country) => setForm(prev => ({ ...prev, country }))}
                   placeholder="Chọn quốc gia"
                   disabled={isLoading}
-                  variant="admin"
+                  variant="popup"
                   showFlag={true}
                   showCode={false}
                 />
