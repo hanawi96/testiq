@@ -879,9 +879,9 @@ export default function AdminArticles() {
                               {article.excerpt}
                             </div>
                             {/* Category info for mobile */}
-                            <div className="sm:hidden mt-2 flex items-center space-x-2">
+                            <div className="sm:hidden mt-2 flex items-center">
                               {loadingCategoryIds.has(article.id) ? (
-                                <div className="flex items-center space-x-2 flex-1">
+                                <div className="flex items-center space-x-2">
                                   <div className="w-3 h-3 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     Đang cập nhật danh mục...
@@ -892,7 +892,7 @@ export default function AdminArticles() {
                                   categories={article.category_names || []}
                                   maxVisible={2}
                                   getCategoryColor={getCategoryColor}
-                                  className="flex-1"
+                                  className=""
                                   showIcon={true}
                                   iconPrefix="📁"
                                 />
@@ -901,7 +901,7 @@ export default function AdminArticles() {
                                 onClick={(e) => handleQuickCategoryEdit(e, article.id)}
                                 onMouseEnter={categoriesPreloadTriggers.onEditHover}
                                 disabled={loadingCategoryIds.has(article.id)}
-                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Chỉnh sửa danh mục"
                                 data-quick-edit-button="category"
                               >
@@ -943,7 +943,7 @@ export default function AdminArticles() {
 
                       {/* Categories */}
                       <td className="hidden sm:table-cell px-6 py-4">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center">
                           {loadingCategoryIds.has(article.id) ? (
                             <div className="flex items-center space-x-2">
                               <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
@@ -954,16 +954,16 @@ export default function AdminArticles() {
                           ) : (
                             <CategoryDisplay
                               categories={article.category_names || []}
-                              maxVisible={3}
+                              maxVisible={2}
                               getCategoryColor={getCategoryColor}
-                              className="max-w-xs"
+                              className=""
                             />
                           )}
                           <button
                             onClick={(e) => handleQuickCategoryEdit(e, article.id)}
                             onMouseEnter={categoriesPreloadTriggers.onEditHover}
                             disabled={loadingCategoryIds.has(article.id)}
-                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa danh mục"
                             data-quick-edit-button="category"
                           >
