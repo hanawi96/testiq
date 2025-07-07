@@ -309,7 +309,12 @@ export default function QuickTagsEditor({
             Thêm tag mới:
           </label>
           <div className="relative">
-            <div className="flex space-x-2">
+            {/* Input Container with integrated design */}
+            <div className={`
+              flex border border-gray-300 dark:border-gray-600 overflow-hidden bg-white dark:bg-gray-700
+              ${showSuggestions ? 'rounded-t-[5px] rounded-b-[0px] border-b-0' : 'rounded-[5px]'}
+              focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-transparent
+            `}>
               <input
                 ref={newTagInputRef}
                 type="text"
@@ -317,23 +322,23 @@ export default function QuickTagsEditor({
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Nhập tag mới..."
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-transparent"
+                className="flex-1 px-3 py-2 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 border-0 focus:outline-none focus:ring-0"
                 autoComplete="off"
               />
               <button
                 onClick={() => handleAddNewTag()}
                 disabled={!newTag.trim()}
-                className="px-2 py-1 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded transition-colors"
+                className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:opacity-50 text-white transition-colors border-l border-gray-300 dark:border-gray-600"
               >
                 Thêm
               </button>
             </div>
 
-            {/* Autocomplete Dropdown */}
+            {/* Autocomplete Dropdown - Seamlessly connected */}
             {showSuggestions && (
               <div
                 ref={suggestionsRef}
-                className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+                className="absolute top-full left-0 right-0 mt-0 bg-white dark:bg-gray-800 border-l border-r border-b border-gray-300 dark:border-gray-600 rounded-t-[0px] rounded-b-[5px] shadow-lg z-50 max-h-48 overflow-y-auto"
               >
                 {filteredSuggestions.length > 0 ? (
                   filteredSuggestions.map((suggestion, index) => (
@@ -341,20 +346,19 @@ export default function QuickTagsEditor({
                       key={suggestion}
                       onClick={() => handleSuggestionClick(suggestion)}
                       className={`
-                        px-3 py-2 text-sm cursor-pointer transition-colors
+                        px-3 py-2 text-sm cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0
                         ${index === highlightedIndex
                           ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                         }
-                        ${index === 0 ? 'rounded-t-lg' : ''}
-                        ${index === filteredSuggestions.length - 1 ? 'rounded-b-lg' : ''}
+                        ${index === filteredSuggestions.length - 1 ? 'rounded-b-[5px]' : ''}
                       `}
                     >
                       {highlightMatch(suggestion, newTag)}
                     </div>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 italic">
+                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 italic rounded-b-[5px]">
                     Không tìm thấy tag phù hợp
                   </div>
                 )}
