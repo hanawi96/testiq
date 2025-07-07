@@ -25,7 +25,7 @@ export type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } fr
 export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from './admin/articles-service';
 export type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from './admin/categories-service';
 export type { MediaFile, MediaFolder, MediaStats, MediaFilters, MediaListResponse } from './admin/media-service';
-export type { AdminStats, AdminAction, WeeklyNewUsersStats } from './types';
+export type { AdminStats, AdminAction, WeeklyNewUsersStats, TestTimeRange } from './types';
 export * from './types';
 
 // Export leaderboard services

@@ -1,11 +1,11 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats, WeeklyNewUsersStats, NewUsersTimeRange } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats, WeeklyNewUsersStats, NewUsersTimeRange, TestTimeRange } from '../types';
 
 // Cache for stats (5 minutes) - separate cache for each time range
 let newUsersStatsCache: Record<string, { data: NewUsersStats; timestamp: number }> = {};
 let weeklyTestStatsCache: { data: WeeklyTestStats; timestamp: number } | null = null;
-let dailyTestStatsCache: { data: DailyTestStats; timestamp: number } | null = null;
+let dailyTestStatsCache: Record<string, { data: DailyTestStats; timestamp: number }> = {};
 let dailyComparisonStatsCache: { data: DailyComparisonStats; timestamp: number } | null = null;
 let weeklyNewUsersStatsCache: { data: WeeklyNewUsersStats; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -313,26 +313,52 @@ export class AdminService {
   }
 
   /**
-   * Get daily test statistics for the last 7 days
+   * Get daily test statistics with time range support
    */
-  static async getDailyTestStats(): Promise<{
+  static async getDailyTestStats(timeRange: TestTimeRange = '7d'): Promise<{
     data: DailyTestStats | null;
     error: any
   }> {
     try {
-      console.log('AdminService: Fetching daily test stats for last 7 days');
+      console.log(`AdminService: Fetching daily test stats for ${timeRange}`);
 
       // Check cache first
       const now = Date.now();
-      if (dailyTestStatsCache && (now - dailyTestStatsCache.timestamp) < CACHE_DURATION) {
-        console.log('AdminService: Using cached daily test stats');
-        return { data: dailyTestStatsCache.data, error: null };
+      const cacheKey = timeRange;
+      if (dailyTestStatsCache[cacheKey] && (now - dailyTestStatsCache[cacheKey].timestamp) < CACHE_DURATION) {
+        console.log(`AdminService: Using cached daily test stats for ${timeRange}`);
+        return { data: dailyTestStatsCache[cacheKey].data, error: null };
       }
 
-      // Calculate date range for last 7 days
+      // Calculate date range and sampling based on time range
+      let days: number;
+      let sampleInterval: number;
+
+      switch (timeRange) {
+        case '7d':
+          days = 7;
+          sampleInterval = 1;
+          break;
+        case '1m':
+          days = 30;
+          sampleInterval = 1;
+          break;
+        case '3m':
+          days = 90;
+          sampleInterval = 3; // Sample every 3 days
+          break;
+        case '6m':
+          days = 180;
+          sampleInterval = 6; // Sample every 6 days
+          break;
+        default:
+          days = 7;
+          sampleInterval = 1;
+      }
+
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(endDate.getDate() - 6); // 7 days total (including today)
+      startDate.setDate(endDate.getDate() - (days - 1));
 
       // Format dates for SQL queries
       const formatDate = (date: Date) => date.toISOString().split('T')[0];
@@ -363,33 +389,55 @@ export class AdminService {
         testCount: number;
       }> = [];
 
-      // Create array for all 7 days
-      for (let i = 0; i < 7; i++) {
+      // Create array for sampled days
+      for (let i = 0; i < days; i += sampleInterval) {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + i);
         const dateStr = formatDate(currentDate);
 
-        // Count tests for this day
-        const testsForDay = testResults?.filter(result => {
-          const resultDate = new Date(result.tested_at).toISOString().split('T')[0];
-          return resultDate === dateStr;
-        }) || [];
+        // For sampling intervals > 1, aggregate data for the interval
+        let testsForPeriod = 0;
+        for (let j = 0; j < sampleInterval && (i + j) < days; j++) {
+          const periodDate = new Date(startDate);
+          periodDate.setDate(startDate.getDate() + i + j);
+          const periodDateStr = formatDate(periodDate);
 
-        // Create date label (e.g., "T2 15/1", "T3 16/1")
-        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-        const dayName = dayNames[currentDate.getDay()];
-        const dateLabel = `${dayName} ${currentDate.getDate()}/${currentDate.getMonth() + 1}`;
+          const testsForDay = testResults?.filter(result => {
+            const resultDate = new Date(result.tested_at).toISOString().split('T')[0];
+            return resultDate === periodDateStr;
+          }) || [];
+
+          testsForPeriod += testsForDay.length;
+        }
+
+        // Create appropriate date label based on time range
+        let dateLabel: string;
+        if (timeRange === '7d' || timeRange === '1m') {
+          // Show day name for short periods
+          const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+          const dayName = dayNames[currentDate.getDay()];
+          dateLabel = `${dayName} ${currentDate.getDate()}/${currentDate.getMonth() + 1}`;
+        } else {
+          // Show date range for longer periods with sampling
+          if (sampleInterval > 1) {
+            const endPeriodDate = new Date(currentDate);
+            endPeriodDate.setDate(currentDate.getDate() + sampleInterval - 1);
+            dateLabel = `${currentDate.getDate()}/${currentDate.getMonth() + 1}-${endPeriodDate.getDate()}/${endPeriodDate.getMonth() + 1}`;
+          } else {
+            dateLabel = `${currentDate.getDate()}/${currentDate.getMonth() + 1}`;
+          }
+        }
 
         dailyData.push({
           date: dateStr,
           dateLabel,
-          testCount: testsForDay.length
+          testCount: testsForPeriod
         });
       }
 
       // Calculate total tests and average
       const totalTests = dailyData.reduce((sum, day) => sum + day.testCount, 0);
-      const averagePerDay = Math.round(totalTests / 7);
+      const averagePerDay = Math.round(totalTests / days);
 
       console.log('AdminService: Daily test stats calculated successfully', {
         totalTests,
@@ -404,7 +452,7 @@ export class AdminService {
       };
 
       // Cache the result
-      dailyTestStatsCache = {
+      dailyTestStatsCache[cacheKey] = {
         data: result,
         timestamp: now
       };
@@ -422,9 +470,14 @@ export class AdminService {
   /**
    * Clear daily test stats cache
    */
-  static clearDailyTestStatsCache(): void {
-    dailyTestStatsCache = null;
-    console.log('AdminService: Daily test stats cache cleared');
+  static clearDailyTestStatsCache(timeRange?: TestTimeRange): void {
+    if (timeRange) {
+      delete dailyTestStatsCache[timeRange];
+      console.log(`AdminService: Daily test stats cache cleared for ${timeRange}`);
+    } else {
+      dailyTestStatsCache = {};
+      console.log('AdminService: All daily test stats cache cleared');
+    }
   }
 
   /**
