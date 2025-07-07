@@ -41,6 +41,7 @@ export default function AdminArticles() {
   // Loading states for optimistic UI
   const [loadingAuthorIds, setLoadingAuthorIds] = useState<Set<string>>(new Set());
   const [loadingCategoryIds, setLoadingCategoryIds] = useState<Set<string>>(new Set());
+  const [loadingTagIds, setLoadingTagIds] = useState<Set<string>>(new Set());
 
   // Link analysis modal
   const [linkAnalysisModal, setLinkAnalysisModal] = useState<{
@@ -388,13 +389,48 @@ export default function AdminArticles() {
     });
   };
 
-  // Handle tags update
-  const handleTagsUpdate = (articleId: string, newTags: string[]) => {
-    if (articlesData) {
-      const updatedArticles = articlesData.articles.map(article =>
-        article.id === articleId ? { ...article, tags: newTags } : article
+  // Handle tags update with optimistic UI and loading state
+  const handleTagsUpdate = async (articleId: string, newTags: string[]) => {
+    if (!articlesData) return;
+
+    const originalArticle = articlesData.articles.find(a => a.id === articleId);
+    if (!originalArticle) return;
+
+    // Start loading state
+    setLoadingTagIds(prev => new Set(prev).add(articleId));
+
+    // Optimistic UI update
+    const updatedArticles = articlesData.articles.map(article =>
+      article.id === articleId ? { ...article, tags: newTags } : article
+    );
+    setArticlesData({ ...articlesData, articles: updatedArticles });
+
+    try {
+      // Background API call
+      const { error: updateError } = await ArticlesService.updateTags(articleId, newTags);
+
+      if (updateError) {
+        console.error('Failed to update tags:', updateError);
+        // Revert optimistic update on error
+        const revertedArticles = articlesData.articles.map(article =>
+          article.id === articleId ? originalArticle : article
+        );
+        setArticlesData({ ...articlesData, articles: revertedArticles });
+      }
+    } catch (err) {
+      console.error('Error updating tags:', err);
+      // Revert optimistic update on error
+      const revertedArticles = articlesData.articles.map(article =>
+        article.id === articleId ? originalArticle : article
       );
-      setArticlesData({ ...articlesData, articles: updatedArticles });
+      setArticlesData({ ...articlesData, articles: revertedArticles });
+    } finally {
+      // Remove loading state
+      setLoadingTagIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(articleId);
+        return newSet;
+      });
     }
   };
 
@@ -923,25 +959,35 @@ export default function AdminArticles() {
                               </button>
                             </div>
                             <div className="flex items-center space-x-2 mt-2">
-                              <div className="flex items-center space-x-2">
-                                {(article.tags || []).slice(0, 3).map((tag, index) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                                {(article.tags || []).length > 3 && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    +{(article.tags || []).length - 3} khác
-                                  </span>
-                                )}
-                              </div>
+                              {loadingTagIds.has(article.id) ? (
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Đang cập nhật tags...
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2">
+                                  {(article.tags || []).slice(0, 3).map((tag, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {(article.tags || []).length > 3 && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      +{(article.tags || []).length - 3} khác
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                               <button
                                 onClick={(e) => handleQuickTagsEdit(e, article.id)}
                                 onMouseEnter={() => tagsPreloadTriggers.onEditHover()}
-                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                                disabled={loadingTagIds.has(article.id)}
+                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Chỉnh sửa tags"
                                 data-quick-edit-button="tags"
                               >

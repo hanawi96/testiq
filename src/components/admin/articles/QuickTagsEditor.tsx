@@ -74,25 +74,11 @@ export default function QuickTagsEditor({
     }
   };
 
-  const handleSave = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const { error: updateError } = await ArticlesService.updateTags(articleId, selectedTags);
-      
-      if (updateError) {
-        setError('Không thể cập nhật tags');
-        return;
-      }
-
-      onUpdate(articleId, selectedTags);
-      onClose();
-    } catch (err) {
-      setError('Có lỗi xảy ra khi cập nhật');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSave = () => {
+    // Optimistic UI: Close popup immediately and trigger update
+    // The parent component (AdminArticles) will handle the API call and loading state
+    onUpdate(articleId, selectedTags);
+    onClose();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
