@@ -141,24 +141,7 @@ export default function AdminResults() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Get badge color based on score
-  const getBadgeColor = (score: number) => {
-    if (score >= 140) return 'bg-purple-100 text-purple-800 border-purple-200';
-    if (score >= 130) return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (score >= 115) return 'bg-green-100 text-green-800 border-green-200';
-    if (score >= 100) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-gray-100 text-gray-800 border-gray-200';
-  };
 
-  // Get badge label based on score
-  const getBadgeLabel = (score: number) => {
-    if (score >= 140) return 'Thiên tài';
-    if (score >= 130) return 'Rất cao';
-    if (score >= 115) return 'Cao';
-    if (score >= 100) return 'Trung bình cao';
-    if (score >= 85) return 'Trung bình';
-    return 'Dưới trung bình';
-  };
 
   if (isLoading && !resultsData) {
     return (
@@ -377,14 +360,9 @@ export default function AdminResults() {
 
                     {/* Score */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                          {result.score}
-                        </span>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeColor(result.score)}`}>
-                          {getBadgeLabel(result.score)}
-                        </span>
-                      </div>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {result.score}
+                      </span>
                     </td>
 
                     {/* Duration */}
