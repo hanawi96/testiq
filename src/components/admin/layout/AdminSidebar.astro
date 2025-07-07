@@ -36,14 +36,42 @@ const menuItems = [
   {
     id: 'categories',
     title: 'Danh mục',
-    href: '/admin/categories',
-    icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
+    icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z',
+    hasDropdown: true,
+    subItems: [
+      {
+        id: 'categories-create',
+        title: 'Thêm danh mục',
+        href: '/admin/categories/create',
+        icon: 'M12 4v16m8-8H4'
+      },
+      {
+        id: 'categories-manage',
+        title: 'Quản lý danh mục',
+        href: '/admin/categories',
+        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
+      }
+    ]
   },
   {
     id: 'users',
     title: 'Người dùng',
-    href: '/admin/users',
-    icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'
+    icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
+    hasDropdown: true,
+    subItems: [
+      {
+        id: 'users-create',
+        title: 'Thêm người dùng',
+        href: '/admin/users/create',
+        icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'
+      },
+      {
+        id: 'users-manage',
+        title: 'Quản lý người dùng',
+        href: '/admin/users',
+        icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
+      }
+    ]
   },
   {
     id: 'results',
@@ -78,12 +106,29 @@ function isActive(href: string) {
   }
 
   // Exact match for sub-items to avoid conflicts
+
+  // Articles
   if (href === '/admin/articles') {
     return currentPath === '/admin/articles' || currentPath === '/admin/articles/';
   }
-
   if (href === '/admin/articles/create') {
     return currentPath === '/admin/articles/create' || currentPath === '/admin/articles/create/';
+  }
+
+  // Categories
+  if (href === '/admin/categories') {
+    return currentPath === '/admin/categories' || currentPath === '/admin/categories/';
+  }
+  if (href === '/admin/categories/create') {
+    return currentPath === '/admin/categories/create' || currentPath === '/admin/categories/create/';
+  }
+
+  // Users
+  if (href === '/admin/users') {
+    return currentPath === '/admin/users' || currentPath === '/admin/users/';
+  }
+  if (href === '/admin/users/create') {
+    return currentPath === '/admin/users/create' || currentPath === '/admin/users/create/';
   }
 
   // For other paths, use startsWith
@@ -101,7 +146,7 @@ function isDropdownActive(item: any) {
 <div id="mobile-overlay" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden hidden"></div>
 
 <!-- Sidebar -->
-<div id="admin-sidebar" class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+<div id="admin-sidebar" class="sidebar-initializing fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
   
   <!-- Logo Section -->
   <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
@@ -159,13 +204,13 @@ function isDropdownActive(item: any) {
                 </svg>
                 <span class="sidebar-text truncate">{item.title}</span>
               </div>
-              <svg class={`dropdown-arrow w-4 h-4 transition-transform duration-200 sidebar-text ${isDropdownActive(item) ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class={`dropdown-arrow w-4 h-4 transition-transform duration-200 sidebar-text ${isDropdownActive(item) ? 'rotate-90 server-side-rotated' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
               </svg>
             </button>
 
             <!-- Dropdown Content -->
-            <div class={`dropdown-content overflow-hidden ${isDropdownActive(item) ? 'dropdown-open' : 'dropdown-closed'}`} data-dropdown-content={item.id}>
+            <div class={`dropdown-content overflow-hidden ${isDropdownActive(item) ? 'dropdown-open server-side-open' : 'dropdown-closed'}`} data-dropdown-content={item.id}>
               <div class="py-1 space-y-1">
                 {item.subItems?.map((subItem: any) => (
                   <a
@@ -252,6 +297,9 @@ function isDropdownActive(item: any) {
 
     // Initialize sidebar state
     function initSidebar() {
+      // Remove initializing class to show sidebar
+      sidebar?.classList.remove('sidebar-initializing');
+
       if (isCollapsed) {
         sidebar?.classList.add('collapsed');
         sidebar?.classList.remove('w-64');
@@ -360,56 +408,101 @@ function isDropdownActive(item: any) {
 
       const isOpen = openDropdowns.has(dropdownId);
 
-      // Use requestAnimationFrame for smoother animations
+      // Prevent multiple rapid toggles
+      if (dropdownContent.dataset.transitioning === 'true') return;
+      dropdownContent.dataset.transitioning = 'true';
+
+      // Use double requestAnimationFrame for stable animations
       requestAnimationFrame(() => {
-        if (isOpen) {
-          // Close dropdown
-          dropdownContent.classList.remove('dropdown-open');
-          dropdownContent.classList.add('dropdown-closed');
-          dropdownArrow.classList.remove('rotate-90');
-          openDropdowns.delete(dropdownId);
-          localStorage.removeItem(`dropdown-${dropdownId}-open`);
-        } else {
-          // Open dropdown
-          dropdownContent.classList.remove('dropdown-closed');
-          dropdownContent.classList.add('dropdown-open');
-          dropdownArrow.classList.add('rotate-90');
-          openDropdowns.add(dropdownId);
-          localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
-        }
+        requestAnimationFrame(() => {
+          if (isOpen) {
+            // Close dropdown
+            dropdownContent.classList.remove('dropdown-open');
+            dropdownContent.classList.add('dropdown-closed');
+            dropdownArrow.classList.remove('rotate-90');
+            openDropdowns.delete(dropdownId);
+            localStorage.removeItem(`dropdown-${dropdownId}-open`);
+          } else {
+            // Open dropdown
+            dropdownContent.classList.remove('dropdown-closed');
+            dropdownContent.classList.add('dropdown-open');
+            dropdownArrow.classList.add('rotate-90');
+            openDropdowns.add(dropdownId);
+            localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
+          }
+
+          // Reset transition flag after animation completes
+          setTimeout(() => {
+            dropdownContent.dataset.transitioning = 'false';
+          }, 250);
+        });
       });
     }
 
+    let dropdownsInitialized = false;
+
     function initDropdowns() {
-      // Initialize dropdown states from localStorage
+      // Prevent multiple initializations
+      if (dropdownsInitialized) return;
+      dropdownsInitialized = true;
+
+      // Initialize dropdown states from localStorage and server-side state
       const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
       dropdownToggles.forEach(toggle => {
         const dropdownId = toggle.getAttribute('data-dropdown-id');
         if (dropdownId) {
-          const isOpen = localStorage.getItem(`dropdown-${dropdownId}-open`) === 'true';
           const dropdownContent = document.querySelector(`[data-dropdown-content="${dropdownId}"]`);
           const dropdownArrow = toggle.querySelector('.dropdown-arrow');
 
           if (dropdownContent) {
+            // Check if server-side state exists (based on current path)
+            const hasServerSideState = dropdownContent.classList.contains('server-side-open');
+            const localStorageState = localStorage.getItem(`dropdown-${dropdownId}-open`) === 'true';
+
+            // Use server-side state if available, otherwise use localStorage
+            const isOpen = hasServerSideState || localStorageState;
+
+            // Disable all transitions during initialization
+            dropdownContent.style.transition = 'none';
+            if (dropdownArrow) dropdownArrow.style.transition = 'none';
+
+            // Force immediate layout calculation
+            dropdownContent.offsetHeight;
+
             if (isOpen) {
               openDropdowns.add(dropdownId);
               dropdownContent.classList.add('dropdown-open');
               dropdownContent.classList.remove('dropdown-closed');
-              if (dropdownArrow) dropdownArrow.classList.add('rotate-90');
+              if (dropdownArrow) {
+                dropdownArrow.classList.add('rotate-90');
+                dropdownArrow.classList.remove('server-side-rotated');
+              }
+              // Update localStorage to match current state
+              localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
             } else {
               dropdownContent.classList.add('dropdown-closed');
-              dropdownContent.classList.remove('dropdown-open');
+              dropdownContent.classList.remove('dropdown-open', 'server-side-open');
+              if (dropdownArrow) {
+                dropdownArrow.classList.remove('rotate-90', 'server-side-rotated');
+              }
+              localStorage.removeItem(`dropdown-${dropdownId}-open`);
             }
+
+            // Force another layout calculation before re-enabling transitions
+            dropdownContent.offsetHeight;
+
+            // Re-enable transitions after state is fully applied
+            setTimeout(() => {
+              dropdownContent.style.transition = '';
+              if (dropdownArrow) dropdownArrow.style.transition = '';
+            }, 0);
           }
 
-          // Add click event listener with debouncing
-          let clickTimeout;
+          // Add click event listener (no debouncing needed with transition guard)
           toggle.addEventListener('click', (e) => {
             e.preventDefault();
-            clearTimeout(clickTimeout);
-            clickTimeout = setTimeout(() => {
-              toggleDropdown(dropdownId);
-            }, 10);
+            e.stopPropagation();
+            toggleDropdown(dropdownId);
           });
         }
       });
@@ -429,13 +522,25 @@ function isDropdownActive(item: any) {
       isMobileOpen: () => isMobileOpen
     };
 
-    // Initialize
-    initSidebar();
+    // Initialize with proper order to prevent flashing
     initDropdowns();
+    initSidebar();
   });
 </script>
 
 <style>
+  /* Hide sidebar during initialization to prevent flashing */
+  .sidebar-initializing {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Prevent transitions on server-side rendered states */
+  .server-side-open,
+  .server-side-rotated {
+    transition: none !important;
+  }
+
   #admin-sidebar.collapsed .sidebar-text {
     display: none;
   }
@@ -454,19 +559,21 @@ function isDropdownActive(item: any) {
     display: none;
   }
 
-  /* Fast and smooth transitions for dropdown */
+  /* Stable and smooth transitions for dropdown */
   .dropdown-content {
-    transition: max-height 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: max-height, opacity;
+    transition: max-height 0.2s ease-out, opacity 0.15s ease-out;
+    will-change: auto;
+    transform: translateZ(0); /* Force GPU acceleration */
+    backface-visibility: hidden; /* Prevent flickering */
   }
 
   .dropdown-arrow {
-    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
+    transition: transform 0.2s ease-out;
+    will-change: auto;
+    transform: translateZ(0); /* Force GPU acceleration */
   }
 
-  /* Optimize for better performance */
+  /* Stable states to prevent layout shifts */
   .dropdown-content.dropdown-open {
     max-height: 200px;
     opacity: 1;
@@ -477,9 +584,48 @@ function isDropdownActive(item: any) {
     opacity: 0;
   }
 
+  /* Prevent layout shifts during transitions */
+  .menu-item-container {
+    contain: layout style;
+  }
+
+  /* Stable sidebar to prevent flickering */
+  #admin-sidebar {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    contain: layout style;
+    transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
+  }
+
+  /* Show sidebar after initialization */
+  #admin-sidebar:not(.sidebar-initializing) {
+    opacity: 1;
+    visibility: visible;
+  }
+
   /* Ensure proper spacing for sub-items */
   .dropdown-content .sidebar-text {
     font-size: 0.875rem;
+  }
+
+  /* Prevent any layout shifts */
+  .dropdown-toggle {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Smooth hover effects without layout shifts */
+  .dropdown-toggle:hover,
+  .menu-item-container a:hover {
+    transform: translateZ(0);
+  }
+
+  /* Ensure consistent height for menu items */
+  .dropdown-toggle,
+  .menu-item-container > a {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
   }
 
   @media (max-width: 1023px) {
