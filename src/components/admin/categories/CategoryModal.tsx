@@ -316,29 +316,59 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
                 </p>
               </div>
 
-              {/* Color Field */}
-              <div className="mb-4">
-                <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Màu sắc
-                </label>
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="color"
-                    id="color"
-                    name="color"
-                    value={formData.color}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
-                  />
-                  <input
-                    type="text"
-                    value={formData.color}
-                    onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                    disabled={isLoading}
-                    placeholder="#3B82F6"
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                  />
+              {/* Color and Status Fields */}
+              <div className="mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Color Field */}
+                  <div className="space-y-2">
+                    <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Màu sắc
+                    </label>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <input
+                          type="color"
+                          id="color"
+                          name="color"
+                          value={formData.color}
+                          onChange={handleInputChange}
+                          disabled={isLoading}
+                          className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="text"
+                          value={formData.color}
+                          onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                          disabled={isLoading}
+                          placeholder="#3B82F6"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Field */}
+                  <div className="space-y-2">
+                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Trạng thái
+                    </label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                    >
+                      <option value="active">Hoạt động</option>
+                      <option value="inactive">Không hoạt động</option>
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {formData.status === 'active' ? 'Danh mục hiển thị công khai' : 'Danh mục bị ẩn khỏi công khai'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
