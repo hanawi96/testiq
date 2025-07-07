@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserWithProfile } from '../../../../backend';
+import CountrySelector from '../../common/CountrySelector';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -9,11 +10,20 @@ interface EditUserModalProps {
   user: UserWithProfile | null;
 }
 
+interface Country {
+  name: string;
+  code: string;
+  emoji: string;
+  unicode: string;
+  image: string;
+  dial_code: string;
+}
+
 interface EditUserForm {
   fullName: string;
   age: number | '';
   gender: 'male' | 'female' | 'other' | '';
-  location: string;
+  country: Country | null;
   role: 'user' | 'admin' | 'editor' | 'author' | 'reviewer';
 }
 
@@ -21,7 +31,7 @@ interface EditUserFormErrors {
   fullName?: string;
   age?: string;
   gender?: string;
-  location?: string;
+  country?: string;
   role?: string;
 }
 
@@ -44,7 +54,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
     fullName: '',
     age: '',
     gender: '',
-    location: '',
+    country: null,
     role: 'user'
   });
   const [errors, setErrors] = useState<EditUserFormErrors>({});
@@ -53,14 +63,48 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
   // Pre-fill form when user data changes
   useEffect(() => {
     if (isOpen && user) {
-      setForm({
-        fullName: user.full_name || '',
-        age: user.age || '',
-        gender: (user.gender as 'male' | 'female' | 'other') || '',
-        location: user.location || '',
-        role: user.role
-      });
-      setErrors({});
+      // Try to find country from location string
+      const findCountryFromLocation = async (location: string) => {
+        if (!location) return null;
+
+        try {
+          const response = await fetch('/country.json');
+          const countries: Country[] = await response.json();
+
+          // Try to find by exact name match first
+          let found = countries.find(country =>
+            country.name.toLowerCase() === location.toLowerCase()
+          );
+
+          // If not found, try partial match
+          if (!found) {
+            found = countries.find(country =>
+              country.name.toLowerCase().includes(location.toLowerCase()) ||
+              location.toLowerCase().includes(country.name.toLowerCase())
+            );
+          }
+
+          return found || null;
+        } catch (error) {
+          console.error('Error loading countries:', error);
+          return null;
+        }
+      };
+
+      const initForm = async () => {
+        const country = await findCountryFromLocation(user.location || '');
+
+        setForm({
+          fullName: user.full_name || '',
+          age: user.age || '',
+          gender: (user.gender as 'male' | 'female' | 'other') || '',
+          country: country,
+          role: user.role
+        });
+        setErrors({});
+      };
+
+      initForm();
     }
   }, [isOpen, user]);
 
@@ -114,7 +158,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
         fullName: form.fullName.trim(),
         age: form.age === '' ? undefined : Number(form.age),
         gender: form.gender || undefined,
-        location: form.location.trim() || undefined,
+        location: form.country?.name || undefined,
         role: form.role
       };
 
@@ -277,21 +321,22 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
                 </div>
               </div>
 
-              {/* Location */}
+              {/* Country */}
               <div className="mb-4">
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Địa điểm
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Quốc gia
                 </label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={form.location}
-                  onChange={handleInputChange}
+                <CountrySelector
+                  value={form.country?.name || ''}
+                  onChange={(country) => setForm(prev => ({ ...prev, country }))}
+                  placeholder="Chọn quốc gia"
                   disabled={isLoading}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                  placeholder="Nhập địa điểm"
+                  showFlag={true}
+                  showCode={false}
                 />
+                {errors.country && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.country}</p>
+                )}
               </div>
 
               {/* Role */}
