@@ -718,7 +718,7 @@ export default function AdminCategories() {
                 <button
                   onClick={() => handleBulkStatusUpdate('active')}
                   disabled={isUpdating || bulkActionLoading !== null}
-                  className="flex items-center space-x-2 px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-sm rounded-md transition-all duration-200"
+                  className="flex items-center space-x-2 px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-sm rounded-md"
                 >
                   {bulkActionLoading === 'activate' ? (
                     <>
@@ -737,7 +737,7 @@ export default function AdminCategories() {
                 <button
                   onClick={() => handleBulkStatusUpdate('inactive')}
                   disabled={isUpdating || bulkActionLoading !== null}
-                  className="flex items-center space-x-2 px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm rounded-md transition-all duration-200"
+                  className="flex items-center space-x-2 px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm rounded-md"
                 >
                   {bulkActionLoading === 'deactivate' ? (
                     <>
@@ -923,7 +923,7 @@ export default function AdminCategories() {
                       {/* Status */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all duration-200 ${
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                             isStatusPending(category.id)
                               ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
                               : getStatusBadge(getDisplayStatus(category))

@@ -324,14 +324,12 @@ function isDropdownActive(item: any) {
     const themeIconDark = document.querySelector('.theme-icon-dark');
     const themeText = document.querySelector('.theme-text');
 
-    // 🎯 SMART: Sử dụng pre-loaded state từ window object
-    const preLoadedState = window.__ADMIN_SIDEBAR_STATE__ || { isCollapsed: false, dropdownStates: {}, preLoaded: false };
-    let isCollapsed = preLoadedState.isCollapsed;
+    // Simple state management
+    let isCollapsed = localStorage.getItem('admin-sidebar-collapsed') === 'true';
     let isMobileOpen = false;
 
-    // Initialize sidebar state - 🎯 INSTANT với pre-loaded state
+    // Initialize sidebar state
     function initSidebar() {
-      console.log('🚀 Initializing sidebar with pre-loaded state:', preLoadedState);
 
       if (isCollapsed) {
         sidebar?.classList.add('collapsed');
@@ -441,35 +439,21 @@ function isDropdownActive(item: any) {
 
       const isOpen = openDropdowns.has(dropdownId);
 
-      // Prevent multiple rapid toggles
-      if (dropdownContent.dataset.transitioning === 'true') return;
-      dropdownContent.dataset.transitioning = 'true';
-
-      // Use double requestAnimationFrame for stable animations
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (isOpen) {
-            // Close dropdown
-            dropdownContent.classList.remove('dropdown-open');
-            dropdownContent.classList.add('dropdown-closed');
-            dropdownArrow.classList.remove('rotate-90');
-            openDropdowns.delete(dropdownId);
-            localStorage.removeItem(`dropdown-${dropdownId}-open`);
-          } else {
-            // Open dropdown
-            dropdownContent.classList.remove('dropdown-closed');
-            dropdownContent.classList.add('dropdown-open');
-            dropdownArrow.classList.add('rotate-90');
-            openDropdowns.add(dropdownId);
-            localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
-          }
-
-          // Reset transition flag after animation completes
-          setTimeout(() => {
-            dropdownContent.dataset.transitioning = 'false';
-          }, 250);
-        });
-      });
+      if (isOpen) {
+        // Close dropdown
+        dropdownContent.classList.remove('dropdown-open');
+        dropdownContent.classList.add('dropdown-closed');
+        dropdownArrow.classList.remove('rotate-90');
+        openDropdowns.delete(dropdownId);
+        localStorage.removeItem(`dropdown-${dropdownId}-open`);
+      } else {
+        // Open dropdown
+        dropdownContent.classList.remove('dropdown-closed');
+        dropdownContent.classList.add('dropdown-open');
+        dropdownArrow.classList.add('rotate-90');
+        openDropdowns.add(dropdownId);
+        localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
+      }
     }
 
     let dropdownsInitialized = false;
@@ -479,7 +463,7 @@ function isDropdownActive(item: any) {
       if (dropdownsInitialized) return;
       dropdownsInitialized = true;
 
-      console.log('🎯 Initializing dropdowns with pre-loaded states');
+      console.log('🎯 Initializing dropdowns');
 
       // Initialize dropdown states - 🚀 INSTANT với pre-loaded data
       const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
@@ -489,25 +473,22 @@ function isDropdownActive(item: any) {
           const dropdownContent = document.querySelector(`[data-dropdown-content="${dropdownId}"]`);
           const dropdownArrow = toggle.querySelector('.dropdown-arrow');
 
-          if (dropdownContent) {
-            // 🎯 PRIORITY: Server-side state > Pre-loaded state > localStorage
-            const serverState = dropdownContent.getAttribute('data-server-state') === 'open';
-            const preLoadedDropdownState = preLoadedState.dropdownStates[dropdownId] || false;
-            const localStorageState = localStorage.getItem(`dropdown-${dropdownId}-open`) === 'true';
-
-            // Smart state resolution
-            const isOpen = serverState || preLoadedDropdownState || localStorageState;
+          if (dropdownContent && dropdownArrow) {
+            // Simple state resolution: localStorage only
+            const isOpen = localStorage.getItem(`dropdown-${dropdownId}-open`) === 'true';
 
             if (isOpen) {
               openDropdowns.add(dropdownId);
-              // State đã được set từ server-side, chỉ cần sync localStorage
-              localStorage.setItem(`dropdown-${dropdownId}-open`, 'true');
+              // Sync DOM immediately
+              dropdownContent.classList.remove('dropdown-closed');
+              dropdownContent.classList.add('dropdown-open');
+              dropdownArrow.classList.add('rotate-90');
             } else {
-              // Đảm bảo state consistency
-              localStorage.removeItem(`dropdown-${dropdownId}-open`);
+              // Ensure closed state
+              dropdownContent.classList.remove('dropdown-open');
+              dropdownContent.classList.add('dropdown-closed');
+              dropdownArrow.classList.remove('rotate-90');
             }
-
-            console.log(`📋 Dropdown ${dropdownId}: server=${serverState}, preLoaded=${preLoadedDropdownState}, localStorage=${localStorageState}, final=${isOpen}`);
           }
 
           // Add click event listener
