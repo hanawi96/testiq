@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UsersService } from '../../../../backend';
 import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
 import CreateUserModal from './CreateUserModal';
+import QuickRoleEditor from './QuickRoleEditor';
+import { ToastContainer, useToast } from '../common/Toast';
 
 export default function UsersList() {
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
@@ -15,6 +17,9 @@ export default function UsersList() {
     verified: undefined,
     user_type: undefined
   });
+
+  // Toast notifications
+  const { toasts, removeToast, showSuccess, showError } = useToast();
   const [searchInput, setSearchInput] = useState(''); // Separate search input for debouncing
   const [stats, setStats] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState<string>('');
@@ -204,36 +209,39 @@ export default function UsersList() {
     setCurrentPage(1);
   }, []);
 
-  // Handle role update
-  const handleRoleUpdate = async (userId: string, newRole: 'user' | 'admin' | 'mod') => {
-    setActionLoading(`role-${userId}`);
-    
+  // Handle role update - only show error toast, no success toast
+  const handleRoleUpdate = async (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer') => {
     // Optimistic update - update UI ngay lập tức
     if (usersData) {
-      const updatedUsers = usersData.users.map(user => 
+      const updatedUsers = usersData.users.map(user =>
         user.id === userId ? { ...user, role: newRole } : user
       );
       setUsersData({ ...usersData, users: updatedUsers });
     }
-    
+
     try {
       const { success, error: updateError } = await UsersService.updateUserRole(userId, newRole);
-      
+
       if (success) {
-        // Clear cache và fetch stats  
+        // Clear cache và fetch stats
         cache.current.clear();
         await fetchStats();
+        // No success toast - loading state on badge is sufficient feedback
       } else {
         // Revert về role cũ nếu fail
         await fetchUsers(currentPage);
-        setError('Không thể cập nhật role');
+        showError(
+          'Không thể cập nhật vai trò',
+          updateError?.message || 'Vui lòng thử lại sau'
+        );
       }
     } catch (err) {
       // Revert về role cũ nếu fail
       await fetchUsers(currentPage);
-      setError('Có lỗi xảy ra khi cập nhật role');
-    } finally {
-      setActionLoading('');
+      showError(
+        'Có lỗi xảy ra',
+        'Không thể cập nhật vai trò. Vui lòng thử lại sau'
+      );
     }
   };
 
@@ -328,10 +336,13 @@ export default function UsersList() {
     });
   };
 
-  // Get role badge
+  // Get role badge - updated for new roles
   const getRoleBadge = (role: string) => {
     const styles = {
       admin: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+      editor: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+      author: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
+      reviewer: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800',
       mod: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
       user: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
     };
@@ -679,19 +690,13 @@ export default function UsersList() {
                           Chưa đăng ký
                         </span>
                       ) : (
-                        <select
-                          value={user.role}
-                          onChange={(e) => handleRoleUpdate(user.id, e.target.value as any)}
-                          disabled={actionLoading === `role-${user.id}`}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border outline-none ${getRoleBadge(user.role)} ${
-                            actionLoading === `role-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                          }`}
-                          style={{ transition: 'none' }}
-                        >
-                          <option value="user">User</option>
-                          <option value="mod">Mod</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        <QuickRoleEditor
+                          userId={user.id}
+                          currentRole={user.role as 'admin' | 'editor' | 'author' | 'reviewer' | 'user' | 'mod'}
+                          onRoleUpdate={handleRoleUpdate}
+                          isLoading={actionLoading === `role-${user.id}`}
+                          disabled={false} // TODO: Add role-based access control
+                        />
                       )}
                     </td>
 
@@ -922,6 +927,9 @@ export default function UsersList() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateUserSuccess}
       />
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ export interface UserWithProfile {
   created_at: string;
   last_sign_in_at: string | null;
   full_name: string;
-  role: 'user' | 'admin' | 'mod';
+  role: 'user' | 'admin' | 'mod' | 'editor' | 'author' | 'reviewer';
   is_verified: boolean;
   last_login: string | null;
   age?: number;
@@ -30,7 +30,7 @@ export interface UsersListResponse {
 }
 
 export interface UsersFilters {
-  role?: 'user' | 'admin' | 'mod' | 'all' | 'anonymous';
+  role?: 'user' | 'admin' | 'mod' | 'editor' | 'author' | 'reviewer' | 'all' | 'anonymous';
   search?: string;
   verified?: boolean;
   user_type?: 'registered' | 'anonymous';
@@ -248,8 +248,8 @@ export class UsersService {
    * Update user role
    */
   static async updateUserRole(
-    userId: string, 
-    newRole: 'user' | 'admin' | 'mod'
+    userId: string,
+    newRole: 'user' | 'admin' | 'mod' | 'editor' | 'author' | 'reviewer'
   ): Promise<{ success: boolean; error: any }> {
     try {
       console.log('UsersService: Updating user role:', { userId, newRole });
