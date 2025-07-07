@@ -39,6 +39,67 @@ export default function DailyTestChart({ className = '' }: Props) {
     }
   };
 
+  // Smart label sampling function with responsive considerations
+  const getVisibleLabelIndices = (dataLength: number, timeRange: TestTimeRange) => {
+    if (dataLength === 0) return [];
+
+    // For 7 days, show all labels (current behavior is fine)
+    if (timeRange === '7d') {
+      return Array.from({ length: dataLength }, (_, i) => i);
+    }
+
+    // Target optimal label count based on time range and screen size
+    // Reduce labels on smaller screens to prevent overcrowding
+    let targetLabels: number;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+    switch (timeRange) {
+      case '1m':
+        targetLabels = isMobile ? 4 : 6; // Mobile: ~7-8 day intervals, Desktop: ~5 day intervals
+        break;
+      case '3m':
+        targetLabels = isMobile ? 5 : 7; // Mobile: ~18 day intervals, Desktop: ~13 day intervals
+        break;
+      case '6m':
+        targetLabels = isMobile ? 5 : 8; // Mobile: ~36 day intervals, Desktop: ~23 day intervals
+        break;
+      default:
+        targetLabels = isMobile ? 5 : 7;
+        break;
+    }
+
+    // Always include first and last indices
+    const visibleIndices = new Set<number>();
+    visibleIndices.add(0); // First
+    if (dataLength > 1) {
+      visibleIndices.add(dataLength - 1); // Last
+    }
+
+    // If we have very few data points, show all
+    if (dataLength <= targetLabels) {
+      for (let i = 0; i < dataLength; i++) {
+        visibleIndices.add(i);
+      }
+    } else {
+      // Calculate evenly distributed intermediate points
+      const intermediateCount = targetLabels - 2; // Subtract first and last
+
+      if (intermediateCount > 0) {
+        const step = (dataLength - 1) / (intermediateCount + 1);
+
+        for (let i = 1; i <= intermediateCount; i++) {
+          const index = Math.round(step * i);
+          // Ensure we don't duplicate first or last and stay within bounds
+          if (index > 0 && index < dataLength - 1) {
+            visibleIndices.add(index);
+          }
+        }
+      }
+    }
+
+    return Array.from(visibleIndices).sort((a, b) => a - b);
+  };
+
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -111,6 +172,26 @@ export default function DailyTestChart({ className = '' }: Props) {
     const max = Math.max(...chartData.map(d => d.testCount));
     return Math.max(max, 1); // Ensure minimum of 1
   }, [chartData]);
+
+  // State for responsive recalculation
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+  // Handle window resize for responsive label calculation
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate visible label indices for smart sampling
+  const visibleLabelIndices = useMemo(() => {
+    return getVisibleLabelIndices(chartData.length, timeRange);
+  }, [chartData.length, timeRange, windowWidth]);
 
   // SVG Line Chart Component
   const LineChart = useCallback(() => {
@@ -261,17 +342,19 @@ export default function DailyTestChart({ className = '' }: Props) {
                 </g>
               )}
               
-              {/* Date label */}
-              <text 
-                x={point.x} 
-                y={height - 10} 
-                textAnchor="middle" 
-                fontSize="10" 
-                fill="currentColor" 
-                className="text-gray-600 dark:text-gray-400"
-              >
-                {point.data.dateLabel}
-              </text>
+              {/* Date label - Smart sampling for readability */}
+              {visibleLabelIndices.includes(i) && (
+                <text
+                  x={point.x}
+                  y={height - 10}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill="currentColor"
+                  className="text-gray-600 dark:text-gray-400"
+                >
+                  {point.data.dateLabel}
+                </text>
+              )}
             </g>
           ))}
           
