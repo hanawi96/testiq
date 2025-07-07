@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Environment variables - using provided credentials
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'https://qovhiztkfgjppfiqtake.supabase.co';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmhpenRrZmdqcHBmaXF0YWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5MDIzMjYsImV4cCI6MjA2NjQ3ODMyNn0.0ALtY_sAoCEAqJoov1u5NSqj26yxKsEvYSTZECqaaEE';
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmhpenRrZmdqcHBmaXF0YWtlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDkwMjMyNiwiZXhwIjoyMDY2NDc4MzI2fQ.OcrF64On2jtMwvZqJsSyXRN8EAawwPg9FmAe5MIWy60';
 
 // Validate configuration
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -14,6 +14,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 if (!supabaseServiceKey) {
   console.warn('⚠️ Supabase Service Role Key missing. Admin operations will not work.');
+} else {
+  console.log('✅ Supabase Service Role Key loaded successfully');
 }
 
 // Create Supabase client with optimized configuration

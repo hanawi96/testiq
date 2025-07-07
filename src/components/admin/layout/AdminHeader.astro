@@ -234,12 +234,8 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
     // Logout functionality
     logoutBtn?.addEventListener('click', async function() {
       try {
-        // Import Supabase client directly
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          'https://qovhiztkfgjppfiqtake.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmhpenRrZmdqcHBmaXF0YWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5MDIzMjYsImV4cCI6MjA2NjQ3ODMyNn0.0ALtY_sAoCEAqJoov1u5NSqj26yxKsEvYSTZECqaaEE'
-        );
+        // Import centralized Supabase client
+        const { supabase } = await import('@/backend');
 
         // Sign out from Supabase
         await supabase.auth.signOut();
@@ -274,12 +270,8 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
       const adminRole = document.getElementById('admin-role');
 
       try {
-        // Import Supabase client directly
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          'https://qovhiztkfgjppfiqtake.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvdmhpenRrZmdqcHBmaXF0YWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5MDIzMjYsImV4cCI6MjA2NjQ3ODMyNn0.0ALtY_sAoCEAqJoov1u5NSqj26yxKsEvYSTZECqaaEE'
-        );
+        // Import centralized Supabase client
+        const { supabase } = await import('@/backend');
 
         // Get current user
         const { data: { user } } = await supabase.auth.getUser();
