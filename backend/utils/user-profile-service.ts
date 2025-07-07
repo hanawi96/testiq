@@ -40,7 +40,8 @@ export async function updateUserProfile(userId: string, profileData: UserProfile
       return { success: false, error };
     }
 
-    console.log('✅ User profile updated successfully');
+    console.log('✅ User profile updated successfully:', data);
+    console.log('✅ Updated country_name:', data?.country_name);
     return { success: true, data };
 
   } catch (err) {

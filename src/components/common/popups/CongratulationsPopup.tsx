@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import CountrySelector from '../selectors/CountrySelector';
+import UnifiedCountrySelector from '../UnifiedCountrySelector';
 import { validateUserInfo } from '@/utils/test-helpers';
 
 interface UserInfo {
@@ -147,7 +147,7 @@ interface UserInfo {
         await updateUserProfile(user.id, {
           full_name: userInfo.name,
           age: parseInt(userInfo.age) || undefined,
-          location: userInfo.location || undefined,
+          country_name: userInfo.location || undefined,
           country_code: userInfo.countryCode,
           email: userInfo.email,
           gender: userInfo.gender
@@ -321,14 +321,16 @@ interface UserInfo {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Quốc gia <span className="text-red-500">*</span>
                   </label>
-                  <CountrySelector
+                  <UnifiedCountrySelector
                     value={userInfo.location}
-                    onChange={(countryName, countryCode) => {
-                      handleInputChange('location', countryName);
+                    onChange={(country, countryName, countryCode) => {
+                      handleInputChange('location', countryName || '');
                       setUserInfo(prev => ({ ...prev, countryCode: countryCode || '' }));
                     }}
                     disabled={isAnalyzing}
                     placeholder="Chọn quốc gia của bạn"
+                    variant="popup"
+                    showFlag={true}
                   />
                 </div>
               </div>

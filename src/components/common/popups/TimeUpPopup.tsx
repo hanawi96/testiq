@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import CountrySelector from '../selectors/CountrySelector';
+import UnifiedCountrySelector from '../UnifiedCountrySelector';
 import { validateUserInfo } from '@/utils/test-helpers';
 
 interface UserInfo {
@@ -297,14 +297,16 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Quốc gia <span className="text-red-500">*</span>
                     </label>
-                    <CountrySelector
+                    <UnifiedCountrySelector
                         value={userInfo.location}
-                        onChange={(countryName, countryCode) => {
-                          handleInputChange('location', countryName);
+                        onChange={(country, countryName, countryCode) => {
+                          handleInputChange('location', countryName || '');
                           setUserInfo(prev => ({ ...prev, countryCode: countryCode || '' }));
                         }}
                         disabled={isSubmitting}
                         placeholder="Chọn quốc gia"
+                        variant="popup"
+                        showFlag={true}
                       />
                   </div>
                 </div>

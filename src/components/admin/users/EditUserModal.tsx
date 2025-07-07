@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserWithProfile } from '../../../../backend';
-import CountrySelector from '../../common/CountrySelector';
+import UnifiedCountrySelector, { type Country } from '../../common/UnifiedCountrySelector';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -11,14 +11,7 @@ interface EditUserModalProps {
   user: UserWithProfile | null;
 }
 
-interface Country {
-  name: string;
-  code: string;
-  emoji: string;
-  unicode: string;
-  image: string;
-  dial_code: string;
-}
+
 
 interface EditUserForm {
   fullName: string;
@@ -64,48 +57,18 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
   // Pre-fill form when user data changes
   useEffect(() => {
     if (isOpen && user) {
-      // Try to find country from location string
-      const findCountryFromLocation = async (location: string) => {
-        if (!location) return null;
-
-        try {
-          const response = await fetch('/country.json');
-          const countries: Country[] = await response.json();
-
-          // Try to find by exact name match first
-          let found = countries.find(country =>
-            country.name.toLowerCase() === location.toLowerCase()
-          );
-
-          // If not found, try partial match
-          if (!found) {
-            found = countries.find(country =>
-              country.name.toLowerCase().includes(location.toLowerCase()) ||
-              location.toLowerCase().includes(country.name.toLowerCase())
-            );
-          }
-
-          return found || null;
-        } catch (error) {
-          console.error('Error loading countries:', error);
-          return null;
-        }
-      };
-
-      const initForm = async () => {
-        const country = await findCountryFromLocation(user.country_name || '');
-
-        setForm({
-          fullName: user.full_name || '',
-          age: user.age || '',
-          gender: (user.gender as 'male' | 'female' | 'other') || '',
-          country: country,
-          role: user.role
-        });
-        setErrors({});
-      };
-
-      initForm();
+      setForm({
+        fullName: user.full_name || '',
+        age: user.age || '',
+        gender: (user.gender as 'male' | 'female' | 'other') || '',
+        country: user.country_name ? {
+          id: user.country_name,
+          name: user.country_name,
+          code: '', // Will be resolved by UnifiedCountrySelector
+        } : null,
+        role: user.role
+      });
+      setErrors({});
     }
   }, [isOpen, user]);
 
@@ -348,11 +311,12 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Quốc gia
                 </label>
-                <CountrySelector
+                <UnifiedCountrySelector
                   value={form.country?.name || ''}
                   onChange={(country) => setForm(prev => ({ ...prev, country }))}
                   placeholder="Chọn quốc gia"
                   disabled={isLoading}
+                  variant="admin"
                   showFlag={true}
                   showCode={false}
                 />

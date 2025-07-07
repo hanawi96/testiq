@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * @deprecated Use UnifiedCountrySelector instead for better performance and consistency
+ * This component will be removed in a future version
+ */
+
 interface CountrySelectorProps {
   value: string;
   onChange: (countryName: string, countryCode?: string) => void;
