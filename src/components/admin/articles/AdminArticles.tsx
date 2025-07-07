@@ -149,24 +149,6 @@ export default function AdminArticles() {
     }
   };
 
-  // Handle status update
-  const handleStatusUpdate = async (articleId: string, status: 'published' | 'draft' | 'archived') => {
-    setIsUpdating(true);
-    try {
-      const { error } = await ArticlesService.updateStatus(articleId, status);
-      if (!error) {
-        await fetchArticles(currentPage);
-        await fetchStats();
-      } else {
-        setError('Không thể cập nhật trạng thái bài viết');
-      }
-    } catch (err) {
-      setError('Có lỗi xảy ra khi cập nhật');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   // Handle bulk status update
   const handleBulkStatusUpdate = async (status: 'published' | 'draft' | 'archived') => {
     if (selectedArticles.length === 0) return;
@@ -953,33 +935,6 @@ export default function AdminArticles() {
                       {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center space-x-2">
-                          {/* Status Toggle */}
-                          {article.status === 'draft' && (
-                            <button
-                              onClick={() => handleStatusUpdate(article.id, 'published')}
-                              disabled={isUpdating}
-                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 disabled:opacity-50"
-                              title="Xuất bản"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </button>
-                          )}
-
-                          {article.status === 'published' && (
-                            <button
-                              onClick={() => handleStatusUpdate(article.id, 'draft')}
-                              disabled={isUpdating}
-                              className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-200 disabled:opacity-50"
-                              title="Chuyển về nháp"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                          )}
-
                           {/* Edit */}
                           <a
                             href={`/admin/articles/edit/${article.id}`}
