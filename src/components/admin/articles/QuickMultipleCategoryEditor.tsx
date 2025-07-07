@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CategoriesService } from '../../../../backend/admin/categories-service';
+import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../utils/categories-preloader';
 
 interface Category {
   id: string;
@@ -38,47 +39,52 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
   const [error, setError] = useState<string | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  // Load categories on mount
+  // Load categories on mount with instant data
   useEffect(() => {
-    loadCategories();
+    // Set instant data immediately to avoid loading delay
+    const instantCategories = getInstantCategoriesData();
+    setCategories(instantCategories);
+    setIsLoading(false);
+
+    // Background load for better data (non-blocking)
+    if (!isCategoriesDataReady()) {
+      preloadCategoriesData().then(loadedCategories => {
+        setCategories(loadedCategories);
+      }).catch(() => {
+        // Keep instant data on error
+      });
+    }
   }, []);
 
   // Handle click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
+      const target = event.target as Node;
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
-  const loadCategories = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const { data: categoriesData, error: categoriesError } = await CategoriesService.getAllCategories();
-
-      if (categoriesError) {
-        console.error('Error loading categories:', categoriesError);
-        setError('Không thể tải danh sách danh mục');
+      // Don't close if clicking inside the popup
+      if (popupRef.current && popupRef.current.contains(target)) {
         return;
       }
 
-      if (categoriesData) {
-        // getAllCategories already returns only active categories
-        setCategories(categoriesData);
+      // Don't close if clicking on edit category buttons (to avoid toggle conflict)
+      const editButton = (target as Element).closest('[data-quick-edit-button="category"]');
+      if (editButton) {
+        return;
       }
-    } catch (err) {
-      console.error('Exception loading categories:', err);
-      setError('Có lỗi xảy ra khi tải danh mục');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
+      // Close popup for other outside clicks
+      onClose();
+    };
+
+    // Add event listener immediately - no delay needed
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
+
 
   const handleCategoryToggle = (categoryId: string) => {
     setSelectedCategoryIds(prev => {

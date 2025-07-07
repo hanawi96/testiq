@@ -7,6 +7,7 @@ import QuickAuthorEditor from './QuickAuthorEditor';
 import QuickMultipleCategoryEditor from './QuickMultipleCategoryEditor';
 import QuickStatusEditor from './QuickStatusEditor';
 import CategoryDisplay from './CategoryDisplay';
+import { categoriesPreloadTriggers } from '../../../utils/categories-preloader';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
@@ -110,8 +111,11 @@ export default function AdminArticles() {
       ]);
       setIsLoading(false);
     };
-    
+
     loadData();
+
+    // Trigger categories preload on component mount
+    categoriesPreloadTriggers.onAppInit();
   }, [filters]);
 
   // Handle page change
@@ -279,7 +283,10 @@ export default function AdminArticles() {
   const handleQuickCategoryEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
 
-    // Close other editors
+    // Trigger categories preload when opening popup
+    categoriesPreloadTriggers.onUserInteraction();
+
+    // Close other editors first
     setQuickTagsEditor(null);
     setQuickAuthorEditor(null);
     setQuickStatusEditor(null);
@@ -290,6 +297,7 @@ export default function AdminArticles() {
       return;
     }
 
+    // Calculate position immediately
     const rect = event.currentTarget.getBoundingClientRect();
     const popupWidth = 288; // QuickCategoryEditor width (w-72 = 288px)
     const popupHeight = 320; // Estimated popup height
@@ -805,6 +813,7 @@ export default function AdminArticles() {
                               />
                               <button
                                 onClick={(e) => handleQuickCategoryEdit(e, article.id)}
+                                onMouseEnter={categoriesPreloadTriggers.onEditHover}
                                 className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0"
                                 title="Chỉnh sửa danh mục"
                                 data-quick-edit-button="category"
@@ -856,6 +865,7 @@ export default function AdminArticles() {
                           />
                           <button
                             onClick={(e) => handleQuickCategoryEdit(e, article.id)}
+                            onMouseEnter={categoriesPreloadTriggers.onEditHover}
                             className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0"
                             title="Chỉnh sửa danh mục"
                             data-quick-edit-button="category"
