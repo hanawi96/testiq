@@ -5,6 +5,7 @@ import type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } fro
 import QuickTagsEditor from './QuickTagsEditor';
 import QuickAuthorEditor from './QuickAuthorEditor';
 import QuickMultipleCategoryEditor from './QuickMultipleCategoryEditor';
+import QuickStatusEditor from './QuickStatusEditor';
 import CategoryDisplay from './CategoryDisplay';
 
 export default function AdminArticles() {
@@ -34,6 +35,11 @@ export default function AdminArticles() {
   } | null>(null);
 
   const [quickCategoryEditor, setQuickCategoryEditor] = useState<{
+    articleId: string;
+    position: { top: number; left: number };
+  } | null>(null);
+
+  const [quickStatusEditor, setQuickStatusEditor] = useState<{
     articleId: string;
     position: { top: number; left: number };
   } | null>(null);
@@ -249,8 +255,10 @@ export default function AdminArticles() {
   const handleQuickAuthorEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
 
-    // Close tags editor if open
+    // Close other editors
     setQuickTagsEditor(null);
+    setQuickCategoryEditor(null);
+    setQuickStatusEditor(null);
 
     // Toggle: if same article editor is open, close it
     if (quickAuthorEditor?.articleId === articleId) {
@@ -292,6 +300,7 @@ export default function AdminArticles() {
     // Close other editors
     setQuickTagsEditor(null);
     setQuickAuthorEditor(null);
+    setQuickStatusEditor(null);
 
     // Toggle: if same article editor is open, close it
     if (quickCategoryEditor?.articleId === articleId) {
@@ -326,6 +335,48 @@ export default function AdminArticles() {
     });
   };
 
+  // Handle quick status edit with toggle behavior
+  const handleQuickStatusEdit = (event: React.MouseEvent, articleId: string) => {
+    event.stopPropagation();
+
+    // Close other editors
+    setQuickTagsEditor(null);
+    setQuickAuthorEditor(null);
+    setQuickCategoryEditor(null);
+
+    // Toggle: if same article editor is open, close it
+    if (quickStatusEditor?.articleId === articleId) {
+      setQuickStatusEditor(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const popupWidth = 240; // QuickStatusEditor width (w-60 = 240px)
+    const popupHeight = 200; // Estimated popup height
+
+    // Calculate position relative to viewport (for fixed positioning)
+    let left = rect.left;
+    let top = rect.bottom + 4;
+
+    // Adjust horizontal position if popup would overflow viewport
+    if (left + popupWidth > window.innerWidth) {
+      left = window.innerWidth - popupWidth - 16;
+    }
+    if (left < 16) {
+      left = 16;
+    }
+
+    // Adjust vertical position if popup would overflow viewport
+    if (top + popupHeight > window.innerHeight) {
+      top = rect.top - popupHeight - 4; // Show above button
+    }
+
+    setQuickStatusEditor({
+      articleId,
+      position: { top, left }
+    });
+  };
+
   // Handle tags update
   const handleTagsUpdate = (articleId: string, newTags: string[]) => {
     if (articlesData) {
@@ -343,6 +394,48 @@ export default function AdminArticles() {
         article.id === articleId ? { ...article, author: newAuthor } : article
       );
       setArticlesData({ ...articlesData, articles: updatedArticles });
+    }
+  };
+
+  // Handle status update with optimistic UI
+  const handleStatusUpdateOptimistic = async (articleId: string, newStatus: 'published' | 'draft' | 'archived') => {
+    if (!articlesData) return;
+
+    // Store original article for rollback
+    const originalArticle = articlesData.articles.find(article => article.id === articleId);
+    if (!originalArticle) return;
+
+    // Optimistic UI update
+    const updatedArticles = articlesData.articles.map(article =>
+      article.id === articleId ? { ...article, status: newStatus } : article
+    );
+    setArticlesData({ ...articlesData, articles: updatedArticles });
+
+    // Close the status editor
+    setQuickStatusEditor(null);
+
+    try {
+      // Send API request
+      const { error } = await ArticlesService.updateStatus(articleId, newStatus);
+
+      if (error) {
+        // Revert optimistic update on error
+        const revertedArticles = articlesData.articles.map(article =>
+          article.id === articleId ? originalArticle : article
+        );
+        setArticlesData({ ...articlesData, articles: revertedArticles });
+        setError('Không thể cập nhật trạng thái bài viết');
+      } else {
+        // Refresh stats on success
+        await fetchStats();
+      }
+    } catch (err) {
+      // Revert optimistic update on exception
+      const revertedArticles = articlesData.articles.map(article =>
+        article.id === articleId ? originalArticle : article
+      );
+      setArticlesData({ ...articlesData, articles: revertedArticles });
+      setError('Có lỗi xảy ra khi cập nhật trạng thái');
     }
   };
 
@@ -815,9 +908,21 @@ export default function AdminArticles() {
 
                       {/* Status */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(article.status)}`}>
-                          {getStatusLabel(article.status)}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(article.status)}`}>
+                            {getStatusLabel(article.status)}
+                          </span>
+                          <button
+                            onClick={(e) => handleQuickStatusEdit(e, article.id)}
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                            title="Chỉnh sửa trạng thái"
+                            data-quick-edit-button="status"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
 
                       {/* Stats */}
@@ -977,6 +1082,18 @@ export default function AdminArticles() {
             onUpdate={handleCategoryUpdate}
             onClose={() => setQuickCategoryEditor(null)}
             position={quickCategoryEditor.position}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {quickStatusEditor && (
+          <QuickStatusEditor
+            articleId={quickStatusEditor.articleId}
+            currentStatus={articlesData?.articles.find(a => a.id === quickStatusEditor.articleId)?.status || 'draft'}
+            onUpdate={handleStatusUpdateOptimistic}
+            onClose={() => setQuickStatusEditor(null)}
+            position={quickStatusEditor.position}
           />
         )}
       </AnimatePresence>

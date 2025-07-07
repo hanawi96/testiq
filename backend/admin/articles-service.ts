@@ -102,9 +102,12 @@ export interface Article {
   updated_at: string;
 
   // Computed fields for UI (will be joined from other tables)
+  author?: string; // Legacy author field for backward compatibility
   author_name?: string;
   category_name?: string;
   category_slug?: string;
+  tags?: string[]; // Tags/keywords for UI
+  views?: number; // View count for UI
 
   // Multiple categories support
   category_ids?: string[];
