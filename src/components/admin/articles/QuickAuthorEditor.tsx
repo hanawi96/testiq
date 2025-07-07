@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService, UserProfilesService } from '../../../../backend';
 import type { AuthorOption } from '../../../../backend';
+import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../utils/authors-preloader';
 
 interface QuickAuthorEditorProps {
   articleId: string;
   currentAuthor: string;
   currentAuthorId?: string;
-  onUpdate: (articleId: string, newAuthor: string) => void;
+  onUpdate: (articleId: string, newAuthor: string, authorId: string, userProfile: any) => Promise<void>;
   onClose: () => void;
   position: { top: number; left: number };
 }
@@ -27,37 +28,38 @@ export default function QuickAuthorEditor({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load available authors
-    const loadAuthors = async () => {
-      try {
-        setIsLoading(true);
-        const { data: authors, error: fetchError } = await UserProfilesService.getAuthorOptions();
+    // Set instant data immediately to avoid loading delay
+    const instantAuthors = getInstantAuthorsData();
+    setAvailableAuthors(instantAuthors);
+    setIsLoading(false);
 
-        if (fetchError || !authors) {
-          setError('Không thể tải danh sách tác giả');
-          return;
-        }
-
-        setAvailableAuthors(authors);
-      } catch (err) {
+    // Background load for better data (non-blocking)
+    if (!isAuthorsDataReady()) {
+      preloadAuthorsData().then(loadedAuthors => {
+        setAvailableAuthors(loadedAuthors);
+      }).catch(err => {
         console.error('Error loading authors:', err);
         setError('Có lỗi xảy ra khi tải danh sách tác giả');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadAuthors();
+      });
+    }
 
     // Handle click outside
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
 
-      // Check if click is outside popup and not on a quick edit button
-      if (dropdownRef.current &&
-          !dropdownRef.current.contains(target) &&
-          !target.closest('[data-quick-edit-button]')) {
-        onClose();
+      // Don't close if clicking inside the popup
+      if (dropdownRef.current && dropdownRef.current.contains(target)) {
+        return;
       }
+
+      // Don't close if clicking on edit author buttons (to avoid toggle conflict)
+      const editButton = target.closest('[data-quick-edit-button="author"]');
+      if (editButton) {
+        return;
+      }
+
+      // Close popup for other outside clicks
+      onClose();
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -74,28 +76,20 @@ export default function QuickAuthorEditor({
       return;
     }
 
-    setIsLoading(true);
-    setError('');
+    // Find the selected author to get the name for UI update
+    const selectedAuthor = availableAuthors.find(author => author.id === selectedAuthorId);
+    const authorName = selectedAuthor?.full_name || 'Unknown Author';
 
-    try {
-      const { error: updateError } = await ArticlesService.updateAuthorById(articleId, selectedAuthorId);
+    // Pass complete author data for optimistic UI update
+    const userProfile = {
+      id: selectedAuthorId,
+      full_name: authorName,
+      email: selectedAuthor?.email,
+      role: selectedAuthor?.role
+    };
 
-      if (updateError) {
-        setError('Không thể cập nhật tác giả');
-        return;
-      }
-
-      // Find the selected author to get the name for UI update
-      const selectedAuthor = availableAuthors.find(author => author.id === selectedAuthorId);
-      const authorName = selectedAuthor?.full_name || 'Unknown Author';
-
-      onUpdate(articleId, authorName);
-      onClose();
-    } catch (err) {
-      setError('Có lỗi xảy ra khi cập nhật');
-    } finally {
-      setIsLoading(false);
-    }
+    // Call parent handler (which will close popup and handle API call)
+    await onUpdate(articleId, authorName, selectedAuthorId, userProfile);
   };
 
   const selectedAuthor = availableAuthors.find(author => author.id === selectedAuthorId);

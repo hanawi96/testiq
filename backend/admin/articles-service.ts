@@ -808,6 +808,7 @@ export class ArticlesService {
     try {
       console.log('ArticlesService: Updating article author by ID in database:', { articleId, authorId });
 
+      // Step 1: Update the article
       const { data: updatedData, error: updateError } = await supabase
         .from('articles')
         .update({
@@ -820,12 +821,6 @@ export class ArticlesService {
           categories!category_id (
             name,
             slug
-          ),
-          user_profiles!author_id (
-            id,
-            full_name,
-            email,
-            role
           )
         `)
         .single();
@@ -837,6 +832,19 @@ export class ArticlesService {
 
       if (!updatedData) {
         return { data: null, error: new Error('Không thể cập nhật tác giả bài viết') };
+      }
+
+      // Step 2: Fetch user profile separately if author_id exists
+      if (updatedData.author_id) {
+        const { data: userProfile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email, role')
+          .eq('id', updatedData.author_id)
+          .single();
+
+        if (!profileError && userProfile) {
+          updatedData.user_profiles = userProfile;
+        }
       }
 
       const transformedArticle = this.transformArticle(updatedData);

@@ -8,6 +8,7 @@ import QuickMultipleCategoryEditor from './QuickMultipleCategoryEditor';
 import QuickStatusEditor from './QuickStatusEditor';
 import CategoryDisplay from './CategoryDisplay';
 import { categoriesPreloadTriggers } from '../../../utils/categories-preloader';
+import { authorsPreloadTriggers } from '../../../utils/authors-preloader';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
@@ -34,6 +35,9 @@ export default function AdminArticles() {
     articleId: string;
     position: { top: number; left: number };
   } | null>(null);
+
+  // Loading states for optimistic UI
+  const [loadingAuthorIds, setLoadingAuthorIds] = useState<Set<string>>(new Set());
 
   const [quickCategoryEditor, setQuickCategoryEditor] = useState<{
     articleId: string;
@@ -114,8 +118,9 @@ export default function AdminArticles() {
 
     loadData();
 
-    // Trigger categories preload on component mount
+    // Trigger preloads on component mount
     categoriesPreloadTriggers.onAppInit();
+    authorsPreloadTriggers.onAppInit();
   }, [filters]);
 
   // Handle page change
@@ -240,6 +245,9 @@ export default function AdminArticles() {
   // Handle quick author edit with toggle behavior
   const handleQuickAuthorEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
+
+    // Trigger authors preload when opening popup
+    authorsPreloadTriggers.onUserInteraction();
 
     // Close other editors
     setQuickTagsEditor(null);
@@ -377,13 +385,59 @@ export default function AdminArticles() {
     }
   };
 
-  // Handle author update
-  const handleAuthorUpdate = (articleId: string, newAuthor: string) => {
-    if (articlesData) {
-      const updatedArticles = articlesData.articles.map(article =>
-        article.id === articleId ? { ...article, author: newAuthor } : article
+  // Handle author update with optimistic UI and loading state
+  const handleAuthorUpdate = async (articleId: string, newAuthor: string, authorId: string, userProfile: any) => {
+    if (!articlesData) return;
+
+    // Close popup immediately for fast UX
+    setQuickAuthorEditor(null);
+
+    // Store original article for rollback
+    const originalArticle = articlesData.articles.find(article => article.id === articleId);
+    if (!originalArticle) return;
+
+    // Start loading state
+    setLoadingAuthorIds(prev => new Set(prev).add(articleId));
+
+    // Optimistic UI update
+    const updatedArticles = articlesData.articles.map(article =>
+      article.id === articleId ? {
+        ...article,
+        author: newAuthor,
+        author_id: authorId,
+        user_profiles: userProfile
+      } : article
+    );
+    setArticlesData({ ...articlesData, articles: updatedArticles });
+
+    try {
+      // Call API in background
+      const { error: updateError } = await ArticlesService.updateAuthorById(articleId, authorId);
+
+      if (updateError) {
+        // Rollback on error
+        const rolledBackArticles = articlesData.articles.map(article =>
+          article.id === articleId ? originalArticle : article
+        );
+        setArticlesData({ ...articlesData, articles: rolledBackArticles });
+
+        // Show error (you can add toast notification here)
+        console.error('Failed to update author:', updateError);
+      }
+    } catch (err) {
+      // Rollback on exception
+      const rolledBackArticles = articlesData.articles.map(article =>
+        article.id === articleId ? originalArticle : article
       );
-      setArticlesData({ ...articlesData, articles: updatedArticles });
+      setArticlesData({ ...articlesData, articles: rolledBackArticles });
+      console.error('Error updating author:', err);
+    } finally {
+      // Remove loading state
+      setLoadingAuthorIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(articleId);
+        return newSet;
+      });
     }
   };
 
@@ -880,14 +934,25 @@ export default function AdminArticles() {
                       {/* Author */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
-                          <div>
-                            <div className="text-sm text-gray-900 dark:text-gray-100">
-                              {article.user_profiles?.full_name || article.author || 'Unknown Author'}
-                            </div>
+                          <div className="flex items-center space-x-2">
+                            {loadingAuthorIds.has(article.id) ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  Đang cập nhật...
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-gray-900 dark:text-gray-100">
+                                {article.user_profiles?.full_name || article.author || 'Unknown Author'}
+                              </div>
+                            )}
                           </div>
                           <button
                             onClick={(e) => handleQuickAuthorEdit(e, article.id)}
-                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                            onMouseEnter={authorsPreloadTriggers.onEditHover}
+                            disabled={loadingAuthorIds.has(article.id)}
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa tác giả"
                             data-quick-edit-button="author"
                           >
