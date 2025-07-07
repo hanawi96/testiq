@@ -23,8 +23,7 @@ export default function UsersList() {
   const [searchInput, setSearchInput] = useState(''); // Separate search input for debouncing
   const [stats, setStats] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState<string>('');
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number} | null>(null);
+
   const [isMobile, setIsMobile] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   
@@ -186,15 +185,7 @@ export default function UsersList() {
     fetchStats();
   }, [filters]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setOpenDropdown(null);
-      setDropdownPosition(null);
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+
 
   // Handle page change - INSTANT
   const handlePageChange = (newPage: number) => {
@@ -281,8 +272,6 @@ export default function UsersList() {
   // Handle edit user
   const handleEditUser = (userId: string) => {
     console.log('Edit user:', userId);
-    setOpenDropdown(null);
-    setDropdownPosition(null);
     // TODO: Implement edit user functionality
     alert(`Chức năng sửa user ${userId} sẽ được triển khai sau`);
   };
@@ -299,32 +288,13 @@ export default function UsersList() {
   // Handle delete user
   const handleDeleteUser = (userId: string) => {
     console.log('Delete user:', userId);
-    setOpenDropdown(null);
-    setDropdownPosition(null);
     // TODO: Implement delete user functionality
     if (confirm('Bạn có chắc chắn muốn xóa user này?')) {
       alert(`Chức năng xóa user ${userId} sẽ được triển khai sau`);
     }
   };
 
-  // Handle dropdown toggle with position calculation
-  const handleDropdownToggle = (userId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    
-    if (openDropdown === userId) {
-      setOpenDropdown(null);
-      setDropdownPosition(null);
-    } else {
-      const button = event.currentTarget as HTMLElement;
-      const rect = button.getBoundingClientRect();
-      
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX - 192 + rect.width // 192px = w-48
-      });
-      setOpenDropdown(userId);
-    }
-  };
+
 
   // Format date
   const formatDate = (dateString: string | null) => {
@@ -765,14 +735,29 @@ export default function UsersList() {
                           <span className="text-xs text-gray-400 dark:text-gray-500 italic">Chỉ xem</span>
                         </div>
                       ) : (
-                        <button
-                          onClick={(e) => handleDropdownToggle(user.id, e)}
-                          className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 outline-none"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                          </svg>
-                        </button>
+                        <div className="flex items-center justify-end space-x-2">
+                          {/* Edit Button */}
+                          <button
+                            onClick={() => handleEditUser(user.id)}
+                            className="text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                            title="Sửa thông tin"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                            title="Xóa người dùng"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -783,37 +768,7 @@ export default function UsersList() {
         )}
       </div>
 
-      {/* Fixed positioned dropdown */}
-      {openDropdown && dropdownPosition && (
-        <div
-          className="fixed w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50"
-          style={{
-            top: dropdownPosition.top,
-            left: dropdownPosition.left
-          }}
-        >
-          <div className="py-1">
-            <button
-              onClick={() => handleEditUser(openDropdown)}
-              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 outline-none"
-            >
-              <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Sửa thông tin
-            </button>
-            <button
-              onClick={() => handleDeleteUser(openDropdown)}
-              className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 outline-none"
-            >
-              <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Xóa người dùng
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Pagination Info */}
       {usersData && (
