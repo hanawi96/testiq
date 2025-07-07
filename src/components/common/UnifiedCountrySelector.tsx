@@ -286,7 +286,7 @@ export default function UnifiedCountrySelector({
                 {showFlag && selectedCountry.emoji && !selectedCountry.flag && (
                   <span className="text-lg flex-shrink-0">{selectedCountry.emoji}</span>
                 )}
-                <span className="truncate">
+                <span className="truncate text-gray-900 dark:text-gray-100">
                   {selectedCountry.name}
                   {showCode && ` (${selectedCountry.code})`}
                 </span>
@@ -357,8 +357,8 @@ export default function UnifiedCountrySelector({
                     onClick={() => handleSelect(country)}
                     className={`
                       w-full px-3 py-2 text-left transition-colors flex items-center space-x-3
-                      ${index === highlightedIndex 
-                        ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' 
+                      ${index === highlightedIndex
+                        ? 'bg-blue-50 dark:bg-blue-900/40'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }
                     `}
@@ -377,7 +377,11 @@ export default function UnifiedCountrySelector({
                     {showFlag && country.emoji && !country.flag && (
                       <span className="text-lg flex-shrink-0">{country.emoji}</span>
                     )}
-                    <span className="flex-1 truncate">
+                    <span className={`flex-1 truncate ${
+                      index === highlightedIndex
+                        ? 'text-blue-700 dark:text-blue-300'
+                        : 'text-gray-900 dark:text-gray-100'
+                    }`}>
                       {country.name}
                       {showCode && ` (${country.code})`}
                     </span>
