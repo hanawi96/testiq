@@ -9,6 +9,7 @@ export { ResultsService } from './admin/results-service';
 export { ArticlesService } from './admin/articles-service';
 export { CategoriesService } from './admin/categories-service';
 export { MediaService } from './admin/media-service';
+export { UserProfilesService } from './admin/user-profiles-service';
 
 // Configuration
 export { supabase, supabaseAdmin, supabaseConfig, TABLES } from './config/supabase';
@@ -25,6 +26,7 @@ export type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } fr
 export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from './admin/articles-service';
 export type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from './admin/categories-service';
 export type { MediaFile, MediaFolder, MediaStats, MediaFilters, MediaListResponse } from './admin/media-service';
+export type { UserProfile, AuthorOption } from './admin/user-profiles-service';
 export type { AdminStats, AdminAction, WeeklyNewUsersStats, TestTimeRange } from './types';
 export * from './types';
 

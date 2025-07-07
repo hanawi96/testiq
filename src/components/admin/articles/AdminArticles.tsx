@@ -796,8 +796,13 @@ export default function AdminArticles() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <div>
-                            <div className="text-sm text-gray-900 dark:text-gray-100">{article.author || 'Unknown Author'}</div>
+                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                              {article.user_profiles?.full_name || article.author || 'Unknown Author'}
+                            </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {article.user_profiles?.email && (
+                                <div className="mb-1">{article.user_profiles.email}</div>
+                              )}
                               {article.reading_time} phút đọc
                             </div>
                           </div>
@@ -960,7 +965,8 @@ export default function AdminArticles() {
         {quickAuthorEditor && (
           <QuickAuthorEditor
             articleId={quickAuthorEditor.articleId}
-            currentAuthor={articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.author || ''}
+            currentAuthor={articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.user_profiles?.full_name || articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.author || ''}
+            currentAuthorId={articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.author_id}
             onUpdate={handleAuthorUpdate}
             onClose={() => setQuickAuthorEditor(null)}
             position={quickAuthorEditor.position}

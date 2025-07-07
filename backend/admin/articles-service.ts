@@ -13,6 +13,14 @@ export interface Article {
   category_id?: string;
   parent_id?: string;
 
+  // Author profile information from join
+  user_profiles?: {
+    id: string;
+    full_name: string;
+    email?: string;
+    role: string;
+  };
+
   // SEO fields
   meta_title?: string;
   meta_description?: string;
@@ -142,7 +150,11 @@ export class ArticlesService {
    * Helper method to build article query with joins
    */
   private static buildArticleQuery() {
-    return supabase
+    console.log('ArticlesService: Building article query with joins...');
+
+    // Since there's no direct FK between articles.author_id and user_profiles.id,
+    // we need to fetch user_profiles separately and join manually in the service layer
+    const query = supabase
       .from('articles')
       .select(`
         *,
@@ -151,6 +163,9 @@ export class ArticlesService {
           slug
         )
       `);
+
+    console.log('ArticlesService: Article query built successfully');
+    return query;
   }
 
   /**
@@ -215,12 +230,58 @@ export class ArticlesService {
   }
 
   /**
+   * Get user profiles for articles efficiently (batch operation)
+   */
+  private static async getUserProfilesForArticles(articles: any[]): Promise<any[]> {
+    if (!articles || articles.length === 0) {
+      return [];
+    }
+
+    // Get unique author IDs
+    const authorIds = [...new Set(articles
+      .map(article => article.author_id)
+      .filter(id => id)
+    )];
+
+    if (authorIds.length === 0) {
+      return articles;
+    }
+
+    // Fetch all user profiles in one query
+    const { data: userProfiles, error: profilesError } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, email, role')
+      .in('id', authorIds);
+
+    if (profilesError) {
+      console.error('ArticlesService: Error fetching user profiles:', profilesError);
+      return articles;
+    }
+
+    // Create a map for quick lookup
+    const profilesMap = new Map();
+    userProfiles?.forEach(profile => {
+      profilesMap.set(profile.id, profile);
+    });
+
+    // Map profiles to articles
+    return articles.map(article => {
+      const userProfile = profilesMap.get(article.author_id);
+      return {
+        ...article,
+        user_profiles: userProfile || null
+      };
+    });
+  }
+
+  /**
    * Transform database article to UI format
    */
   private static transformArticle(dbArticle: any): Article {
     return {
       ...dbArticle,
-      author: dbArticle.author_name || dbArticle.author || 'Unknown Author',
+      // Use user_profiles data if available, fallback to existing author field
+      author: dbArticle.user_profiles?.full_name || dbArticle.author_name || dbArticle.author || 'Unknown Author',
       tags: Array.isArray(dbArticle.keywords) ? dbArticle.keywords : (Array.isArray(dbArticle.tags) ? dbArticle.tags : []),
       views: dbArticle.view_count || dbArticle.views || 0,
       likes: dbArticle.like_count || dbArticle.likes || 0,
@@ -230,7 +291,9 @@ export class ArticlesService {
       updated_at: dbArticle.updated_at || new Date().toISOString(),
       // Handle category data from join
       category_name: dbArticle.categories?.name || null,
-      category_slug: dbArticle.categories?.slug || null
+      category_slug: dbArticle.categories?.slug || null,
+      // Include user_profiles data for admin interface
+      user_profiles: dbArticle.user_profiles || null
     };
   }
 
@@ -413,10 +476,25 @@ export class ArticlesService {
       query = query.range(offset, offset + limit - 1);
 
       // Execute query
+      console.log('ArticlesService: Executing query with offset:', offset, 'limit:', limit);
       const { data: articlesData, error: articlesError } = await query;
 
       if (articlesError) {
-        console.error('ArticlesService: Error fetching articles:', articlesError);
+        console.error('ArticlesService: Error fetching articles - DETAILED:', {
+          error: articlesError,
+          message: articlesError.message,
+          details: articlesError.details,
+          hint: articlesError.hint,
+          code: articlesError.code,
+          query_info: {
+            offset,
+            limit,
+            filters,
+            page
+          },
+          // Serialize the full error object
+          full_error: JSON.stringify(articlesError, Object.getOwnPropertyNames(articlesError))
+        });
         return { data: null, error: articlesError };
       }
 
@@ -427,8 +505,11 @@ export class ArticlesService {
       // Get categories for articles using junction table
       const articlesWithCategories = await this.getCategoriesForArticles(articlesData);
 
+      // Get user profiles for articles (manual join)
+      const articlesWithProfiles = await this.getUserProfilesForArticles(articlesWithCategories);
+
       // Transform articles
-      const articles = articlesWithCategories.map(article => this.transformArticle(article));
+      const articles = articlesWithProfiles.map(article => this.transformArticle(article));
 
       const total = totalCount || 0;
       const totalPages = Math.ceil(total / limit);
@@ -674,7 +755,7 @@ export class ArticlesService {
   }
 
   /**
-   * Update article author
+   * Update article author (DEPRECATED - use updateAuthorById instead)
    */
   static async updateAuthor(
     articleId: string,
@@ -710,6 +791,57 @@ export class ArticlesService {
 
     } catch (err) {
       console.error('ArticlesService: Error updating article author:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Update article author by user profile ID
+   */
+  static async updateAuthorById(
+    articleId: string,
+    authorId: string
+  ): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Updating article author by ID in database:', { articleId, authorId });
+
+      const { data: updatedData, error: updateError } = await supabase
+        .from('articles')
+        .update({
+          author_id: authorId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', articleId)
+        .select(`
+          *,
+          categories!category_id (
+            name,
+            slug
+          ),
+          user_profiles!author_id (
+            id,
+            full_name,
+            email,
+            role
+          )
+        `)
+        .single();
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article author by ID:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      if (!updatedData) {
+        return { data: null, error: new Error('Không thể cập nhật tác giả bài viết') };
+      }
+
+      const transformedArticle = this.transformArticle(updatedData);
+      console.log('ArticlesService: Article author updated successfully by ID in database');
+      return { data: transformedArticle, error: null };
+
+    } catch (err) {
+      console.error('ArticlesService: Error updating article author by ID:', err);
       return { data: null, error: err };
     }
   }

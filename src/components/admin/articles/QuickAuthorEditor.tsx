@@ -1,25 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArticlesService } from '../../../../backend';
+import { ArticlesService, UserProfilesService } from '../../../../backend';
+import type { AuthorOption } from '../../../../backend';
 
 interface QuickAuthorEditorProps {
   articleId: string;
   currentAuthor: string;
+  currentAuthorId?: string;
   onUpdate: (articleId: string, newAuthor: string) => void;
   onClose: () => void;
   position: { top: number; left: number };
 }
 
-export default function QuickAuthorEditor({ 
-  articleId, 
-  currentAuthor, 
-  onUpdate, 
-  onClose, 
-  position 
+export default function QuickAuthorEditor({
+  articleId,
+  currentAuthor,
+  currentAuthorId,
+  onUpdate,
+  onClose,
+  position
 }: QuickAuthorEditorProps) {
-  const [selectedAuthor, setSelectedAuthor] = useState(currentAuthor);
-  const [availableAuthors, setAvailableAuthors] = useState<string[]>([]);
-  const [newAuthor, setNewAuthor] = useState('');
+  const [selectedAuthorId, setSelectedAuthorId] = useState(currentAuthorId || '');
+  const [availableAuthors, setAvailableAuthors] = useState<AuthorOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -27,8 +29,22 @@ export default function QuickAuthorEditor({
   useEffect(() => {
     // Load available authors
     const loadAuthors = async () => {
-      const authors = await ArticlesService.getAuthors();
-      setAvailableAuthors(authors);
+      try {
+        setIsLoading(true);
+        const { data: authors, error: fetchError } = await UserProfilesService.getAuthorOptions();
+
+        if (fetchError || !authors) {
+          setError('Không thể tải danh sách tác giả');
+          return;
+        }
+
+        setAvailableAuthors(authors);
+      } catch (err) {
+        console.error('Error loading authors:', err);
+        setError('Có lỗi xảy ra khi tải danh sách tác giả');
+      } finally {
+        setIsLoading(false);
+      }
     };
     loadAuthors();
 
@@ -48,16 +64,13 @@ export default function QuickAuthorEditor({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  const handleAuthorSelect = (author: string) => {
-    setSelectedAuthor(author);
-    setNewAuthor(''); // Clear new author input when selecting existing
+  const handleAuthorSelect = (authorId: string) => {
+    setSelectedAuthorId(authorId);
   };
 
   const handleSave = async () => {
-    const authorToSave = newAuthor.trim() || selectedAuthor;
-    
-    if (!authorToSave) {
-      setError('Vui lòng chọn hoặc nhập tên tác giả');
+    if (!selectedAuthorId) {
+      setError('Vui lòng chọn tác giả');
       return;
     }
 
@@ -65,14 +78,18 @@ export default function QuickAuthorEditor({
     setError('');
 
     try {
-      const { error: updateError } = await ArticlesService.updateAuthor(articleId, authorToSave);
-      
+      const { error: updateError } = await ArticlesService.updateAuthorById(articleId, selectedAuthorId);
+
       if (updateError) {
         setError('Không thể cập nhật tác giả');
         return;
       }
 
-      onUpdate(articleId, authorToSave);
+      // Find the selected author to get the name for UI update
+      const selectedAuthor = availableAuthors.find(author => author.id === selectedAuthorId);
+      const authorName = selectedAuthor?.full_name || 'Unknown Author';
+
+      onUpdate(articleId, authorName);
       onClose();
     } catch (err) {
       setError('Có lỗi xảy ra khi cập nhật');
@@ -81,14 +98,7 @@ export default function QuickAuthorEditor({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    }
-  };
-
-  const finalAuthor = newAuthor.trim() || selectedAuthor;
+  const selectedAuthor = availableAuthors.find(author => author.id === selectedAuthorId);
 
   return (
     <motion.div
@@ -125,49 +135,62 @@ export default function QuickAuthorEditor({
         )}
 
         {/* Available Authors */}
-        <div className="mb-3">
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Chọn tác giả có sẵn:
-          </label>
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {availableAuthors.map(author => (
-              <label
-                key={author}
-                className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  name="author"
-                  checked={selectedAuthor === author && !newAuthor.trim()}
-                  onChange={() => handleAuthorSelect(author)}
-                  className="border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">{author}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Add New Author */}
         <div className="mb-4">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Hoặc nhập tác giả mới:
+            Chọn tác giả:
           </label>
-          <input
-            type="text"
-            value={newAuthor}
-            onChange={(e) => setNewAuthor(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Nhập tên tác giả mới..."
-            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-transparent"
-          />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-4 h-4 border border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+              <span className="ml-2 text-sm text-gray-500">Đang tải...</span>
+            </div>
+          ) : (
+            <div className="max-h-40 overflow-y-auto space-y-2">
+              {availableAuthors.map(author => (
+                <label
+                  key={author.id}
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer border border-gray-200 dark:border-gray-600"
+                >
+                  <input
+                    type="radio"
+                    name="author"
+                    checked={selectedAuthorId === author.id}
+                    onChange={() => handleAuthorSelect(author.id)}
+                    className="border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {author.full_name}
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${author.role_badge_color}`}>
+                        {author.role_display_name}
+                      </span>
+                    </div>
+                    {author.email && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {author.email}
+                      </div>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Preview */}
-        {finalAuthor && (
-          <div className="mb-4 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+        {selectedAuthor && (
+          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Tác giả sẽ được cập nhật:</div>
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{finalAuthor}</div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {selectedAuthor.full_name}
+              </span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${selectedAuthor.role_badge_color}`}>
+                {selectedAuthor.role_display_name}
+              </span>
+            </div>
           </div>
         )}
 
@@ -182,7 +205,7 @@ export default function QuickAuthorEditor({
           </button>
           <button
             onClick={handleSave}
-            disabled={isLoading || !finalAuthor}
+            disabled={isLoading || !selectedAuthorId}
             className="px-3 py-1 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded transition-colors flex items-center space-x-1"
           >
             {isLoading && (
