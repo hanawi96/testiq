@@ -289,10 +289,27 @@ export default function UsersList() {
 
   // Handle edit user success
   const handleEditUserSuccess = () => {
-    // Refresh users data
-    fetchUsers();
+    // Clear cache to ensure fresh data on next fetch
+    cache.current.clear();
     // Show success toast
     showSuccess('Cập nhật thông tin người dùng thành công!');
+  };
+
+  // Handle optimistic user update
+  const handleOptimisticUserUpdate = (updatedUser: Partial<UserWithProfile>) => {
+    if (usersData && selectedUser) {
+      console.log('UsersList: Applying optimistic update for user:', selectedUser.id, updatedUser);
+
+      // Immediately update local state for better UX
+      const updatedUsers = usersData.users.map(user =>
+        user.id === selectedUser.id ? { ...user, ...updatedUser } : user
+      );
+
+      setUsersData({
+        ...usersData,
+        users: updatedUsers
+      });
+    }
   };
 
   // Handle create user success
@@ -656,7 +673,7 @@ export default function UsersList() {
                           </div>
                           {user.age && (
                             <div className="text-xs text-gray-400 dark:text-gray-500">
-                              Tuổi: {user.age}{user.location && `, ${user.location}`}
+                              Tuổi: {user.age}{user.country_name && `, ${user.country_name}`}
                             </div>
                           )}
                         </div>
@@ -914,6 +931,7 @@ export default function UsersList() {
         isOpen={showEditModal}
         onClose={handleEditUserClose}
         onSuccess={handleEditUserSuccess}
+        onOptimisticUpdate={handleOptimisticUserUpdate}
         user={selectedUser}
       />
 

@@ -205,7 +205,7 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 z-50 overflow-y-auto admin-modal">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}

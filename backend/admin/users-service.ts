@@ -11,7 +11,7 @@ export interface UserWithProfile {
   is_verified: boolean;
   last_login: string | null;
   age?: number;
-  location?: string;
+  country_name?: string;
   user_type?: 'registered' | 'anonymous';
   // Thêm 3 trường mới cho các cột bảng
   gender?: string | null;
@@ -48,7 +48,7 @@ export interface UpdateUserData {
   fullName?: string;
   age?: number;
   gender?: 'male' | 'female' | 'other';
-  location?: string;
+  country_name?: string;
   role?: 'user' | 'admin' | 'editor' | 'author' | 'reviewer';
 }
 
@@ -92,7 +92,7 @@ export class UsersService {
             is_verified,
             last_login,
             age,
-            location,
+            country_name,
             gender,
             created_at,
             updated_at
@@ -154,7 +154,7 @@ export class UsersService {
         is_verified: false,
         last_login: null,
         age: player.age,
-        location: player.country_name,
+        country_name: player.country_name,
         user_type: 'anonymous' as const,
         // Thêm 3 trường mới
         gender: player.gender || null,
@@ -174,11 +174,11 @@ export class UsersService {
         is_verified: user.is_verified || false,
         last_login: user.last_login,
         age: user.age,
-        location: user.location,
+        country_name: user.country_name,
         user_type: 'registered' as const,
         // Thêm 3 trường mới
         gender: user.gender || null,
-        country: user.location || null, // Sử dụng location làm country cho registered users
+        country: user.country_name || null, // Sử dụng country_name làm country cho registered users
         test_count: testCountMap.get(user.id) || 0
       }));
 
@@ -191,7 +191,7 @@ export class UsersService {
         allUsers = allUsers.filter(user =>
           (user.full_name || '').toLowerCase().includes(searchTerm) ||
           (user.email || '').toLowerCase().includes(searchTerm) ||
-          (user.location && user.location.toLowerCase().includes(searchTerm))
+          (user.country_name && user.country_name.toLowerCase().includes(searchTerm))
         );
       }
 
@@ -516,8 +516,8 @@ export class UsersService {
         updateData.gender = userData.gender;
       }
 
-      if (userData.location !== undefined) {
-        updateData.location = userData.location;
+      if (userData.country_name !== undefined) {
+        updateData.country_name = userData.country_name;
       }
 
       if (userData.role !== undefined) {

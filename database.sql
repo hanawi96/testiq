@@ -107,7 +107,7 @@ RETURNS TABLE (
     is_verified BOOLEAN,
     last_login TIMESTAMP,
     age INTEGER,
-    location TEXT,
+    country_name TEXT,
     total_count BIGINT
 )
 LANGUAGE plpgsql
@@ -127,7 +127,7 @@ BEGIN
             up.is_verified,
             up.last_login, -- từ user_profiles (timestamp without time zone)
             up.age,
-            up.location
+            up.country_name
         FROM user_profiles up
         INNER JOIN auth.users au ON up.id = au.id
         WHERE
@@ -202,7 +202,7 @@ create table public.user_profiles (
   full_name text null,
   age integer null,
   gender text null,
-  location text null,
+  country_name text null,
   avatar_url text null,
   bio text null,
   role text not null default 'user'::text,

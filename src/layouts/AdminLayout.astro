@@ -90,6 +90,87 @@ import AdminHeader from '../components/admin/layout/AdminHeader.astro';
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Admin Input Styles -->
+  <style>
+    /* Admin Modal Input Styles - Clean & Minimalist */
+
+    /* Remove all focus rings globally in admin modals */
+    .admin-modal *,
+    .admin-modal *:focus,
+    .admin-modal input,
+    .admin-modal input:focus,
+    .admin-modal select,
+    .admin-modal select:focus,
+    .admin-modal textarea,
+    .admin-modal textarea:focus,
+    .admin-modal button,
+    .admin-modal button:focus {
+      outline: none !important;
+      box-shadow: none !important;
+      border-color: rgb(156 163 175) !important; /* gray-400 */
+    }
+
+    /* Dark mode border colors */
+    .dark .admin-modal input:focus,
+    .dark .admin-modal select:focus,
+    .dark .admin-modal textarea:focus {
+      border-color: rgb(107 114 128) !important; /* gray-500 */
+    }
+
+    /* Override Tailwind focus classes with !important */
+    .admin-modal .focus\:ring-2:focus,
+    .admin-modal input.focus\:ring-2:focus,
+    .admin-modal select.focus\:ring-2:focus {
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
+    .admin-modal .focus\:ring-primary-500:focus,
+    .admin-modal input.focus\:ring-primary-500:focus {
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
+    .admin-modal .focus\:border-transparent:focus,
+    .admin-modal input.focus\:border-transparent:focus {
+      border-color: rgb(156 163 175) !important; /* gray-400 */
+    }
+
+    /* CountrySelector specific overrides */
+    .admin-modal .country-selector input:focus,
+    .admin-modal .country-selector select:focus {
+      outline: none !important;
+      box-shadow: none !important;
+      border-color: rgb(156 163 175) !important;
+    }
+
+    /* Hover states for accessibility */
+    .admin-modal input:hover:not(:disabled),
+    .admin-modal select:hover:not(:disabled),
+    .admin-modal textarea:hover:not(:disabled) {
+      background-color: rgb(249 250 251); /* gray-50 */
+    }
+
+    .dark .admin-modal input:hover:not(:disabled),
+    .dark .admin-modal select:hover:not(:disabled),
+    .dark .admin-modal textarea:hover:not(:disabled) {
+      background-color: rgb(75 85 99); /* gray-600 */
+    }
+
+    /* Focus states with subtle background change */
+    .admin-modal input:focus,
+    .admin-modal select:focus,
+    .admin-modal textarea:focus {
+      background-color: rgb(249 250 251) !important; /* gray-50 */
+    }
+
+    .dark .admin-modal input:focus,
+    .dark .admin-modal select:focus,
+    .dark .admin-modal textarea:focus {
+      background-color: rgb(75 85 99) !important; /* gray-600 */
+    }
+  </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen font-[Inter] overflow-hidden">
 

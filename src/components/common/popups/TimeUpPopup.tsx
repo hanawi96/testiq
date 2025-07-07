@@ -126,7 +126,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
         await updateUserProfile(user.id, {
           full_name: userInfo.name,
           age: parseInt(userInfo.age) || undefined,
-          location: userInfo.location,
+          country_name: userInfo.location,
           country_code: userInfo.countryCode,
           email: userInfo.email,
           gender: userInfo.gender

@@ -7,6 +7,7 @@ interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onOptimisticUpdate?: (updatedUser: Partial<UserWithProfile>) => void;
   user: UserWithProfile | null;
 }
 
@@ -49,7 +50,7 @@ const GENDERS = [
   { value: 'other', label: 'Khác' }
 ] as const;
 
-export default function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModalProps) {
+export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimisticUpdate, user }: EditUserModalProps) {
   const [form, setForm] = useState<EditUserForm>({
     fullName: '',
     age: '',
@@ -92,7 +93,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
       };
 
       const initForm = async () => {
-        const country = await findCountryFromLocation(user.location || '');
+        const country = await findCountryFromLocation(user.country_name || '');
 
         setForm({
           fullName: user.full_name || '',
@@ -158,7 +159,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
         fullName: form.fullName.trim(),
         age: form.age === '' ? undefined : Number(form.age),
         gender: form.gender || undefined,
-        location: form.country?.name || undefined,
+        country_name: form.country?.name || undefined,
         role: form.role
       };
 
@@ -167,8 +168,29 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
       const { success, error } = await UsersService.updateUser(user.id, updateData);
 
       if (success) {
-        onSuccess();
+        console.log('EditUserModal: Success, updated user:', user.id);
+
+        // Success - optimistic update for immediate UI feedback
+        if (onOptimisticUpdate) {
+          const countryName = form.country?.name || undefined;
+          const optimisticData = {
+            full_name: form.fullName.trim(),
+            age: form.age === '' ? undefined : Number(form.age),
+            gender: form.gender || undefined,
+            country_name: countryName,
+            country: countryName, // Cập nhật cả country field
+            role: form.role,
+            updated_at: new Date().toISOString()
+          };
+          console.log('EditUserModal: Applying optimistic update:', optimisticData);
+          onOptimisticUpdate(optimisticData);
+        }
+
+        // Close modal immediately for better UX
         onClose();
+
+        // Then refresh data in background to ensure consistency
+        onSuccess();
       } else {
         // Set error for specific field or general error
         if (error?.message?.includes('role')) {
@@ -206,7 +228,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 admin-modal">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -262,7 +284,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
                   value={form.fullName}
                   onChange={handleInputChange}
                   disabled={isLoading}
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 ${
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 ${
                     errors.fullName ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Nhập tên đầy đủ"
@@ -288,7 +310,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
                     disabled={isLoading}
                     min="1"
                     max="120"
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 ${
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 ${
                       errors.age ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                     }`}
                     placeholder="Tuổi"
@@ -309,7 +331,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
                     value={form.gender}
                     onChange={handleInputChange}
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
                   >
                     <option value="">Chọn giới tính</option>
                     {GENDERS.map((gender) => (
@@ -350,7 +372,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
                   value={form.role}
                   onChange={handleInputChange}
                   disabled={isLoading}
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 ${
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 ${
                     errors.role ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 >
@@ -371,14 +393,14 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
                   type="button"
                   onClick={handleClose}
                   disabled={isLoading}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50 transition-colors flex items-center space-x-2"
                 >
                   {isLoading && (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

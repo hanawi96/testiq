@@ -1,0 +1,84 @@
+/* Admin Modal Input Styles - Clean & Minimalist */
+
+/* Base input styling for admin modals */
+.admin-input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg;
+  @apply bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+  @apply placeholder-gray-500 dark:placeholder-gray-400;
+  @apply transition-colors duration-200;
+  @apply outline-none;
+}
+
+/* Hover state - subtle background change for accessibility */
+.admin-input:hover:not(:disabled) {
+  @apply bg-gray-50 dark:bg-gray-600;
+}
+
+/* Focus state - subtle background change instead of ring */
+.admin-input:focus {
+  @apply bg-gray-50 dark:bg-gray-600;
+  @apply border-gray-400 dark:border-gray-500;
+}
+
+/* Disabled state */
+.admin-input:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Error state */
+.admin-input.error {
+  @apply border-red-300 dark:border-red-600;
+}
+
+/* Select specific styling */
+.admin-select {
+  @apply admin-input;
+  @apply cursor-pointer;
+}
+
+/* Textarea specific styling */
+.admin-textarea {
+  @apply admin-input;
+  @apply resize-none;
+}
+
+/* Remove all focus rings globally in admin modals */
+.admin-modal * {
+  @apply focus:outline-none;
+}
+
+.admin-modal input,
+.admin-modal select,
+.admin-modal textarea,
+.admin-modal button {
+  @apply focus:ring-0 focus:ring-transparent;
+  @apply focus:border-gray-400 dark:focus:border-gray-500;
+}
+
+/* Specific overrides for common Tailwind focus classes */
+.admin-modal .focus\:ring-2 {
+  @apply focus:ring-0;
+}
+
+.admin-modal .focus\:ring-primary-500 {
+  @apply focus:ring-transparent;
+}
+
+.admin-modal .focus\:border-transparent {
+  @apply focus:border-gray-400 dark:focus:border-gray-500;
+}
+
+/* CountrySelector specific overrides */
+.admin-modal .country-selector input {
+  @apply focus:ring-0 focus:ring-transparent;
+  @apply focus:border-gray-400 dark:focus:border-gray-500;
+}
+
+/* Button focus states - subtle background change */
+.admin-modal button:focus {
+  @apply ring-0 outline-none;
+}
+
+.admin-modal button:focus:not(:disabled) {
+  @apply brightness-95 dark:brightness-110;
+}

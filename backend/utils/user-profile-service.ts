@@ -3,7 +3,7 @@ import { supabase } from '../config/supabase';
 export interface UserProfileData {
   full_name?: string;
   age?: number;
-  location?: string;
+  country_name?: string;
   country_code?: string;
   email?: string;
   gender?: string;
@@ -25,7 +25,7 @@ export async function updateUserProfile(userId: string, profileData: UserProfile
       .update({
         full_name: profileData.full_name,
         age: profileData.age,
-        location: profileData.location,
+        country_name: profileData.country_name,
         country_code: profileData.country_code,
         email: profileData.email,
         gender: profileData.gender,
@@ -62,7 +62,7 @@ export async function getUserProfile(userId: string): Promise<{
 
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('full_name, age, location, country_code, email, gender')
+      .select('full_name, age, country_name, country_code, email, gender')
       .eq('id', userId)
       .single();
 

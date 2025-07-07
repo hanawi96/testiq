@@ -129,7 +129,7 @@ export default function CountrySelector({
   }
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className={`relative country-selector ${className}`} ref={containerRef}>
       {/* Input Field */}
       <div
         className={`

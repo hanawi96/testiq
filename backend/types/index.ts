@@ -5,7 +5,7 @@ export interface UserProfile {
   email?: string;
   age?: number;
   gender?: 'male' | 'female' | 'other';
-  location?: string;
+  country_name?: string;
   avatar_url?: string;
   bio?: string;
   role: 'user' | 'admin';

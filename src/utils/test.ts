@@ -434,7 +434,7 @@ export interface Question {
             name: profile.full_name || user.email?.split('@')[0] || '',
             email: profile.email || user.email || '',
             age: profile.age?.toString() || '',
-            location: profile.location || '',
+            location: profile.country_name || '',
             countryCode: profile.country_code || '',
             gender: profile.gender || ''
           };
