@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { preloadTriggers } from '../../../utils/country-preloader';
 import { useIQSounds, globalAudioContext } from '../types/iq/hooks/useIQSounds';
 
 // Thêm CSS cho bộ lọc ánh sáng xanh
@@ -111,10 +112,17 @@ export default function Timer({ initialTime, onTimeUp, isActive, timeElapsed = 0
   // Hiệu ứng cập nhật thời gian hiển thị nếu đang hoạt động
   useEffect(() => {
     if (!isActive || timeLeft <= 0) return;
-    
+
     // Tạo interval để cập nhật thời gian còn lại
     const interval = setInterval(() => {
-      setCurrentTimeLeft((prev) => Math.max(0, prev - 1));
+      setCurrentTimeLeft((prev) => {
+        const newTimeLeft = Math.max(0, prev - 1);
+
+        // Trigger country preload when time is running low
+        preloadTriggers.onLowTimeRemaining(newTimeLeft);
+
+        return newTimeLeft;
+      });
     }, 1000);
     
     return () => clearInterval(interval);

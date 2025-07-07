@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getInstantCountryData, isCountryDataReady, preloadCountryData } from '../../utils/country-preloader';
 
 // Unified Country interface that supports all use cases
 export interface Country {
@@ -61,70 +62,32 @@ export default function UnifiedCountrySelector({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Smart country loading with multiple fallbacks
+  // Optimized country loading using preloader
   const loadCountries = useCallback(async (): Promise<Country[]> => {
-    // Return cached data if valid
-    const now = Date.now();
-    if (countryCache && (now - cacheTimestamp) < CACHE_DURATION) {
-      return countryCache;
-    }
-
-    try {
-      // Try database first (preferred for consistency)
-      const backend = await import('@/backend');
-      const result = await backend.getCountriesWithVietnamFirst();
-      
-      if (result.data && result.data.length > 0) {
-        const dbCountries: Country[] = result.data.map(c => ({
-          id: c.id,
-          name: c.name,
-          code: c.code,
-          flag: `https://country-code-au6g.vercel.app/${c.code}.svg`
-        }));
-        
-        // Cache the result
-        countryCache = dbCountries;
-        cacheTimestamp = now;
-        return dbCountries;
+    // For popup variants, prioritize instant availability
+    if (variant === 'popup') {
+      // Check if data is already ready
+      if (isCountryDataReady()) {
+        console.log('🚀 UnifiedCountrySelector: Using preloaded data (instant)');
+        return getInstantCountryData();
       }
-    } catch (dbError) {
-      console.warn('Database countries failed, trying JSON fallback:', dbError);
+
+      // Get instant data while ensuring background preload
+      console.log('🚀 UnifiedCountrySelector: Using instant data + background preload');
+      const instantData = getInstantCountryData();
+
+      // Start background preload for next time
+      preloadCountryData().catch(error => {
+        console.warn('Background preload failed:', error);
+      });
+
+      return instantData;
     }
 
-    try {
-      // Fallback to JSON file
-      const response = await fetch('/country.json');
-      const jsonCountries = await response.json();
-      
-      if (Array.isArray(jsonCountries) && jsonCountries.length > 0) {
-        const processedCountries: Country[] = jsonCountries.map(c => ({
-          id: c.code || c.name,
-          name: c.name,
-          code: c.code,
-          emoji: c.emoji,
-          flag: `https://country-code-au6g.vercel.app/${c.code}.svg`
-        }));
-        
-        // Move Vietnam to first position
-        const vietnamIndex = processedCountries.findIndex(c => 
-          c.code === 'VN' || c.name.toLowerCase().includes('việt nam')
-        );
-        if (vietnamIndex > 0) {
-          const vietnam = processedCountries.splice(vietnamIndex, 1)[0];
-          processedCountries.unshift(vietnam);
-        }
-        
-        countryCache = processedCountries;
-        cacheTimestamp = now;
-        return processedCountries;
-      }
-    } catch (jsonError) {
-      console.warn('JSON countries failed, using hardcoded fallback:', jsonError);
-    }
-
-    // Final fallback to hardcoded list
-    return FALLBACK_COUNTRIES;
-  }, []);
+    // For admin variants, use full preload (less time-critical)
+    console.log('🚀 UnifiedCountrySelector: Using full preload for admin variant');
+    return preloadCountryData();
+  }, [variant]);
 
   // Initialize countries on mount
   useEffect(() => {

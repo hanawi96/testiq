@@ -4,6 +4,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { globalAudioContext } from './useIQSounds';
 import type { Question } from '../../../../../utils/test';
+import { preloadTriggers } from '../../../../../utils/country-preloader';
 
 interface UseIQQuestionManagerProps {
   questions: Question[];
@@ -55,20 +56,27 @@ export function useIQQuestionManager({
     if (isTimeUp) {
       return;
     }
-    
+
+    // Trigger country preload on user interaction
+    preloadTriggers.onUserInteraction();
+
     // Cập nhật câu trả lời
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
     setJustAnswered(true);
-    
+
+    // Trigger progress-based preload
+    const progress = newAnswers.filter(a => a !== null).length / questions.length;
+    preloadTriggers.onTestProgress(progress);
+
     // Phản hồi ngay lập tức
     if (playSound && !globalAudioContext.isMuted) {
       const question = questions[currentQuestion];
       if (question) {
         const isCorrect = answerIndex === question.correct;
         playSound(isCorrect ? 'correct' : 'wrong');
-        
+
         // Phản hồi rung cho thiết bị di động
         if (navigator.vibrate) {
           navigator.vibrate(isCorrect ? 50 : 100);

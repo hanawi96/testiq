@@ -5,6 +5,7 @@ import TimeUpPopup from '../../../common/popups/TimeUpPopup';
 import TestProgressPopup from '../../../common/popups/TestProgressPopup';
 import { EyeRestPopup } from '../../../common/popups';
 import { motion } from 'framer-motion';
+import { preloadTriggers } from '../../../../utils/country-preloader';
 
 // Import components đã tách
 import { IQQuestion, IQNavigation, IQProgressHeader } from './components';
@@ -504,14 +505,17 @@ export default function IQTest({ questions, timeLimit, onComplete, startImmediat
   // Start the test - check for saved progress first
   const startTest = useCallback(() => {
     console.log('🚀 User clicked start test button');
-    
+
+    // Trigger country data preload when test starts
+    preloadTriggers.onTestStart();
+
     // Tự động kích hoạt chế độ toàn màn hình khi bắt đầu bài test
     if (document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(err => {
         console.warn('Không thể vào chế độ toàn màn hình:', err);
       });
     }
-    
+
     startTimer();
     setIsDataLoaded(true);
     setHasStarted(true);

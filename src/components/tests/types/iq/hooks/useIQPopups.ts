@@ -4,6 +4,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { UserInfo } from '../../../../common/popups/CongratulationsPopup';
 import { globalAudioContext } from './useIQSounds';
+import { preloadTriggers } from '../../../../../utils/country-preloader';
 
 interface UseIQPopupsProps {
   playSound?: (type: 'correct' | 'wrong' | 'warning' | 'complete') => void;
@@ -100,6 +101,8 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
   // Load thông tin người dùng khi component mount
   useEffect(() => {
     preloadUserProfile();
+    // Trigger country data preload on app init (low priority)
+    preloadTriggers.onAppInit();
   }, [preloadUserProfile]);
 
   return {
