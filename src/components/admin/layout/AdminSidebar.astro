@@ -76,6 +76,17 @@ function isActive(href: string) {
   if (href === '/admin') {
     return currentPath === '/admin' || currentPath === '/admin/';
   }
+
+  // Exact match for sub-items to avoid conflicts
+  if (href === '/admin/articles') {
+    return currentPath === '/admin/articles' || currentPath === '/admin/articles/';
+  }
+
+  if (href === '/admin/articles/create') {
+    return currentPath === '/admin/articles/create' || currentPath === '/admin/articles/create/';
+  }
+
+  // For other paths, use startsWith
   return currentPath.startsWith(href);
 }
 
