@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CategoriesService } from '../../../../backend';
 import type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from '../../../../backend';
 import CategoryModal from './CategoryModal';
+import QuickStatusEditor from './QuickStatusEditor';
 
 export default function AdminCategories() {
   const [categoriesData, setCategoriesData] = useState<CategoriesListResponse | null>(null);
@@ -253,6 +254,68 @@ export default function AdminCategories() {
     }
   };
 
+  // Handle quick status update
+  const handleQuickStatusUpdate = async (categoryId: string, newStatus: 'active' | 'inactive') => {
+    // 1. OPTIMISTIC UPDATE: Immediately update UI
+    setTargetStatuses(prev => ({ ...prev, [categoryId]: newStatus }));
+    setPendingStatusUpdates(prev => new Set(prev).add(categoryId));
+
+    try {
+      // 2. API CALL: Update status in background
+      const { error } = await CategoriesService.updateCategory(categoryId, { status: newStatus });
+
+      if (error) {
+        // 3. ERROR: Revert optimistic changes
+        setTargetStatuses(prev => {
+          const updated = { ...prev };
+          delete updated[categoryId];
+          return updated;
+        });
+        throw new Error(error.message || 'Không thể cập nhật trạng thái');
+      }
+
+      // 4. SUCCESS: Update local data to match API response
+      if (categoriesData) {
+        setCategoriesData(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            categories: prev.categories.map(cat =>
+              cat.id === categoryId ? { ...cat, status: newStatus } : cat
+            )
+          };
+        });
+      }
+
+      // Clear target status since real status is now updated
+      setTargetStatuses(prev => {
+        const updated = { ...prev };
+        delete updated[categoryId];
+        return updated;
+      });
+
+    } catch (err: any) {
+      // ERROR: Revert optimistic changes and show error
+      setTargetStatuses(prev => {
+        const updated = { ...prev };
+        delete updated[categoryId];
+        return updated;
+      });
+
+      setError(err?.message || 'Có lỗi xảy ra khi cập nhật trạng thái');
+
+      // Refresh data to ensure consistency
+      fetchCategories();
+    } finally {
+      // CLEANUP: Remove from pending updates
+      setPendingStatusUpdates(prev => {
+        const updated = new Set(prev);
+        updated.delete(categoryId);
+        return updated;
+      });
+    }
+  };
+
   // Get status badge color
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -428,96 +491,7 @@ export default function AdminCategories() {
     return pendingStatusUpdates.has(categoryId);
   };
 
-  // Handle optimistic status toggle
-  const handleStatusToggle = async (categoryId: string, currentStatus: 'active' | 'inactive') => {
-    // Don't allow toggle if there's a pending update
-    if (isStatusPending(categoryId)) {
-      return;
-    }
 
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-
-    // Cancel any pending update for this category
-    if (pendingStatusUpdates.has(categoryId)) {
-      console.log('Cancelling previous status update for category:', categoryId);
-    }
-
-    // 1. OPTIMISTIC UPDATE: Set target status and mark as pending
-    setTargetStatuses(prev => ({ ...prev, [categoryId]: newStatus }));
-    setPendingStatusUpdates(prev => new Set(prev).add(categoryId));
-
-    // 2. BACKGROUND API CALL
-    try {
-      const { error } = await CategoriesService.updateCategory(categoryId, {
-        status: newStatus
-      });
-
-      // 3. HANDLE API RESPONSE
-      if (error) {
-        // REVERT: API failed, remove target status and show error
-        console.error('Status update failed, reverting:', error);
-        setTargetStatuses(prev => {
-          const updated = { ...prev };
-          delete updated[categoryId];
-          return updated;
-        });
-        setError(error.message || `Không thể ${newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} danh mục`);
-
-        // Optionally refresh data to ensure consistency
-        fetchCategories();
-      } else {
-        // SUCCESS: Update the category data immediately in local state
-        console.log('Status update successful');
-
-        // Update the category status in local data immediately
-        if (categoriesData) {
-          const updatedCategories = categoriesData.categories.map(cat =>
-            cat.id === categoryId ? { ...cat, status: newStatus as 'active' | 'inactive' } : cat
-          );
-          setCategoriesData({
-            ...categoriesData,
-            categories: updatedCategories
-          });
-        }
-
-        // Remove target state since we've updated the real data
-        setTargetStatuses(prev => {
-          const updated = { ...prev };
-          delete updated[categoryId];
-          return updated;
-        });
-
-        // Clear any existing errors
-        setError('');
-
-        // Refresh stats since active/inactive counts changed
-        fetchStats();
-
-        // Optional: Refresh data in background to ensure consistency
-        // but don't wait for it since we've already updated the UI
-        setTimeout(() => fetchCategories(), 100);
-      }
-    } catch (err: any) {
-      // REVERT: Network error, remove target status
-      console.error('Status update error, reverting:', err);
-      setTargetStatuses(prev => {
-        const updated = { ...prev };
-        delete updated[categoryId];
-        return updated;
-      });
-      setError(err?.message || `Có lỗi xảy ra khi ${newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} danh mục`);
-
-      // Refresh data to ensure consistency
-      fetchCategories();
-    } finally {
-      // 4. CLEANUP: Remove from pending updates
-      setPendingStatusUpdates(prev => {
-        const updated = new Set(prev);
-        updated.delete(categoryId);
-        return updated;
-      });
-    }
-  };
 
   if (isLoading && !categoriesData) {
     return (
@@ -537,18 +511,6 @@ export default function AdminCategories() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý danh mục</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý danh mục bài viết trên website</p>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Tạo danh mục</span>
-          </button>
         </div>
       </div>
 
@@ -791,14 +753,16 @@ export default function AdminCategories() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Danh sách danh mục ({categoriesData.total.toLocaleString()})
               </h3>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.length === categoriesData.categories.length && categoriesData.categories.length > 0}
-                  onChange={handleSelectAll}
-                  className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Chọn tất cả</span>
+              <div>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+                  title="Thêm danh mục mới"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -817,7 +781,15 @@ export default function AdminCategories() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Danh mục
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.length === categoriesData.categories.length && categoriesData.categories.length > 0}
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span>Danh mục</span>
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Trạng thái
@@ -947,6 +919,13 @@ export default function AdminCategories() {
                             )}
                             {getDisplayStatusLabel(category)}
                           </span>
+                          <QuickStatusEditor
+                            categoryId={category.id}
+                            currentStatus={getDisplayStatus(category)}
+                            onStatusUpdate={handleQuickStatusUpdate}
+                            isLoading={isStatusPending(category.id)}
+                            disabled={isUpdating}
+                          />
                         </div>
                       </td>
 
@@ -990,41 +969,6 @@ export default function AdminCategories() {
                       {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center space-x-2">
-                          {/* Status Toggle */}
-                          {getDisplayStatus(category) === 'inactive' && (
-                            <button
-                              onClick={() => handleStatusToggle(category.id, getDisplayStatus(category))}
-                              disabled={isUpdating || isStatusPending(category.id)}
-                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                              title={isStatusPending(category.id) ? "Đang kích hoạt..." : "Kích hoạt"}
-                            >
-                              {isStatusPending(category.id) ? (
-                                <div className="w-4 h-4 border border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </button>
-                          )}
-
-                          {getDisplayStatus(category) === 'active' && (
-                            <button
-                              onClick={() => handleStatusToggle(category.id, getDisplayStatus(category))}
-                              disabled={isUpdating || isStatusPending(category.id)}
-                              className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                              title={isStatusPending(category.id) ? "Đang vô hiệu hóa..." : "Vô hiệu hóa"}
-                            >
-                              {isStatusPending(category.id) ? (
-                                <div className="w-4 h-4 border border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                              )}
-                            </button>
-                          )}
-
                           {/* Edit */}
                           <button
                             onClick={() => setEditingCategory(category)}

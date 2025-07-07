@@ -203,27 +203,29 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50"
-          onClick={handleBackdropClick}
-        />
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75"
+            onClick={handleBackdropClick}
+          />
 
-        {/* Modal */}
-        <div className="flex min-h-full items-center justify-center p-4">
+          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-xl"
+            transition={{ duration: 0.15 }}
+            className="w-full max-w-lg p-6 bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-200 dark:border-gray-700 relative z-10 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {isEdit ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}
               </h3>
@@ -239,7 +241,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6">
+            <form onSubmit={handleSubmit}>
               {/* Error Message */}
               {error && (
                 <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -398,7 +400,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
             </form>
           </motion.div>
         </div>
-      </div>
+      )}
     </AnimatePresence>
   );
 }
