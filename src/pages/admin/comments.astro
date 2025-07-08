@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminComments from '../../components/admin/comments/AdminComments.tsx';
+---
+
+<AdminLayout title="Quản lý Bình luận - Admin">
+  <AdminComments client:load initialFilter="all" />
+</AdminLayout>

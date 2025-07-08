@@ -1,0 +1,46 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminComments from '../../../components/admin/comments/AdminComments.tsx';
+---
+
+<AdminLayout title="Bình luận Chờ duyệt - Admin">
+  <!-- Page Header -->
+  <div class="mb-6">
+    <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+      <a href="/admin" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+        Admin
+      </a>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </svg>
+      <a href="/admin/comments" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+        Bình luận
+      </a>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </svg>
+      <span class="text-gray-900 dark:text-gray-100">Chờ duyệt</span>
+    </div>
+
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+      <div class="flex items-center space-x-3">
+        <div class="flex-shrink-0">
+          <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            Bình luận chờ duyệt
+          </h3>
+          <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+            Đây là danh sách các bình luận đang chờ được kiểm duyệt. Hãy xem xét và duyệt/từ chối các bình luận này.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comments Component with Pending Filter -->
+  <AdminComments client:load initialFilter="pending" />
+</AdminLayout>

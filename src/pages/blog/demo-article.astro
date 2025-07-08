@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleDetail from '../../components/blog/ArticleDetail.tsx';
+---
+
+<BaseLayout title="Demo Bài Viết Chi Tiết - IQ Test">
+  <main class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <ArticleDetail client:load />
+  </main>
+</BaseLayout>
+
+<style>
+  /* Custom styles for article content */
+  :global(.article-content) {
+    @apply text-gray-700 dark:text-gray-300 leading-relaxed;
+  }
+
+  :global(.article-content h2) {
+    @apply text-2xl font-bold text-gray-900 dark:text-gray-100 mt-8 mb-4;
+  }
+
+  :global(.article-content h3) {
+    @apply text-xl font-semibold text-gray-900 dark:text-gray-100 mt-6 mb-3;
+  }
+
+  :global(.article-content h4) {
+    @apply text-lg font-medium text-gray-900 dark:text-gray-100 mt-4 mb-2;
+  }
+
+  :global(.article-content p) {
+    @apply mb-4 leading-relaxed;
+  }
+
+  :global(.article-content ul) {
+    @apply mb-4 pl-6 space-y-2;
+  }
+
+  :global(.article-content ol) {
+    @apply mb-4 pl-6 space-y-2;
+  }
+
+  :global(.article-content li) {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+
+  :global(.article-content strong) {
+    @apply font-semibold text-gray-900 dark:text-gray-100;
+  }
+
+  :global(.article-content pre) {
+    @apply bg-gray-900 dark:bg-gray-800 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4 text-sm;
+  }
+
+  :global(.article-content code) {
+    @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-1.5 py-0.5 rounded text-sm;
+  }
+
+  :global(.article-content pre code) {
+    @apply bg-transparent text-gray-100 p-0;
+  }
+
+  :global(.article-content blockquote) {
+    @apply border-l-4 border-primary-500 pl-4 italic text-gray-600 dark:text-gray-400 my-4;
+  }
+
+  /* Line clamp utilities */
+  :global(.line-clamp-2) {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Smooth transitions */
+  :global(.transition-colors) {
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  :global(.transition-shadow) {
+    transition-property: box-shadow;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  :global(.transition-opacity) {
+    transition-property: opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  /* Responsive text sizes */
+  @media (max-width: 768px) {
+    :global(.article-content h2) {
+      @apply text-xl;
+    }
+    
+    :global(.article-content h3) {
+      @apply text-lg;
+    }
+    
+    :global(.article-content h4) {
+      @apply text-base;
+    }
+  }
+
+  /* Dark mode improvements */
+  @media (prefers-color-scheme: dark) {
+    :global(.article-content pre) {
+      @apply bg-gray-800 border border-gray-700;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    :global(.article-content) {
+      @apply text-black;
+    }
+    
+    :global(.article-content h2),
+    :global(.article-content h3),
+    :global(.article-content h4) {
+      @apply text-black;
+    }
+  }
+</style>
