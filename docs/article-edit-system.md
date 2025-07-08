@@ -20,7 +20,7 @@ getArticleVersions(articleId)            // Version history (future)
 ```
 src/components/admin/articles/editors/
 ├── ArticleEdit.tsx              // Main edit component (13.42 kB)
-└── ToastEditor.tsx              // Rich text editor (reused)
+└── (Simple textarea editor)     // Basic text editor
 
 src/hooks/
 └── useAutoSave.ts               // Auto-save, validation, shortcuts hooks
@@ -111,7 +111,7 @@ useUnsavedChanges(hasUnsavedChanges,
 
 ### **Bundle Optimization**
 - **ArticleEdit**: 13.42 kB (optimized)
-- **Code splitting**: Lazy-loaded ToastEditor
+- **Code splitting**: Simple textarea editor
 - **Tree shaking**: Only used utilities
 - **Shared dependencies**: Reused từ existing components
 
@@ -131,17 +131,17 @@ useUnsavedChanges(hasUnsavedChanges,
 
 ### **Desktop (≥1024px)**
 - Full 2-column layout
-- Rich text editor với full toolbar
+- Simple text editor với basic functionality
 - Sidebar với all options
 
 ### **Tablet (768px-1024px)**
 - Stacked layout on smaller screens
 - Touch-optimized controls
-- Simplified toolbar
+- Basic text input
 
 ### **Mobile (<768px)**
 - Single column layout
-- Mobile-optimized editor
+- Mobile-optimized textarea
 - Essential controls only
 
 ## 🎯 Admin Integration
@@ -229,8 +229,8 @@ const togglePreview = () => {
 ### **Bundle Analysis**
 - **ArticleEdit**: 13.42 kB
 - **useAutoSave hook**: Included in main bundle
-- **ToastEditor**: Lazy-loaded (4.00 kB)
-- **Total overhead**: ~17.5 kB
+- **Simple textarea**: Built-in (0 kB)
+- **Total overhead**: ~13.5 kB
 
 ## 🔄 Future Enhancements
 
@@ -251,7 +251,7 @@ const togglePreview = () => {
 ### **Basic Edit Flow**
 1. Navigate to `/admin/articles`
 2. Click "Edit" button on any article
-3. Modify content in rich editor
+3. Modify content in text editor
 4. Auto-save runs every 30 seconds
 5. Click "Xuất bản" to publish changes
 

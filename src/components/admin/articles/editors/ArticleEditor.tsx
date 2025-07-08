@@ -3,10 +3,12 @@ import { CategoriesService, ArticlesService, UserProfilesService } from '../../.
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
+import SimpleMilkdownEditor from './SimpleMilkdownEditor';
 import '../../../../styles/article-editor.css';
+import '../../../../styles/milkdown-editor.css';
 
-// Lazy load ToastEditor chỉ khi ở client
-const ToastEditor = React.lazy(() => import('./ToastEditor'));
+
+
 
 interface ArticleEditorProps {
   articleId?: string; // Nếu có = edit mode, không có = create mode
@@ -95,7 +97,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
   const [tagInput, setTagInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
-  const [isClient, setIsClient] = useState(false);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [authors, setAuthors] = useState<AuthorOption[]>([]);
@@ -236,10 +238,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
     loadAuthors();
   }, []);
 
-  // Chỉ render editor khi ở client
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+
 
   // Track unsaved changes
   useEffect(() => {
@@ -804,35 +803,24 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
               </div>
 
               <div>
-                {isClient ? (
-                  <React.Suspense fallback={
-                    <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center" style={{height: '780px'}}>
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Đang khởi tạo trình soạn thảo...</p>
+                <div className="article-content-editor">
+                  {isMounted ? (
+                    <SimpleMilkdownEditor
+                      value={formData.content}
+                      onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                      placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
+                      height="780px"
+                      className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    />
+                  ) : (
+                    <div className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center" style={{height: '780px'}}>
+                      <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                        <span className="text-sm">Đang khởi tạo trình soạn thảo...</span>
                       </div>
                     </div>
-                  }>
-                    <div className="article-content-editor border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                      <ToastEditor
-                        content={formData.content}
-                        onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                        placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                        height="780px"
-                      />
-                    </div>
-                  </React.Suspense>
-                ) : (
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 h-96 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-pulse">
-                        <div className="h-8 w-8 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-48 mx-auto mb-2"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32 mx-auto"></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 

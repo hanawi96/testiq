@@ -1,0 +1,285 @@
+/* Milkdown Editor Custom Styles */
+
+/* Base editor container */
+.milkdown-editor {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  position: relative;
+}
+
+/* Dark mode support */
+.dark .milkdown-editor {
+  color-scheme: dark;
+}
+
+/* Prevent layout shifts and improve stability */
+.milkdown-editor .milkdown {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Improve editor stability */
+.milkdown-editor .milkdown .editor {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Prevent unwanted focus effects */
+.milkdown-editor .milkdown .editor:focus,
+.milkdown-editor .milkdown .editor:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Editor content area */
+.milkdown-editor .milkdown {
+  padding: 1rem;
+  min-height: 400px;
+  line-height: 1.6;
+  font-size: 16px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Improve text input stability */
+.milkdown-editor .milkdown p {
+  margin: 0.5em 0;
+  min-height: 1.2em;
+}
+
+/* Prevent cursor jumping */
+.milkdown-editor .milkdown br {
+  content: "";
+  display: block;
+  margin: 0.5em 0;
+}
+
+/* Stable list rendering */
+.milkdown-editor .milkdown ul,
+.milkdown-editor .milkdown ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.milkdown-editor .milkdown li {
+  margin: 0.25em 0;
+  min-height: 1.2em;
+}
+
+/* Typography trong editor */
+.milkdown-editor .milkdown h1,
+.milkdown-editor .milkdown h2,
+.milkdown-editor .milkdown h3,
+.milkdown-editor .milkdown h4,
+.milkdown-editor .milkdown h5,
+.milkdown-editor .milkdown h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.milkdown-editor .milkdown h1 { font-size: 2em; }
+.milkdown-editor .milkdown h2 { font-size: 1.5em; }
+.milkdown-editor .milkdown h3 { font-size: 1.25em; }
+.milkdown-editor .milkdown h4 { font-size: 1.1em; }
+.milkdown-editor .milkdown h5 { font-size: 1em; }
+.milkdown-editor .milkdown h6 { font-size: 0.9em; }
+
+/* Paragraphs */
+.milkdown-editor .milkdown p {
+  margin-bottom: 1em;
+  line-height: 1.7;
+}
+
+/* Lists */
+.milkdown-editor .milkdown ul,
+.milkdown-editor .milkdown ol {
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.milkdown-editor .milkdown li {
+  margin-bottom: 0.25em;
+}
+
+/* Code blocks */
+.milkdown-editor .milkdown pre {
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  padding: 1em;
+  margin: 1em 0;
+  overflow-x: auto;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.dark .milkdown-editor .milkdown pre {
+  background-color: #161b22;
+  color: #e6edf3;
+}
+
+/* Inline code */
+.milkdown-editor .milkdown code {
+  background-color: #f6f8fa;
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 85%;
+}
+
+.dark .milkdown-editor .milkdown code {
+  background-color: #161b22;
+  color: #e6edf3;
+}
+
+/* Blockquotes */
+.milkdown-editor .milkdown blockquote {
+  border-left: 4px solid #d1d5db;
+  margin: 1em 0;
+  padding-left: 1em;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.dark .milkdown-editor .milkdown blockquote {
+  border-left-color: #4b5563;
+  color: #9ca3af;
+}
+
+/* Tables */
+.milkdown-editor .milkdown table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+
+.milkdown-editor .milkdown th,
+.milkdown-editor .milkdown td {
+  border: 1px solid #d1d5db;
+  padding: 0.5em 1em;
+  text-align: left;
+}
+
+.milkdown-editor .milkdown th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+.dark .milkdown-editor .milkdown th,
+.dark .milkdown-editor .milkdown td {
+  border-color: #4b5563;
+}
+
+.dark .milkdown-editor .milkdown th {
+  background-color: #1f2937;
+}
+
+/* Links */
+.milkdown-editor .milkdown a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.dark .milkdown-editor .milkdown a {
+  color: #60a5fa;
+}
+
+/* Images */
+.milkdown-editor .milkdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 1em 0;
+}
+
+/* Horizontal rules */
+.milkdown-editor .milkdown hr {
+  border: none;
+  border-top: 1px solid #d1d5db;
+  margin: 2em 0;
+}
+
+.dark .milkdown-editor .milkdown hr {
+  border-top-color: #4b5563;
+}
+
+/* Toolbar customization */
+.milkdown-editor .milkdown-toolbar {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  background-color: #f9fafb;
+}
+
+.dark .milkdown-editor .milkdown-toolbar {
+  border-bottom-color: #374151;
+  background-color: #1f2937;
+}
+
+/* Focus styles */
+.milkdown-editor .milkdown:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* Placeholder */
+.milkdown-editor .milkdown .placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.dark .milkdown-editor .milkdown .placeholder {
+  color: #6b7280;
+}
+
+/* Selection */
+.milkdown-editor .milkdown ::selection {
+  background-color: #dbeafe;
+}
+
+.dark .milkdown-editor .milkdown ::selection {
+  background-color: #1e40af;
+}
+
+/* Smooth transitions */
+.milkdown-editor * {
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Remove default focus outline */
+.milkdown-editor .milkdown,
+.milkdown-editor .milkdown * {
+  outline: none !important;
+}
+
+/* Custom scrollbar */
+.milkdown-editor .milkdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.milkdown-editor .milkdown::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.milkdown-editor .milkdown::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.milkdown-editor .milkdown::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark .milkdown-editor .milkdown::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark .milkdown-editor .milkdown::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark .milkdown-editor .milkdown::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

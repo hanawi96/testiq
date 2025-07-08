@@ -1,0 +1,41 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Test Milkdown Editor">
+  <div class="p-6">
+    <h1 class="text-2xl font-bold mb-4">Test Milkdown Editor</h1>
+    <div id="editor-container" class="border border-gray-300 rounded-lg" style="height: 400px;"></div>
+  </div>
+
+  <script>
+    import { Crepe } from '@milkdown/crepe';
+    
+    // Wait for DOM to be ready
+    document.addEventListener('DOMContentLoaded', async () => {
+      const container = document.getElementById('editor-container');
+      if (!container) return;
+      
+      try {
+        console.log('Initializing Milkdown editor...');
+        
+        const crepe = new Crepe({
+          root: container,
+          defaultValue: '# Hello Milkdown!\n\nThis is a test editor.',
+        });
+        
+        await crepe.create();
+        console.log('Milkdown editor initialized successfully!');
+        
+      } catch (error) {
+        console.error('Failed to initialize Milkdown editor:', error);
+        container.innerHTML = `
+          <div class="p-4 text-red-600">
+            <h3>Error initializing editor:</h3>
+            <pre>${error.message}</pre>
+          </div>
+        `;
+      }
+    });
+  </script>
+</AdminLayout>
