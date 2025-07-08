@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test QuickTagsEditor Bulk Input</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .quick-editor-simulator {
+            position: relative;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .input-group {
+            display: flex;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            font-size: 14px;
+            outline: none;
+        }
+        .add-btn {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .add-btn:hover {
+            background: #2563eb;
+        }
+        .add-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            border: 1px solid;
+        }
+        .feedback.success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        .feedback.warning {
+            background: #fffbeb;
+            border-color: #fed7aa;
+            color: #92400e;
+        }
+        .feedback.error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        .selected-tags {
+            margin-top: 15px;
+        }
+        .tag {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid #bfdbfe;
+        }
+        .tag .remove {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #3b82f6;
+        }
+        .tag .remove:hover {
+            color: #1e40af;
+        }
+        .test-case {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-case h4 {
+            margin: 0 0 10px 0;
+            color: #1f2937;
+        }
+        .test-input {
+            font-family: monospace;
+            background: #e5e7eb;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .comparison-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .comparison-item h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏷️ Test QuickTagsEditor Bulk Input</h1>
+    
+    <div class="test-container">
+        <h2>QuickTagsEditor Simulator</h2>
+        <div class="quick-editor-simulator">
+            <h3 style="margin-top: 0; font-size: 16px; color: #374151;">Chỉnh sửa tags nhanh</h3>
+            
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                    Thêm tag mới:
+                </label>
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="quickTagInput" 
+                        placeholder="Nhập tag (phân tách bằng dấu phẩy)..."
+                    >
+                    <button class="add-btn" onclick="addQuickTags()">Thêm</button>
+                </div>
+                
+                <div id="quickFeedback"></div>
+            </div>
+            
+            <div class="selected-tags">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                    Tags đã chọn (<span id="quickTagCount">0</span>):
+                </label>
+                <div id="quickTagsContainer">
+                    <em style="color: #6b7280; font-size: 12px;">Chưa có tag nào</em>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px;">
+                <button onclick="clearQuickTags()" style="padding: 6px 12px; background: #6b7280; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                    Hủy
+                </button>
+                <button style="padding: 6px 12px; background: #059669; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                    Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Cases</h2>
+        
+        <div class="test-case">
+            <h4>Test 1: Basic bulk input</h4>
+            <div class="test-input">Input: "React, Vue, Angular"</div>
+            <button onclick="testQuickCase('React, Vue, Angular')">Test</button>
+        </div>
+        
+        <div class="test-case">
+            <h4>Test 2: Whitespace handling</h4>
+            <div class="test-input">Input: " JavaScript , TypeScript , Node.js "</div>
+            <button onclick="testQuickCase(' JavaScript , TypeScript , Node.js ')">Test</button>
+        </div>
+        
+        <div class="test-case">
+            <h4>Test 3: Tech tags normalization</h4>
+            <div class="test-input">Input: "api, ui, ux, seo, html, css"</div>
+            <button onclick="testQuickCase('api, ui, ux, seo, html, css')">Test</button>
+        </div>
+        
+        <div class="test-case">
+            <h4>Test 4: Mixed case duplicates</h4>
+            <div class="test-input">First: "React, Vue" → Then: "REACT, angular, vue"</div>
+            <button onclick="testQuickDuplicates()">Test</button>
+        </div>
+        
+        <div class="test-case">
+            <h4>Test 5: Empty and long tags</h4>
+            <div class="test-input">Input: "short, , verylongtagthatexceedsfiftycharacterslimitandshouldbeignored, normal"</div>
+            <button onclick="testQuickCase('short, , verylongtagthatexceedsfiftycharacterslimitandshouldbeignored, normal')">Test</button>
+        </div>
+        
+        <div class="test-case">
+            <h4>Test 6: Single tag (no comma)</h4>
+            <div class="test-input">Input: "SingleTag"</div>
+            <button onclick="testQuickCase('SingleTag')">Test</button>
+        </div>
+    </div>
+
+    <div class="comparison">
+        <div class="comparison-item">
+            <h3>ArticleEditor Style</h3>
+            <p><strong>Normalization:</strong> All lowercase</p>
+            <p><strong>Example:</strong> "React, API" → ["react", "api"]</p>
+            <p><strong>Use case:</strong> Content creation, SEO consistency</p>
+        </div>
+        
+        <div class="comparison-item">
+            <h3>QuickTagsEditor Style</h3>
+            <p><strong>Normalization:</strong> Smart capitalization</p>
+            <p><strong>Example:</strong> "React, API" → ["React", "API"]</p>
+            <p><strong>Use case:</strong> Quick editing, professional display</p>
+        </div>
+    </div>
+
+    <script>
+        let quickSelectedTags = [];
+        
+        // Import utility functions (simplified versions)
+        function defaultNormalizeTag(tag) {
+            const trimmed = tag.trim();
+            const upperCaseTags = ['SEO', 'API', 'UI', 'UX', 'CSS', 'HTML', 'SQL', 'JSON', 'XML', 'HTTP', 'HTTPS', 'REST', 'GraphQL', 'JWT', 'OAuth', 'AI', 'ML', 'IoT', 'VR', 'AR', 'PHP', 'JS', 'TS', 'AWS', 'GCP', 'CDN'];
+            const upperTag = trimmed.toUpperCase();
+            
+            if (upperCaseTags.includes(upperTag)) {
+                return upperTag;
+            }
+            
+            return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+        }
+        
+        function processBulkTags(input, existingTags) {
+            const rawTags = input.split(',');
+            const validTags = [];
+            const duplicates = [];
+            const tooLong = [];
+            let emptyCount = 0;
+            
+            rawTags.forEach(tag => {
+                const trimmedTag = tag.trim();
+                
+                if (!trimmedTag) {
+                    emptyCount++;
+                    return;
+                }
+                
+                if (trimmedTag.length > 50) {
+                    tooLong.push(trimmedTag);
+                    return;
+                }
+                
+                const normalizedTag = defaultNormalizeTag(trimmedTag);
+                const existingTagsLower = existingTags.map(t => t.toLowerCase());
+                
+                if (existingTagsLower.includes(normalizedTag.toLowerCase())) {
+                    duplicates.push(normalizedTag);
+                    return;
+                }
+                
+                const validTagsLower = validTags.map(t => t.toLowerCase());
+                if (validTagsLower.includes(normalizedTag.toLowerCase())) {
+                    return;
+                }
+                
+                validTags.push(normalizedTag);
+            });
+            
+            return { validTags, duplicates, tooLong, empty: emptyCount };
+        }
+        
+        function addQuickTags() {
+            const input = document.getElementById('quickTagInput');
+            const inputValue = input.value;
+            
+            if (!inputValue.trim()) return;
+            
+            let feedbackMessage = '';
+            let feedbackType = 'success';
+            
+            if (inputValue.includes(',')) {
+                // Bulk processing
+                const result = processBulkTags(inputValue, quickSelectedTags);
+                
+                if (result.validTags.length > 0) {
+                    quickSelectedTags.push(...result.validTags);
+                    feedbackMessage = `✅ Đã thêm ${result.validTags.length} tag`;
+                }
+                
+                if (result.duplicates.length > 0) {
+                    feedbackMessage += `\n⚠️ Tag đã tồn tại: ${result.duplicates.join(', ')}`;
+                    feedbackType = 'warning';
+                }
+                
+                if (result.tooLong.length > 0) {
+                    feedbackMessage += `\n❌ Tag quá dài: ${result.tooLong.map(t => t.substring(0, 15) + '...').join(', ')}`;
+                    feedbackType = 'warning';
+                }
+                
+                if (result.empty > 0) {
+                    feedbackMessage += `\nℹ️ Đã bỏ qua ${result.empty} tag trống`;
+                }
+            } else {
+                // Single tag processing
+                const normalizedTag = defaultNormalizeTag(inputValue);
+                const existingTagsLower = quickSelectedTags.map(t => t.toLowerCase());
+                
+                if (existingTagsLower.includes(normalizedTag.toLowerCase())) {
+                    feedbackMessage = '⚠️ Tag đã tồn tại';
+                    feedbackType = 'warning';
+                } else {
+                    quickSelectedTags.push(normalizedTag);
+                    feedbackMessage = `✅ Đã thêm tag: ${normalizedTag}`;
+                }
+            }
+            
+            showQuickFeedback(feedbackMessage, feedbackType);
+            updateQuickTagsDisplay();
+            input.value = '';
+        }
+        
+        function showQuickFeedback(message, type) {
+            const feedback = document.getElementById('quickFeedback');
+            feedback.innerHTML = message.replace(/\n/g, '<br>');
+            feedback.className = `feedback ${type}`;
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+            }, 4000);
+        }
+        
+        function updateQuickTagsDisplay() {
+            const container = document.getElementById('quickTagsContainer');
+            const count = document.getElementById('quickTagCount');
+            
+            count.textContent = quickSelectedTags.length;
+            
+            if (quickSelectedTags.length === 0) {
+                container.innerHTML = '<em style="color: #6b7280; font-size: 12px;">Chưa có tag nào</em>';
+                return;
+            }
+            
+            container.innerHTML = quickSelectedTags.map(tag => 
+                `<span class="tag">${tag}<span class="remove" onclick="removeQuickTag('${tag}')">×</span></span>`
+            ).join('');
+        }
+        
+        function removeQuickTag(tag) {
+            quickSelectedTags = quickSelectedTags.filter(t => t !== tag);
+            updateQuickTagsDisplay();
+        }
+        
+        function clearQuickTags() {
+            quickSelectedTags = [];
+            updateQuickTagsDisplay();
+            showQuickFeedback('🗑️ Đã xóa tất cả tags', 'success');
+        }
+        
+        function testQuickCase(input) {
+            document.getElementById('quickTagInput').value = input;
+            addQuickTags();
+        }
+        
+        function testQuickDuplicates() {
+            clearQuickTags();
+            testQuickCase('React, Vue');
+            setTimeout(() => {
+                testQuickCase('REACT, angular, vue');
+            }, 1000);
+        }
+        
+        // Handle Enter key
+        document.getElementById('quickTagInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addQuickTags();
+            }
+        });
+        
+        // Initialize
+        updateQuickTagsDisplay();
+    </script>
+</body>
+</html>

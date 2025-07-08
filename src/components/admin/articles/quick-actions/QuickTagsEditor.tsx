@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService } from '../../../../../backend';
 import { getInstantTagsData, preloadTagsData, isTagsDataReady } from '../../../../utils/admin/preloaders/tags-preloader';
+import { processBulkTags, createTagFeedbackMessage, defaultNormalizeTag } from '../../../../utils/tag-processing';
 
 interface QuickTagsEditorProps {
   articleId: string;
@@ -23,6 +24,8 @@ export default function QuickTagsEditor({
   const [newTag, setNewTag] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackType, setFeedbackType] = useState<'success' | 'warning' | 'error'>('success');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Autocomplete states
@@ -85,7 +88,7 @@ export default function QuickTagsEditor({
       setSelectedTags(prev => prev.filter(t => t.toLowerCase() !== tagLower));
     } else {
       // Add tag (normalized)
-      const normalizedTag = normalizeTag(tag);
+      const normalizedTag = defaultNormalizeTag(tag);
       setSelectedTags(prev => [...prev, normalizedTag]);
     }
   };
@@ -122,8 +125,61 @@ export default function QuickTagsEditor({
     return () => clearTimeout(timeoutId);
   }, [newTag, filterSuggestions]);
 
+  // Hàm xử lý bulk tag input (hỗ trợ comma separation)
+  const handleBulkTagInput = (input: string) => {
+    if (!input.trim()) return;
+
+    // Sử dụng utility function với options cho QuickTagsEditor
+    const result = processBulkTags(input, selectedTags, {
+      maxLength: 50,
+      caseSensitive: false,
+      normalizeFunction: defaultNormalizeTag,
+      separator: ','
+    });
+
+    // Thêm valid tags
+    if (result.validTags.length > 0) {
+      setSelectedTags(prev => [...prev, ...result.validTags]);
+      setAvailableTags(prev => [...prev, ...result.validTags].sort());
+    }
+
+    // Hiển thị feedback
+    if (result.duplicates.length > 0 || result.tooLong.length > 0 || result.empty > 0) {
+      const feedback = createTagFeedbackMessage(result);
+      setFeedbackMessage(feedback.message);
+      setFeedbackType(feedback.type);
+
+      // Auto clear feedback sau 4 giây
+      setTimeout(() => {
+        setFeedbackMessage('');
+      }, 4000);
+    } else if (result.validTags.length > 0) {
+      // Success feedback
+      setFeedbackMessage(`✅ Đã thêm ${result.validTags.length} tag`);
+      setFeedbackType('success');
+      setTimeout(() => {
+        setFeedbackMessage('');
+      }, 2000);
+    }
+
+    // Clear input và reset UI
+    setNewTag('');
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    setTimeout(() => newTagInputRef.current?.focus(), 50);
+  };
+
   const handleAddNewTag = (tagToAdd?: string) => {
-    const trimmedTag = (tagToAdd || newTag).trim();
+    const inputValue = tagToAdd || newTag;
+
+    // Kiểm tra xem có phải bulk input không (chứa dấu phẩy)
+    if (inputValue.includes(',')) {
+      handleBulkTagInput(inputValue);
+      return;
+    }
+
+    // Single tag processing (logic cũ)
+    const trimmedTag = inputValue.trim();
     if (!trimmedTag) return;
 
     // Case-insensitive duplicate check
@@ -131,7 +187,11 @@ export default function QuickTagsEditor({
     const trimmedTagLower = trimmedTag.toLowerCase();
 
     if (selectedTagsLower.includes(trimmedTagLower)) {
-      // Tag already exists (case-insensitive), just clear input and show feedback
+      // Tag already exists, show feedback
+      setFeedbackMessage('⚠️ Tag đã tồn tại');
+      setFeedbackType('warning');
+      setTimeout(() => setFeedbackMessage(''), 2000);
+
       setNewTag('');
       setShowSuggestions(false);
       setHighlightedIndex(-1);
@@ -139,33 +199,25 @@ export default function QuickTagsEditor({
       return;
     }
 
-    // Normalize tag: capitalize first letter, rest lowercase for common tags
-    const normalizedTag = normalizeTag(trimmedTag);
+    // Normalize tag using utility function
+    const normalizedTag = defaultNormalizeTag(trimmedTag);
 
     setSelectedTags(prev => [...prev, normalizedTag]);
     setAvailableTags(prev => [...prev, normalizedTag].sort());
     setNewTag('');
     setShowSuggestions(false);
     setHighlightedIndex(-1);
+
+    // Success feedback
+    setFeedbackMessage(`✅ Đã thêm tag: ${normalizedTag}`);
+    setFeedbackType('success');
+    setTimeout(() => setFeedbackMessage(''), 2000);
+
     // Refocus input after adding tag
     setTimeout(() => newTagInputRef.current?.focus(), 50);
   };
 
-  // Normalize tag function
-  const normalizeTag = (tag: string): string => {
-    const trimmed = tag.trim();
 
-    // Special cases for common tech tags (keep uppercase)
-    const upperCaseTags = ['SEO', 'API', 'UI', 'UX', 'CSS', 'HTML', 'SQL', 'JSON', 'XML', 'HTTP', 'HTTPS', 'REST', 'GraphQL', 'JWT', 'OAuth', 'AI', 'ML', 'IoT', 'VR', 'AR'];
-    const upperTag = trimmed.toUpperCase();
-
-    if (upperCaseTags.includes(upperTag)) {
-      return upperTag;
-    }
-
-    // For other tags, capitalize first letter
-    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
-  };
 
   const handleSave = () => {
     // Optimistic UI: Close popup immediately and trigger update
@@ -320,7 +372,7 @@ export default function QuickTagsEditor({
                 value={newTag}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Nhập tag mới..."
+                placeholder="Nhập tag (phân tách bằng dấu phẩy)..."
                 className="flex-1 px-3 py-2 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 border-0 outline-none focus:outline-none focus:ring-0"
                 autoComplete="off"
               />
@@ -364,6 +416,21 @@ export default function QuickTagsEditor({
               </div>
             )}
           </div>
+
+          {/* Feedback Message */}
+          {feedbackMessage && (
+            <div className={`mt-2 p-2 rounded text-xs ${
+              feedbackType === 'success'
+                ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+                : feedbackType === 'warning'
+                ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800'
+                : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+            }`}>
+              {feedbackMessage.split('\n').map((line, index) => (
+                <div key={index}>{line}</div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Selected Tags Preview */}

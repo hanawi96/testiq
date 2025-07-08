@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CategoriesService, ArticlesService, UserProfilesService } from '../../../../../backend';
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 import { generateSlug } from '../../../../utils/slug-generator';
+import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
 import '../../../../styles/article-editor.css';
 
 // Lazy load ToastEditor chỉ khi ở client
@@ -351,59 +352,30 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
 
 
 
-  // Hàm xử lý bulk tag input với comma separation
-  const processBulkTags = (input: string): { validTags: string[], duplicates: string[] } => {
-    // Tách tags bằng dấu phẩy
-    const rawTags = input.split(',');
-    const validTags: string[] = [];
-    const duplicates: string[] = [];
-
-    rawTags.forEach(tag => {
-      // Trim whitespace và chuyển thành lowercase
-      const cleanTag = tag.trim().toLowerCase();
-
-      // Bỏ qua tag trống hoặc chỉ chứa khoảng trắng
-      if (!cleanTag) return;
-
-      // Kiểm tra độ dài tag (giới hạn 50 ký tự)
-      if (cleanTag.length > 50) return;
-
-      // Kiểm tra duplicate trong existing tags
-      if (formData.tags.includes(cleanTag)) {
-        duplicates.push(cleanTag);
-        return;
-      }
-
-      // Kiểm tra duplicate trong batch hiện tại
-      if (validTags.includes(cleanTag)) {
-        return;
-      }
-
-      validTags.push(cleanTag);
-    });
-
-    return { validTags, duplicates };
-  };
-
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
 
-      const { validTags, duplicates } = processBulkTags(tagInput);
+      // Sử dụng utility function với options cho ArticleEditor
+      const result = processBulkTags(tagInput, formData.tags, {
+        maxLength: 50,
+        caseSensitive: false,
+        normalizeFunction: lowercaseNormalizeTag,
+        separator: ','
+      });
 
       // Thêm valid tags vào formData
-      if (validTags.length > 0) {
+      if (result.validTags.length > 0) {
         setFormData(prev => ({
           ...prev,
-          tags: [...prev.tags, ...validTags]
+          tags: [...prev.tags, ...result.validTags]
         }));
       }
 
-      // Hiển thị feedback cho duplicate tags
-      if (duplicates.length > 0) {
-        // Tạo temporary feedback message
-        const duplicateMessage = `Tag đã tồn tại: ${duplicates.join(', ')}`;
-        setSaveStatus(`⚠️ ${duplicateMessage}`);
+      // Hiển thị feedback
+      if (result.duplicates.length > 0 || result.tooLong.length > 0) {
+        const feedback = createTagFeedbackMessage(result);
+        setSaveStatus(`⚠️ ${feedback.message.split('\n')[1] || feedback.message}`); // Chỉ hiển thị warning part
         setTimeout(() => setSaveStatus(''), 3000);
       }
 
@@ -1074,20 +1046,26 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
                   <button
                     onClick={() => {
                       if (tagInput.trim()) {
-                        const { validTags, duplicates } = processBulkTags(tagInput);
+                        // Sử dụng utility function với options cho ArticleEditor
+                        const result = processBulkTags(tagInput, formData.tags, {
+                          maxLength: 50,
+                          caseSensitive: false,
+                          normalizeFunction: lowercaseNormalizeTag,
+                          separator: ','
+                        });
 
                         // Thêm valid tags vào formData
-                        if (validTags.length > 0) {
+                        if (result.validTags.length > 0) {
                           setFormData(prev => ({
                             ...prev,
-                            tags: [...prev.tags, ...validTags]
+                            tags: [...prev.tags, ...result.validTags]
                           }));
                         }
 
-                        // Hiển thị feedback cho duplicate tags
-                        if (duplicates.length > 0) {
-                          const duplicateMessage = `Tag đã tồn tại: ${duplicates.join(', ')}`;
-                          setSaveStatus(`⚠️ ${duplicateMessage}`);
+                        // Hiển thị feedback
+                        if (result.duplicates.length > 0 || result.tooLong.length > 0) {
+                          const feedback = createTagFeedbackMessage(result);
+                          setSaveStatus(`⚠️ ${feedback.message.split('\n')[1] || feedback.message}`); // Chỉ hiển thị warning part
                           setTimeout(() => setSaveStatus(''), 3000);
                         }
 
