@@ -914,24 +914,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
                   />
                 </div>
 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={() => handleSave('draft')}
-                      disabled={isLoading}
-                      className="w-full px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      Lưu nháp
-                    </button>
-                    <button
-                      onClick={() => handleSave('published')}
-                      disabled={isLoading}
-                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors font-medium"
-                    >
-                      Xuất bản ngay
-                    </button>
-                  </div>
-                </div>
+
               </div>
             </div>
 
