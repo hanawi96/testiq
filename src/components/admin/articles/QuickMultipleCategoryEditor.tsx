@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CategoriesService } from '../../../../backend/admin/categories-service';
-import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../utils/categories-preloader';
+import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../utils/admin/preloaders/categories-preloader';
 
 interface Category {
   id: string;

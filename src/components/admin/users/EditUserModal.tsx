@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserWithProfile } from '../../../../backend';
 import UnifiedCountrySelector, { type Country } from '../../common/UnifiedCountrySelector';
-import { getInstantCountryData, preloadTriggers } from '../../../utils/country-preloader';
+import { getInstantCountryData, preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
 
 interface EditUserModalProps {
   isOpen: boolean;

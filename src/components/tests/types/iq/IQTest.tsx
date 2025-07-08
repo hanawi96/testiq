@@ -5,7 +5,7 @@ import TimeUpPopup from '../../../common/popups/TimeUpPopup';
 import TestProgressPopup from '../../../common/popups/TestProgressPopup';
 import { EyeRestPopup } from '../../../common/popups';
 import { motion } from 'framer-motion';
-import { preloadTriggers } from '../../../../utils/country-preloader';
+import { preloadTriggers } from '../../../../utils/admin/preloaders/country-preloader';
 
 // Import components đã tách
 import { IQQuestion, IQNavigation, IQProgressHeader } from './components';
@@ -22,9 +22,9 @@ import {
   useIQEyeRest
 } from './hooks';
 
-import type { Question, TestResult } from '../../../../utils/test';
-import { generateTestResult, saveTestResult } from '../../../../utils/test';
-import { loadTestState } from '../../../../utils/test-state';
+import type { Question, TestResult } from '../../../../utils/testing/iq-test/core';
+import { generateTestResult, saveTestResult } from '../../../../utils/testing/iq-test/core';
+import { loadTestState } from '../../../../utils/testing/iq-test/state';
 
 // CSS cho việc tắt animations
 const disableAnimationsStyle = `

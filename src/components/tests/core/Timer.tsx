@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { preloadTriggers } from '../../../utils/country-preloader';
+import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
 import { useIQSounds, globalAudioContext } from '../types/iq/hooks/useIQSounds';
 
 // Thêm CSS cho bộ lọc ánh sáng xanh

@@ -4,7 +4,7 @@
 import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QuestionCard from '../../../core/QuestionCard';
-import type { Question } from '../../../../../utils/test';
+import type { Question } from '../../../../../utils/testing/iq-test/core';
 
 interface IQQuestionProps {
   question: Question;

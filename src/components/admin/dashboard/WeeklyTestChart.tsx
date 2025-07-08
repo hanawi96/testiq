@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { AdminService } from '../../../../backend';
 import type { WeeklyTestStats } from '../../../../backend';
-import { exportNewUsersToCSV, exportNewUsersToJSON } from '../../../utils/export-utils';
+import { exportNewUsersToCSV, exportNewUsersToJSON } from '../../../utils/admin/data/export-utils';
 
 interface Props {
   className?: string;

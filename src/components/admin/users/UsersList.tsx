@@ -6,7 +6,7 @@ import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import QuickRoleEditor from './QuickRoleEditor';
 import { ToastContainer, useToast } from '../common/Toast';
-import { preloadTriggers } from '../../../utils/country-preloader';
+import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
 
 export default function UsersList() {
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);

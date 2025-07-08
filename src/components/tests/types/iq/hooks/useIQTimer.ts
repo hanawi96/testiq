@@ -2,7 +2,7 @@
  * Hook quản lý thời gian cho IQ Test
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getAccurateTimeElapsed } from '../../../../../utils/test-state';
+import { getAccurateTimeElapsed } from '../../../../../utils/testing/iq-test/state';
 
 interface UseIQTimerProps {
   timeLimit: number; // Thời gian giới hạn (giây)

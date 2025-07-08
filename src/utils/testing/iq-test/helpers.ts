@@ -1,5 +1,5 @@
-import type { TestResult, UserInfo } from './test';
-import { saveTestResult } from './test';
+import type { TestResult, UserInfo } from './core';
+import { saveTestResult } from './core';
 
 /**
  * Test function để verify chức năng lưu kết quả cho authenticated user

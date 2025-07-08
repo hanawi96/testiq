@@ -3,8 +3,8 @@
  */
 import { useState, useCallback, useMemo } from 'react';
 import { globalAudioContext } from './useIQSounds';
-import type { Question } from '../../../../../utils/test';
-import { preloadTriggers } from '../../../../../utils/country-preloader';
+import type { Question } from '../../../../../utils/testing/iq-test/core';
+import { preloadTriggers } from '../../../../../utils/admin/preloaders/country-preloader';
 
 interface UseIQQuestionManagerProps {
   questions: Question[];

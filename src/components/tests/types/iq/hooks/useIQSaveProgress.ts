@@ -2,12 +2,12 @@
  * Hook quản lý việc lưu và khôi phục tiến độ làm bài IQ test
  */
 import { useState, useCallback } from 'react';
-import type { Question } from '../../../../../utils/test';
+import type { Question } from '../../../../../utils/testing/iq-test/core';
 import { 
   saveTestState, 
   loadTestState, 
   clearTestState
-} from '../../../../../utils/test-state';
+} from '../../../../../utils/testing/iq-test/state';
 
 export interface SavedProgress {
   currentQuestion: number;

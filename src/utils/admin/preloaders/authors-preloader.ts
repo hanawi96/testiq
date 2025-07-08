@@ -1,4 +1,4 @@
-import type { AuthorOption } from '../../backend';
+import type { AuthorOption } from '../../../../backend';
 
 // Cache configuration
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
@@ -47,7 +47,7 @@ const INSTANT_AUTHORS: AuthorOption[] = [
 async function loadAuthorsData(): Promise<AuthorOption[]> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { UserProfilesService } = await import('../../backend');
+    const { UserProfilesService } = await import('../../../../backend');
     const result = await UserProfilesService.getAuthorOptions();
     
     if (result.data && result.data.length > 0) {

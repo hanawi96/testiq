@@ -1,4 +1,4 @@
-import type { Question } from '../utils/test';
+import type { Question } from '../utils/testing/iq-test/core';
 
 // ✅ DEMO: 10 câu hỏi IQ ngắn gọn để test chức năng
 export const iqQuestions: Question[] = [

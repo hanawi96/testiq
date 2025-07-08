@@ -74,7 +74,7 @@ const IQResultView: React.FC<ResultComponentProps> = ({
         } else {
           // Only fallback to localStorage if no URL params
           const [testUtils] = await Promise.all([
-            import('../../../../utils/test')
+            import('../../../../utils/testing/iq-test/core')
           ]);
           
           const anonymousInfo = testUtils.getAnonymousUserInfo();
@@ -90,7 +90,7 @@ const IQResultView: React.FC<ResultComponentProps> = ({
         
         // Load test history
         const [testUtils] = await Promise.all([
-          import('../../../../utils/test')
+          import('../../../../utils/testing/iq-test/core')
         ]);
         const history = await testUtils.getUserRealTestHistory();
         setRealTestHistory(history);

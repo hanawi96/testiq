@@ -11,10 +11,10 @@ import CategoryDisplay from './CategoryDisplay';
 import SearchInput from '../common/SearchInput';
 import SearchHighlight from '../common/SearchHighlight';
 import SearchStats from '../common/SearchStats';
-import { categoriesPreloadTriggers } from '../../../utils/categories-preloader';
-import { authorsPreloadTriggers } from '../../../utils/authors-preloader';
-import { tagsPreloadTriggers } from '../../../utils/tags-preloader';
-import { perfAnalyzer } from '../../../utils/performance-analyzer';
+import { categoriesPreloadTriggers } from '../../../utils/admin/preloaders/categories-preloader';
+import { authorsPreloadTriggers } from '../../../utils/admin/preloaders/authors-preloader';
+import { tagsPreloadTriggers } from '../../../utils/admin/preloaders/tags-preloader';
+import { perfAnalyzer } from '../../../utils/performance/performance-analyzer';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);

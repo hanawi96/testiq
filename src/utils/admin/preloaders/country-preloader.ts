@@ -3,7 +3,7 @@
  * Ensures country data is available instantly when popups appear
  */
 
-import type { Country } from '../components/common/UnifiedCountrySelector';
+import type { Country } from '../../../components/common/UnifiedCountrySelector';
 
 // Shared cache state (same as UnifiedCountrySelector)
 let countryCache: Country[] | null = null;

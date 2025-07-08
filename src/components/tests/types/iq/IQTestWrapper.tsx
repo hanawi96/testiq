@@ -3,14 +3,14 @@ import { createPortal } from 'react-dom';
 import IQTest from './IQTest';
 import TestProgressPopup from '../../../common/popups/TestProgressPopup';
 import ResultComponent from '../../results/ResultComponent';
-import type { Question, TestResult } from '../../../../utils/test';
+import type { Question, TestResult } from '../../../../utils/testing/iq-test/core';
 import { convertToResultData } from './utils/iq-result-formatter';
 import {
   hasInProgressTest,
   getInProgressTestInfo,
   clearTestState,
   loadTestState
-} from '../../../../utils/test-state';
+} from '../../../../utils/testing/iq-test/state';
 
 interface IQTestWrapperProps {
   questions: Question[];

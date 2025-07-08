@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService, UserProfilesService } from '../../../../backend';
 import type { AuthorOption } from '../../../../backend';
-import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../utils/authors-preloader';
+import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../utils/admin/preloaders/authors-preloader';
 
 interface QuickAuthorEditorProps {
   articleId: string;

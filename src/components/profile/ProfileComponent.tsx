@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getUserRealTestHistory, type TestResult, getAnonymousUserInfo } from '@/utils/test';
+import { getUserRealTestHistory, type TestResult, getAnonymousUserInfo } from '@/utils/testing/iq-test/core';
 import LoginPopup from '@/components/auth/login/LoginPopup';
 
 interface UserProfile {
@@ -240,7 +240,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
         // 1️⃣ Load modules
         const [testUtils, backend] = await Promise.all([
-          import('@/utils/test'),
+          import('@/utils/testing/iq-test/core'),
           import('@/backend').catch(() => null)
         ]);
         

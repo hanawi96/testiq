@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAnonymousUserInfo } from '@/utils/test';
+import { getAnonymousUserInfo } from '@/utils/testing/iq-test/core';
 import LoginPopup from '@/components/auth/login/LoginPopup';
 
 interface TestHistoryItem {
@@ -81,7 +81,7 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
         setIsLoading(true);
 
         // Import utils
-        const testUtils = await import('@/utils/test');
+        const testUtils = await import('@/utils/testing/iq-test/core');
 
         // Check authentication
         const backend = await import('@/backend').catch(() => null);

@@ -44,7 +44,7 @@ const INSTANT_TAGS: string[] = [
 async function loadTagsData(): Promise<string[]> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { ArticlesService } = await import('../../backend');
+    const { ArticlesService } = await import('../../../../backend');
     const tags = await ArticlesService.getTags();
     
     if (tags && tags.length > 0) {

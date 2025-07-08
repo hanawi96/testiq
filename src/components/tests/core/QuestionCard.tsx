@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Question } from '../../../utils/test';
+import type { Question } from '../../../utils/testing/iq-test/core';
 
 interface QuestionCardProps {
   question: Question;

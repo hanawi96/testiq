@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getInstantCountryData, isCountryDataReady, preloadCountryData } from '../../utils/country-preloader';
+import { getInstantCountryData, isCountryDataReady, preloadCountryData } from '../../utils/admin/preloaders/country-preloader';
 
 // Unified Country interface that supports all use cases
 export interface Country {

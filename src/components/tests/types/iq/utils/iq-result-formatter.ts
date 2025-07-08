@@ -3,7 +3,7 @@
  */
 
 import { getClassificationColor, getClassificationDescription, getClassificationLevel } from './iq-calculation';
-import type { Question, TestResult } from '../../../../../utils/test';
+import type { Question, TestResult } from '../../../../../utils/testing/iq-test/core';
 
 // Định nghĩa kiểu ResultData
 export interface ResultData {

@@ -4,7 +4,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { UserInfo } from '../../../../common/popups/CongratulationsPopup';
 import { globalAudioContext } from './useIQSounds';
-import { preloadTriggers } from '../../../../../utils/country-preloader';
+import { preloadTriggers } from '../../../../../utils/admin/preloaders/country-preloader';
 
 interface UseIQPopupsProps {
   playSound?: (type: 'correct' | 'wrong' | 'warning' | 'complete') => void;
@@ -25,7 +25,7 @@ export function useIQPopups({ playSound }: UseIQPopupsProps = {}) {
   // Preload thông tin người dùng
   const preloadUserProfile = useCallback(async () => {
     try {
-      const { getCurrentUserInfo } = await import('../../../../../utils/test');
+      const { getCurrentUserInfo } = await import('../../../../../utils/testing/iq-test/core');
       const { AuthService } = await import('../../../../../../backend');
       
       // Kiểm tra nếu người dùng đã đăng nhập

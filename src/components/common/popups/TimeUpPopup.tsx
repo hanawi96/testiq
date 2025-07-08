@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UnifiedCountrySelector from '../UnifiedCountrySelector';
-import { validateUserInfo } from '@/utils/test-helpers';
+import { validateUserInfo } from '@/utils/testing/iq-test/helpers';
 
 interface UserInfo {
   name: string;
@@ -88,7 +88,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
 
         // For anonymous users, load from localStorage
         try {
-          const { getAnonymousUserInfo } = await import('@/utils/test');
+          const { getAnonymousUserInfo } = await import('@/utils/testing/iq-test/core');
           const savedInfo = getAnonymousUserInfo();
           if (savedInfo) {
             setUserInfo({
@@ -134,7 +134,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
         console.log('✅ User profile updated');
       } else {
         // Anonymous user - save to localStorage
-        const { saveAnonymousUserInfo } = await import('@/utils/test');
+        const { saveAnonymousUserInfo } = await import('@/utils/testing/iq-test/core');
         saveAnonymousUserInfo(userInfo);
         console.log('💾 Anonymous user info saved to localStorage');
       }
@@ -182,7 +182,7 @@ export default function TimeUpPopup({ isOpen, onComplete, onRetakeTest, preloade
     if (!email?.trim() || isAuthenticatedUser) return;
     
     try {
-      const { getAnonymousUserByEmail } = await import('@/utils/test');
+      const { getAnonymousUserByEmail } = await import('@/utils/testing/iq-test/core');
       const userData = await getAnonymousUserByEmail(email);
       
       if (userData) {
