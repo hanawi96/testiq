@@ -224,26 +224,6 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
               />
             </div>
 
-            {/* SEO Title */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                SEO Title
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Tiêu đề tối ưu SEO..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                disabled={isLoading}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Tiêu đề này sẽ được sử dụng cho SEO và meta tags
-              </p>
-            </div>
-
             {/* Slug */}
             <div>
               <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -289,6 +269,26 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 để tạo từ tên tag
+              </p>
+            </div>
+
+            {/* SEO Title */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                SEO Title
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Tiêu đề tối ưu SEO..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Tiêu đề này sẽ được sử dụng cho SEO và meta tags
               </p>
             </div>
 
