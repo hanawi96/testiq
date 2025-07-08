@@ -1,0 +1,237 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ArticleEdit from '../../../components/admin/articles/editors/ArticleEdit.tsx';
+
+// TODO: Add authentication and authorization checks
+// const isAuthenticated = true;
+// const userRole = 'admin';
+
+// if (!isAuthenticated) {
+//   return Astro.redirect('/admin/login');
+// }
+
+// const allowedRoles = ['admin', 'editor', 'author'];
+// if (!allowedRoles.includes(userRole)) {
+//   return Astro.redirect('/admin');
+// }
+---
+
+<AdminLayout title="Chỉnh sửa bài viết - Admin">
+  <!-- Breadcrumb Navigation -->
+  <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+    <a href="/admin" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+      Admin
+    </a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+    </svg>
+    <a href="/admin/articles" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+      Bài viết
+    </a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+    </svg>
+    <span class="text-gray-900 dark:text-gray-100">Chỉnh sửa</span>
+  </div>
+
+  <!-- Article Edit Component -->
+  <ArticleEdit client:load />
+</AdminLayout>
+
+<style>
+  /* Custom styles for article editing */
+  :global(.prose) {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+
+  :global(.prose h1) {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  :global(.prose h2) {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  :global(.prose h3) {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  :global(.prose h4) {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  :global(.prose strong) {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  :global(.prose code) {
+    @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+  }
+
+  :global(.prose pre) {
+    @apply bg-gray-900 dark:bg-gray-800;
+  }
+
+  :global(.prose blockquote) {
+    @apply border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300;
+  }
+
+  /* Auto-save indicator animation */
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  :global(.auto-save-indicator) {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Unsaved changes indicator */
+  :global(.unsaved-changes) {
+    position: relative;
+  }
+
+  :global(.unsaved-changes::after) {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background-color: #f59e0b;
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+  }
+
+  /* Preview mode styles */
+  :global(.preview-mode) {
+    @apply bg-white dark:bg-gray-800 shadow-lg;
+  }
+
+  /* Form validation styles */
+  :global(.field-error) {
+    @apply border-red-300 dark:border-red-600;
+  }
+
+  :global(.field-error:focus) {
+    @apply ring-red-500 border-red-500;
+  }
+
+  /* Loading states */
+  :global(.loading-skeleton) {
+    @apply bg-gray-200 dark:bg-gray-700 animate-pulse rounded;
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    :global(.mobile-stack) {
+      @apply flex-col space-y-4 space-x-0;
+    }
+    
+    :global(.mobile-full) {
+      @apply w-full;
+    }
+    
+    :global(.mobile-hide) {
+      @apply hidden;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    :global(.no-print) {
+      display: none !important;
+    }
+    
+    :global(.print-only) {
+      display: block !important;
+    }
+  }
+
+  /* Focus styles for accessibility */
+  :global(.focus-visible) {
+    @apply ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900;
+  }
+
+  /* Smooth transitions */
+  :global(.transition-all) {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+</style>
+
+<script>
+  // Client-side functionality for article editing
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Article edit page loaded');
+    
+    // Get article ID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const articleId = urlParams.get('id');
+    
+    if (!articleId) {
+      // Redirect to articles list if no ID provided
+      window.location.href = '/admin/articles';
+      return;
+    }
+    
+    // Pass article ID to React component
+    window.articleEditId = articleId;
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Ctrl/Cmd + S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        // This will be handled by the React component
+        console.log('Save shortcut triggered');
+      }
+      
+      // Ctrl/Cmd + P to preview
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        // This will be handled by the React component
+        console.log('Preview shortcut triggered');
+      }
+      
+      // Escape to exit preview mode
+      if (e.key === 'Escape') {
+        // This will be handled by the React component
+        console.log('Escape shortcut triggered');
+      }
+    });
+    
+    // Auto-save indicator
+    let autoSaveIndicator = null;
+    
+    function showAutoSaveIndicator() {
+      if (autoSaveIndicator) {
+        clearTimeout(autoSaveIndicator);
+      }
+      
+      const indicator = document.querySelector('.auto-save-indicator');
+      if (indicator) {
+        indicator.style.display = 'block';
+        
+        autoSaveIndicator = setTimeout(() => {
+          indicator.style.display = 'none';
+        }, 3000);
+      }
+    }
+    
+    // Listen for auto-save events from React component
+    window.addEventListener('article-auto-saved', showAutoSaveIndicator);
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+      if (autoSaveIndicator) {
+        clearTimeout(autoSaveIndicator);
+      }
+    });
+  });
+</script>

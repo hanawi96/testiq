@@ -1362,4 +1362,278 @@ export class ArticlesService {
       return { data: null, error: err };
     }
   }
+
+  /**
+   * Get article for editing with all related data
+   */
+  static async getArticleForEdit(articleId: string): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Getting article for edit:', articleId);
+
+      if (!articleId || typeof articleId !== 'string') {
+        return { data: null, error: new Error('ID bài viết không hợp lệ') };
+      }
+
+      // Get article with all related data
+      const { data: articleData, error: articleError } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', articleId)
+        .single();
+
+      if (articleError) {
+        console.error('ArticlesService: Error fetching article:', articleError);
+        return { data: null, error: articleError };
+      }
+
+      if (!articleData) {
+        return { data: null, error: new Error('Bài viết không tồn tại') };
+      }
+
+      // Get author profile if author_id exists
+      if (articleData.author_id) {
+        const { data: authorProfile } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email, role')
+          .eq('id', articleData.author_id)
+          .single();
+
+        if (authorProfile) {
+          articleData.user_profiles = authorProfile;
+        }
+      }
+
+      // Get categories and tags
+      const articlesWithCategories = await this.getCategoriesForArticles([articleData]);
+      const articlesWithTags = await this.getTagsForArticles(articlesWithCategories);
+      const transformedArticle = this.transformArticle(articlesWithTags[0]);
+
+      console.log('ArticlesService: Successfully fetched article for edit');
+      return { data: transformedArticle, error: null };
+
+    } catch (err: any) {
+      console.error('ArticlesService: Error in getArticleForEdit:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Update existing article
+   */
+  static async updateArticle(
+    articleId: string,
+    articleData: Partial<CreateArticleData>,
+    authorId: string
+  ): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Updating article:', articleId, articleData);
+
+      if (!articleId || typeof articleId !== 'string') {
+        return { data: null, error: new Error('ID bài viết không hợp lệ') };
+      }
+
+      // Check if article exists and user has permission
+      const { data: existingArticle, error: checkError } = await supabase
+        .from('articles')
+        .select('id, author_id, status')
+        .eq('id', articleId)
+        .single();
+
+      if (checkError) {
+        console.error('ArticlesService: Error checking article:', checkError);
+        return { data: null, error: checkError };
+      }
+
+      if (!existingArticle) {
+        return { data: null, error: new Error('Bài viết không tồn tại') };
+      }
+
+      // Validate slug if provided
+      if (articleData.slug) {
+        const { data: isValid, error: slugError } = await this.validateSlug(articleData.slug, articleId);
+        if (slugError || !isValid) {
+          return { data: null, error: slugError || new Error('Slug đã tồn tại') };
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        ...articleData,
+        updated_at: new Date().toISOString()
+      };
+
+      // Remove categories and tags from main update (handle separately)
+      const categoryIds = updateData.categories;
+      const tagIds = updateData.tags;
+      delete updateData.categories;
+      delete updateData.tags;
+
+      // Update main article data
+      const { data: updatedArticle, error: updateError } = await supabase
+        .from('articles')
+        .update(updateData)
+        .eq('id', articleId)
+        .select(`
+          *,
+          user_profiles!articles_author_id_fkey (
+            id,
+            full_name,
+            email,
+            role
+          )
+        `)
+        .single();
+
+      if (updateError) {
+        console.error('ArticlesService: Error updating article:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      // Update categories if provided
+      if (categoryIds && Array.isArray(categoryIds)) {
+        const { error: categoriesError } = await this.updateCategories(articleId, categoryIds);
+        if (categoriesError) {
+          console.error('ArticlesService: Error updating categories:', categoriesError);
+          return { data: null, error: categoriesError };
+        }
+      }
+
+      // Update tags if provided
+      if (tagIds && Array.isArray(tagIds)) {
+        const { error: tagsError } = await this.updateTags(articleId, tagIds);
+        if (tagsError) {
+          console.error('ArticlesService: Error updating tags:', tagsError);
+          return { data: null, error: tagsError };
+        }
+      }
+
+      // Get updated article with all relations
+      const { data: finalArticle, error: finalError } = await this.getArticleForEdit(articleId);
+      if (finalError) {
+        console.error('ArticlesService: Error fetching updated article:', finalError);
+        return { data: null, error: finalError };
+      }
+
+      console.log('ArticlesService: Successfully updated article');
+      return { data: finalArticle, error: null };
+
+    } catch (err: any) {
+      console.error('ArticlesService: Error in updateArticle:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Validate slug uniqueness (excluding current article)
+   */
+  static async validateSlug(slug: string, excludeArticleId?: string): Promise<{ data: boolean; error: any }> {
+    try {
+      console.log('ArticlesService: Validating slug:', slug, 'excluding:', excludeArticleId);
+
+      if (!slug || typeof slug !== 'string') {
+        return { data: false, error: new Error('Slug không hợp lệ') };
+      }
+
+      // Build query
+      let query = supabase
+        .from('articles')
+        .select('id')
+        .eq('slug', slug);
+
+      // Exclude current article if editing
+      if (excludeArticleId) {
+        query = query.neq('id', excludeArticleId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('ArticlesService: Error validating slug:', error);
+        return { data: false, error };
+      }
+
+      const isUnique = !data || data.length === 0;
+      console.log('ArticlesService: Slug validation result:', { slug, isUnique });
+
+      return { data: isUnique, error: null };
+
+    } catch (err: any) {
+      console.error('ArticlesService: Error in validateSlug:', err);
+      return { data: false, error: err };
+    }
+  }
+
+  /**
+   * Auto-save article draft
+   */
+  static async autoSaveArticle(
+    articleId: string,
+    articleData: Partial<CreateArticleData>
+  ): Promise<{ data: boolean; error: any }> {
+    try {
+      console.log('ArticlesService: Auto-saving article:', articleId);
+
+      if (!articleId || typeof articleId !== 'string') {
+        return { data: false, error: new Error('ID bài viết không hợp lệ') };
+      }
+
+      // Only save basic fields for auto-save (not categories/tags)
+      const autoSaveData = {
+        title: articleData.title,
+        slug: articleData.slug,
+        content: articleData.content,
+        excerpt: articleData.excerpt,
+        meta_title: articleData.meta_title,
+        meta_description: articleData.meta_description,
+        updated_at: new Date().toISOString()
+      };
+
+      // Remove undefined fields
+      Object.keys(autoSaveData).forEach(key => {
+        if (autoSaveData[key] === undefined) {
+          delete autoSaveData[key];
+        }
+      });
+
+      const { error } = await supabase
+        .from('articles')
+        .update(autoSaveData)
+        .eq('id', articleId);
+
+      if (error) {
+        console.error('ArticlesService: Error auto-saving article:', error);
+        return { data: false, error };
+      }
+
+      console.log('ArticlesService: Successfully auto-saved article');
+      return { data: true, error: null };
+
+    } catch (err: any) {
+      console.error('ArticlesService: Error in autoSaveArticle:', err);
+      return { data: false, error: err };
+    }
+  }
+
+  /**
+   * Get article edit history/versions (if needed for future)
+   */
+  static async getArticleVersions(articleId: string): Promise<{ data: any[] | null; error: any }> {
+    try {
+      console.log('ArticlesService: Getting article versions:', articleId);
+
+      // For now, just return the current article
+      // This can be extended later to support version history
+      const { data: article, error } = await this.getArticleForEdit(articleId);
+
+      if (error) {
+        return { data: null, error };
+      }
+
+      return { data: article ? [article] : [], error: null };
+
+    } catch (err: any) {
+      console.error('ArticlesService: Error in getArticleVersions:', err);
+      return { data: null, error: err };
+    }
+  }
 }

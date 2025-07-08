@@ -1279,7 +1279,7 @@ export default function AdminArticles() {
                         <div className="flex items-center space-x-2">
                           {/* Edit */}
                           <a
-                            href={`/admin/articles/edit/${article.id}`}
+                            href={`/admin/articles/edit?id=${article.id}`}
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
                             title="Sửa"
                           >

@@ -15,6 +15,7 @@
         "deploy": "npm run build && npm run preview"
     },
     "dependencies": {
+        "@astrojs/node": "^9.3.0",
         "@astrojs/react": "^3.6.2",
         "@astrojs/sitemap": "^3.1.6",
         "@astrojs/tailwind": "^5.1.0",

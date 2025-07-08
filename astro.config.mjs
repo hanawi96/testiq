@@ -2,10 +2,11 @@ import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import sitemap from '@astrojs/sitemap';
 import react from '@astrojs/react';
+import node from '@astrojs/node';
 
 export default defineConfig({
   site: 'https://iqtest.yourdomain.com', // Thay đổi domain thực của bạn
-  output: 'static', // Change to static for now to avoid adapter issues
+  output: 'static', // Static generation
   devToolbar: {
     enabled: false // Disable dev toolbar to prevent it from appearing in screenshots
   },
