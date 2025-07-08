@@ -611,7 +611,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
     <div className="article-editor bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Sticky Header */}
       <div className="article-editor-header bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 shadow-sm">
-        <div className="w-full px-4 sm:px-6 py-4">
+        <div className="w-full p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -675,7 +675,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
       </div>
 
       {/* Main Content - Responsive 2 Column Layout */}
-      <div className="w-full px-4 sm:px-6 py-6">
+      <div className="w-full py-4">
         <div className="article-editor-main">
 
           {/* Left Column - Main Content */}
@@ -788,7 +788,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
               <div>
                 {isClient ? (
                   <React.Suspense fallback={
-                    <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 h-96 flex items-center justify-center">
+                    <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center" style={{height: '780px'}}>
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600 mx-auto mb-4"></div>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">Đang khởi tạo trình soạn thảo...</p>
@@ -800,7 +800,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
                         content={formData.content}
                         onChange={(content) => setFormData(prev => ({ ...prev, content }))}
                         placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                        height="600px"
+                        height="780px"
                       />
                     </div>
                   </React.Suspense>
@@ -848,7 +848,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
           </div>
 
           {/* Right Column - Sidebar Settings */}
-          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <div className="article-sidebar-sticky space-y-6">
 
             {/* Publish Box */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">

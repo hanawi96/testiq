@@ -15,9 +15,9 @@
   background-color: rgba(31, 41, 55, 0.95);
 }
 
-/* Content editor height optimization */
+/* Content editor height optimization - Increased by 30% */
 .article-content-editor {
-  min-height: 600px;
+  min-height: 780px;
 }
 
 /* Sidebar sticky positioning */
@@ -26,6 +26,15 @@
   top: 6rem; /* 24 * 0.25rem = 6rem */
   max-height: calc(100vh - 8rem);
   overflow-y: auto;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Tablet sidebar adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .article-sidebar-sticky {
+    top: 5rem;
+    max-height: calc(100vh - 6rem);
+  }
 }
 
 /* Consistent spacing for sidebar sections */
@@ -33,45 +42,55 @@
   margin-top: 1.5rem !important;
 }
 
-/* Responsive grid optimizations - Force 2 column layout */
+/* Responsive grid optimizations - Smooth transitions */
 .article-editor-main {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
-  align-items: start; /* Align items to start to prevent stretching */
+  gap: 1rem;
+  align-items: start;
+  transition: all 0.3s ease-in-out; /* Smooth resize transitions */
 }
 
+/* Tablet breakpoint - Early 2-column for better UX */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .article-editor-main {
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Desktop breakpoint */
 @media (min-width: 1024px) {
   .article-editor-main {
     grid-template-columns: 2fr 1fr;
-    gap: 2rem;
+    gap: 1rem;
   }
 }
 
 @media (min-width: 1440px) {
   .article-editor-main {
     grid-template-columns: 2.5fr 1fr;
-    gap: 2.5rem;
+    gap: 1rem;
   }
 
   .article-content-editor {
-    min-height: 700px;
+    min-height: 910px; /* 700px + 30% = 910px */
   }
 }
 
 @media (min-width: 1920px) {
   .article-editor-main {
     grid-template-columns: 3fr 1fr;
-    gap: 3rem;
+    gap: 1rem;
   }
 
   .article-content-editor {
-    min-height: 800px;
+    min-height: 1040px; /* 800px + 30% = 1040px */
   }
 }
 
 /* Mobile optimizations */
-@media (max-width: 1023px) {
+@media (max-width: 767px) {
   .article-sidebar-sticky {
     position: static;
     max-height: none;
@@ -79,16 +98,21 @@
 
   .article-editor-main {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
-  /* Stack sidebar content in logical order on mobile */
-  .article-editor-main > div:nth-child(2) {
-    order: 1;
-  }
-
+  /* Keep natural order: Content first, then Sidebar */
   .article-editor-main > div:nth-child(1) {
-    order: 2;
+    order: 1; /* Main content first */
+  }
+
+  .article-editor-main > div:nth-child(2) {
+    order: 2; /* Sidebar second */
+  }
+
+  /* Mobile-specific optimizations */
+  .article-content-editor {
+    min-height: 500px; /* Smaller height for mobile */
   }
 }
 
@@ -245,6 +269,35 @@
 .article-editor img {
   max-width: 100%;
   height: auto;
+}
+
+/* Responsive performance optimizations */
+@media (max-width: 767px) {
+  /* Reduce animations on mobile for better performance */
+  .article-editor .transition-all {
+    transition: none;
+  }
+
+  /* Optimize mobile scrolling */
+  .article-editor {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent layout shift during responsive transitions */
+.article-editor-main > div {
+  min-width: 0; /* Prevent flex/grid items from overflowing */
+}
+
+/* Responsive text scaling */
+@media (max-width: 767px) {
+  .article-editor h1 {
+    font-size: 1.5rem; /* Smaller on mobile */
+  }
+
+  .article-editor h2 {
+    font-size: 1.25rem;
+  }
 }
 
 /* Prevent layout shift */

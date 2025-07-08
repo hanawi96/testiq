@@ -7,11 +7,11 @@ interface ToastEditorProps {
   height?: string;
 }
 
-export default function ToastEditor({ 
-  content, 
-  onChange, 
+export default function ToastEditor({
+  content,
+  onChange,
   placeholder = "Viết nội dung bài viết...",
-  height = "400px" 
+  height = "780px"
 }: ToastEditorProps) {
   const editorRef = useRef<any>(null);
   const [Editor, setEditor] = useState<any>(null);
@@ -139,7 +139,7 @@ export default function ToastEditor({
   // Loading state
   if (!isLoaded || !Editor) {
     return (
-      <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 min-h-[400px] flex items-center justify-center">
+      <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 min-h-[780px] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
           <p className="text-gray-600 dark:text-gray-400">Đang tải editor...</p>
