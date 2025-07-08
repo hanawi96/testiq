@@ -96,6 +96,28 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
     });
   };
 
+  // Handle select all/none toggle
+  const handleSelectAllToggle = () => {
+    const activeCategories = categories.filter(cat => cat.status === 'active');
+    const allActiveIds = activeCategories.map(cat => cat.id);
+
+    // If all active categories are selected, deselect all
+    // Otherwise, select all active categories
+    const allSelected = allActiveIds.every(id => selectedCategoryIds.includes(id));
+
+    if (allSelected) {
+      setSelectedCategoryIds([]);
+    } else {
+      setSelectedCategoryIds(allActiveIds);
+    }
+  };
+
+  // Check if all active categories are selected
+  const activeCategories = categories.filter(cat => cat.status === 'active');
+  const allActiveIds = activeCategories.map(cat => cat.id);
+  const isAllSelected = allActiveIds.length > 0 && allActiveIds.every(id => selectedCategoryIds.includes(id));
+  const isPartialSelected = selectedCategoryIds.length > 0 && !isAllSelected;
+
   const handleSave = async () => {
     // Get selected category names for optimistic UI update
     const selectedCategoryNames = selectedCategoryIds.map(id => {
@@ -161,37 +183,78 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
               <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Đang tải...</span>
             </div>
           ) : (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {categories.length === 0 ? (
-                <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-                  Không có danh mục nào
-                </div>
-              ) : (
-                categories.map((category) => (
-                  <label
-                    key={category.id}
-                    className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCategoryIds.includes(category.id)}
-                      onChange={() => handleCategoryToggle(category.id)}
-                      className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700"
-                    />
+            <>
+              {/* Select All Header */}
+              {categories.length > 0 && (
+                <div className="mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <label className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(input) => {
+                          if (input) input.indeterminate = isPartialSelected;
+                        }}
+                        onChange={handleSelectAllToggle}
+                        className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700"
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {category.name}
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                       </div>
-                      {category.description && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {category.description}
-                        </div>
-                      )}
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {activeCategories.length} danh mục khả dụng
+                      </div>
+                    </div>
+                    <div className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                      {selectedCategoryIds.length}/{activeCategories.length}
                     </div>
                   </label>
-                ))
+                </div>
               )}
-            </div>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {categories.length === 0 ? (
+                  <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                    Không có danh mục nào
+                  </div>
+                ) : (
+                  categories.map((category) => (
+                    <label
+                      key={category.id}
+                      className={`flex items-center space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${
+                        category.status === 'inactive' ? 'opacity-50' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCategoryIds.includes(category.id)}
+                        onChange={() => handleCategoryToggle(category.id)}
+                        disabled={category.status === 'inactive'}
+                        className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700 disabled:opacity-50"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {category.name}
+                          {category.status === 'inactive' && (
+                            <span className="ml-2 text-xs text-red-500 dark:text-red-400">(Không hoạt động)</span>
+                          )}
+                        </div>
+                        {category.description && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {category.description}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        {category.article_count || 0} bài
+                      </div>
+                    </label>
+                  ))
+                )}
+              </div>
+            </>
           )}
         </div>
 
