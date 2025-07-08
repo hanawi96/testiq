@@ -274,10 +274,12 @@ export class ArticlesService {
    */
   private static async getTagsForArticles(articles: any[]): Promise<any[]> {
     if (!articles || articles.length === 0) {
+      console.log('ArticlesService: getTagsForArticles - no articles provided');
       return [];
     }
 
     const articleIds = articles.map(article => article.id);
+    console.log('ArticlesService: getTagsForArticles - fetching tags for articles:', articleIds);
 
     // Fetch all article-tag relationships in one query
     const { data: articleTags, error: tagError } = await supabase
@@ -293,6 +295,9 @@ export class ArticlesService {
       `)
       .in('article_id', articleIds);
 
+    console.log('ArticlesService: getTagsForArticles - raw data:', articleTags);
+    console.log('ArticlesService: getTagsForArticles - error:', tagError);
+
     if (tagError) {
       console.error('ArticlesService: Error fetching article tags:', tagError);
       return articles;
@@ -303,17 +308,20 @@ export class ArticlesService {
       if (!acc[relation.article_id]) {
         acc[relation.article_id] = [];
       }
-      if (relation.tags) {
-        acc[relation.article_id].push(relation.tags.name);
+      if (relation.tags && typeof relation.tags === 'object' && 'name' in relation.tags) {
+        acc[relation.article_id].push(String(relation.tags.name));
       }
       return acc;
     }, {} as Record<string, string[]>) || {};
 
     // Add tags to articles
-    return articles.map(article => ({
+    const result = articles.map(article => ({
       ...article,
       tags: tagsByArticle[article.id] || []
     }));
+
+    console.log('ArticlesService: getTagsForArticles result:', result.map(a => ({ id: a.id, tags: a.tags })));
+    return result;
   }
 
   /**

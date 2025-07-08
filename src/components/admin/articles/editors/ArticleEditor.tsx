@@ -108,12 +108,14 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
 
   // Load article data for edit mode
   useEffect(() => {
-    if (isEditMode && (articleId || currentArticleId)) {
+    // Only run after component is mounted and we have an article ID
+    if (isMounted && (articleId || currentArticleId)) {
       const loadArticle = async () => {
         setIsLoadingArticle(true);
         setLoadError('');
 
         try {
+          console.log('ArticleEditor: Calling getArticleForEdit with ID:', articleId || currentArticleId);
           const { data, error } = await ArticlesService.getArticleForEdit(articleId || currentArticleId!);
 
           if (error) {
@@ -124,6 +126,9 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
 
           if (data) {
             setArticle(data);
+            console.log('ArticleEditor: Article data loaded:', data);
+            console.log('ArticleEditor: Tags from data:', data.tags);
+            console.log('ArticleEditor: Categories from data:', data.category_ids);
             // Populate form with article data
             setFormData({
               title: data.title || '',
@@ -158,7 +163,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
 
       loadArticle();
     }
-  }, [isEditMode, articleId, currentArticleId]);
+  }, [isMounted, articleId, currentArticleId]); // Depend on isMounted instead of isEditMode
 
   // Load categories from database
   useEffect(() => {
