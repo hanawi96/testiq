@@ -1,6 +1,6 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import ArticleEdit from '../../../components/admin/articles/editors/ArticleEdit.tsx';
+import ArticleEditor from '../../../components/admin/articles/editors/ArticleEditor.tsx';
 
 // TODO: Add authentication and authorization checks
 // const isAuthenticated = true;
@@ -34,8 +34,8 @@ import ArticleEdit from '../../../components/admin/articles/editors/ArticleEdit.
     <span class="text-gray-900 dark:text-gray-100">Chỉnh sửa</span>
   </div>
 
-  <!-- Article Edit Component -->
-  <ArticleEdit client:load />
+  <!-- Article Editor Component (Edit Mode) -->
+  <ArticleEditor client:load />
 </AdminLayout>
 
 <style>

@@ -1,8 +1,8 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import { ArticleEditor } from '@/components/admin/articles/editors';
+import ArticleEditor from '../../../components/admin/articles/editors/ArticleEditor.tsx';
 ---
 
 <AdminLayout title="Tạo bài viết mới">
   <ArticleEditor client:load />
-</AdminLayout> 
+</AdminLayout>

@@ -24,7 +24,7 @@ export {
 // Export types
 export type { UserWithProfile, UsersListResponse, UsersFilters, CreateUserData, UpdateUserData } from './admin/users-service';
 export type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from './admin/results-service';
-export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from './admin/articles-service';
+export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse, CreateArticleData } from './admin/articles-service';
 export type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from './admin/categories-service';
 export type { Tag, TagStats, TagsFilters, TagsListResponse } from './admin/tags-service';
 export type { MediaFile, MediaFolder, MediaStats, MediaFilters, MediaListResponse } from './admin/media-service';

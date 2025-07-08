@@ -146,6 +146,74 @@ export interface ArticlesListResponse {
   hasPrev: boolean;
 }
 
+export interface CreateArticleData {
+  // Required fields
+  title: string;
+  content: string;
+  slug?: string; // Auto-generated if not provided
+
+  // Basic article info
+  excerpt?: string;
+  lang?: string;
+  article_type?: 'article' | 'page' | 'post';
+  status?: 'published' | 'draft' | 'archived';
+  featured?: boolean;
+  author_id?: string;
+  category_id?: string; // Primary category
+  parent_id?: string;
+
+  // SEO fields
+  meta_title?: string;
+  meta_description?: string;
+  focus_keyword?: string;
+  keywords?: string[];
+  canonical_url?: string;
+
+  // Open Graph fields
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
+  og_type?: string;
+
+  // Twitter fields
+  twitter_title?: string;
+  twitter_description?: string;
+  twitter_image?: string;
+  twitter_card_type?: string;
+
+  // Media fields
+  cover_image?: string;
+  cover_image_alt?: string;
+  gallery_images?: any;
+
+  // Schema fields
+  schema_type?: string;
+  author_schema?: any;
+  organization_schema?: any;
+  faq_schema?: any;
+  howto_schema?: any;
+  breadcrumb_schema?: any;
+
+  // SEO settings
+  robots_directive?: string;
+  sitemap_include?: boolean;
+  sitemap_priority?: number;
+  sitemap_changefreq?: string;
+
+  // Relations (will be handled separately)
+  categories?: string[]; // Array of category IDs
+  tags?: string[]; // Array of tag IDs or names
+  related_articles?: string[];
+
+  // Publishing
+  published_at?: string;
+  scheduled_at?: string;
+  expires_at?: string;
+
+  // Versioning
+  revision_notes?: string;
+}
+
 import { supabase } from '../config/supabase';
 import { LinkAnalyzer, type LinkAnalysis } from '../utils/link-analyzer';
 
@@ -1418,6 +1486,189 @@ export class ArticlesService {
   }
 
   /**
+   * Create new article
+   */
+  static async createArticle(
+    articleData: CreateArticleData,
+    authorId: string
+  ): Promise<{ data: Article | null; error: any }> {
+    try {
+      console.log('ArticlesService: Creating new article:', articleData);
+
+      // Validate required fields
+      if (!articleData.title?.trim()) {
+        return { data: null, error: new Error('Tiêu đề không được để trống') };
+      }
+
+      if (!articleData.content?.trim()) {
+        return { data: null, error: new Error('Nội dung không được để trống') };
+      }
+
+      // Generate slug if not provided
+      let slug = articleData.slug?.trim();
+      if (!slug) {
+        slug = this.generateSlug(articleData.title);
+      }
+
+      // Validate slug uniqueness
+      const { data: isValid, error: slugError } = await this.validateSlug(slug);
+      if (slugError || !isValid) {
+        return { data: null, error: slugError || new Error('Slug đã tồn tại') };
+      }
+
+      // Calculate content metrics
+      const contentMetrics = this.calculateContentMetrics(articleData.content);
+
+      // Prepare article data for database
+      const createData: any = {
+        title: articleData.title.trim(),
+        slug: slug,
+        content: articleData.content.trim(),
+        excerpt: articleData.excerpt?.trim() || '',
+        lang: articleData.lang || 'vi',
+        article_type: articleData.article_type || 'article',
+        status: articleData.status || 'draft',
+        featured: articleData.featured || false,
+        author_id: authorId,
+        category_id: articleData.category_id || null,
+        parent_id: articleData.parent_id || null,
+
+        // SEO fields
+        meta_title: articleData.meta_title?.trim() || '',
+        meta_description: articleData.meta_description?.trim() || '',
+        focus_keyword: articleData.focus_keyword?.trim() || '',
+        keywords: articleData.keywords || [],
+        canonical_url: articleData.canonical_url?.trim() || '',
+
+        // Open Graph fields
+        og_title: articleData.og_title?.trim() || '',
+        og_description: articleData.og_description?.trim() || '',
+        og_image: articleData.og_image?.trim() || '',
+        og_type: articleData.og_type || 'article',
+
+        // Twitter fields
+        twitter_title: articleData.twitter_title?.trim() || '',
+        twitter_description: articleData.twitter_description?.trim() || '',
+        twitter_image: articleData.twitter_image?.trim() || '',
+        twitter_card_type: articleData.twitter_card_type || 'summary_large_image',
+
+        // Media fields
+        cover_image: articleData.cover_image?.trim() || '',
+        cover_image_alt: articleData.cover_image_alt?.trim() || '',
+        gallery_images: articleData.gallery_images || null,
+
+        // Schema fields
+        schema_type: articleData.schema_type || 'Article',
+        author_schema: articleData.author_schema || null,
+        organization_schema: articleData.organization_schema || null,
+        faq_schema: articleData.faq_schema || null,
+        howto_schema: articleData.howto_schema || null,
+        breadcrumb_schema: articleData.breadcrumb_schema || null,
+
+        // Content metrics
+        word_count: contentMetrics.wordCount,
+        character_count: contentMetrics.characterCount,
+        reading_time: contentMetrics.readingTime,
+        paragraph_count: contentMetrics.paragraphCount,
+        heading_count: contentMetrics.headingCount,
+
+        // SEO settings
+        robots_directive: articleData.robots_directive || 'index,follow',
+        sitemap_include: articleData.sitemap_include !== false,
+        sitemap_priority: articleData.sitemap_priority || 0.8,
+        sitemap_changefreq: articleData.sitemap_changefreq || 'weekly',
+
+        // Relations
+        related_articles: articleData.related_articles || [],
+
+        // Publishing
+        published_at: articleData.status === 'published' ?
+          (articleData.published_at || new Date().toISOString()) : null,
+        scheduled_at: articleData.scheduled_at || null,
+        expires_at: articleData.expires_at || null,
+
+        // Versioning
+        version: 1,
+        revision_notes: articleData.revision_notes?.trim() || '',
+        last_modified_by: authorId,
+
+        // Timestamps
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Remove categories and tags from main insert (handle separately)
+      const categoryIds = articleData.categories || [];
+      const tagIds = articleData.tags || [];
+
+      // Create article in database
+      const { data: newArticle, error: createError } = await supabase
+        .from('articles')
+        .insert(createData)
+        .select(`
+          *,
+          categories!category_id (
+            name,
+            slug
+          )
+        `)
+        .single();
+
+      if (createError) {
+        console.error('ArticlesService: Error creating article:', createError);
+        return { data: null, error: createError };
+      }
+
+      if (!newArticle) {
+        return { data: null, error: new Error('Không thể tạo bài viết') };
+      }
+
+      // Handle categories relationships
+      if (categoryIds.length > 0) {
+        const { error: categoriesError } = await this.updateCategories(
+          newArticle.id,
+          categoryIds
+        );
+
+        if (categoriesError) {
+          console.error('ArticlesService: Error adding categories:', categoriesError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
+
+      // Handle tags relationships
+      if (tagIds.length > 0) {
+        const { error: tagsError } = await this.updateTags(
+          newArticle.id,
+          tagIds
+        );
+
+        if (tagsError) {
+          console.error('ArticlesService: Error adding tags:', tagsError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
+
+      // Get the complete article with all relationships
+      const { data: completeArticle, error: fetchError } = await this.getArticleForEdit(newArticle.id);
+
+      if (fetchError || !completeArticle) {
+        // Return basic article if we can't fetch complete data
+        const transformedArticle = this.transformArticle(newArticle);
+        console.log('ArticlesService: Article created successfully (basic data)');
+        return { data: transformedArticle, error: null };
+      }
+
+      console.log('ArticlesService: Article created successfully with all relationships');
+      return { data: completeArticle, error: null };
+
+    } catch (err) {
+      console.error('ArticlesService: Error in createArticle:', err);
+      return { data: null, error: new Error('Có lỗi xảy ra khi tạo bài viết') };
+    }
+  }
+
+  /**
    * Update existing article
    */
   static async updateArticle(
@@ -1475,11 +1726,9 @@ export class ArticlesService {
         .eq('id', articleId)
         .select(`
           *,
-          user_profiles!articles_author_id_fkey (
-            id,
-            full_name,
-            email,
-            role
+          categories!category_id (
+            name,
+            slug
           )
         `)
         .single();
@@ -1564,6 +1813,86 @@ export class ArticlesService {
   }
 
   /**
+   * Generate slug from title
+   */
+  static generateSlug(title: string): string {
+    return title
+      .toLowerCase()
+      .normalize('NFD') // Decompose Vietnamese characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/đ/g, 'd') // Handle special case for 'đ'
+      .replace(/Đ/g, 'D') // Handle special case for 'Đ'
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+      .trim();
+  }
+
+  /**
+   * Calculate content metrics from article content
+   */
+  static calculateContentMetrics(content: string): {
+    wordCount: number;
+    characterCount: number;
+    readingTime: number;
+    paragraphCount: number;
+    headingCount: any;
+  } {
+    if (!content || typeof content !== 'string') {
+      return {
+        wordCount: 0,
+        characterCount: 0,
+        readingTime: 0,
+        paragraphCount: 0,
+        headingCount: {}
+      };
+    }
+
+    // Remove markdown syntax for accurate counting
+    const cleanContent = content
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/`[^`]*`/g, '') // Remove inline code
+      .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+      .replace(/\[.*?\]\(.*?\)/g, '') // Remove links
+      .replace(/[#*_~`]/g, '') // Remove markdown formatting
+      .replace(/\n+/g, '\n') // Normalize line breaks
+      .trim();
+
+    // Calculate metrics
+    const words = cleanContent.split(/\s+/).filter(word => word.length > 0);
+    const wordCount = words.length;
+    const characterCount = cleanContent.length;
+    const readingTime = Math.ceil(wordCount / 200); // Average 200 words per minute
+
+    // Count paragraphs (non-empty lines)
+    const paragraphs = cleanContent.split('\n').filter(line => line.trim().length > 0);
+    const paragraphCount = paragraphs.length;
+
+    // Count headings
+    const headingMatches = content.match(/^#{1,6}\s+.+$/gm) || [];
+    const headingCount = {
+      h1: (content.match(/^#\s+.+$/gm) || []).length,
+      h2: (content.match(/^##\s+.+$/gm) || []).length,
+      h3: (content.match(/^###\s+.+$/gm) || []).length,
+      h4: (content.match(/^####\s+.+$/gm) || []).length,
+      h5: (content.match(/^#####\s+.+$/gm) || []).length,
+      h6: (content.match(/^######\s+.+$/gm) || []).length,
+      total: headingMatches.length
+    };
+
+    return {
+      wordCount,
+      characterCount,
+      readingTime,
+      paragraphCount,
+      headingCount
+    };
+  }
+
+
+
+  /**
    * Auto-save article draft
    */
   static async autoSaveArticle(
@@ -1578,7 +1907,7 @@ export class ArticlesService {
       }
 
       // Only save basic fields for auto-save (not categories/tags)
-      const autoSaveData = {
+      const autoSaveData: any = {
         title: articleData.title,
         slug: articleData.slug,
         content: articleData.content,
