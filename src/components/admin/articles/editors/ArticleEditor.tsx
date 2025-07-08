@@ -863,6 +863,132 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
               </div>
             </div>
 
+            {/* SEO Settings Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SEO & Tối ưu hóa</h2>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left side - SEO Score & Analysis */}
+                <div className="space-y-4">
+                  {/* SEO Score */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold mb-2 ${
+                        seoAnalysis.score >= 80 ? 'text-green-600' :
+                        seoAnalysis.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {seoAnalysis.score}
+                        <span className="text-sm text-gray-500 dark:text-gray-400">/100</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            seoAnalysis.score >= 80 ? 'bg-green-500' :
+                            seoAnalysis.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${seoAnalysis.score}%` }}
+                        ></div>
+                      </div>
+                      <div className={`text-sm font-medium ${
+                        seoAnalysis.score >= 80 ? 'text-green-700 dark:text-green-400' :
+                        seoAnalysis.score >= 60 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-700 dark:text-red-400'
+                      }`}>
+                        {seoAnalysis.score >= 80 ? 'Xuất sắc' :
+                         seoAnalysis.score >= 60 ? 'Tốt' : 'Cần cải thiện'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SEO Checklist */}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Checklist SEO</h4>
+                    <div className="space-y-2">
+                      {seoAnalysis.checks.map((check, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            check.status === 'good' ? 'bg-green-500' :
+                            check.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}></div>
+                          <span className="text-xs text-gray-700 dark:text-gray-300">{check.name}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{check.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side - SEO Fields */}
+                <div className="space-y-4">
+                  {/* Focus Keyword */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Từ khóa chính
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.focus_keyword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, focus_keyword: e.target.value }))}
+                      placeholder="Nhập từ khóa chính..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Từ khóa chính giúp tối ưu hóa nội dung cho search engine
+                    </p>
+                  </div>
+
+                  {/* Meta Title */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Meta Title ({formData.meta_title.length}/60)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.meta_title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
+                      placeholder="Tiêu đề hiển thị trên Google..."
+                      maxLength={60}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    />
+                    <div className={`text-xs mt-1 ${
+                      formData.meta_title.length >= 50 && formData.meta_title.length <= 60 ? 'text-green-600 dark:text-green-400' :
+                      formData.meta_title.length > 60 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+                    }`}>
+                      Tối ưu: 50-60 ký tự
+                    </div>
+                  </div>
+
+                  {/* Meta Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Meta Description ({formData.meta_description.length}/160)
+                    </label>
+                    <textarea
+                      value={formData.meta_description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
+                      placeholder="Mô tả ngắn gọn hiển thị trên Google..."
+                      maxLength={160}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                    />
+                    <div className={`text-xs mt-1 ${
+                      formData.meta_description.length >= 120 && formData.meta_description.length <= 160
+                        ? 'text-green-600 dark:text-green-400'
+                        : formData.meta_description.length > 160
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}>
+                      Tối ưu: 120-160 ký tự
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           {/* Right Column - Sidebar Settings */}
@@ -1231,106 +1357,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
               )}
             </div>
 
-            {/* SEO Settings Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SEO</h3>
-            </div>
 
-            <div className="space-y-4">
-              {/* SEO Score */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <div className="text-center">
-                  <div className={`text-2xl font-bold mb-2 ${
-                    seoAnalysis.score >= 80 ? 'text-green-600' :
-                    seoAnalysis.score >= 60 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {seoAnalysis.score}
-                    <span className="text-sm text-gray-500 dark:text-gray-400">/100</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        seoAnalysis.score >= 80 ? 'bg-green-500' :
-                        seoAnalysis.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${seoAnalysis.score}%` }}
-                    ></div>
-                  </div>
-                  <div className={`text-sm font-medium ${
-                    seoAnalysis.score >= 80 ? 'text-green-700 dark:text-green-400' :
-                    seoAnalysis.score >= 60 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-700 dark:text-red-400'
-                  }`}>
-                    {seoAnalysis.score >= 80 ? 'Xuất sắc' :
-                     seoAnalysis.score >= 60 ? 'Tốt' : 'Cần cải thiện'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Focus Keyword */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Từ khóa chính
-                </label>
-                <input
-                  type="text"
-                  value={formData.focus_keyword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, focus_keyword: e.target.value }))}
-                  placeholder="Nhập từ khóa chính..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                />
-              </div>
-
-              {/* Meta Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Meta Title ({formData.meta_title.length}/60)
-                </label>
-                <input
-                  type="text"
-                  value={formData.meta_title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                  placeholder="Tiêu đề hiển thị trên Google..."
-                  maxLength={60}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                />
-                <div className={`text-xs mt-1 ${
-                  formData.meta_title.length >= 50 && formData.meta_title.length <= 60 ? 'text-green-600 dark:text-green-400' :
-                  formData.meta_title.length > 60 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
-                }`}>
-                  Tối ưu: 50-60 ký tự
-                </div>
-              </div>
-
-              {/* Meta Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Meta Description ({formData.meta_description.length}/160)
-                </label>
-                <textarea
-                  value={formData.meta_description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                  placeholder="Mô tả ngắn gọn hiển thị trên Google..."
-                  maxLength={160}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
-                />
-                <div className={`text-xs mt-1 ${
-                  formData.meta_description.length >= 120 && formData.meta_description.length <= 160
-                    ? 'text-green-600 dark:text-green-400'
-                    : formData.meta_description.length > 160
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                }`}>
-                  Tối ưu: 120-160 ký tự
-                </div>
-              </div>
-            </div>
-
-            </div>
           </div>
         </div>
       </div>
