@@ -8,9 +8,13 @@ import QuickMultipleCategoryEditor from './QuickMultipleCategoryEditor';
 import LinkAnalysisModal from './LinkAnalysisModal';
 import QuickStatusEditor from './QuickStatusEditor';
 import CategoryDisplay from './CategoryDisplay';
+import SearchInput from '../common/SearchInput';
+import SearchHighlight from '../common/SearchHighlight';
+import SearchStats from '../common/SearchStats';
 import { categoriesPreloadTriggers } from '../../../utils/categories-preloader';
 import { authorsPreloadTriggers } from '../../../utils/authors-preloader';
 import { tagsPreloadTriggers } from '../../../utils/tags-preloader';
+import { perfAnalyzer } from '../../../utils/performance-analyzer';
 
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
@@ -84,22 +88,34 @@ export default function AdminArticles() {
 
   // Fetch articles data
   const fetchArticles = useCallback(async (page: number = currentPage) => {
-    console.log(`🔍 Fetch articles page ${page}`);
+    perfAnalyzer.start('fetchArticles', { page, filters });
     setError('');
-    
+
     try {
+      perfAnalyzer.start('apiCall');
       const { data, error: fetchError } = await ArticlesService.getArticles(page, limit, filters);
-      
+      perfAnalyzer.end('apiCall');
+
       if (fetchError || !data) {
         setError('Không thể tải danh sách bài viết');
+        perfAnalyzer.end('fetchArticles');
         return;
       }
-      
-      console.log(`✅ Loaded articles page ${page}`);
+
+      perfAnalyzer.start('stateUpdate');
       setArticlesData(data);
-      
+      perfAnalyzer.end('stateUpdate');
+
+      // Use setTimeout to measure render time
+      setTimeout(() => {
+        perfAnalyzer.end('fetchArticles');
+        perfAnalyzer.printReport();
+      }, 0);
+
     } catch (err) {
       setError('Có lỗi xảy ra khi tải dữ liệu');
+      console.error('Frontend: Error fetching articles:', err);
+      perfAnalyzer.end('fetchArticles');
     }
   }, [currentPage, filters]);
 
@@ -118,17 +134,26 @@ export default function AdminArticles() {
   // Initial load
   useEffect(() => {
     const loadData = async () => {
+      perfAnalyzer.clear(); // Clear previous metrics
+      perfAnalyzer.start('pageLoad');
+
       setIsLoading(true);
+
+      perfAnalyzer.start('parallelDataLoad');
       await Promise.all([
         fetchArticles(1),
         fetchStats()
       ]);
+      perfAnalyzer.end('parallelDataLoad');
+
       setIsLoading(false);
+      perfAnalyzer.end('pageLoad');
     };
 
     loadData();
 
     // Trigger preloads on component mount
+    perfAnalyzer.mark('preloadTriggers');
     categoriesPreloadTriggers.onAppInit();
     authorsPreloadTriggers.onAppInit();
     tagsPreloadTriggers.onAppInit();
@@ -732,12 +757,12 @@ export default function AdminArticles() {
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tìm kiếm</label>
-            <input
-              type="text"
+            <SearchInput
               value={filters.search || ''}
-              onChange={(e) => handleFilterChange({ search: e.target.value })}
-              placeholder="Tiêu đề, tác giả, tags..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              onChange={(value) => handleFilterChange({ search: value })}
+              placeholder="Tiêu đề, nội dung, tác giả, tags..."
+              isLoading={isLoading}
+              onClear={() => handleFilterChange({ search: '' })}
             />
           </div>
 
@@ -785,6 +810,16 @@ export default function AdminArticles() {
           </div>
         </div>
       </div>
+
+      {/* Search Stats */}
+      <SearchStats
+        searchTerm={filters.search || ''}
+        totalResults={articlesData?.total || 0}
+        currentPage={currentPage}
+        totalPages={articlesData?.totalPages || 1}
+        isLoading={isLoading}
+        className="mb-4"
+      />
 
       {/* Bulk Actions */}
       <AnimatePresence>
@@ -924,7 +959,10 @@ export default function AdminArticles() {
                           />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
-                              {article.title}
+                              <SearchHighlight
+                                text={article.title}
+                                searchTerm={filters.search || ''}
+                              />
                             </div>
                             {/* Category info for mobile */}
                             <div className="sm:hidden mt-2 flex items-center">
@@ -973,7 +1011,7 @@ export default function AdminArticles() {
                                       key={index}
                                       className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
                                     >
-                                      {tag}
+                                      {typeof tag === 'string' ? tag : tag.name || tag}
                                     </span>
                                   ))}
                                   {(article.tags || []).length > 3 && (

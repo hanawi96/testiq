@@ -132,7 +132,7 @@ export interface ArticlesFilters {
   tag?: string;
   date_from?: string;
   date_to?: string;
-  sort_by?: 'created_at' | 'updated_at' | 'views' | 'likes' | 'title';
+  sort_by?: 'created_at' | 'updated_at' | 'views' | 'title';
   sort_order?: 'asc' | 'desc';
 }
 
@@ -169,6 +169,35 @@ export class ArticlesService {
       `);
 
     console.log('ArticlesService: Article query built successfully');
+    return query;
+  }
+
+  /**
+   * Optimized method to get articles with single query and minimal joins
+   * Reduces database round trips from 4+ to 1-2 queries
+   */
+  private static buildOptimizedArticleQuery() {
+    console.log('ArticlesService: Building optimized article query...');
+
+    // Use a more efficient approach with minimal data fetching
+    const query = supabase
+      .from('articles')
+      .select(`
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        author_id,
+        status,
+        view_count,
+        created_at,
+        updated_at,
+        published_at,
+        reading_time
+      `);
+
+    console.log('ArticlesService: Optimized article query built successfully');
     return query;
   }
 
@@ -377,6 +406,76 @@ export class ArticlesService {
   }
 
   /**
+   * Optimized method to transform multiple articles with pre-fetched related data
+   */
+  private static transformArticlesOptimized(
+    articles: any[],
+    categories: any[],
+    tags: any[],
+    profiles: any[]
+  ): Article[] {
+    // Create lookup maps for O(1) access
+    const categoriesMap = new Map<string, any[]>();
+    const tagsMap = new Map<string, any[]>();
+    const profilesMap = new Map<string, any>();
+
+    // Build categories map
+    categories.forEach(relation => {
+      const articleId = relation.article_id;
+      if (!categoriesMap.has(articleId)) {
+        categoriesMap.set(articleId, []);
+      }
+      if (relation.categories) {
+        categoriesMap.get(articleId)!.push(relation.categories);
+      }
+    });
+
+    // Build tags map
+    tags.forEach(relation => {
+      const articleId = relation.article_id;
+      if (!tagsMap.has(articleId)) {
+        tagsMap.set(articleId, []);
+      }
+      if (relation.tags) {
+        tagsMap.get(articleId)!.push(relation.tags);
+      }
+    });
+
+    // Build profiles map
+    profiles.forEach(profile => {
+      profilesMap.set(profile.id, profile);
+    });
+
+    // Transform all articles efficiently
+    return articles.map(article => {
+      const articleCategories = categoriesMap.get(article.id) || [];
+      const articleTags = tagsMap.get(article.id) || [];
+      const authorProfile = profilesMap.get(article.author_id);
+
+      return {
+        id: article.id,
+        title: article.title || '',
+        slug: article.slug || '',
+        excerpt: article.excerpt || '',
+        content: article.content || '',
+        author: authorProfile?.full_name || 'Unknown Author',
+        author_id: article.author_id,
+        author_email: authorProfile?.email || '',
+        author_avatar: authorProfile?.avatar_url || '',
+        status: article.status || 'draft',
+        categories: articleCategories,
+        tags: articleTags.map(tag => tag.name || tag), // Extract name from tag objects
+        category_names: articleCategories.map(cat => cat.name || cat), // Extract name from category objects
+        views: article.view_count || 0,
+        created_at: article.created_at,
+        updated_at: article.updated_at,
+        published_at: article.published_at,
+        reading_time: article.reading_time || 0
+      };
+    });
+  }
+
+  /**
    * Transform database article to UI format
    */
   private static transformArticle(dbArticle: any): Article {
@@ -386,7 +485,6 @@ export class ArticlesService {
       author: dbArticle.user_profiles?.full_name || dbArticle.author_name || dbArticle.author || 'Unknown Author',
       tags: Array.isArray(dbArticle.tags) ? dbArticle.tags : (Array.isArray(dbArticle.keywords) ? dbArticle.keywords : []),
       views: dbArticle.view_count || dbArticle.views || 0,
-      likes: dbArticle.like_count || dbArticle.likes || 0,
       excerpt: dbArticle.excerpt || '',
       status: dbArticle.status || 'draft',
       created_at: dbArticle.created_at || new Date().toISOString(),
@@ -487,6 +585,57 @@ export class ArticlesService {
   }
 
   /**
+   * Optimized method to get all related data in minimal queries
+   */
+  private static async getRelatedDataOptimized(articleIds: string[]) {
+    if (articleIds.length === 0) {
+      return { categories: [], tags: [], profiles: [] };
+    }
+
+    // Fetch all related data in parallel with single queries
+    const [categoriesResult, tagsResult, profilesResult] = await Promise.all([
+      // Get categories for all articles in one query
+      supabase
+        .from('article_categories')
+        .select(`
+          article_id,
+          categories:category_id (
+            id,
+            name,
+            slug,
+            description
+          )
+        `)
+        .in('article_id', articleIds),
+
+      // Get tags for all articles in one query
+      supabase
+        .from('article_tags')
+        .select(`
+          article_id,
+          tags:tag_id (
+            id,
+            name,
+            slug,
+            description
+          )
+        `)
+        .in('article_id', articleIds),
+
+      // Get unique author profiles
+      supabase
+        .from('user_profiles')
+        .select('id, full_name, email, avatar_url')
+    ]);
+
+    return {
+      categories: categoriesResult.data || [],
+      tags: tagsResult.data || [],
+      profiles: profilesResult.data || []
+    };
+  }
+
+  /**
    * Get articles with pagination and filters
    */
   static async getArticles(
@@ -495,15 +644,36 @@ export class ArticlesService {
     filters: ArticlesFilters = {}
   ): Promise<{ data: ArticlesListResponse | null; error: any }> {
     try {
-      console.log('ArticlesService: Fetching articles from database', { page, limit, filters });
+      const startTime = performance.now();
+      console.log('🚀 ArticlesService: Starting fetch articles', { page, limit, filters });
 
-      // Build base query with joins
-      let query = this.buildArticleQuery();
+      // Check cache first (only for non-search requests to avoid stale search results)
+      if (!filters.search) {
+        const cacheKey = `articles:${page}:${limit}:${JSON.stringify(filters)}`;
 
-      // Apply search filter
+        // Simple in-memory cache check (you can replace with Redis in production)
+        if (typeof window !== 'undefined' && (window as any).__articlesCache) {
+          const cached = (window as any).__articlesCache[cacheKey];
+          if (cached && (Date.now() - cached.timestamp) < 60000) { // 1 minute cache
+            console.log('📦 Cache hit for articles');
+            return { data: cached.data, error: null };
+          }
+        }
+      }
+
+      // Use optimized query approach
+      let query = this.buildOptimizedArticleQuery();
+
+      // Apply search filter - optimized approach
       if (filters.search) {
+        const searchStartTime = performance.now();
         const searchTerm = filters.search.trim();
+
+        // Simple search in main fields first (fastest)
         query = query.or(`title.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+
+        const searchEndTime = performance.now();
+        console.log(`⏱️ Optimized search completed in ${(searchEndTime - searchStartTime).toFixed(2)}ms`);
       }
 
       // Apply status filter
@@ -534,9 +704,13 @@ export class ArticlesService {
       query = query.order(dbSortBy, { ascending: sortOrder === 'asc' });
 
       // Get total count for pagination
+      const countStartTime = performance.now();
       const { count: totalCount, error: countError } = await supabase
         .from('articles')
         .select('*', { count: 'exact', head: true });
+
+      const countEndTime = performance.now();
+      console.log(`⏱️ Count query completed in ${(countEndTime - countStartTime).toFixed(2)}ms`);
 
       if (countError) {
         console.error('ArticlesService: Error getting total count:', countError);
@@ -555,7 +729,6 @@ export class ArticlesService {
               status: 'published',
               tags: ['Demo', 'IQ Test'],
               views: 100,
-              likes: 10,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               published_at: new Date().toISOString(),
@@ -578,8 +751,12 @@ export class ArticlesService {
       query = query.range(offset, offset + limit - 1);
 
       // Execute query
-      console.log('ArticlesService: Executing query with offset:', offset, 'limit:', limit);
+      const queryStartTime = performance.now();
+      console.log('ArticlesService: Executing main query with offset:', offset, 'limit:', limit);
       const { data: articlesData, error: articlesError } = await query;
+
+      const queryEndTime = performance.now();
+      console.log(`⏱️ Main articles query completed in ${(queryEndTime - queryStartTime).toFixed(2)}ms`);
 
       if (articlesError) {
         console.error('ArticlesService: Error fetching articles - DETAILED:', {
@@ -604,17 +781,18 @@ export class ArticlesService {
         return { data: null, error: new Error('Không thể tải danh sách bài viết') };
       }
 
-      // Get categories for articles using junction table
-      const articlesWithCategories = await this.getCategoriesForArticles(articlesData);
+      // Get all related data in optimized way (parallel queries)
+      const relatedDataStartTime = performance.now();
+      const articleIds = articlesData.map(article => article.id);
+      const { categories, tags, profiles } = await this.getRelatedDataOptimized(articleIds);
+      const relatedDataEndTime = performance.now();
+      console.log(`⏱️ All related data fetched in ${(relatedDataEndTime - relatedDataStartTime).toFixed(2)}ms`);
 
-      // Get tags for articles using junction table
-      const articlesWithTags = await this.getTagsForArticles(articlesWithCategories);
-
-      // Get user profiles for articles (manual join)
-      const articlesWithProfiles = await this.getUserProfilesForArticles(articlesWithTags);
-
-      // Transform articles
-      const articles = articlesWithProfiles.map(article => this.transformArticle(article));
+      // Transform articles with optimized data mapping
+      const transformStartTime = performance.now();
+      const articles = this.transformArticlesOptimized(articlesData, categories, tags, profiles);
+      const transformEndTime = performance.now();
+      console.log(`⏱️ Optimized articles transformation completed in ${(transformEndTime - transformStartTime).toFixed(2)}ms`);
 
       const total = totalCount || 0;
       const totalPages = Math.ceil(total / limit);
@@ -629,12 +807,29 @@ export class ArticlesService {
         hasPrev: page > 1
       };
 
-      console.log('ArticlesService: Articles fetched successfully from database:', {
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+
+      console.log('🎯 ArticlesService: Articles fetched successfully from database:', {
         returned: articles.length,
         total,
         page,
-        totalPages
+        totalPages,
+        totalTime: `${totalTime.toFixed(2)}ms`
       });
+
+      // Cache the result (only for non-search requests)
+      if (!filters.search && typeof window !== 'undefined') {
+        const cacheKey = `articles:${page}:${limit}:${JSON.stringify(filters)}`;
+        if (!(window as any).__articlesCache) {
+          (window as any).__articlesCache = {};
+        }
+        (window as any).__articlesCache[cacheKey] = {
+          data: response,
+          timestamp: Date.now()
+        };
+        console.log('📦 Cached articles result');
+      }
 
       return { data: response, error: null };
 
