@@ -760,7 +760,7 @@ export default function AdminArticles() {
             <SearchInput
               value={filters.search || ''}
               onChange={(value) => handleFilterChange({ search: value })}
-              placeholder="Tiêu đề, nội dung, tác giả, tags..."
+              placeholder="Tiêu đề, tác giả, danh mục, tags..."
               isLoading={isLoading}
               onClear={() => handleFilterChange({ search: '' })}
             />

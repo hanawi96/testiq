@@ -664,16 +664,62 @@ export class ArticlesService {
       // Use optimized query approach
       let query = this.buildOptimizedArticleQuery();
 
-      // Apply search filter - optimized approach
+      // Apply search filter - comprehensive search in title, author, categories, and tags
       if (filters.search) {
         const searchStartTime = performance.now();
         const searchTerm = filters.search.trim();
 
-        // Simple search in main fields first (fastest)
-        query = query.or(`title.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+        // Get article IDs that match tag search
+        const { data: tagMatches } = await supabase
+          .from('article_tags')
+          .select('article_id, tags!inner(name)')
+          .ilike('tags.name', `%${searchTerm}%`);
+
+        const tagArticleIds = tagMatches?.map(t => t.article_id) || [];
+
+        // Get article IDs that match category search
+        const { data: categoryMatches } = await supabase
+          .from('article_categories')
+          .select('article_id, categories!inner(name)')
+          .ilike('categories.name', `%${searchTerm}%`);
+
+        const categoryArticleIds = categoryMatches?.map(c => c.article_id) || [];
+
+        // Get author IDs that match author search
+        const { data: authorMatches } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .ilike('full_name', `%${searchTerm}%`);
+
+        const authorIds = authorMatches?.map(a => a.id) || [];
+
+        // Build comprehensive search query
+        const searchConditions = [
+          `title.ilike.%${searchTerm}%`  // Search in title
+        ];
+
+        // Add author-based search if found
+        if (authorIds.length > 0) {
+          searchConditions.push(`author_id.in.(${authorIds.join(',')})`);
+        }
+
+        // Add tag-based article IDs if found
+        if (tagArticleIds.length > 0) {
+          searchConditions.push(`id.in.(${tagArticleIds.join(',')})`);
+        }
+
+        // Add category-based article IDs if found
+        if (categoryArticleIds.length > 0) {
+          searchConditions.push(`id.in.(${categoryArticleIds.join(',')})`);
+        }
+
+        // Apply search with OR conditions
+        if (searchConditions.length > 0) {
+          query = query.or(searchConditions.join(','));
+        }
 
         const searchEndTime = performance.now();
-        console.log(`⏱️ Optimized search completed in ${(searchEndTime - searchStartTime).toFixed(2)}ms`);
+        console.log(`⏱️ Comprehensive search completed in ${(searchEndTime - searchStartTime).toFixed(2)}ms`);
       }
 
       // Apply status filter
