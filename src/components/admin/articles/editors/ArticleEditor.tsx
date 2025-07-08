@@ -44,18 +44,26 @@ const FALLBACK_AUTHORS = [
 
 
 export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEditorProps) {
-  // Get article ID from props or URL params
-  const [currentArticleId, setCurrentArticleId] = useState<string | null>(() => {
-    if (articleId) return articleId;
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('id');
-    }
-    return null;
-  });
+  // State để track khi component đã mount (tránh hydration mismatch)
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Determine if we're in edit mode (có articleId từ props HOẶC URL)
-  const isEditMode = !!(articleId || currentArticleId);
+  // Get article ID from props or URL params (chỉ sau khi mount)
+  const [currentArticleId, setCurrentArticleId] = useState<string | null>(articleId || null);
+
+  // Determine if we're in edit mode (chỉ sau khi mount để tránh hydration mismatch)
+  const isEditMode = isMounted && !!(articleId || currentArticleId);
+
+  // Effect để set mounted state và get URL params
+  useEffect(() => {
+    setIsMounted(true);
+    if (!articleId) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const idFromUrl = urlParams.get('id');
+      if (idFromUrl) {
+        setCurrentArticleId(idFromUrl);
+      }
+    }
+  }, [articleId]);
 
   // Article data for edit mode
   const [article, setArticle] = useState<Article | null>(null);
@@ -126,7 +134,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
               slug: data.slug || '',
               status: data.status || 'draft',
               focus_keyword: data.focus_keyword || '',
-              categories: data.categories || [],
+              categories: data.category_ids || [], // Use category_ids array for checkboxes
               tags: data.tags || [],
               featured_image: data.cover_image || '',
               cover_image_alt: data.cover_image_alt || '',
@@ -608,10 +616,10 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  {isEditMode ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
+                  {!isMounted ? 'Đang tải...' : isEditMode ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {isEditMode ? 'Cập nhật và quản lý nội dung' : 'Viết và xuất bản nội dung chất lượng'}
+                  {!isMounted ? 'Đang khởi tạo trình soạn thảo' : isEditMode ? 'Cập nhật và quản lý nội dung' : 'Viết và xuất bản nội dung chất lượng'}
                 </p>
               </div>
             </div>
@@ -942,22 +950,38 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
                     <p className="text-sm text-gray-500 dark:text-gray-400">Không có danh mục nào</p>
                   </div>
                 ) : (
-                  categories.map((cat) => (
-                    <label
-                      key={cat.id}
-                      className="flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.categories.includes(cat.id)}
-                        onChange={() => handleCategoryToggle(cat.id)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded"
-                      />
-                      <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {cat.name}
-                      </span>
-                    </label>
-                  ))
+                  categories.map((cat) => {
+                    const isSelected = formData.categories.includes(cat.id);
+                    return (
+                      <label
+                        key={cat.id}
+                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                            : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleCategoryToggle(cat.id)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className={`ml-3 text-sm font-medium transition-colors ${
+                          isSelected
+                            ? 'text-blue-900 dark:text-blue-200'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}>
+                          {cat.name}
+                        </span>
+                        {isSelected && (
+                          <svg className="ml-auto w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </label>
+                    );
+                  })
                 )}
               </div>
 

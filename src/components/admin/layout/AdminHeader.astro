@@ -273,10 +273,21 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
         // Import centralized Supabase client
         const { supabase } = await import('@/backend');
 
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        // Get current user (silent check)
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-        if (!user) throw new Error('No user found');
+        // If no user or error, use fallback silently
+        if (!user || userError) {
+          console.log('AdminHeader: No authenticated user, using fallback');
+          const fallbackEmail = localStorage.getItem('admin_email') || 'admin@example.com';
+          const fallbackName = fallbackEmail.split('@')[0];
+
+          if (adminAvatar) adminAvatar.textContent = fallbackName.charAt(0).toUpperCase();
+          if (adminName) adminName.textContent = fallbackName;
+          if (adminEmail) adminEmail.textContent = fallbackEmail;
+          if (adminRole) adminRole.textContent = 'Quản trị viên';
+          return;
+        }
 
         // Get user profile
         const { data: profile } = await supabase
@@ -298,9 +309,9 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
         if (adminRole) adminRole.textContent = adminInfo.role === 'admin' ? 'Quản trị viên' : adminInfo.role;
 
       } catch (error) {
-        console.error('AdminHeader: Error fetching admin info:', error);
+        console.log('AdminHeader: Using fallback admin info');
 
-        // Fallback to localStorage
+        // Fallback to localStorage (silent)
         const fallbackEmail = localStorage.getItem('admin_email') || 'admin@example.com';
         const fallbackName = fallbackEmail.split('@')[0];
 
