@@ -1,0 +1,269 @@
+/* Article Editor Optimizations */
+
+/* Smooth transitions for layout changes */
+.article-editor-container {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Sticky header optimizations */
+.article-editor-header {
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.dark .article-editor-header {
+  background-color: rgba(31, 41, 55, 0.95);
+}
+
+/* Content editor height optimization */
+.article-content-editor {
+  min-height: 600px;
+}
+
+/* Sidebar sticky positioning */
+.article-sidebar-sticky {
+  position: sticky;
+  top: 6rem; /* 24 * 0.25rem = 6rem */
+  max-height: calc(100vh - 8rem);
+  overflow-y: auto;
+}
+
+/* Consistent spacing for sidebar sections */
+.article-editor .space-y-6 > * + * {
+  margin-top: 1.5rem !important;
+}
+
+/* Responsive grid optimizations - Force 2 column layout */
+.article-editor-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start; /* Align items to start to prevent stretching */
+}
+
+@media (min-width: 1024px) {
+  .article-editor-main {
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  .article-editor-main {
+    grid-template-columns: 2.5fr 1fr;
+    gap: 2.5rem;
+  }
+
+  .article-content-editor {
+    min-height: 700px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .article-editor-main {
+    grid-template-columns: 3fr 1fr;
+    gap: 3rem;
+  }
+
+  .article-content-editor {
+    min-height: 800px;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 1023px) {
+  .article-sidebar-sticky {
+    position: static;
+    max-height: none;
+  }
+
+  .article-editor-main {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  /* Stack sidebar content in logical order on mobile */
+  .article-editor-main > div:nth-child(2) {
+    order: 1;
+  }
+
+  .article-editor-main > div:nth-child(1) {
+    order: 2;
+  }
+}
+
+/* Form input focus states - minimalist */
+.article-editor input:focus,
+.article-editor textarea:focus,
+.article-editor select:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: rgb(59 130 246); /* blue-500 */
+}
+
+.dark .article-editor input:focus,
+.dark .article-editor textarea:focus,
+.dark .article-editor select:focus {
+  border-color: rgb(96 165 250); /* blue-400 */
+}
+
+/* Smooth hover transitions */
+.article-editor button,
+.article-editor .hover-transition {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Save status indicators */
+.save-indicator {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading states */
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Category and tag selection improvements */
+.category-checkbox:checked {
+  background-color: rgb(59 130 246);
+  border-color: rgb(59 130 246);
+}
+
+.tag-badge {
+  transition: all 0.2s ease-in-out;
+}
+
+.tag-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .tag-badge:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* SEO score progress bar animation */
+.seo-progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+/* Publish box enhancements */
+.publish-box {
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease-in-out;
+}
+
+.publish-box:hover {
+  border-color: rgb(59 130 246);
+}
+
+.dark .publish-box:hover {
+  border-color: rgb(96 165 250);
+}
+
+/* Content area focus mode */
+.content-focus-mode {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.dark .content-focus-mode {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Keyboard shortcut hints */
+.keyboard-hint {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Auto-save indicator pulse */
+.auto-save-pulse {
+  animation: autosavePulse 2s ease-in-out infinite;
+}
+
+@keyframes autosavePulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Improved scrollbar for sidebar */
+.article-sidebar-sticky::-webkit-scrollbar {
+  width: 6px;
+}
+
+.article-sidebar-sticky::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.article-sidebar-sticky::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.article-sidebar-sticky::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+.dark .article-sidebar-sticky::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .article-sidebar-sticky::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Performance optimizations */
+.article-editor * {
+  box-sizing: border-box;
+}
+
+.article-editor img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent layout shift */
+.article-editor .skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.dark .article-editor .skeleton {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
