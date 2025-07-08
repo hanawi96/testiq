@@ -351,16 +351,62 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
 
 
 
+  // Hàm xử lý bulk tag input với comma separation
+  const processBulkTags = (input: string): { validTags: string[], duplicates: string[] } => {
+    // Tách tags bằng dấu phẩy
+    const rawTags = input.split(',');
+    const validTags: string[] = [];
+    const duplicates: string[] = [];
+
+    rawTags.forEach(tag => {
+      // Trim whitespace và chuyển thành lowercase
+      const cleanTag = tag.trim().toLowerCase();
+
+      // Bỏ qua tag trống hoặc chỉ chứa khoảng trắng
+      if (!cleanTag) return;
+
+      // Kiểm tra độ dài tag (giới hạn 50 ký tự)
+      if (cleanTag.length > 50) return;
+
+      // Kiểm tra duplicate trong existing tags
+      if (formData.tags.includes(cleanTag)) {
+        duplicates.push(cleanTag);
+        return;
+      }
+
+      // Kiểm tra duplicate trong batch hiện tại
+      if (validTags.includes(cleanTag)) {
+        return;
+      }
+
+      validTags.push(cleanTag);
+    });
+
+    return { validTags, duplicates };
+  };
+
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
-      const newTag = tagInput.trim().toLowerCase();
-      if (!formData.tags.includes(newTag)) {
+
+      const { validTags, duplicates } = processBulkTags(tagInput);
+
+      // Thêm valid tags vào formData
+      if (validTags.length > 0) {
         setFormData(prev => ({
           ...prev,
-          tags: [...prev.tags, newTag]
+          tags: [...prev.tags, ...validTags]
         }));
       }
+
+      // Hiển thị feedback cho duplicate tags
+      if (duplicates.length > 0) {
+        // Tạo temporary feedback message
+        const duplicateMessage = `Tag đã tồn tại: ${duplicates.join(', ')}`;
+        setSaveStatus(`⚠️ ${duplicateMessage}`);
+        setTimeout(() => setSaveStatus(''), 3000);
+      }
+
       setTagInput('');
     }
   };
@@ -1022,19 +1068,29 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleAddTag}
-                    placeholder="Nhập tag và nhấn Enter..."
+                    placeholder="Nhập tag (phân tách bằng dấu phẩy) và nhấn Enter..."
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <button
                     onClick={() => {
                       if (tagInput.trim()) {
-                        const newTag = tagInput.trim().toLowerCase();
-                        if (!formData.tags.includes(newTag)) {
+                        const { validTags, duplicates } = processBulkTags(tagInput);
+
+                        // Thêm valid tags vào formData
+                        if (validTags.length > 0) {
                           setFormData(prev => ({
                             ...prev,
-                            tags: [...prev.tags, newTag]
+                            tags: [...prev.tags, ...validTags]
                           }));
                         }
+
+                        // Hiển thị feedback cho duplicate tags
+                        if (duplicates.length > 0) {
+                          const duplicateMessage = `Tag đã tồn tại: ${duplicates.join(', ')}`;
+                          setSaveStatus(`⚠️ ${duplicateMessage}`);
+                          setTimeout(() => setSaveStatus(''), 3000);
+                        }
+
                         setTagInput('');
                       }
                     }}
