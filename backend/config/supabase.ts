@@ -77,6 +77,8 @@ export const TABLES = {
   QUESTIONS: 'questions',
   CATEGORIES: 'categories',
   ARTICLES: 'articles',
+  TAGS: 'tags',
+  ARTICLE_TAGS: 'article_tags',
   COUNTRIES: 'countries',
   ANONYMOUS_PLAYERS: 'anonymous_players',
 } as const;

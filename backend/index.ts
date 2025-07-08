@@ -8,6 +8,7 @@ export { AdminService } from './admin/service';
 export { ResultsService } from './admin/results-service';
 export { ArticlesService } from './admin/articles-service';
 export { CategoriesService } from './admin/categories-service';
+export { TagsService } from './admin/tags-service';
 export { MediaService } from './admin/media-service';
 export { UserProfilesService } from './admin/user-profiles-service';
 
@@ -25,6 +26,7 @@ export type { UserWithProfile, UsersListResponse, UsersFilters, CreateUserData, 
 export type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from './admin/results-service';
 export type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from './admin/articles-service';
 export type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from './admin/categories-service';
+export type { Tag, TagStats, TagsFilters, TagsListResponse } from './admin/tags-service';
 export type { MediaFile, MediaFolder, MediaStats, MediaFilters, MediaListResponse } from './admin/media-service';
 export type { UserProfile, AuthorOption } from './admin/user-profiles-service';
 export type { AdminStats, AdminAction, WeeklyNewUsersStats, TestTimeRange } from './types';
