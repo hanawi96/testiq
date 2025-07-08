@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { AuthService, TagsService } from '../../../../backend';
+import { generateSlug } from '../../../utils/slug-generator';
 
 export default function TagCreate() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
+    title: '',
     description: '',
+    slug: '',
     color: '#EF4444'
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isSlugGenerating, setIsSlugGenerating] = useState(false);
+
+  // Auto-generate slug only on initial input (when both name and slug are being set for first time)
+  useEffect(() => {
+    if (formData.name && !formData.slug) {
+      const slug = generateSlug(formData.name);
+      setFormData(prev => ({ ...prev, slug }));
+    }
+  }, [formData.name]);
 
   // Authentication check
   useEffect(() => {
@@ -46,6 +58,7 @@ export default function TagCreate() {
       // Create tag
       const { data, error: createError } = await TagsService.createTag({
         name: formData.name.trim(),
+        title: formData.title.trim() || undefined,
         description: formData.description.trim() || undefined,
         color: formData.color
       });
@@ -60,9 +73,12 @@ export default function TagCreate() {
         // Reset form
         setFormData({
           name: '',
+          title: '',
           description: '',
+          slug: '',
           color: '#EF4444'
         });
+
         
         // Redirect after 2 seconds
         setTimeout(() => {
@@ -79,10 +95,28 @@ export default function TagCreate() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: value
     }));
+  };
+
+  // Handle manual slug generation
+  const handleGenerateSlug = () => {
+    if (!formData.name.trim()) {
+      setError('Vui lòng nhập tên tag trước khi tạo slug');
+      return;
+    }
+
+    setIsSlugGenerating(true);
+
+    // Add slight delay for visual feedback
+    setTimeout(() => {
+      const newSlug = generateSlug(formData.name);
+      setFormData(prev => ({ ...prev, slug: newSlug }));
+      setIsSlugGenerating(false);
+    }, 200);
   };
 
   if (isAuthChecking) {
@@ -161,6 +195,73 @@ export default function TagCreate() {
             />
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Tên tag sẽ được hiển thị công khai
+            </p>
+          </div>
+
+          {/* Slug */}
+          <div>
+            <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Slug
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                id="slug"
+                name="slug"
+                value={formData.slug}
+                onChange={handleChange}
+                placeholder="tag-slug"
+                className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={handleGenerateSlug}
+                disabled={isLoading || isSlugGenerating || !formData.name.trim()}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Tạo slug từ tên tag"
+              >
+                <svg
+                  className={`w-5 h-5 ${isSlugGenerating ? 'animate-spin' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              URL-friendly version của tên tag. Click
+              <svg className="w-4 h-4 inline mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              để tạo từ tên tag
+            </p>
+          </div>
+
+          {/* SEO Title */}
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              SEO Title
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="Tiêu đề tối ưu cho SEO..."
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              disabled={isLoading}
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Tiêu đề này sẽ được sử dụng cho SEO meta tags và tối ưu hóa tìm kiếm
             </p>
           </div>
 

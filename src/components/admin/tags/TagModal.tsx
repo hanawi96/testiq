@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TagsService } from '../../../../backend';
 import type { Tag } from '../../../../backend';
+import { generateSlug } from '../../../utils/slug-generator';
 
 interface TagModalProps {
   isOpen: boolean;
@@ -14,12 +15,14 @@ interface TagModalProps {
 export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdate, tag }: TagModalProps) {
   const [formData, setFormData] = useState({
     name: '',
+    title: '',
     description: '',
     slug: '',
     color: '#EF4444'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSlugGenerating, setIsSlugGenerating] = useState(false);
 
   const isEdit = !!tag;
 
@@ -30,6 +33,7 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
         // Edit mode - populate with existing data
         setFormData({
           name: tag.name,
+          title: tag.title || '',
           description: tag.description || '',
           slug: tag.slug,
           color: tag.color
@@ -38,6 +42,7 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
         // Create mode - reset form
         setFormData({
           name: '',
+          title: '',
           description: '',
           slug: '',
           color: '#EF4444'
@@ -47,15 +52,10 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
     }
   }, [isOpen, tag]);
 
-  // Auto-generate slug from name
+  // Auto-generate slug only on initial create (when both name and slug are being set for first time)
   useEffect(() => {
-    if (!isEdit && formData.name) {
-      const slug = formData.name
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+    if (!isEdit && formData.name && !formData.slug) {
+      const slug = generateSlug(formData.name);
       setFormData(prev => ({ ...prev, slug }));
     }
   }, [formData.name, isEdit]);
@@ -63,6 +63,23 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Handle manual slug generation
+  const handleGenerateSlug = () => {
+    if (!formData.name.trim()) {
+      setError('Vui lòng nhập tên tag trước khi tạo slug');
+      return;
+    }
+
+    setIsSlugGenerating(true);
+
+    // Add slight delay for visual feedback
+    setTimeout(() => {
+      const newSlug = generateSlug(formData.name);
+      setFormData(prev => ({ ...prev, slug: newSlug }));
+      setIsSlugGenerating(false);
+    }, 200);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,6 +103,7 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
       if (isEdit && onOptimisticUpdate) {
         onOptimisticUpdate({
           name: formData.name.trim(),
+          title: formData.title.trim() || null,
           description: formData.description.trim() || null,
           slug: formData.slug.trim(),
           color: formData.color
@@ -101,6 +119,7 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
         console.log('TagModal: Updating tag:', tag.id, formData);
         result = await TagsService.updateTag(tag.id, {
           name: formData.name.trim(),
+          title: formData.title.trim(),
           description: formData.description.trim(),
           slug: formData.slug.trim(),
           color: formData.color
@@ -110,6 +129,7 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
         console.log('TagModal: Creating tag:', formData);
         result = await TagsService.createTag({
           name: formData.name.trim(),
+          title: formData.title.trim() || undefined,
           description: formData.description.trim() || undefined,
           color: formData.color
         });
@@ -204,24 +224,71 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
               />
             </div>
 
+            {/* SEO Title */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                SEO Title
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Tiêu đề tối ưu SEO..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Tiêu đề này sẽ được sử dụng cho SEO và meta tags
+              </p>
+            </div>
+
             {/* Slug */}
             <div>
               <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Slug *
               </label>
-              <input
-                type="text"
-                id="slug"
-                name="slug"
-                required
-                value={formData.slug}
-                onChange={handleInputChange}
-                placeholder="tag-slug"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  id="slug"
+                  name="slug"
+                  required
+                  value={formData.slug}
+                  onChange={handleInputChange}
+                  placeholder="tag-slug"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateSlug}
+                  disabled={isLoading || isSlugGenerating || !formData.name.trim()}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="Tạo slug từ tên tag"
+                >
+                  <svg
+                    className={`w-4 h-4 ${isSlugGenerating ? 'animate-spin' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                URL-friendly version của tên tag
+                URL-friendly version của tên tag. Click
+                <svg className="w-3 h-3 inline mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                để tạo từ tên tag
               </p>
             </div>
 

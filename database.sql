@@ -395,7 +395,7 @@ execute FUNCTION update_category_article_count ();
 
 
 
--- tags
+-- article_tags
 create table public.article_tags (
   article_id uuid not null,
   tag_id uuid not null,
@@ -404,6 +404,8 @@ create table public.article_tags (
   constraint article_tags_tag_id_fkey foreign KEY (tag_id) references tags (id) on delete CASCADE
 ) TABLESPACE pg_default;
 
+
+-- tags
 create table public.tags (
   id uuid not null default gen_random_uuid (),
   name text not null,
@@ -412,9 +414,13 @@ create table public.tags (
   color text null default '#EF4444'::text,
   usage_count integer null default 0,
   created_at timestamp with time zone null default now(),
+  title text null,
   constraint tags_pkey primary key (id),
   constraint tags_name_key unique (name),
-  constraint tags_slug_key unique (slug)
+  constraint tags_slug_key unique (slug),
+  constraint tags_usage_count_check check ((usage_count >= 0))
 ) TABLESPACE pg_default;
 
 create index IF not exists idx_tags_slug on public.tags using btree (slug) TABLESPACE pg_default;
+
+create index IF not exists idx_tags_usage_count on public.tags using btree (usage_count desc) TABLESPACE pg_default;

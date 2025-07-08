@@ -1,10 +1,12 @@
 import { supabase } from '../config/supabase';
+import { generateSlug } from '../../src/utils/slug-generator';
 
 // Types
 export interface Tag {
   id: string;
   name: string;
   slug: string;
+  title: string | null;
   description: string | null;
   color: string;
   usage_count: number;
@@ -52,7 +54,7 @@ export class TagsService {
       // Apply search filter
       if (filters.search) {
         const searchTerm = filters.search.trim();
-        query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`);
+        query = query.or(`name.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`);
       }
 
       // Get total count
@@ -146,15 +148,10 @@ export class TagsService {
   }
 
   /**
-   * Generate slug from name
+   * Generate slug from name with Vietnamese diacritics support
    */
   private static generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '') // Remove special characters
-      .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
-      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    return generateSlug(name);
   }
 
   /**
@@ -162,6 +159,7 @@ export class TagsService {
    */
   static async createTag(data: {
     name: string;
+    title?: string;
     description?: string;
     color?: string;
   }): Promise<{ data: Tag | null; error: any }> {
@@ -196,6 +194,7 @@ export class TagsService {
         .insert({
           name,
           slug,
+          title: data.title?.trim() || null,
           description: data.description?.trim() || null,
           color: data.color || '#EF4444',
           usage_count: 0
@@ -228,6 +227,7 @@ export class TagsService {
     tagId: string,
     data: Partial<{
       name: string;
+      title: string;
       description: string;
       slug: string;
       color: string;
@@ -274,8 +274,38 @@ export class TagsService {
           }
 
           updateData.name = name;
-          updateData.slug = this.generateSlug(name);
+          // Only auto-generate slug if no manual slug is provided
+          if (data.slug === undefined) {
+            updateData.slug = this.generateSlug(name);
+          }
         }
+      }
+
+      // Handle manual slug update
+      if (data.slug !== undefined) {
+        const slug = data.slug.trim();
+        if (slug !== existingTag.slug) {
+          // Check if new slug already exists
+          const { data: slugCheck, error: slugError } = await supabase
+            .from('tags')
+            .select('id')
+            .eq('slug', slug)
+            .neq('id', tagId);
+
+          if (slugError) {
+            return { data: null, error: slugError };
+          }
+
+          if (slugCheck && slugCheck.length > 0) {
+            return { data: null, error: new Error(`Slug "${slug}" đã được sử dụng`) };
+          }
+
+          updateData.slug = slug;
+        }
+      }
+
+      if (data.title !== undefined) {
+        updateData.title = data.title.trim() || null;
       }
 
       if (data.description !== undefined) {

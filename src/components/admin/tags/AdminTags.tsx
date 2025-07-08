@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { TagsService } from '../../../../backend';
 import type { Tag, TagStats, TagsFilters, TagsListResponse } from '../../../../backend';
 import TagModal from './TagModal';
-import QuickTagEditor from './QuickTagEditor';
 
 export default function AdminTags() {
   // State management
@@ -25,10 +23,6 @@ export default function AdminTags() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [quickEditor, setQuickEditor] = useState<{
-    tagId: string;
-    position: { top: number; left: number };
-  } | null>(null);
 
   // Fetch tags data
   const fetchTags = useCallback(async (page: number = currentPage) => {
@@ -138,35 +132,7 @@ export default function AdminTags() {
     }
   };
 
-  // Handle quick edit
-  const handleQuickEdit = (tagId: string, event: React.MouseEvent) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setQuickEditor({
-      tagId,
-      position: {
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX
-      }
-    });
-  };
 
-  // Handle tag update from quick editor
-  const handleTagUpdate = async (tagId: string, updatedData: Partial<Tag>) => {
-    // Optimistic update
-    if (tagsData) {
-      const updatedTags = tagsData.tags.map(tag =>
-        tag.id === tagId ? { ...tag, ...updatedData } : tag
-      );
-      setTagsData({ ...tagsData, tags: updatedTags });
-    }
-
-    // Close quick editor
-    setQuickEditor(null);
-
-    // Refresh data
-    await fetchTags(currentPage);
-    await fetchStats();
-  };
 
   if (isLoading) {
     return (
@@ -179,24 +145,13 @@ export default function AdminTags() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Quản lý Tags
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Quản lý tags cho bài viết
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Thêm Tag
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Quản lý Tags
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Quản lý tags cho bài viết
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -265,7 +220,7 @@ export default function AdminTags() {
               type="text"
               value={filters.search || ''}
               onChange={(e) => handleFilterChange({ search: e.target.value })}
-              placeholder="Tên tag, mô tả..."
+              placeholder="Tên tag, tiêu đề, mô tả..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
@@ -359,9 +314,14 @@ export default function AdminTags() {
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                             {tag.name}
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                             {tag.slug}
                           </div>
+                          {tag.title && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 truncate mt-1">
+                              SEO: {tag.title}
+                            </div>
+                          )}
                           {/* Show description on mobile when description column is hidden */}
                           <div className="md:hidden text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
                             {tag.description || ''}
@@ -386,17 +346,8 @@ export default function AdminTags() {
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-1 sm:space-x-2">
                         <button
-                          onClick={(e) => handleQuickEdit(tag.id, e)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 p-1"
-                          title="Chỉnh sửa nhanh"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
                           onClick={() => setEditingTag(tag)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 p-1"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 p-1"
                           title="Chỉnh sửa"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -476,19 +427,6 @@ export default function AdminTags() {
         }}
         tag={editingTag}
       />
-
-      {/* Quick Editor */}
-      <AnimatePresence>
-        {quickEditor && (
-          <QuickTagEditor
-            tagId={quickEditor.tagId}
-            currentTag={tagsData?.tags.find(t => t.id === quickEditor.tagId)}
-            onUpdate={handleTagUpdate}
-            onClose={() => setQuickEditor(null)}
-            position={quickEditor.position}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
