@@ -466,6 +466,7 @@ export class ArticlesService {
         categories: articleCategories,
         tags: articleTags.map(tag => tag.name || tag), // Extract name from tag objects
         category_names: articleCategories.map(cat => cat.name || cat), // Extract name from category objects
+        category_ids: articleCategories.map(cat => cat.id || cat), // Extract id from category objects
         views: article.view_count || 0,
         created_at: article.created_at,
         updated_at: article.updated_at,

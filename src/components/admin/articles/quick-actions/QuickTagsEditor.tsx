@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArticlesService } from '../../../../backend';
-import { getInstantTagsData, preloadTagsData, isTagsDataReady } from '../../../utils/admin/preloaders/tags-preloader';
+import { ArticlesService } from '../../../../../backend';
+import { getInstantTagsData, preloadTagsData, isTagsDataReady } from '../../../../utils/admin/preloaders/tags-preloader';
 
 interface QuickTagsEditorProps {
   articleId: string;

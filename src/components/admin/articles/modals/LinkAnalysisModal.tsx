@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArticlesService } from '../../../../backend';
+import { ArticlesService } from '../../../../../backend';
 
 interface LinkInfo {
   url: string;

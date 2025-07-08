@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArticlesService, CategoriesService } from '../../../../backend';
-import type { Category } from '../../../../backend';
+import { ArticlesService, CategoriesService } from '../../../../../backend';
+import type { Category } from '../../../../../backend';
 
 interface QuickCategoryEditorProps {
   articleId: string;
