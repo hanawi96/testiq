@@ -107,7 +107,12 @@ export default function AdminTags() {
   // Handle delete tag
   const handleDeleteTag = async (tagId: string) => {
     const tag = tagsData?.tags.find(t => t.id === tagId);
-    if (!tag) return;
+    if (!tag) {
+      console.error('Tag not found:', tagId);
+      return;
+    }
+
+    console.log('Attempting to delete tag:', { id: tagId, name: tag.name, usage_count: tag.usage_count });
 
     if (tag.usage_count > 0) {
       alert(`Không thể xóa tag "${tag.name}" vì có ${tag.usage_count} bài viết`);
@@ -115,18 +120,40 @@ export default function AdminTags() {
     }
 
     if (!confirm(`Bạn có chắc chắn muốn xóa tag "${tag.name}"?`)) return;
-    
+
     setIsUpdating(true);
+    setError(''); // Clear previous errors
+
     try {
-      const { error } = await TagsService.deleteTag(tagId);
-      if (!error) {
-        await fetchTags(currentPage);
-        await fetchStats();
+      console.log('Calling TagsService.deleteTag with tagId:', tagId);
+      const result = await TagsService.deleteTag(tagId);
+      console.log('Delete result:', result);
+
+      if (result.error) {
+        console.error('Delete error:', result.error);
+        const errorMessage = result.error.message || result.error.toString() || 'Không thể xóa tag';
+        setError(errorMessage);
+        alert(errorMessage);
+      } else if (result.data === true) {
+        console.log('Tag deleted successfully, refreshing data...');
+        // Optimistic update - remove tag from UI immediately
+        if (tagsData) {
+          const updatedTags = tagsData.tags.filter(t => t.id !== tagId);
+          setTagsData({ ...tagsData, tags: updatedTags, total: tagsData.total - 1 });
+        }
+
+        // Refresh data from server
+        await Promise.all([fetchTags(currentPage), fetchStats()]);
+        alert(`Tag "${tag.name}" đã được xóa thành công!`);
       } else {
-        setError('Không thể xóa tag');
+        console.error('Unexpected delete result:', result);
+        setError('Kết quả xóa không như mong đợi');
       }
-    } catch (err) {
-      setError('Có lỗi xảy ra khi xóa');
+    } catch (err: any) {
+      console.error('Exception during delete:', err);
+      const errorMessage = err?.message || 'Có lỗi xảy ra khi xóa tag';
+      setError(errorMessage);
+      alert(errorMessage);
     } finally {
       setIsUpdating(false);
     }
@@ -356,13 +383,26 @@ export default function AdminTags() {
                         </button>
                         <button
                           onClick={() => handleDeleteTag(tag.id)}
-                          disabled={tag.usage_count > 0}
+                          disabled={tag.usage_count > 0 || isUpdating}
                           className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed p-1"
-                          title={tag.usage_count > 0 ? 'Không thể xóa tag đang được sử dụng' : 'Xóa tag'}
+                          title={
+                            isUpdating
+                              ? 'Đang xử lý...'
+                              : tag.usage_count > 0
+                                ? `Không thể xóa tag đang được sử dụng trong ${tag.usage_count} bài viết`
+                                : 'Xóa tag'
+                          }
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
+                          {isUpdating ? (
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </td>

@@ -345,6 +345,29 @@ export class TagsService {
     try {
       console.log('TagsService: Deleting tag:', tagId);
 
+      // Validate input
+      if (!tagId || typeof tagId !== 'string') {
+        console.error('TagsService: Invalid tagId provided:', tagId);
+        return { data: false, error: new Error('ID tag không hợp lệ') };
+      }
+
+      // Check if tag exists
+      const { data: existingTag, error: checkError } = await supabase
+        .from('tags')
+        .select('id, name')
+        .eq('id', tagId)
+        .single();
+
+      if (checkError) {
+        console.error('TagsService: Error checking tag existence:', checkError);
+        return { data: false, error: new Error('Không thể kiểm tra tag') };
+      }
+
+      if (!existingTag) {
+        console.error('TagsService: Tag not found:', tagId);
+        return { data: false, error: new Error('Tag không tồn tại') };
+      }
+
       // Check if tag is being used
       const { count: usageCount, error: usageError } = await supabase
         .from('article_tags')
@@ -353,13 +376,14 @@ export class TagsService {
 
       if (usageError) {
         console.error('TagsService: Error checking tag usage:', usageError);
-        return { data: false, error: usageError };
+        return { data: false, error: new Error('Không thể kiểm tra việc sử dụng tag') };
       }
 
       if (usageCount && usageCount > 0) {
+        console.log(`TagsService: Tag ${tagId} is being used in ${usageCount} articles`);
         return {
           data: false,
-          error: new Error(`Không thể xóa tag vì đang được sử dụng trong ${usageCount} bài viết`)
+          error: new Error(`Không thể xóa tag "${existingTag.name}" vì đang được sử dụng trong ${usageCount} bài viết`)
         };
       }
 
@@ -371,7 +395,7 @@ export class TagsService {
 
       if (deleteError) {
         console.error('TagsService: Error deleting tag:', deleteError);
-        return { data: false, error: deleteError };
+        return { data: false, error: new Error(`Không thể xóa tag: ${deleteError.message}`) };
       }
 
       console.log('TagsService: Successfully deleted tag:', tagId);
@@ -379,7 +403,7 @@ export class TagsService {
 
     } catch (err: any) {
       console.error('TagsService: Error in deleteTag:', err);
-      return { data: false, error: err };
+      return { data: false, error: new Error(`Lỗi hệ thống: ${err.message || err}`) };
     }
   }
 
