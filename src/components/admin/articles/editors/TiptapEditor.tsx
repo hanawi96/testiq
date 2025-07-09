@@ -2,11 +2,19 @@ import React, { useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import Highlight from '@tiptap/extension-highlight';
+import Color from '@tiptap/extension-color';
+import TextStyle from '@tiptap/extension-text-style';
 import {
   Bold,
   Italic,
   Strikethrough,
-  Underline,
+  Underline as UnderlineIcon,
   List,
   ListOrdered,
   Quote,
@@ -19,9 +27,15 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Link,
+  Link as LinkIcon,
   ImageIcon,
-  Plus
+  Plus,
+  Code,
+  Subscript as SubscriptIcon,
+  Superscript as SuperscriptIcon,
+  Type,
+  Palette,
+  Highlighter
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
 
@@ -126,6 +140,230 @@ const ToolbarSeparator = () => (
   <div className="w-px h-6 bg-gray-600 mx-1"></div>
 );
 
+// Color Picker Component
+const ColorPicker = ({ editor }: { editor: any }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const colors = [
+    '#000000', '#374151', '#6B7280', '#9CA3AF', '#D1D5DB', '#F3F4F6',
+    '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16', '#22C55E',
+    '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9', '#3B82F6', '#6366F1',
+    '#8B5CF6', '#A855F7', '#D946EF', '#EC4899', '#F43F5E'
+  ];
+
+  return (
+    <div className="relative">
+      <ToolbarButton
+        onClick={() => setIsOpen(!isOpen)}
+        title="Text Color"
+        className="relative"
+      >
+        <Type size={16} />
+        <div
+          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-sm"
+          style={{ backgroundColor: editor.getAttributes('textStyle').color || '#ffffff' }}
+        />
+      </ToolbarButton>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-gray-700 border border-gray-600 rounded shadow-lg z-50 p-2">
+          <div className="grid grid-cols-6 gap-1 w-32">
+            {colors.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => {
+                  editor.chain().focus().setColor(color).run();
+                  setIsOpen(false);
+                }}
+                className="w-4 h-4 rounded border border-gray-500 hover:scale-110 transition-transform"
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              editor.chain().focus().unsetColor().run();
+              setIsOpen(false);
+            }}
+            className="w-full mt-2 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600 rounded"
+          >
+            Remove Color
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Highlight Color Picker Component
+const HighlightPicker = ({ editor }: { editor: any }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const highlightColors = [
+    '#FEF3C7', '#FDE68A', '#FCD34D', '#F59E0B', '#D97706',
+    '#FEE2E2', '#FECACA', '#F87171', '#EF4444', '#DC2626',
+    '#DBEAFE', '#BFDBFE', '#60A5FA', '#3B82F6', '#2563EB',
+    '#D1FAE5', '#A7F3D0', '#34D399', '#10B981', '#059669',
+    '#E0E7FF', '#C7D2FE', '#A78BFA', '#8B5CF6', '#7C3AED'
+  ];
+
+  return (
+    <div className="relative">
+      <ToolbarButton
+        onClick={() => setIsOpen(!isOpen)}
+        isActive={editor.isActive('highlight')}
+        title="Highlight"
+      >
+        <Highlighter size={16} />
+      </ToolbarButton>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-gray-700 border border-gray-600 rounded shadow-lg z-50 p-2">
+          <div className="grid grid-cols-5 gap-1 w-32">
+            {highlightColors.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => {
+                  editor.chain().focus().setHighlight({ color }).run();
+                  setIsOpen(false);
+                }}
+                className="w-4 h-4 rounded border border-gray-500 hover:scale-110 transition-transform"
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              editor.chain().focus().unsetHighlight().run();
+              setIsOpen(false);
+            }}
+            className="w-full mt-2 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600 rounded"
+          >
+            Remove Highlight
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Link Modal Component
+const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, onClose: () => void }) => {
+  const [url, setUrl] = React.useState('');
+  const [text, setText] = React.useState('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      // Get selected text if any
+      const { from, to } = editor.state.selection;
+      const selectedText = editor.state.doc.textBetween(from, to, '');
+      setText(selectedText);
+
+      // If cursor is on a link, get the URL
+      const linkMark = editor.getAttributes('link');
+      if (linkMark.href) {
+        setUrl(linkMark.href);
+      } else {
+        setUrl('');
+      }
+    }
+  }, [isOpen, editor]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (url) {
+      if (text) {
+        // Insert new text with link
+        editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run();
+      } else {
+        // Apply link to selected text
+        editor.chain().focus().setLink({ href: url }).run();
+      }
+    }
+    onClose();
+    setUrl('');
+    setText('');
+  };
+
+  const handleRemoveLink = () => {
+    editor.chain().focus().unsetLink().run();
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-600">
+        <h3 className="text-lg font-semibold text-gray-100 mb-4">Chèn liên kết</h3>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              URL
+            </label>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Văn bản hiển thị (tùy chọn)
+            </label>
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Văn bản liên kết"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="submit"
+              disabled={!url}
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded transition-colors"
+            >
+              Chèn liên kết
+            </button>
+
+            {editor.isActive('link') && (
+              <button
+                type="button"
+                onClick={handleRemoveLink}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+              >
+                Xóa liên kết
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+            >
+              Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function TiptapEditor({
   value,
   onChange,
@@ -135,6 +373,7 @@ export default function TiptapEditor({
   flexHeight = false
 }: TiptapEditorProps) {
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -192,6 +431,24 @@ export default function TiptapEditor({
           class: 'tiptap-image',
         },
       }),
+      // Additional Extensions
+      Underline,
+      TextStyle,
+      Color,
+      Highlight.configure({
+        multicolor: true,
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'tiptap-link',
+        },
+      }),
+      Subscript,
+      Superscript,
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -213,6 +470,19 @@ export default function TiptapEditor({
       editor.commands.setContent(value, false);
     }
   }, [editor, value]);
+
+  // Handle keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'k') {
+        event.preventDefault();
+        setShowLinkModal(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Handle image upload
   const handleImageUpload = (url: string) => {
@@ -286,6 +556,46 @@ export default function TiptapEditor({
           >
             <Strikethrough size={16} />
           </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            isActive={editor.isActive('underline')}
+            title="Underline (Ctrl+U)"
+          >
+            <UnderlineIcon size={16} />
+          </ToolbarButton>
+
+          <ToolbarSeparator />
+
+          {/* Inline Code */}
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            isActive={editor.isActive('code')}
+            title="Inline Code"
+          >
+            <Code size={16} />
+          </ToolbarButton>
+
+          {/* Subscript & Superscript */}
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleSubscript().run()}
+            isActive={editor.isActive('subscript')}
+            title="Subscript"
+          >
+            <SubscriptIcon size={16} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleSuperscript().run()}
+            isActive={editor.isActive('superscript')}
+            title="Superscript"
+          >
+            <SuperscriptIcon size={16} />
+          </ToolbarButton>
+
+          <ToolbarSeparator />
+
+          {/* Color & Highlight */}
+          <ColorPicker editor={editor} />
+          <HighlightPicker editor={editor} />
 
           <ToolbarSeparator />
 
@@ -303,6 +613,38 @@ export default function TiptapEditor({
             title="Ordered List"
           >
             <ListOrdered size={16} />
+          </ToolbarButton>
+
+          <ToolbarSeparator />
+
+          {/* Text Alignment */}
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            isActive={editor.isActive({ textAlign: 'left' })}
+            title="Align Left"
+          >
+            <AlignLeft size={16} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            isActive={editor.isActive({ textAlign: 'center' })}
+            title="Align Center"
+          >
+            <AlignCenter size={16} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            isActive={editor.isActive({ textAlign: 'right' })}
+            title="Align Right"
+          >
+            <AlignRight size={16} />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+            isActive={editor.isActive({ textAlign: 'justify' })}
+            title="Justify"
+          >
+            <AlignJustify size={16} />
           </ToolbarButton>
 
           <ToolbarSeparator />
@@ -330,6 +672,15 @@ export default function TiptapEditor({
           </ToolbarButton>
 
           <ToolbarSeparator />
+
+          {/* Link */}
+          <ToolbarButton
+            onClick={() => setShowLinkModal(true)}
+            isActive={editor.isActive('link')}
+            title="Insert Link (Ctrl+K)"
+          >
+            <LinkIcon size={16} />
+          </ToolbarButton>
 
           {/* Image Upload */}
           <ToolbarButton
@@ -370,6 +721,13 @@ export default function TiptapEditor({
           onClose={() => setShowImageUpload(false)}
         />
       )}
+
+      {/* Link Modal */}
+      <LinkModal
+        editor={editor}
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+      />
     </div>
   );
 }
