@@ -49,8 +49,8 @@ interface TiptapEditorProps {
 }
 
 // Heading Dropdown Component
-const HeadingDropdown = ({ editor }: { editor: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const HeadingDropdown = ({ editor, openPopup, setOpenPopup }: { editor: any, openPopup: string | null, setOpenPopup: (popup: string | null) => void }) => {
+  const isOpen = openPopup === 'heading';
 
   const getCurrentHeading = () => {
     if (editor.isActive('heading', { level: 1 })) return 'Heading 1';
@@ -73,10 +73,10 @@ const HeadingDropdown = ({ editor }: { editor: any }) => {
   ];
 
   return (
-    <div className="relative">
+    <div className="relative popup-container">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setOpenPopup(isOpen ? null : 'heading')}
         className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200 rounded"
       >
         <span className="min-w-[80px] text-left">{getCurrentHeading()}</span>
@@ -91,7 +91,7 @@ const HeadingDropdown = ({ editor }: { editor: any }) => {
               type="button"
               onClick={() => {
                 option.action();
-                setIsOpen(false);
+                setOpenPopup(null);
               }}
               className="w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 first:rounded-t last:rounded-b"
             >
@@ -141,8 +141,8 @@ const ToolbarSeparator = () => (
 );
 
 // Color Picker Component
-const ColorPicker = ({ editor }: { editor: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const ColorPicker = ({ editor, openPopup, setOpenPopup }: { editor: any, openPopup: string | null, setOpenPopup: (popup: string | null) => void }) => {
+  const isOpen = openPopup === 'color';
 
   const colors = [
     '#000000', '#374151', '#6B7280', '#9CA3AF', '#D1D5DB', '#F3F4F6',
@@ -152,9 +152,9 @@ const ColorPicker = ({ editor }: { editor: any }) => {
   ];
 
   return (
-    <div className="relative">
+    <div className="relative popup-container">
       <ToolbarButton
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setOpenPopup(isOpen ? null : 'color')}
         title="Text Color"
         className="relative"
       >
@@ -174,7 +174,7 @@ const ColorPicker = ({ editor }: { editor: any }) => {
                 type="button"
                 onClick={() => {
                   editor.chain().focus().setColor(color).run();
-                  setIsOpen(false);
+                  setOpenPopup(null);
                 }}
                 className="w-4 h-4 rounded border border-gray-400 dark:border-gray-500 hover:scale-110 transition-transform"
                 style={{ backgroundColor: color }}
@@ -186,7 +186,7 @@ const ColorPicker = ({ editor }: { editor: any }) => {
             type="button"
             onClick={() => {
               editor.chain().focus().unsetColor().run();
-              setIsOpen(false);
+              setOpenPopup(null);
             }}
             className="w-full mt-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
           >
@@ -199,8 +199,8 @@ const ColorPicker = ({ editor }: { editor: any }) => {
 };
 
 // Highlight Color Picker Component
-const HighlightPicker = ({ editor }: { editor: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const HighlightPicker = ({ editor, openPopup, setOpenPopup }: { editor: any, openPopup: string | null, setOpenPopup: (popup: string | null) => void }) => {
+  const isOpen = openPopup === 'highlight';
 
   const highlightColors = [
     '#FEF3C7', '#FDE68A', '#FCD34D', '#F59E0B', '#D97706',
@@ -211,9 +211,9 @@ const HighlightPicker = ({ editor }: { editor: any }) => {
   ];
 
   return (
-    <div className="relative">
+    <div className="relative popup-container">
       <ToolbarButton
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setOpenPopup(isOpen ? null : 'highlight')}
         isActive={editor.isActive('highlight')}
         title="Highlight"
       >
@@ -229,7 +229,7 @@ const HighlightPicker = ({ editor }: { editor: any }) => {
                 type="button"
                 onClick={() => {
                   editor.chain().focus().setHighlight({ color }).run();
-                  setIsOpen(false);
+                  setOpenPopup(null);
                 }}
                 className="w-4 h-4 rounded border border-gray-400 dark:border-gray-500 hover:scale-110 transition-transform"
                 style={{ backgroundColor: color }}
@@ -241,7 +241,7 @@ const HighlightPicker = ({ editor }: { editor: any }) => {
             type="button"
             onClick={() => {
               editor.chain().focus().unsetHighlight().run();
-              setIsOpen(false);
+              setOpenPopup(null);
             }}
             className="w-full mt-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
           >
@@ -374,6 +374,12 @@ export default function TiptapEditor({
 }: TiptapEditorProps) {
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+
+  // Centralized popup state management
+  const [openPopup, setOpenPopup] = useState<string | null>(null);
+
+  // Close all popups
+  const closeAllPopups = () => setOpenPopup(null);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -478,11 +484,31 @@ export default function TiptapEditor({
         event.preventDefault();
         setShowLinkModal(true);
       }
+      // Close popups on Escape
+      if (event.key === 'Escape') {
+        closeAllPopups();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Handle click outside to close popups
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      // Check if click is outside any popup
+      if (!target.closest('.popup-container')) {
+        closeAllPopups();
+      }
+    };
+
+    if (openPopup) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openPopup]);
 
   // Handle image upload
   const handleImageUpload = (url: string) => {
@@ -530,7 +556,7 @@ export default function TiptapEditor({
           <ToolbarSeparator />
 
           {/* Heading Dropdown */}
-          <HeadingDropdown editor={editor} />
+          <HeadingDropdown editor={editor} openPopup={openPopup} setOpenPopup={setOpenPopup} />
 
           <ToolbarSeparator />
 
@@ -594,8 +620,8 @@ export default function TiptapEditor({
           <ToolbarSeparator />
 
           {/* Color & Highlight */}
-          <ColorPicker editor={editor} />
-          <HighlightPicker editor={editor} />
+          <ColorPicker editor={editor} openPopup={openPopup} setOpenPopup={setOpenPopup} />
+          <HighlightPicker editor={editor} openPopup={openPopup} setOpenPopup={setOpenPopup} />
 
           <ToolbarSeparator />
 
