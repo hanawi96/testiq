@@ -15,15 +15,35 @@ export interface BlogPost {
   featured: boolean;
 }
 
+// Cache để tránh duplicate queries
+let articlesCache: BlogPost[] | null = null;
+let categoriesCache: string[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
+
 export class BlogService {
   /**
-   * Lấy danh sách bài viết published cho trang blog
+   * Kiểm tra cache có hợp lệ không
+   */
+  private static isCacheValid(): boolean {
+    return articlesCache !== null &&
+           Date.now() - cacheTimestamp < CACHE_DURATION;
+  }
+
+  /**
+   * Lấy danh sách bài viết published cho trang blog (với caching)
    */
   static async getPublishedArticles(): Promise<BlogPost[]> {
-    try {
-      console.log('BlogService: Fetching published articles...');
+    // Kiểm tra cache trước
+    if (this.isCacheValid()) {
+      console.log('BlogService: Using cached articles');
+      return articlesCache!;
+    }
 
-      // Lấy articles với status published
+    try {
+      console.log('BlogService: Fetching fresh articles from database...');
+
+      // Optimized query - lấy articles trước, sau đó join manual để tránh lỗi FK
       const { data: articles, error: articlesError } = await supabase
         .from('articles')
         .select(`
@@ -36,7 +56,6 @@ export class BlogService {
           featured,
           cover_image,
           reading_time,
-          view_count,
           created_at,
           updated_at,
           published_at
@@ -56,21 +75,22 @@ export class BlogService {
       }
 
       const articleIds = articles.map(article => article.id);
+      const authorIds = [...new Set(articles.map(a => a.author_id).filter(Boolean))];
 
-      // Lấy thông tin tác giả, categories và tags song song
+      // Parallel queries cho related data
       const [authorsResult, categoriesResult, tagsResult] = await Promise.all([
-        // Lấy thông tin tác giả
-        supabase
+        // Lấy thông tin authors
+        authorIds.length > 0 ? supabase
           .from('user_profiles')
           .select('id, full_name, email, avatar_url')
-          .in('id', articles.map(a => a.author_id).filter(Boolean)),
+          .in('id', authorIds) : Promise.resolve({ data: [] }),
 
-        // Lấy categories cho articles
+        // Lấy categories
         supabase
           .from('article_categories')
           .select(`
             article_id,
-            categories:category_id (
+            categories (
               id,
               name,
               slug
@@ -78,12 +98,12 @@ export class BlogService {
           `)
           .in('article_id', articleIds),
 
-        // Lấy tags cho articles
+        // Lấy tags
         supabase
           .from('article_tags')
           .select(`
             article_id,
-            tags:tag_id (
+            tags (
               id,
               name,
               slug
@@ -92,7 +112,7 @@ export class BlogService {
           .in('article_id', articleIds)
       ]);
 
-      // Tạo maps để lookup nhanh
+      // Tạo lookup maps
       const authorsMap = new Map();
       authorsResult.data?.forEach(author => {
         authorsMap.set(author.id, author);
@@ -113,6 +133,8 @@ export class BlogService {
         }
         tagsMap.get(item.article_id).push(item.tags);
       });
+
+
 
       // Transform dữ liệu
       const blogPosts: BlogPost[] = articles.map((article, index) => {
@@ -183,7 +205,11 @@ export class BlogService {
         console.log(`BlogService: Limited to 1 featured article: ${featuredArticles[0].title}`);
       }
 
-      console.log(`BlogService: Successfully fetched ${blogPosts.length} articles`);
+      // Cache kết quả
+      articlesCache = blogPosts;
+      cacheTimestamp = Date.now();
+
+      console.log(`BlogService: Successfully fetched and cached ${blogPosts.length} articles`);
       return blogPosts;
 
     } catch (error) {
@@ -193,7 +219,7 @@ export class BlogService {
   }
 
   /**
-   * Lấy bài viết featured
+   * Lấy bài viết featured (sử dụng cache)
    */
   static async getFeaturedArticles(): Promise<BlogPost[]> {
     const allArticles = await this.getPublishedArticles();
@@ -201,7 +227,7 @@ export class BlogService {
   }
 
   /**
-   * Lấy bài viết không featured
+   * Lấy bài viết không featured (sử dụng cache)
    */
   static async getRegularArticles(): Promise<BlogPost[]> {
     const allArticles = await this.getPublishedArticles();
@@ -209,11 +235,44 @@ export class BlogService {
   }
 
   /**
-   * Lấy danh sách categories unique
+   * Lấy danh sách categories unique (với cache riêng)
    */
   static async getCategories(): Promise<string[]> {
+    // Kiểm tra cache categories
+    if (categoriesCache !== null && this.isCacheValid()) {
+      console.log('BlogService: Using cached categories');
+      return categoriesCache;
+    }
+
     const allArticles = await this.getPublishedArticles();
     const categories = [...new Set(allArticles.map(post => post.category))];
-    return categories.sort();
+
+    // Cache categories
+    categoriesCache = categories.sort();
+    console.log('BlogService: Cached categories');
+
+    return categoriesCache;
+  }
+
+  /**
+   * Lấy tất cả data cần thiết cho blog trong 1 lần gọi
+   */
+  static async getBlogData(): Promise<{
+    allArticles: BlogPost[];
+    featuredArticles: BlogPost[];
+    regularArticles: BlogPost[];
+    categories: string[];
+  }> {
+    const allArticles = await this.getPublishedArticles();
+    const featuredArticles = allArticles.filter(article => article.featured);
+    const regularArticles = allArticles.filter(article => !article.featured);
+    const categories = [...new Set(allArticles.map(post => post.category))].sort();
+
+    return {
+      allArticles,
+      featuredArticles,
+      regularArticles,
+      categories
+    };
   }
 }

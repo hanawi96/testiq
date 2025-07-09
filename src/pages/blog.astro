@@ -2,12 +2,15 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { BlogService } from '../services/blog-service';
 
-// Lấy dữ liệu thật từ database
-let blogPosts = await BlogService.getPublishedArticles();
+const POSTS_PER_PAGE = 3;
+
+// Lấy tất cả dữ liệu cần thiết trong 1 lần gọi
+const blogData = await BlogService.getBlogData();
+let { allArticles, featuredArticles, regularArticles, categories } = blogData;
 
 // Fallback data nếu không có dữ liệu từ database
-if (blogPosts.length === 0) {
-  blogPosts = [{
+if (allArticles.length === 0) {
+  const fallbackArticle = {
     id: 'demo-1',
     title: 'Chào mừng đến với Blog IQ Test',
     excerpt: 'Hệ thống blog đang được thiết lập. Vui lòng thêm bài viết từ trang quản trị.',
@@ -20,11 +23,20 @@ if (blogPosts.length === 0) {
     tags: ['Hệ thống'],
     image: '/api/placeholder/400/240',
     featured: true
-  }];
+  };
+
+  allArticles = [fallbackArticle];
+  featuredArticles = [fallbackArticle];
+  regularArticles = [];
+  categories = ['Thông báo'];
 }
 
-// Get unique categories for filter
-const categories = await BlogService.getCategories();
+// Chỉ lấy 3 bài viết đầu tiên cho trang 1
+const blogPosts = regularArticles.slice(0, POSTS_PER_PAGE);
+
+// Tính pagination info
+const totalPages = Math.ceil(regularArticles.length / POSTS_PER_PAGE);
+const currentPage = 1;
 
 // Helper function to get category color
 const getCategoryColor = (category: string) => {
@@ -100,7 +112,7 @@ const formatDate = (dateString: string) => {
   </section>
 
   <!-- Featured Post -->
-  {blogPosts.filter(post => post.featured).map(post => (
+  {featuredArticles.map(post => (
     <section class="py-16 bg-white dark:bg-gray-800">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/50">
@@ -168,10 +180,17 @@ const formatDate = (dateString: string) => {
   <!-- Posts Grid -->
   <section class="py-16 bg-gray-50 dark:bg-gray-900">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Bài viết gần đây</h2>
-      
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+          Bài viết mới nhất
+        </h2>
+        <p class="text-gray-600 dark:text-gray-400">
+          Hiển thị 1-{Math.min(POSTS_PER_PAGE, regularArticles.length)} trong {regularArticles.length} bài viết
+        </p>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {blogPosts.filter(post => !post.featured).map(post => (
+        {blogPosts.map(post => (
           <a href={`/blog/${post.id}`} class="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 flex flex-col">
             <!-- Post Image -->
             <div class="relative h-48 overflow-hidden">
@@ -214,15 +233,34 @@ const formatDate = (dateString: string) => {
         ))}
       </div>
       
-      <!-- Load More Button -->
-      <div class="mt-16 text-center">
-        <button class="px-6 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 font-medium inline-flex items-center">
-          Xem thêm bài viết
-          <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
+      <!-- Pagination -->
+      {totalPages > 1 && (
+        <div class="flex items-center justify-center mt-12 space-x-2">
+          <!-- Page Numbers -->
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            <a
+              href={page === 1 ? '/blog' : `/blog/page_${page}`}
+              class={`px-4 py-2 rounded-lg transition-colors ${
+                page === currentPage
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              {page}
+            </a>
+          ))}
+
+          <!-- Next Button -->
+          {currentPage < totalPages && (
+            <a
+              href={`/blog/page_${currentPage + 1}`}
+              class="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Tiếp →
+            </a>
+          )}
+        </div>
+      )}
     </div>
   </section>
 
