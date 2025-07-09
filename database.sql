@@ -314,6 +314,7 @@ create table public.articles (
   related_articles uuid[] null,
   view_count integer null default 0,
   unique_views integer null default 0,
+  like_count integer null default 0,
   bounce_rate numeric(5, 2) null,
   avg_time_on_page integer null,
   social_shares jsonb null,
@@ -424,3 +425,6 @@ create table public.tags (
 create index IF not exists idx_tags_slug on public.tags using btree (slug) TABLESPACE pg_default;
 
 create index IF not exists idx_tags_usage_count on public.tags using btree (usage_count desc) TABLESPACE pg_default;
+
+-- Add some sample like_count data for testing
+UPDATE articles SET like_count = FLOOR(RANDOM() * 50) + 5 WHERE like_count IS NULL OR like_count = 0;

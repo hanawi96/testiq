@@ -77,6 +77,7 @@ export interface Article {
   // Analytics
   view_count?: number;
   unique_views?: number;
+  like_count?: number;
   bounce_rate?: number;
   avg_time_on_page?: number;
   social_shares?: any;
@@ -287,6 +288,7 @@ export class ArticlesService {
         author_id,
         status,
         view_count,
+        like_count,
         created_at,
         updated_at,
         published_at,
@@ -596,6 +598,7 @@ export class ArticlesService {
         category_names: articleCategories.map(cat => cat.name || cat), // Extract name from category objects
         category_ids: articleCategories.map(cat => cat.id || cat), // Extract id from category objects
         views: article.view_count || 0,
+        like_count: article.like_count || 0,
         created_at: article.created_at,
         updated_at: article.updated_at,
         published_at: article.published_at,
@@ -635,6 +638,7 @@ export class ArticlesService {
       author: dbArticle.user_profiles?.full_name || dbArticle.author_name || dbArticle.author || 'Unknown Author',
       tags: Array.isArray(dbArticle.tags) ? dbArticle.tags : (Array.isArray(dbArticle.keywords) ? dbArticle.keywords : []),
       views: dbArticle.view_count || dbArticle.views || 0,
+      like_count: dbArticle.like_count || 0,
       excerpt: dbArticle.excerpt || '',
       status: dbArticle.status || 'draft',
       created_at: dbArticle.created_at || new Date().toISOString(),
