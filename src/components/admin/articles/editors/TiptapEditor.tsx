@@ -31,6 +31,7 @@ interface TiptapEditorProps {
   placeholder?: string;
   height?: string;
   className?: string;
+  flexHeight?: boolean; // Cho phép chiều cao động
 }
 
 // Heading Dropdown Component
@@ -130,7 +131,8 @@ export default function TiptapEditor({
   onChange,
   placeholder = "Bắt đầu viết nội dung...",
   height = "780px",
-  className = ""
+  className = "",
+  flexHeight = false
 }: TiptapEditorProps) {
   const [showImageUpload, setShowImageUpload] = useState(false);
   const editor = useEditor({
@@ -199,7 +201,7 @@ export default function TiptapEditor({
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none dark:prose-invert max-w-none',
-        style: `min-height: ${height}; padding: 1rem;`,
+        style: flexHeight ? 'height: 100%; padding: 1rem;' : `min-height: ${height}; padding: 1rem;`,
       },
     },
     immediatelyRender: false,
@@ -234,7 +236,7 @@ export default function TiptapEditor({
   }
 
   return (
-    <div className={`tiptap-editor ${className}`}>
+    <div className={`tiptap-editor ${flexHeight ? 'h-full flex flex-col' : ''} ${className}`}>
       {/* Modern Toolbar - Single Row */}
       <div className="border border-gray-600 border-b-0 rounded-t-lg bg-gray-800 p-3">
         <div className="flex items-center gap-1 flex-wrap">
@@ -353,11 +355,11 @@ export default function TiptapEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="border border-gray-600 border-t-0 rounded-b-lg bg-gray-900">
+      <div className={`border border-gray-600 border-t-0 rounded-b-lg bg-gray-900 ${flexHeight ? 'flex-1 flex flex-col' : ''}`}>
         <EditorContent
           editor={editor}
-          className="tiptap-content"
-          style={{ minHeight: height }}
+          className={`tiptap-content ${flexHeight ? 'flex-1' : ''}`}
+          style={flexHeight ? { height: '100%' } : { minHeight: height }}
         />
       </div>
 

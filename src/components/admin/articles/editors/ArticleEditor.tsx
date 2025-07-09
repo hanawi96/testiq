@@ -777,7 +777,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             </div>
 
             {/* Content Editor Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 flex-1 flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -797,13 +797,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 )}
               </div>
 
-              <div>
-                <div className="article-content-editor">
+              <div className="flex-1 flex flex-col">
+                <div className="article-content-editor flex-1">
                   <TiptapEditor
                     value={formData.content}
                     onChange={(content) => setFormData(prev => ({ ...prev, content }))}
                     placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
                     height="780px"
+                    flexHeight={true}
                     className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                   />
                 </div>

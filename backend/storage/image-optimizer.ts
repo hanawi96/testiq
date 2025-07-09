@@ -12,7 +12,7 @@ export interface OptimizationOptions {
 
 export class ImageOptimizer {
   /**
-   * Optimize image on client-side
+   * Ultra-fast image optimization with WebP support
    */
   static async optimizeImage(
     file: File,
@@ -22,7 +22,7 @@ export class ImageOptimizer {
       maxWidth = 1920,
       maxHeight = 1080,
       quality = 0.85,
-      format = 'jpeg'
+      format = this.getBestFormat(file)
     } = options;
 
     return new Promise((resolve, reject) => {
@@ -118,6 +118,38 @@ export class ImageOptimizer {
   ): string {
     const nameWithoutExt = originalName.split('.')[0];
     return `${nameWithoutExt}.${format}`;
+  }
+
+  /**
+   * Get best format for optimization (WebP if supported, otherwise JPEG)
+   */
+  private static getBestFormat(file: File): 'jpeg' | 'png' | 'webp' {
+    // Keep PNG for transparency
+    if (file.type === 'image/png') {
+      return 'png';
+    }
+
+    // Use WebP for best compression (if browser supports)
+    if (this.supportsWebP()) {
+      return 'webp';
+    }
+
+    // Default to JPEG
+    return 'jpeg';
+  }
+
+  /**
+   * Check WebP support
+   */
+  private static supportsWebP(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    } catch {
+      return false;
+    }
   }
 
   /**

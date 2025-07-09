@@ -33,27 +33,28 @@ export class ImageStorageService {
     options: ImageUploadOptions = {}
   ): Promise<{ data: ImageUploadResult | null; error: any }> {
     try {
-      // Validation
+      // Fast validation
       const validation = this.validateFile(file);
       if (!validation.valid) {
         return { data: null, error: new Error(validation.error) };
       }
 
-      // Generate unique filename
+      // Generate filename and path
       const fileName = this.generateFileName(file.name);
       const folder = options.folder || 'articles';
       const filePath = `${folder}/${fileName}`;
 
-      // Optimize image if needed
-      const optimizedFile = await this.optimizeImage(file, options);
+      // Parallel processing: dimensions + optimization + bucket check
+      const [dimensions, optimizedFile] = await Promise.all([
+        this.getImageDimensions(file), // Use original for faster dimensions
+        this.smartOptimizeImage(file, options),
+        this.ensureBucketExists() // Run in parallel
+      ]);
 
       // Upload to Supabase
       if (!supabaseAdmin) {
         return { data: null, error: new Error('Supabase admin client not configured') };
       }
-
-      // Ensure bucket exists before upload
-      await this.ensureBucketExists();
 
       const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
         .from(this.BUCKET_NAME)
@@ -66,13 +67,10 @@ export class ImageStorageService {
         return { data: null, error: uploadError };
       }
 
-      // Get public URL
+      // Get public URL (no await needed)
       const { data: urlData } = supabaseAdmin.storage
         .from(this.BUCKET_NAME)
         .getPublicUrl(filePath);
-
-      // Get image dimensions
-      const dimensions = await this.getImageDimensions(optimizedFile);
 
       const result: ImageUploadResult = {
         url: urlData.publicUrl,
@@ -144,7 +142,28 @@ export class ImageStorageService {
   }
 
   /**
-   * Optimize image before upload
+   * Smart optimization - skip if not needed for speed
+   */
+  private static async smartOptimizeImage(
+    file: File,
+    options: ImageUploadOptions
+  ): Promise<File> {
+    // Fast path: Skip optimization for small files
+    const maxSize = 1 * 1024 * 1024; // 1MB threshold
+    if (file.size <= maxSize) {
+      return file; // No optimization needed
+    }
+
+    // Fast path: Skip for WebP (already optimized)
+    if (file.type === 'image/webp') {
+      return file;
+    }
+
+    return this.optimizeImage(file, options);
+  }
+
+  /**
+   * Optimize image before upload (fallback method)
    */
   private static async optimizeImage(
     file: File,

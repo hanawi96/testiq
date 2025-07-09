@@ -14,6 +14,7 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file upload
@@ -23,6 +24,15 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
     setUploadSuccess(null);
     setUploadProgress(0);
 
+    // Instant preview for better UX
+    const preview = URL.createObjectURL(file);
+    setPreviewUrl(preview);
+
+    // Simulate progress for better UX
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + Math.random() * 30, 90));
+    }, 200);
+
     try {
       // Try upload to Supabase Storage first
       const { data, error } = await ImageStorageService.uploadImage(file, {
@@ -30,6 +40,9 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
         maxWidth: 1920,
         maxHeight: 1080,
       });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
       if (data && !error) {
         // Success - pass URL to editor
@@ -64,8 +77,14 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
       console.error('Upload error:', error);
       setUploadError(error.message || 'Lỗi upload hình ảnh');
     } finally {
+      clearInterval(progressInterval);
       setIsUploading(false);
       setUploadProgress(0);
+      // Cleanup preview URL
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
     }
   };
 
@@ -137,7 +156,31 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
           onDragOver={handleDrag}
           onDrop={handleDrop}
         >
-          {isUploading ? (
+          {previewUrl ? (
+            <div className="flex flex-col items-center gap-4">
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="max-w-full max-h-32 object-contain rounded"
+              />
+              {isUploading ? (
+                <div className="flex flex-col items-center gap-2 w-full">
+                  <Loader2 size={24} className="text-blue-500 animate-spin" />
+                  <p className="text-gray-300 text-sm">Đang upload...</p>
+                  {uploadProgress > 0 && (
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">Preview</p>
+              )}
+            </div>
+          ) : isUploading ? (
             <div className="flex flex-col items-center gap-2">
               <Loader2 size={32} className="text-blue-500 animate-spin" />
               <p className="text-gray-300">Đang upload...</p>
@@ -162,7 +205,7 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
                   chọn file
                 </button>
               </p>
-              <p className="text-sm text-gray-500">PNG, JPG, GIF tối đa 5MB</p>
+              <p className="text-sm text-gray-500">PNG, JPG, WebP tối đa 5MB</p>
             </div>
           )}
         </div>
