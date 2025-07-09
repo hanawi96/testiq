@@ -3,9 +3,9 @@ import { CategoriesService, ArticlesService, UserProfilesService } from '../../.
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
-import SimpleMilkdownEditor from './SimpleMilkdownEditor';
 import '../../../../styles/article-editor.css';
-import '../../../../styles/milkdown-editor.css';
+import '../../../../styles/tiptap-editor.css';
+import TiptapEditor from './TiptapEditor';
 
 
 
@@ -46,19 +46,16 @@ const FALLBACK_AUTHORS = [
 
 
 
-export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEditorProps) {
-  // State để track khi component đã mount (tránh hydration mismatch)
-  const [isMounted, setIsMounted] = useState(false);
+export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps) {
 
   // Get article ID from props or URL params (chỉ sau khi mount)
   const [currentArticleId, setCurrentArticleId] = useState<string | null>(articleId || null);
 
-  // Determine if we're in edit mode (chỉ sau khi mount để tránh hydration mismatch)
-  const isEditMode = isMounted && !!(articleId || currentArticleId);
+  // Determine if we're in edit mode
+  const isEditMode = !!(articleId || currentArticleId);
 
-  // Effect để set mounted state và get URL params
+  // Effect để get URL params
   useEffect(() => {
-    setIsMounted(true);
     if (!articleId) {
       const urlParams = new URLSearchParams(window.location.search);
       const idFromUrl = urlParams.get('id');
@@ -68,8 +65,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
     }
   }, [articleId]);
 
-  // Article data for edit mode
-  const [article, setArticle] = useState<Article | null>(null);
+
 
   const [formData, setFormData] = useState({
     title: '',
@@ -112,7 +108,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
   // Load article data for edit mode
   useEffect(() => {
     // Only run after component is mounted and we have an article ID
-    if (isMounted && (articleId || currentArticleId)) {
+    if (articleId || currentArticleId) {
       const loadArticle = async () => {
         setIsLoadingArticle(true);
         setLoadError('');
@@ -128,7 +124,6 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
           }
 
           if (data) {
-            setArticle(data);
             console.log('ArticleEditor: Article data loaded:', data);
             console.log('ArticleEditor: Tags from data:', data.tags);
             console.log('ArticleEditor: Categories from data:', data.category_ids);
@@ -166,7 +161,7 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
 
       loadArticle();
     }
-  }, [isMounted, articleId, currentArticleId]); // Depend on isMounted instead of isEditMode
+  }, [articleId, currentArticleId]);
 
   // Load categories from database
   useEffect(() => {
@@ -638,10 +633,10 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  {!isMounted ? 'Đang tải...' : isEditMode ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
+                  {isEditMode ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {!isMounted ? 'Đang khởi tạo trình soạn thảo' : isEditMode ? 'Cập nhật và quản lý nội dung' : 'Viết và xuất bản nội dung chất lượng'}
+                  {isEditMode ? 'Cập nhật và quản lý nội dung' : 'Viết và xuất bản nội dung chất lượng'}
                 </p>
               </div>
             </div>
@@ -804,22 +799,13 @@ export default function ArticleEditor({ articleId, onSave, onCancel }: ArticleEd
 
               <div>
                 <div className="article-content-editor">
-                  {isMounted ? (
-                    <SimpleMilkdownEditor
-                      value={formData.content}
-                      onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                      placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                      height="780px"
-                      className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                    />
-                  ) : (
-                    <div className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center" style={{height: '780px'}}>
-                      <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                        <span className="text-sm">Đang khởi tạo trình soạn thảo...</span>
-                      </div>
-                    </div>
-                  )}
+                  <TiptapEditor
+                    value={formData.content}
+                    onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                    placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
+                    height="780px"
+                    className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  />
                 </div>
               </div>
             </div>

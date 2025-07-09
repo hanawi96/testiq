@@ -106,7 +106,7 @@ if (articleData.author_id) {
 
 ### **✅ Build Success:**
 - **28 pages** built successfully
-- **ArticleEdit**: 13.67 kB (optimized)
+- **ArticleEditor**: 13.67 kB (optimized)
 - **articles-service**: 25.27 kB (updated)
 
 ### **✅ URL Flow hoạt động:**
@@ -115,7 +115,7 @@ AdminArticles → Edit Button → /admin/articles/edit?id=650e8400-e29b-41d4-a71
                                         ↓
                                 JavaScript lấy ID từ URL params
                                         ↓
-                                ArticleEdit component load article
+                                ArticleEditor component load article
                                         ↓
                                 Backend query với manual join
                                         ↓
@@ -154,7 +154,7 @@ articles.author_id → auth.users.id → user_profiles.id
 
 ### **Frontend:**
 - `src/pages/admin/articles/edit.astro` - Static page với URL params
-- `src/components/admin/articles/editors/ArticleEdit.tsx` - URL params handling
+- `src/components/admin/articles/editors/ArticleEditor.tsx` - URL params handling
 - `src/components/admin/articles/AdminArticles.tsx` - Edit button URL
 
 ### **Removed:**

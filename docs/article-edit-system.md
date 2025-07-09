@@ -19,7 +19,7 @@ getArticleVersions(articleId)            // Version history (future)
 ### **Frontend Components**
 ```
 src/components/admin/articles/editors/
-├── ArticleEdit.tsx              // Main edit component (13.42 kB)
+├── ArticleEditor.tsx            // Main edit component (13.42 kB)
 └── (Simple textarea editor)     // Basic text editor
 
 src/hooks/
@@ -66,7 +66,7 @@ src/pages/admin/articles/edit/
 
 ## 🔧 Technical Implementation
 
-### **ArticleEdit Component**
+### **ArticleEditor Component**
 ```typescript
 interface FormData {
   title: string;
@@ -110,7 +110,7 @@ useUnsavedChanges(hasUnsavedChanges,
 ## 🚀 Performance Features
 
 ### **Bundle Optimization**
-- **ArticleEdit**: 13.42 kB (optimized)
+- **ArticleEditor**: 13.42 kB (optimized)
 - **Code splitting**: Simple textarea editor
 - **Tree shaking**: Only used utilities
 - **Shared dependencies**: Reused từ existing components
@@ -150,7 +150,7 @@ useUnsavedChanges(hasUnsavedChanges,
 ```
 AdminArticles Table → [Edit] Button → /admin/articles/edit/[id]
                                     ↓
-                              ArticleEdit Component
+                              ArticleEditor Component
                                     ↓
                               Save → Back to Articles List
 ```
@@ -227,7 +227,7 @@ const togglePreview = () => {
 - **Form submission**: <1s
 
 ### **Bundle Analysis**
-- **ArticleEdit**: 13.42 kB
+- **ArticleEditor**: 13.42 kB
 - **useAutoSave hook**: Included in main bundle
 - **Simple textarea**: Built-in (0 kB)
 - **Total overhead**: ~13.5 kB
