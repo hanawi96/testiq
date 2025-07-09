@@ -219,6 +219,34 @@ import { LinkAnalyzer, type LinkAnalysis } from '../utils/link-analyzer';
 
 export class ArticlesService {
   /**
+   * Get base domain for link analysis (environment-aware)
+   */
+  private static getBaseDomain(): string {
+    // Check if we're in browser environment
+    if (typeof window !== 'undefined') {
+      return window.location.hostname;
+    }
+
+    // Check if we're in Node.js environment
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.SITE_URL || 'localhost:4321';
+    }
+
+    // Fallback
+    return 'localhost:4321';
+  }
+
+  /**
+   * Invalidate articles cache
+   */
+  private static invalidateArticlesCache(): void {
+    if (typeof window !== 'undefined' && (window as any).__articlesCache) {
+      console.log('🗑️ ArticlesService: Invalidating articles cache');
+      delete (window as any).__articlesCache;
+    }
+  }
+
+  /**
    * Helper method to build article query with joins
    */
   private static buildArticleQuery() {
@@ -262,7 +290,9 @@ export class ArticlesService {
         created_at,
         updated_at,
         published_at,
-        reading_time
+        reading_time,
+        internal_links,
+        external_links
       `);
 
     console.log('ArticlesService: Optimized article query built successfully');
@@ -454,7 +484,7 @@ export class ArticlesService {
       }
 
       // Analyze links in content
-      const baseDomain = process.env.SITE_URL || 'localhost:4322';
+      const baseDomain = this.getBaseDomain();
       const linkAnalysis = LinkAnalyzer.analyzeContent(article.content, baseDomain);
 
       // Update article with link analysis
@@ -528,6 +558,28 @@ export class ArticlesService {
       const articleTags = tagsMap.get(article.id) || [];
       const authorProfile = profilesMap.get(article.author_id);
 
+      // Parse JSONB fields if they are strings
+      let internal_links = article.internal_links || [];
+      let external_links = article.external_links || [];
+
+      if (typeof internal_links === 'string') {
+        try {
+          internal_links = JSON.parse(internal_links);
+        } catch (e) {
+          console.warn('Failed to parse internal_links:', e);
+          internal_links = [];
+        }
+      }
+
+      if (typeof external_links === 'string') {
+        try {
+          external_links = JSON.parse(external_links);
+        } catch (e) {
+          console.warn('Failed to parse external_links:', e);
+          external_links = [];
+        }
+      }
+
       return {
         id: article.id,
         title: article.title || '',
@@ -547,7 +599,9 @@ export class ArticlesService {
         created_at: article.created_at,
         updated_at: article.updated_at,
         published_at: article.published_at,
-        reading_time: article.reading_time || 0
+        reading_time: article.reading_time || 0,
+        internal_links: internal_links,
+        external_links: external_links
       };
     });
   }
@@ -556,6 +610,25 @@ export class ArticlesService {
    * Transform database article to UI format
    */
   private static transformArticle(dbArticle: any): Article {
+    // Ensure JSONB fields are properly parsed
+    if (dbArticle.internal_links && typeof dbArticle.internal_links === 'string') {
+      try {
+        dbArticle.internal_links = JSON.parse(dbArticle.internal_links);
+      } catch (e) {
+        console.warn('Failed to parse internal_links:', e);
+        dbArticle.internal_links = [];
+      }
+    }
+
+    if (dbArticle.external_links && typeof dbArticle.external_links === 'string') {
+      try {
+        dbArticle.external_links = JSON.parse(dbArticle.external_links);
+      } catch (e) {
+        console.warn('Failed to parse external_links:', e);
+        dbArticle.external_links = [];
+      }
+    }
+
     return {
       ...dbArticle,
       // Use user_profiles data if available, fallback to existing author field
@@ -1527,6 +1600,10 @@ export class ArticlesService {
       // Calculate content metrics
       const contentMetrics = this.calculateContentMetrics(articleData.content);
 
+      // Analyze links in content
+      const baseDomain = this.getBaseDomain();
+      const linkAnalysis = LinkAnalyzer.analyzeContent(articleData.content, baseDomain);
+
       // Prepare article data for database
       const createData: any = {
         title: articleData.title.trim(),
@@ -1561,8 +1638,8 @@ export class ArticlesService {
         twitter_card_type: articleData.twitter_card_type || 'summary_large_image',
 
         // Media fields
-        cover_image: articleData.cover_image?.trim() || '',
-        cover_image_alt: articleData.cover_image_alt?.trim() || '',
+        cover_image: articleData.cover_image?.trim() || null,
+        cover_image_alt: articleData.cover_image_alt?.trim() || null,
         gallery_images: articleData.gallery_images || null,
 
         // Schema fields
@@ -1579,6 +1656,10 @@ export class ArticlesService {
         reading_time: contentMetrics.readingTime,
         paragraph_count: contentMetrics.paragraphCount,
         heading_count: contentMetrics.headingCount,
+
+        // Link analysis
+        internal_links: linkAnalysis.internal_links,
+        external_links: linkAnalysis.external_links,
 
         // SEO settings
         robots_directive: articleData.robots_directive || 'index,follow',
@@ -1605,6 +1686,9 @@ export class ArticlesService {
         updated_at: new Date().toISOString()
       };
 
+      // Debug logs
+
+
       // Remove categories and tags from main insert (handle separately)
       const categoryIds = articleData.categories || [];
       const tagIds = articleData.tags || [];
@@ -1630,6 +1714,10 @@ export class ArticlesService {
       if (!newArticle) {
         return { data: null, error: new Error('Không thể tạo bài viết') };
       }
+
+      console.log('✅ ArticlesService: Article created successfully');
+      console.log('✅ ArticlesService: newArticle.cover_image:', newArticle.cover_image);
+      console.log('✅ ArticlesService: newArticle.cover_image_alt:', newArticle.cover_image_alt);
 
       // Handle categories relationships
       if (categoryIds.length > 0) {
@@ -1663,9 +1751,15 @@ export class ArticlesService {
       if (fetchError || !completeArticle) {
         // Return basic article if we can't fetch complete data
         const transformedArticle = this.transformArticle(newArticle);
+        // Invalidate cache after successful creation
+        this.invalidateArticlesCache();
+
         console.log('ArticlesService: Article created successfully (basic data)');
         return { data: transformedArticle, error: null };
       }
+
+      // Invalidate cache after successful creation
+      this.invalidateArticlesCache();
 
       console.log('ArticlesService: Article created successfully with all relationships');
       return { data: completeArticle, error: null };
@@ -1715,11 +1809,37 @@ export class ArticlesService {
         }
       }
 
+      // Analyze links if content is being updated
+      let linkAnalysis = null;
+      if (articleData.content) {
+        const baseDomain = this.getBaseDomain();
+        linkAnalysis = LinkAnalyzer.analyzeContent(articleData.content, baseDomain);
+      }
+
       // Prepare update data
       const updateData: any = {
         ...articleData,
+        author_id: authorId, // Use the authorId parameter
         updated_at: new Date().toISOString()
       };
+
+      // Add link analysis if content was updated
+      if (linkAnalysis) {
+        updateData.internal_links = linkAnalysis.internal_links;
+        updateData.external_links = linkAnalysis.external_links;
+      }
+
+
+
+      // Handle undefined values that Supabase ignores
+      if (updateData.cover_image === undefined) {
+        updateData.cover_image = null; // Explicitly set to null instead of undefined
+      }
+      if (updateData.cover_image_alt === undefined) {
+        updateData.cover_image_alt = null;
+      }
+
+
 
       // Remove categories and tags from main update (handle separately)
       const categoryIds = updateData.categories;
@@ -1770,6 +1890,9 @@ export class ArticlesService {
         console.error('ArticlesService: Error fetching updated article:', finalError);
         return { data: null, error: finalError };
       }
+
+      // Invalidate cache after successful update
+      this.invalidateArticlesCache();
 
       console.log('ArticlesService: Successfully updated article');
       return { data: finalArticle, error: null };

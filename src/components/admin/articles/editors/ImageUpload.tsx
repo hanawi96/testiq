@@ -7,6 +7,9 @@ interface ImageUploadProps {
   onClose: () => void;
 }
 
+// Simple cache for uploaded images (session-based)
+const uploadCache = new Map<string, string>();
+
 export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
@@ -17,12 +20,73 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle file upload
+  // Enhanced file validation
+  const validateFile = async (file: File): Promise<{ valid: boolean; error?: string }> => {
+    // Check file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      return { valid: false, error: 'Chỉ hỗ trợ định dạng JPG, PNG, WebP' };
+    }
+
+    // Check file size (2MB limit for cover images)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      return { valid: false, error: 'Kích thước file không được vượt quá 2MB' };
+    }
+
+    // Check image dimensions
+    return new Promise((resolve) => {
+      const img = new (window as any).Image();
+      img.onload = () => {
+        const minWidth = 800;
+        const minHeight = 400;
+        const maxWidth = 3840;
+        const maxHeight = 2160;
+
+        if (img.width < minWidth || img.height < minHeight) {
+          resolve({ valid: false, error: `Kích thước tối thiểu: ${minWidth}x${minHeight}px` });
+        } else if (img.width > maxWidth || img.height > maxHeight) {
+          resolve({ valid: false, error: `Kích thước tối đa: ${maxWidth}x${maxHeight}px` });
+        } else {
+          resolve({ valid: true });
+        }
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => {
+        resolve({ valid: false, error: 'File không phải là hình ảnh hợp lệ' });
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Handle file upload with enhanced validation
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
     setUploadError(null);
     setUploadSuccess(null);
     setUploadProgress(0);
+
+    // Check cache first (based on file name + size + lastModified)
+    const cacheKey = `${file.name}-${file.size}-${file.lastModified}`;
+    const cachedUrl = uploadCache.get(cacheKey);
+
+    if (cachedUrl) {
+      console.log('✅ Using cached image URL:', cachedUrl);
+      onImageUpload(cachedUrl);
+      setUploadSuccess('✅ Sử dụng ảnh đã upload!');
+      setTimeout(() => onClose(), 500);
+      setIsUploading(false);
+      return;
+    }
+
+    // Validate file first
+    const validation = await validateFile(file);
+    if (!validation.valid) {
+      setUploadError(validation.error || 'File không hợp lệ');
+      setIsUploading(false);
+      return;
+    }
 
     // Instant preview for better UX
     const preview = URL.createObjectURL(file);
@@ -45,18 +109,22 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
       setUploadProgress(100);
 
       if (data && !error) {
-        // Success - pass URL to editor
+        // Success - cache the result and pass URL to editor
         console.log('✅ Image uploaded to Supabase Storage:', data.url);
 
-        // Show success notification
-        setUploadSuccess('✅ Ảnh đã được upload lên Supabase Storage thành công!');
-        setUploadError(null);
+        // Cache the uploaded image
+        uploadCache.set(cacheKey, data.url);
 
-        // Small delay to show success message
+        // Immediately update the editor and close modal
+        onImageUpload(data.url);
+
+        // Show brief success notification
+        setUploadSuccess('✅ Upload thành công!');
+
+        // Close modal after brief success display
         setTimeout(() => {
-          onImageUpload(data.url);
           onClose();
-        }, 1000);
+        }, 500);
         return;
       }
 
@@ -80,13 +148,21 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
       clearInterval(progressInterval);
       setIsUploading(false);
       setUploadProgress(0);
-      // Cleanup preview URL
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
     }
   };
+
+  // Cleanup function
+  const cleanup = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return cleanup;
+  }, [previewUrl]);
 
   // Handle drag and drop
   const handleDrag = (e: React.DragEvent) => {

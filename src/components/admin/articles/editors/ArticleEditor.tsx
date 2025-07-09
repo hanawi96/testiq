@@ -6,6 +6,7 @@ import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 import TiptapEditor from './TiptapEditor';
+import ImageUpload from './ImageUpload';
 
 
 
@@ -104,6 +105,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [isValidatingSlug, setIsValidatingSlug] = useState(false);
   const [isLoadingArticle, setIsLoadingArticle] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [showImageUpload, setShowImageUpload] = useState(false);
 
   // Load article data for edit mode
   useEffect(() => {
@@ -384,6 +386,17 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     }));
   };
 
+  // Handle cover image upload
+  const handleCoverImageUpload = (url: string) => {
+    console.log('🖼️ ArticleEditor: Cover image uploaded, URL:', url);
+    setFormData(prev => {
+      const newData = { ...prev, featured_image: url };
+      console.log('🖼️ ArticleEditor: Updated formData.featured_image:', newData.featured_image);
+      return newData;
+    });
+    setShowImageUpload(false);
+  };
+
   const handleSave = async (status: 'draft' | 'published') => {
     setIsLoading(true);
     setSaveStatus('Đang lưu...');
@@ -432,11 +445,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
 
         // Media
-        cover_image: formData.featured_image.trim(),
-        cover_image_alt: formData.cover_image_alt.trim(),
+        cover_image: formData.featured_image?.trim() || undefined,
+        cover_image_alt: formData.cover_image_alt?.trim() || undefined,
 
         // Schema
         schema_type: formData.schema_type,
+
+        // Author
+        author_id: formData.author_id,
 
         // Relations
         categories: formData.categories,
@@ -445,6 +461,20 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         // Publishing
         published_at: status === 'published' ? formData.published_date : undefined,
       };
+
+      console.log('💾 ArticleEditor: Preparing to save article data:');
+      console.log('💾 formData.featured_image:', formData.featured_image);
+      console.log('💾 articleData.cover_image:', articleData.cover_image);
+      console.log('👤 formData.author_id:', formData.author_id);
+      console.log('👤 articleData.author_id:', articleData.author_id);
+      console.log('💾 Full articleData:', articleData);
+
+      // Validation: Ensure cover_image is not lost
+      if (formData.featured_image && !articleData.cover_image) {
+        console.error('🚨 CRITICAL: cover_image lost during mapping!');
+        console.error('🚨 formData.featured_image:', formData.featured_image);
+        console.error('🚨 articleData.cover_image:', articleData.cover_image);
+      }
 
       console.log(isEditMode ? 'Updating article:' : 'Creating article:', articleData);
 
@@ -1244,10 +1274,16 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     placeholder="Nhập URL ảnh..."
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
-                  <button className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600">
+                  <button
+                    type="button"
+                    onClick={() => setShowImageUpload(true)}
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-1"
+                    title="Upload ảnh từ máy tính"
+                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
+                    Upload
                   </button>
                 </div>
 
@@ -1355,6 +1391,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           </div>
         </div>
       </div>
+
+      {/* Cover Image Upload Modal */}
+      {showImageUpload && (
+        <ImageUpload
+          onImageUpload={handleCoverImageUpload}
+          onClose={() => setShowImageUpload(false)}
+        />
+      )}
     </div>
   );
 }
