@@ -11,8 +11,12 @@ export interface OptimizationOptions {
 }
 
 export class ImageOptimizer {
+  // Thresholds for WebP conversion (bytes)
+  private static readonly WEBP_THRESHOLD_JPEG = 300 * 1024; // 300KB
+  private static readonly WEBP_THRESHOLD_PNG = 500 * 1024;  // 500KB
+
   /**
-   * Ultra-fast image optimization with WebP support
+   * Ultra-fast image optimization with smart WebP conversion
    */
   static async optimizeImage(
     file: File,
@@ -121,21 +125,21 @@ export class ImageOptimizer {
   }
 
   /**
-   * Get best format for optimization (WebP if supported, otherwise JPEG)
+   * Smart format selection with WebP conversion for large files
    */
-  private static getBestFormat(file: File): 'jpeg' | 'png' | 'webp' {
-    // Keep PNG for transparency
-    if (file.type === 'image/png') {
-      return 'png';
-    }
-
-    // Use WebP for best compression (if browser supports)
+  static getBestFormat(file: File): 'jpeg' | 'png' | 'webp' {
+    // Convert to WebP for large files to save bandwidth
     if (this.supportsWebP()) {
-      return 'webp';
+      if (file.type.includes('jpeg') && file.size > this.WEBP_THRESHOLD_JPEG) {
+        return 'webp';
+      }
+      if (file.type.includes('png') && file.size > this.WEBP_THRESHOLD_PNG) {
+        return 'webp';
+      }
     }
 
-    // Default to JPEG
-    return 'jpeg';
+    // Keep original format for small files
+    return file.type.includes('png') ? 'png' : 'jpeg';
   }
 
   /**
@@ -153,7 +157,7 @@ export class ImageOptimizer {
   }
 
   /**
-   * Check if image needs optimization
+   * Check if image needs optimization (smart detection)
    */
   static shouldOptimize(
     file: File,
@@ -163,8 +167,14 @@ export class ImageOptimizer {
     const maxSize = 2 * 1024 * 1024; // 2MB
 
     return new Promise((resolve) => {
-      // Check file size first
+      // Always optimize if file is large or should convert to WebP
       if (file.size > maxSize) {
+        resolve(true);
+        return;
+      }
+
+      // Check if WebP conversion is beneficial
+      if (this.getBestFormat(file) === 'webp') {
         resolve(true);
         return;
       }
@@ -174,6 +184,7 @@ export class ImageOptimizer {
       img.onload = () => {
         const needsResize = img.width > maxWidth || img.height > maxHeight;
         resolve(needsResize);
+        URL.revokeObjectURL(img.src);
       };
       img.onerror = () => resolve(false);
       img.src = URL.createObjectURL(file);

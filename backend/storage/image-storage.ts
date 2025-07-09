@@ -110,6 +110,55 @@ export class ImageStorageService {
   }
 
   /**
+   * Extract path from Supabase URL for cleanup
+   */
+  static extractPathFromUrl(url: string): string | null {
+    try {
+      // Handle Supabase storage URLs
+      const supabasePattern = /\/storage\/v1\/object\/public\/images\/(.+)$/;
+      const match = url.match(supabasePattern);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Smart cleanup: delete old image when replacing with new one
+   */
+  static async replaceImage(
+    oldImageUrl: string | null,
+    newFile: File,
+    options: ImageUploadOptions = {}
+  ): Promise<{ data: ImageUploadResult | null; error: any }> {
+    try {
+      // Upload new image first
+      const uploadResult = await this.uploadImage(newFile, options);
+
+      if (uploadResult.error || !uploadResult.data) {
+        return uploadResult;
+      }
+
+      // Delete old image if exists and is from our storage
+      if (oldImageUrl) {
+        const oldPath = this.extractPathFromUrl(oldImageUrl);
+        if (oldPath) {
+          // Delete in background, don't wait for it
+          this.deleteImage(oldPath).catch(error =>
+            console.warn('Failed to cleanup old image:', error)
+          );
+        }
+      }
+
+      return uploadResult;
+
+    } catch (error) {
+      console.error('ImageStorageService: Replace error:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
    * Validate file before upload
    */
   private static validateFile(file: File): { valid: boolean; error?: string } {
@@ -142,24 +191,43 @@ export class ImageStorageService {
   }
 
   /**
-   * Smart optimization - skip if not needed for speed
+   * Ultra-fast smart optimization with intelligent early bailout
    */
   private static async smartOptimizeImage(
     file: File,
     options: ImageUploadOptions
   ): Promise<File> {
-    // Fast path: Skip optimization for small files
-    const maxSize = 1 * 1024 * 1024; // 1MB threshold
-    if (file.size <= maxSize) {
-      return file; // No optimization needed
+    // Early bailout for very small files (< 100KB)
+    if (file.size < 100 * 1024) {
+      console.log('⚡ Skipping optimization - file too small (<100KB)');
+      return file;
     }
 
     // Fast path: Skip for WebP (already optimized)
     if (file.type === 'image/webp') {
+      console.log('⚡ Skipping optimization - already WebP');
       return file;
     }
 
-    return this.optimizeImage(file, options);
+    // Check if WebP conversion or resizing is beneficial
+    try {
+      const shouldOptimize = await ImageOptimizer.shouldOptimize(file, {
+        maxWidth: options.maxWidth,
+        maxHeight: options.maxHeight,
+      });
+
+      if (!shouldOptimize) {
+        console.log('⚡ Skipping optimization - file already optimal');
+        return file;
+      }
+
+      console.log(`🔄 Optimizing: ${file.size} bytes, WebP: ${ImageOptimizer.getBestFormat(file) === 'webp'}`);
+      return this.optimizeImage(file, options);
+
+    } catch (error) {
+      console.warn('Smart optimization check failed, using original:', error);
+      return file;
+    }
   }
 
   /**
@@ -180,15 +248,16 @@ export class ImageStorageService {
         return file;
       }
 
-      // Optimize the image
+      // Optimize the image with smart format selection
       const optimizedFile = await ImageOptimizer.optimizeImage(file, {
         maxWidth: options.maxWidth || 1920,
         maxHeight: options.maxHeight || 1080,
         quality: options.quality || 0.85,
-        format: file.type.includes('png') ? 'png' : 'jpeg',
+        // Let ImageOptimizer choose the best format (including WebP)
       });
 
-      console.log(`Image optimized: ${file.size} → ${optimizedFile.size} bytes`);
+      const compressionRatio = ((file.size - optimizedFile.size) / file.size * 100).toFixed(1);
+      console.log(`✅ Image optimized: ${file.size} → ${optimizedFile.size} bytes (${compressionRatio}% smaller)`);
       return optimizedFile;
 
     } catch (error) {

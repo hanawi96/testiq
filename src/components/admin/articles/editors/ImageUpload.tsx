@@ -5,12 +5,13 @@ import { ImageStorageService } from '../../../../../backend/storage/image-storag
 interface ImageUploadProps {
   onImageUpload: (url: string) => void;
   onClose: () => void;
+  existingImageUrl?: string; // For replacement/cleanup
 }
 
 // Simple cache for uploaded images (session-based)
 const uploadCache = new Map<string, string>();
 
-export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps) {
+export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -98,19 +99,28 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
     }, 200);
 
     try {
-      // Try upload to Supabase Storage first
-      const { data, error } = await ImageStorageService.uploadImage(file, {
-        folder: 'articles',
-        maxWidth: 1920,
-        maxHeight: 1080,
-      });
+      // Use replaceImage for smart cleanup if replacing existing image
+      const uploadMethod = existingImageUrl
+        ? ImageStorageService.replaceImage(existingImageUrl, file, {
+            folder: 'articles',
+            maxWidth: 1920,
+            maxHeight: 1080,
+          })
+        : ImageStorageService.uploadImage(file, {
+            folder: 'articles',
+            maxWidth: 1920,
+            maxHeight: 1080,
+          });
+
+      const { data, error } = await uploadMethod;
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
       if (data && !error) {
         // Success - cache the result and pass URL to editor
-        console.log('✅ Image uploaded to Supabase Storage:', data.url);
+        const action = existingImageUrl ? 'replaced' : 'uploaded';
+        console.log(`✅ Image ${action} to Supabase Storage:`, data.url);
 
         // Cache the uploaded image
         uploadCache.set(cacheKey, data.url);
@@ -119,7 +129,7 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
         onImageUpload(data.url);
 
         // Show brief success notification
-        setUploadSuccess('✅ Upload thành công!');
+        setUploadSuccess(`✅ ${existingImageUrl ? 'Thay thế' : 'Upload'} thành công!`);
 
         // Close modal after brief success display
         setTimeout(() => {
