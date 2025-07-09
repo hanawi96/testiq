@@ -1,8 +1,8 @@
 /* Article Editor Optimizations */
 
-/* Smooth transitions for layout changes */
+/* Layout changes without transitions */
 .article-editor-container {
-  transition: all 0.3s ease-in-out;
+  /* No transitions for instant dark mode switching */
 }
 
 /* Sticky header optimizations */
@@ -26,7 +26,7 @@
   top: 6rem; /* 24 * 0.25rem = 6rem */
   max-height: calc(100vh - 8rem);
   overflow-y: auto;
-  transition: all 0.3s ease-in-out;
+  /* No transitions for instant dark mode switching */
 }
 
 /* Tablet sidebar adjustments */
@@ -131,10 +131,10 @@
   border-color: rgb(96 165 250); /* blue-400 */
 }
 
-/* Smooth hover transitions */
+/* No hover transitions for instant dark mode switching */
 .article-editor button,
 .article-editor .hover-transition {
-  transition: all 0.2s ease-in-out;
+  /* No transitions */
 }
 
 /* Save status indicators */
@@ -271,13 +271,24 @@
   height: auto;
 }
 
+/* Remove all transitions for instant dark mode switching */
+.article-editor *,
+.article-editor .transition-all,
+.article-editor .transition-colors,
+.article-editor .transition,
+.article-editor .transition-transform,
+.article-editor .duration-200,
+.article-editor .duration-300,
+.tiptap-editor *,
+.tiptap-editor .transition-all,
+.tiptap-editor .transition-colors,
+.tiptap-editor .transition {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
 /* Responsive performance optimizations */
 @media (max-width: 767px) {
-  /* Reduce animations on mobile for better performance */
-  .article-editor .transition-all {
-    transition: none;
-  }
-
   /* Optimize mobile scrolling */
   .article-editor {
     -webkit-overflow-scrolling: touch;

@@ -176,7 +176,7 @@ const ColorPicker = ({ editor, openPopup, setOpenPopup }: { editor: any, openPop
                   editor.chain().focus().setColor(color).run();
                   setOpenPopup(null);
                 }}
-                className="w-4 h-4 rounded border border-gray-400 dark:border-gray-500 hover:scale-110 transition-transform"
+                className="w-4 h-4 rounded border border-gray-400 dark:border-gray-500 hover:scale-110"
                 style={{ backgroundColor: color }}
                 title={color}
               />

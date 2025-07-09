@@ -610,7 +610,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           <p className="text-gray-600 dark:text-gray-400 mb-4">{loadError}</p>
           <button
             onClick={() => window.location.href = '/admin/articles'}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
           >
             Quay lại danh sách
           </button>
@@ -662,7 +662,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               <button
                 onClick={() => handleSave('draft')}
                 disabled={isLoading}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-600"
                 title="Lưu nháp (Ctrl+S)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -673,7 +673,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               <button
                 onClick={() => handleSave('published')}
                 disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2"
                 title="Xuất bản (Ctrl+Shift+P)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -753,7 +753,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                           setFormData(prev => ({ ...prev, slug: newSlug }));
                           validateSlug(newSlug);
                         }}
-                        className="px-3 py-2 text-blue-600 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        className="px-3 py-2 text-blue-600 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30"
                         title="Tạo lại từ tiêu đề"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -986,7 +986,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       const previewUrl = `/blog/${formData.slug}`;
                       window.open(previewUrl, '_blank');
                     }}
-                    className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-300 rounded-lg transition-colors flex items-center gap-1.5"
+                    className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-300 rounded-lg flex items-center gap-1.5"
                     title="Xem bài viết đã xuất bản"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1007,12 +1007,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </div>
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full ${
                       formData.is_public ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white ${
                         formData.is_public ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
@@ -1028,12 +1028,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </div>
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full ${
                       formData.is_featured ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-600'
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white ${
                         formData.is_featured ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
@@ -1081,7 +1081,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     return (
                       <label
                         key={cat.id}
-                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                        className={`flex items-center p-3 rounded-lg border cursor-pointer ${
                           isSelected
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
                             : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/30'
@@ -1093,7 +1093,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                           onChange={() => handleCategoryToggle(cat.id)}
                           className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
                         />
-                        <span className={`ml-3 text-sm font-medium transition-colors ${
+                        <span className={`ml-3 text-sm font-medium ${
                           isSelected
                             ? 'text-blue-900 dark:text-blue-200'
                             : 'text-gray-700 dark:text-gray-300'
@@ -1192,7 +1192,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                         setTagInput('');
                       }
                     }}
-                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium"
                   >
                     +
                   </button>
@@ -1244,7 +1244,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     placeholder="Nhập URL ảnh..."
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
-                  <button className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  <button className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
@@ -1280,7 +1280,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     />
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, featured_image: '', cover_image_alt: '' }))}
-                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
                     >
                       ×
                     </button>

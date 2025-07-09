@@ -6,7 +6,7 @@
 
 /* Modern Toolbar Styling */
 .tiptap-editor .toolbar-button {
-  @apply p-2 rounded transition-all duration-200 text-gray-900 dark:text-gray-300;
+  @apply p-2 rounded text-gray-900 dark:text-gray-300;
 }
 
 .tiptap-editor .toolbar-button:hover {

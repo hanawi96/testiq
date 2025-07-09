@@ -146,9 +146,9 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
 
         {/* Upload Area */}
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center mb-4 transition-colors ${
-            dragActive 
-              ? 'border-blue-500 bg-blue-500 bg-opacity-10' 
+          className={`border-2 border-dashed rounded-lg p-8 text-center mb-4 ${
+            dragActive
+              ? 'border-blue-500 bg-blue-500 bg-opacity-10'
               : 'border-gray-600 hover:border-gray-500'
           }`}
           onDragEnter={handleDrag}
@@ -170,7 +170,7 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
                   {uploadProgress > 0 && (
                     <div className="w-full bg-gray-700 rounded-full h-2">
                       <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        className="bg-blue-500 h-2 rounded-full"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
@@ -187,7 +187,7 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
               {uploadProgress > 0 && (
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-blue-500 h-2 rounded-full"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
