@@ -1,152 +1,30 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { BlogService } from '../services/blog-service';
 
-// Demo blog data
-const blogPosts = [
-  {
-    id: 1,
-    title: 'Cách tăng IQ hiệu quả: 7 phương pháp khoa học',
-    excerpt: 'Khám phá những phương pháp được chứng minh khoa học để cải thiện trí thông minh và nâng cao khả năng nhận thức của bạn.',
-    content: 'Nghiên cứu cho thấy IQ có thể được cải thiện thông qua các bài tập não bộ, thiền định, và học tập liên tục...',
-    author: 'Dr. Nguyễn Minh',
-    authorAvatar: 'NM',
-    date: '2024-01-15',
-    readTime: '5 phút đọc',
-    category: 'Khoa học',
-    tags: ['IQ', 'Não bộ', 'Học tập'],
+// Lấy dữ liệu thật từ database
+let blogPosts = await BlogService.getPublishedArticles();
+
+// Fallback data nếu không có dữ liệu từ database
+if (blogPosts.length === 0) {
+  blogPosts = [{
+    id: 'demo-1',
+    title: 'Chào mừng đến với Blog IQ Test',
+    excerpt: 'Hệ thống blog đang được thiết lập. Vui lòng thêm bài viết từ trang quản trị.',
+    content: 'Nội dung sẽ được cập nhật sớm...',
+    author: 'Admin',
+    authorAvatar: 'AD',
+    date: new Date().toLocaleDateString('vi-VN'),
+    readTime: '2 phút đọc',
+    category: 'Thông báo',
+    tags: ['Hệ thống'],
     image: '/api/placeholder/400/240',
     featured: true
-  },
-  {
-    id: 2,
-    title: 'Hiểu về các loại trí thông minh: Từ IQ đến EQ',
-    excerpt: 'Tìm hiểu về sự khác biệt giữa IQ, EQ, và các dạng trí thông minh khác để phát triển toàn diện bản thân.',
-    content: 'Trí thông minh không chỉ có một dạng. Howard Gardner đã xác định 8 loại trí thông minh khác nhau...',
-    author: 'ThS. Lê Hồng Anh',
-    authorAvatar: 'LA',
-    date: '2024-01-12',
-    readTime: '7 phút đọc',
-    category: 'Tâm lý học',
-    tags: ['IQ', 'EQ', 'Trí thông minh'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 3,
-    title: 'Luyện tập trí nhớ: Kỹ thuật Palace Method',
-    excerpt: 'Học cách sử dụng kỹ thuật cung điện trí nhớ để ghi nhớ thông tin một cách hiệu quả và lâu dài.',
-    content: 'Palace Method là một trong những kỹ thuật ghi nhớ mạnh mẽ nhất, được sử dụng từ thời Hy Lạp cổ đại...',
-    author: 'Gs. Trần Văn Bình',
-    authorAvatar: 'TB',
-    date: '2024-01-10',
-    readTime: '6 phút đọc',
-    category: 'Kỹ thuật',
-    tags: ['Trí nhớ', 'Học tập', 'Kỹ thuật'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 4,
-    title: 'Ảnh hưởng của giấc ngủ đến khả năng nhận thức',
-    excerpt: 'Tìm hiểu tại sao giấc ngủ chất lượng là yếu tố quan trọng để duy trì và cải thiện hiệu suất não bộ.',
-    content: 'Nghiên cứu gần đây cho thấy giấc ngủ đóng vai trò quan trọng trong việc củng cố trí nhớ và tăng cường khả năng học tập...',
-    author: 'Dr. Phạm Thu Hà',
-    authorAvatar: 'PH',
-    date: '2024-01-08',
-    readTime: '4 phút đọc',
-    category: 'Sức khỏe',
-    tags: ['Giấc ngủ', 'Não bộ', 'Sức khỏe'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 5,
-    title: 'Dinh dưỡng cho não: Thực phẩm tăng cường trí tuệ',
-    excerpt: 'Khám phá những thực phẩm giúp nuôi dưỡng não bộ và cải thiện khả năng tập trung, ghi nhớ.',
-    content: 'Não bộ tiêu thụ khoảng 20% năng lượng cơ thể. Việc cung cấp dinh dưỡng phù hợp có thể cải thiện đáng kể hiệu suất nhận thức...',
-    author: 'ThS. Võ Minh Tâm',
-    authorAvatar: 'VT',
-    date: '2024-01-05',
-    readTime: '5 phút đọc',
-    category: 'Dinh dưỡng',
-    tags: ['Dinh dưỡng', 'Não bộ', 'Thực phẩm'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 6,
-    title: 'Stress và trí thông minh: Mối quan hệ phức tạp',
-    excerpt: 'Tìm hiểu cách stress ảnh hưởng đến khả năng nhận thức và các phương pháp quản lý stress hiệu quả.',
-    content: 'Stress vừa có thể là động lực vừa có thể là rào cản đối với hiệu suất nhận thức. Hiểu rõ mối quan hệ này giúp tối ưu hóa khả năng học tập...',
-    author: 'Dr. Hoàng Văn Nam',
-    authorAvatar: 'HN',
-    date: '2024-01-03',
-    readTime: '6 phút đọc',
-    category: 'Tâm lý học',
-    tags: ['Stress', 'Tâm lý', 'Nhận thức'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 7,
-    title: 'Công nghệ và não bộ: Tác động của kỷ nguyên số',
-    excerpt: 'Phân tích cách công nghệ hiện đại ảnh hưởng đến cách chúng ta suy nghĩ và xử lý thông tin.',
-    content: 'Kỷ nguyên số đã thay đổi cách não bộ hoạt động. Việc hiểu những thay đổi này giúp chúng ta sử dụng công nghệ một cách có lợi...',
-    author: 'ThS. Đặng Thị Mai',
-    authorAvatar: 'DM',
-    date: '2024-01-01',
-    readTime: '8 phút đọc',
-    category: 'Công nghệ',
-    tags: ['Công nghệ', 'Não bộ', 'Kỷ nguyên số'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 8,
-    title: 'Thiền định và trí tuệ: Khoa học đằng sau sự tĩnh lặng',
-    excerpt: 'Khám phá những lợi ích được chứng minh khoa học của thiền định đối với khả năng nhận thức và trí thông minh.',
-    content: 'Các nghiên cứu neuroplasticity cho thấy thiền định có thể thay đổi cấu trúc não bộ một cách tích cực...',
-    author: 'Gs. Lý Thanh Sơn',
-    authorAvatar: 'LS',
-    date: '2023-12-28',
-    readTime: '7 phút đọc',
-    category: 'Tâm linh',
-    tags: ['Thiền định', 'Tâm linh', 'Khoa học'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 9,
-    title: 'Trò chơi trí tuệ: Liệu có thực sự hiệu quả?',
-    excerpt: 'Đánh giá khách quan về hiệu quả của các trò chơi rèn luyện trí tuệ và ứng dụng di động.',
-    content: 'Ngành công nghiệp trò chơi trí tuệ trị giá hàng tỷ đô la. Nhưng liệu chúng có thực sự giúp cải thiện IQ?...',
-    author: 'Dr. Ngô Quang Minh',
-    authorAvatar: 'NQ',
-    date: '2023-12-25',
-    readTime: '5 phút đọc',
-    category: 'Giải trí',
-    tags: ['Trò chơi', 'Trí tuệ', 'Ứng dụng'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  },
-  {
-    id: 10,
-    title: 'Tương lai của đo lường trí thông minh',
-    excerpt: 'Nhìn về tương lai: Làm thế nào AI và công nghệ mới sẽ thay đổi cách chúng ta đánh giá trí thông minh.',
-    content: 'Với sự phát triển của AI và machine learning, cách chúng ta hiểu và đo lường trí thông minh đang thay đổi...',
-    author: 'ThS. Bùi Văn Hùng',
-    authorAvatar: 'BH',
-    date: '2023-12-22',
-    readTime: '9 phút đọc',
-    category: 'Tương lai',
-    tags: ['AI', 'Tương lai', 'Đo lường'],
-    image: '/api/placeholder/400/240',
-    featured: false
-  }
-];
+  }];
+}
 
 // Get unique categories for filter
-const categories = [...new Set(blogPosts.map(post => post.category))];
+const categories = await BlogService.getCategories();
 
 // Helper function to get category color
 const getCategoryColor = (category: string) => {
