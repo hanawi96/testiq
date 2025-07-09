@@ -332,9 +332,11 @@ export default function TiptapEditor({
           {/* Image Upload */}
           <ToolbarButton
             onClick={() => setShowImageUpload(true)}
-            title="Insert Image"
+            title="Insert Image (Upload to Supabase Storage)"
+            className="relative"
           >
             <ImageIcon size={16} />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></span>
           </ToolbarButton>
 
           <ToolbarSeparator />

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Image, Upload, X, Loader2 } from 'lucide-react';
+import { ImageStorageService } from '../../../../../backend/storage/image-storage';
 
 interface ImageUploadProps {
   onImageUpload: (url: string) => void;
@@ -10,24 +11,47 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file upload
   const handleFileUpload = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn file hình ảnh');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('File quá lớn. Vui lòng chọn file nhỏ hơn 5MB');
-      return;
-    }
-
     setIsUploading(true);
-    
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploadProgress(0);
+
     try {
-      // Convert to base64 for demo (in production, upload to server/cloud)
+      // Try upload to Supabase Storage first
+      const { data, error } = await ImageStorageService.uploadImage(file, {
+        folder: 'articles',
+        maxWidth: 1920,
+        maxHeight: 1080,
+      });
+
+      if (data && !error) {
+        // Success - pass URL to editor
+        console.log('✅ Image uploaded to Supabase Storage:', data.url);
+
+        // Show success notification
+        setUploadSuccess('✅ Ảnh đã được upload lên Supabase Storage thành công!');
+        setUploadError(null);
+
+        // Small delay to show success message
+        setTimeout(() => {
+          onImageUpload(data.url);
+          onClose();
+        }, 1000);
+        return;
+      }
+
+      // If Supabase fails, fallback to base64
+      console.warn('Supabase upload failed, falling back to base64:', error);
+      setUploadError('Supabase không khả dụng, sử dụng chế độ demo');
+
+      // Convert to base64 as fallback
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
@@ -35,11 +59,13 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
         onClose();
       };
       reader.readAsDataURL(file);
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Upload error:', error);
-      alert('Lỗi upload hình ảnh');
+      setUploadError(error.message || 'Lỗi upload hình ảnh');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -87,6 +113,9 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <Image size={20} />
             Thêm hình ảnh
+            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-full">
+              Production
+            </span>
           </h3>
           <button
             onClick={onClose}
@@ -112,6 +141,14 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
             <div className="flex flex-col items-center gap-2">
               <Loader2 size={32} className="text-blue-500 animate-spin" />
               <p className="text-gray-300">Đang upload...</p>
+              {uploadProgress > 0 && (
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
@@ -129,6 +166,20 @@ export default function ImageUpload({ onImageUpload, onClose }: ImageUploadProps
             </div>
           )}
         </div>
+
+        {/* Success Message */}
+        {uploadSuccess && (
+          <div className="bg-green-500 bg-opacity-10 border border-green-500 rounded-lg p-3 mb-4">
+            <p className="text-green-400 text-sm">{uploadSuccess}</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {uploadError && (
+          <div className="bg-red-500 bg-opacity-10 border border-red-500 rounded-lg p-3 mb-4">
+            <p className="text-red-400 text-sm">{uploadError}</p>
+          </div>
+        )}
 
         {/* Hidden file input */}
         <input

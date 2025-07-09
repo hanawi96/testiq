@@ -11,6 +11,7 @@ export { CategoriesService } from './admin/categories-service';
 export { TagsService } from './admin/tags-service';
 export { MediaService } from './admin/media-service';
 export { UserProfilesService } from './admin/user-profiles-service';
+export { ImageStorageService } from './storage/image-storage';
 
 // Configuration
 export { supabase, supabaseAdmin, supabaseConfig, TABLES } from './config/supabase';
