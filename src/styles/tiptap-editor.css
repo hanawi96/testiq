@@ -6,11 +6,11 @@
 
 /* Modern Toolbar Styling */
 .tiptap-editor .toolbar-button {
-  @apply p-2 rounded transition-all duration-200;
+  @apply p-2 rounded transition-all duration-200 text-gray-900 dark:text-gray-300;
 }
 
 .tiptap-editor .toolbar-button:hover {
-  @apply bg-gray-600 text-white;
+  @apply bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white;
 }
 
 .tiptap-editor .toolbar-button.active {
@@ -18,15 +18,15 @@
 }
 
 .tiptap-editor .toolbar-button:disabled {
-  @apply text-gray-500 cursor-not-allowed;
+  @apply text-gray-400 dark:text-gray-500 cursor-not-allowed;
 }
 
 .tiptap-editor .toolbar-button:disabled:hover {
-  @apply bg-transparent text-gray-500;
+  @apply bg-transparent text-gray-400 dark:text-gray-500;
 }
 
 .tiptap-content .ProseMirror {
-  @apply outline-none bg-gray-900 text-gray-100;
+  @apply outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
   min-height: 780px;
   padding: 1.5rem;
   border-radius: 0 0 0.5rem 0.5rem;

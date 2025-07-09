@@ -77,14 +77,14 @@ const HeadingDropdown = ({ editor }: { editor: any }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-gray-200 rounded border border-gray-600"
+        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200 rounded"
       >
         <span className="min-w-[80px] text-left">{getCurrentHeading()}</span>
         <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-gray-700 border border-gray-600 rounded shadow-lg z-50 min-w-[140px]">
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded shadow-lg z-50 min-w-[140px]">
           {headingOptions.map((option, index) => (
             <button
               key={index}
@@ -93,7 +93,7 @@ const HeadingDropdown = ({ editor }: { editor: any }) => {
                 option.action();
                 setIsOpen(false);
               }}
-              className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-600 first:rounded-t last:rounded-b"
+              className="w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 first:rounded-t last:rounded-b"
             >
               {option.label}
             </button>
@@ -125,10 +125,10 @@ const ToolbarButton = ({
     title={title}
     className={`p-2 rounded transition-colors ${
       disabled
-        ? 'text-gray-500 cursor-not-allowed'
+        ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
         : isActive
           ? 'bg-blue-600 text-white'
-          : 'text-gray-300 hover:bg-gray-600 hover:text-white'
+          : 'text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white'
     }`}
   >
     {children}
@@ -137,7 +137,7 @@ const ToolbarButton = ({
 
 // Toolbar Separator
 const ToolbarSeparator = () => (
-  <div className="w-px h-6 bg-gray-600 mx-1"></div>
+  <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 );
 
 // Color Picker Component
@@ -166,7 +166,7 @@ const ColorPicker = ({ editor }: { editor: any }) => {
       </ToolbarButton>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-gray-700 border border-gray-600 rounded shadow-lg z-50 p-2">
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded shadow-lg z-50 p-2">
           <div className="grid grid-cols-6 gap-1 w-32">
             {colors.map((color) => (
               <button
@@ -176,7 +176,7 @@ const ColorPicker = ({ editor }: { editor: any }) => {
                   editor.chain().focus().setColor(color).run();
                   setIsOpen(false);
                 }}
-                className="w-4 h-4 rounded border border-gray-500 hover:scale-110 transition-transform"
+                className="w-4 h-4 rounded border border-gray-400 dark:border-gray-500 hover:scale-110 transition-transform"
                 style={{ backgroundColor: color }}
                 title={color}
               />
@@ -188,7 +188,7 @@ const ColorPicker = ({ editor }: { editor: any }) => {
               editor.chain().focus().unsetColor().run();
               setIsOpen(false);
             }}
-            className="w-full mt-2 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600 rounded"
+            className="w-full mt-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
           >
             Remove Color
           </button>
@@ -221,7 +221,7 @@ const HighlightPicker = ({ editor }: { editor: any }) => {
       </ToolbarButton>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-gray-700 border border-gray-600 rounded shadow-lg z-50 p-2">
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded shadow-lg z-50 p-2">
           <div className="grid grid-cols-5 gap-1 w-32">
             {highlightColors.map((color) => (
               <button
@@ -231,7 +231,7 @@ const HighlightPicker = ({ editor }: { editor: any }) => {
                   editor.chain().focus().setHighlight({ color }).run();
                   setIsOpen(false);
                 }}
-                className="w-4 h-4 rounded border border-gray-500 hover:scale-110 transition-transform"
+                className="w-4 h-4 rounded border border-gray-400 dark:border-gray-500 hover:scale-110 transition-transform"
                 style={{ backgroundColor: color }}
                 title={color}
               />
@@ -243,7 +243,7 @@ const HighlightPicker = ({ editor }: { editor: any }) => {
               editor.chain().focus().unsetHighlight().run();
               setIsOpen(false);
             }}
-            className="w-full mt-2 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600 rounded"
+            className="w-full mt-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
           >
             Remove Highlight
           </button>
@@ -300,12 +300,12 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-600">
-        <h3 className="text-lg font-semibold text-gray-100 mb-4">Chèn liên kết</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 border border-gray-300 dark:border-gray-600">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Chèn liên kết</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               URL
             </label>
             <input
@@ -313,13 +313,13 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Văn bản hiển thị (tùy chọn)
             </label>
             <input
@@ -327,7 +327,7 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Văn bản liên kết"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -335,7 +335,7 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
             <button
               type="submit"
               disabled={!url}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded transition-colors"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded transition-colors"
             >
               Chèn liên kết
             </button>
@@ -353,7 +353,7 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded transition-colors"
             >
               Hủy
             </button>
@@ -508,7 +508,7 @@ export default function TiptapEditor({
   return (
     <div className={`tiptap-editor ${flexHeight ? 'h-full flex flex-col' : ''} ${className}`}>
       {/* Modern Toolbar - Single Row */}
-      <div className="border border-gray-600 border-b-0 rounded-t-lg bg-gray-800 p-3">
+      <div className="border border-gray-300 dark:border-gray-600 border-b-0 rounded-t-lg bg-gray-100 dark:bg-gray-800 p-3">
         <div className="flex items-center gap-1 flex-wrap">
 
           {/* History */}
@@ -706,7 +706,7 @@ export default function TiptapEditor({
       </div>
 
       {/* Editor Content */}
-      <div className={`border border-gray-600 border-t-0 rounded-b-lg bg-gray-900 ${flexHeight ? 'flex-1 flex flex-col' : ''}`}>
+      <div className={`border border-gray-300 dark:border-gray-600 border-t-0 rounded-b-lg bg-white dark:bg-gray-900 ${flexHeight ? 'flex-1 flex flex-col' : ''}`}>
         <EditorContent
           editor={editor}
           className={`tiptap-content ${flexHeight ? 'flex-1' : ''}`}
