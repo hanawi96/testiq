@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { BlogService } from '../services/blog-service';
 
-const POSTS_PER_PAGE = 3;
+const POSTS_PER_PAGE = 9; // Tăng từ 3 lên 9 để hiển thị nhiều bài hơn
 
 // Lấy tất cả dữ liệu cần thiết trong 1 lần gọi
 const blogData = await BlogService.getBlogData();
@@ -31,7 +31,7 @@ if (allArticles.length === 0) {
   categories = ['Thông báo'];
 }
 
-// Chỉ lấy 3 bài viết đầu tiên cho trang 1
+// Lấy 9 bài viết đầu tiên cho trang 1 (thay vì 3)
 const blogPosts = regularArticles.slice(0, POSTS_PER_PAGE);
 
 // Tính pagination info

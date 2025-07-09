@@ -2,10 +2,10 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { BlogService } from '../../services/blog-service';
 
-const POSTS_PER_PAGE = 3;
+const POSTS_PER_PAGE = 9;
 
 export async function getStaticPaths() {
-  const POSTS_PER_PAGE = 3;
+  const POSTS_PER_PAGE = 9;
 
   // Lấy tất cả data trong 1 lần gọi
   const { featuredArticles, regularArticles } = await BlogService.getBlogData();

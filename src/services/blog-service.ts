@@ -58,16 +58,19 @@ export class BlogService {
           reading_time,
           created_at,
           updated_at,
-          published_at
+          published_at,
+          status
         `)
         .eq('status', 'published')
-        .order('published_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(50);
 
       if (articlesError) {
         console.error('BlogService: Error fetching articles:', articlesError);
         return [];
       }
+
+      console.log(`BlogService: Found ${articles?.length || 0} published articles`);
 
       if (!articles || articles.length === 0) {
         console.log('BlogService: No published articles found');
@@ -111,6 +114,17 @@ export class BlogService {
           `)
           .in('article_id', articleIds)
       ]);
+
+      // Check for errors in related data queries
+      if (authorsResult.error) {
+        console.error('BlogService: Error fetching authors:', authorsResult.error);
+      }
+      if (categoriesResult.error) {
+        console.error('BlogService: Error fetching categories:', categoriesResult.error);
+      }
+      if (tagsResult.error) {
+        console.error('BlogService: Error fetching tags:', tagsResult.error);
+      }
 
       // Tạo lookup maps
       const authorsMap = new Map();
@@ -267,6 +281,8 @@ export class BlogService {
     const featuredArticles = allArticles.filter(article => article.featured);
     const regularArticles = allArticles.filter(article => !article.featured);
     const categories = [...new Set(allArticles.map(post => post.category))].sort();
+
+
 
     return {
       allArticles,
