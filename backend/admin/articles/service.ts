@@ -192,13 +192,19 @@ export class ArticlesService {
       }
     });
 
-    // Build tags map
-    relatedData.tags.forEach(item => {
-      if (!tagsMap.has(item.article_id)) {
-        tagsMap.set(item.article_id, []);
-      }
-      tagsMap.get(item.article_id).push(item.tags);
-    });
+    // Build tags map with proper null handling
+    if (relatedData.tags && Array.isArray(relatedData.tags)) {
+      relatedData.tags.forEach(item => {
+        if (item && item.article_id) {
+          if (!tagsMap.has(item.article_id)) {
+            tagsMap.set(item.article_id, []);
+          }
+          if (item.tags && item.tags.name) {
+            tagsMap.get(item.article_id).push(item.tags);
+          }
+        }
+      });
+    }
 
     // Build profiles map
     relatedData.profiles.forEach(profile => {
@@ -242,7 +248,7 @@ export class ArticlesService {
         user_profiles: article.author_id ? profilesMap.get(article.author_id) : null,
         // Computed fields for backward compatibility
         author: article.author_id ? profilesMap.get(article.author_id)?.full_name : null,
-        tag_names: articleTags.map((tag: any) => typeof tag === 'string' ? tag : (tag?.name || String(tag))),
+        tag_names: articleTags.map((tag: any) => typeof tag === 'string' ? tag : (tag?.name || String(tag))).filter(Boolean),
         category_ids: categoryIds,
         category_names: categoryNames
       };
@@ -854,6 +860,34 @@ export class ArticlesService {
     } catch (err) {
       console.error('ArticlesService: Unexpected error updating article categories:', err);
       return { error: err };
+    }
+  }
+
+  /**
+   * Get all tags (for preloader and quick edit)
+   */
+  static async getTags(): Promise<string[]> {
+    try {
+      const { data: tags, error } = await supabase
+        .from('tags')
+        .select('name')
+        .order('usage_count', { ascending: false })
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('ArticlesService: Error fetching tags:', error);
+        return [];
+      }
+
+      if (!tags || tags.length === 0) {
+        return [];
+      }
+
+      return tags.map(tag => tag.name).filter(Boolean);
+
+    } catch (err) {
+      console.error('ArticlesService: Unexpected error fetching tags:', err);
+      return [];
     }
   }
 }

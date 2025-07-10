@@ -17,7 +17,7 @@ let preloadPromise: Promise<string[]> | null = null;
  */
 const INSTANT_TAGS: string[] = [
   'JavaScript',
-  'TypeScript', 
+  'TypeScript',
   'React',
   'Vue',
   'Angular',
@@ -28,6 +28,14 @@ const INSTANT_TAGS: string[] = [
   'Tips',
   'Best Practices',
   'Performance',
+  'IQ Test',
+  'Học tập',
+  'Kiến thức',
+  'Hướng dẫn',
+  'Thủ thuật',
+  'Phát triển',
+  'Công nghệ',
+  'Web Development',
   'Security',
   'Testing',
   'Development',
@@ -46,18 +54,18 @@ async function loadTagsData(): Promise<string[]> {
     // Dynamic import to avoid circular dependencies
     const { ArticlesService } = await import('../../../../backend');
     const tags = await ArticlesService.getTags();
-    
+
     if (tags && tags.length > 0) {
       console.log(`🏷️ Tags Preloader: Loaded ${tags.length} tags from database`);
       return tags;
+    } else {
+      console.log('🏷️ Tags Preloader: No tags in database, using instant fallback');
+      return INSTANT_TAGS;
     }
   } catch (error) {
     console.warn('🏷️ Tags Preloader: Database failed, using instant fallback:', error);
+    return INSTANT_TAGS;
   }
-
-  // Final fallback to instant tags
-  console.log('🏷️ Tags Preloader: Using instant fallback tags');
-  return INSTANT_TAGS;
 }
 
 /**

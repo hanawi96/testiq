@@ -126,9 +126,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           }
 
           if (data) {
-            console.log('ArticleEditor: Article data loaded:', data);
-            console.log('ArticleEditor: Tags from data:', data.tags);
-            console.log('ArticleEditor: Categories from data:', data.category_ids);
             // Populate form with article data
             setFormData({
               title: data.title || '',
@@ -139,7 +136,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               slug: data.slug || '',
               status: data.status || 'draft',
               focus_keyword: data.focus_keyword || '',
-              categories: data.category_ids || data.categories?.map((cat: any) => typeof cat === 'string' ? cat : cat.id) || [],
+              categories: (() => {
+                // Convert single category_id to array, or use category_ids if available
+                if (data.category_ids && data.category_ids.length > 0) {
+                  return data.category_ids;
+                }
+                if (data.category_id) {
+                  return [data.category_id];
+                }
+                if (data.categories) {
+                  return data.categories.map((cat: any) => typeof cat === 'string' ? cat : cat.id);
+                }
+                return [];
+              })(),
               tags: data.tag_names || data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [],
               featured_image: data.cover_image || '',
               cover_image_alt: data.cover_image_alt || '',
@@ -454,27 +463,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         // Author
         author_id: formData.author_id,
 
-        // Relations
-        categories: formData.categories,
-        tags: formData.tags,
+        // Category - convert categories array to primary category_id
+        category_id: formData.categories.length > 0 ? formData.categories[0] : undefined,
 
         // Publishing
         published_at: status === 'published' ? formData.published_date : undefined,
       };
 
-      console.log('💾 ArticleEditor: Preparing to save article data:');
-      console.log('💾 formData.featured_image:', formData.featured_image);
-      console.log('💾 articleData.cover_image:', articleData.cover_image);
-      console.log('👤 formData.author_id:', formData.author_id);
-      console.log('👤 articleData.author_id:', articleData.author_id);
-      console.log('💾 Full articleData:', articleData);
-
-      // Validation: Ensure cover_image is not lost
-      if (formData.featured_image && !articleData.cover_image) {
-        console.error('🚨 CRITICAL: cover_image lost during mapping!');
-        console.error('🚨 formData.featured_image:', formData.featured_image);
-        console.error('🚨 articleData.cover_image:', articleData.cover_image);
-      }
+      console.log('ArticleEditor: Saving article with data:', articleData);
 
       console.log(isEditMode ? 'Updating article:' : 'Creating article:', articleData);
 
