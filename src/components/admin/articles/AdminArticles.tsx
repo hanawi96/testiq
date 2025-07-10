@@ -9,6 +9,7 @@ import LinkAnalysisModal from './modals/LinkAnalysisModal';
 import QuickStatusEditor from './quick-actions/QuickStatusEditor';
 import CategoryDisplay from './components/CategoryDisplay';
 import SearchInput from '../common/SearchInput';
+import LoadingSpinner from '../common/LoadingSpinner';
 import SearchHighlight from '../common/SearchHighlight';
 import SearchStats from '../common/SearchStats';
 import { categoriesPreloadTriggers } from '../../../utils/admin/preloaders/categories-preloader';
@@ -657,7 +658,7 @@ export default function AdminArticles() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+          <LoadingSpinner size="md" color="blue" />
           <span className="text-gray-600 dark:text-gray-400 font-medium">Đang tải...</span>
         </div>
       </div>
@@ -969,7 +970,7 @@ export default function AdminArticles() {
                             <div className="sm:hidden mt-2 flex items-center">
                               {loadingCategoryIds.has(article.id) ? (
                                 <div className="flex items-center space-x-2">
-                                  <div className="w-3 h-3 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <LoadingSpinner size="sm" color="blue" />
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     Đang cập nhật danh mục...
                                   </div>
@@ -1000,7 +1001,7 @@ export default function AdminArticles() {
                             <div className="flex items-center space-x-2 mt-2">
                               {loadingTagIds.has(article.id) ? (
                                 <div className="flex items-center space-x-2">
-                                  <div className="w-3 h-3 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <LoadingSpinner size="sm" color="blue" />
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     Đang cập nhật tags...
                                   </div>
@@ -1114,7 +1115,7 @@ export default function AdminArticles() {
                         <div className="flex items-center">
                           {loadingCategoryIds.has(article.id) ? (
                             <div className="flex items-center space-x-2">
-                              <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                              <LoadingSpinner size="sm" color="blue" />
                               <div className="text-sm text-gray-500 dark:text-gray-400">
                                 Đang cập nhật...
                               </div>
@@ -1148,7 +1149,7 @@ export default function AdminArticles() {
                           <div className="flex items-center space-x-2">
                             {loadingAuthorIds.has(article.id) ? (
                               <div className="flex items-center space-x-2">
-                                <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                                <LoadingSpinner size="sm" color="blue" />
                                 <div className="text-sm text-gray-500 dark:text-gray-400">
                                   Đang cập nhật...
                                 </div>

@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../../config/supabase';
-import type { Article, ArticlesFilters, RelatedData } from './types';
+import type { ArticlesFilters, RelatedData } from './types';
 
 export class ArticleQueries {
   /**
@@ -213,7 +213,6 @@ export class ArticleQueries {
    */
   static async updateArticle(articleId: string, updateData: any) {
     try {
-      console.log('ArticleQueries: Updating article in database:', { articleId, updateData });
 
       const { data: updatedData, error: updateError } = await supabase
         .from('articles')
@@ -223,15 +222,12 @@ export class ArticleQueries {
         .single();
 
       if (updateError) {
-        console.error('ArticleQueries: Error updating article:', updateError);
         return { data: null, error: updateError };
       }
 
-      console.log('ArticleQueries: Successfully updated article');
       return { data: updatedData, error: null };
 
     } catch (err) {
-      console.error('ArticleQueries: Unexpected error updating article:', err);
       return { data: null, error: err };
     }
   }
@@ -503,24 +499,23 @@ export class ArticleQueries {
     try {
       let query = supabase
         .from('articles')
-        .select('id')
+        .select('id', { count: 'exact', head: true })
         .eq('slug', slug);
 
       if (excludeId) {
         query = query.neq('id', excludeId);
       }
 
-      const { data, error } = await query.single();
+      const { count, error } = await query;
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('ArticleQueries: Error checking slug existence:', error);
+      if (error) {
         return { exists: false, error };
       }
 
-      return { exists: !!data, error: null };
+      // Check if any rows exist
+      return { exists: (count || 0) > 0, error: null };
 
     } catch (err) {
-      console.error('ArticleQueries: Unexpected error checking slug existence:', err);
       return { exists: false, error: err };
     }
   }

@@ -3,6 +3,7 @@ import { CategoriesService, ArticlesService, UserProfilesService } from '../../.
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
+import LoadingSpinner from '../../common/LoadingSpinner';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 import TiptapEditor from './TiptapEditor';
@@ -103,7 +104,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [slugError, setSlugError] = useState('');
   const [isValidatingSlug, setIsValidatingSlug] = useState(false);
-  const [isLoadingArticle, setIsLoadingArticle] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [showImageUpload, setShowImageUpload] = useState(false);
 
@@ -112,15 +112,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     // Only run after component is mounted and we have an article ID
     if (articleId || currentArticleId) {
       const loadArticle = async () => {
-        setIsLoadingArticle(true);
         setLoadError('');
 
         try {
-          console.log('ArticleEditor: Calling getArticleForEdit with ID:', articleId || currentArticleId);
           const { data, error } = await ArticlesService.getArticleForEdit(articleId || currentArticleId!);
 
           if (error) {
-            console.error('Error loading article:', error);
             setLoadError('Không thể tải bài viết');
             return;
           }
@@ -163,10 +160,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             });
           }
         } catch (err) {
-          console.error('Error loading article:', err);
           setLoadError('Có lỗi xảy ra khi tải bài viết');
-        } finally {
-          setIsLoadingArticle(false);
         }
       };
 
@@ -328,7 +322,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     setSlugError('');
 
     try {
-      const { data: isValid, error } = await ArticlesService.validateSlug(slug);
+      // Pass current article ID to exclude it from slug check in edit mode
+      const excludeId = isEditMode ? (articleId || currentArticleId) : undefined;
+      const { data: isValid, error } = await ArticlesService.validateSlug(slug, excludeId);
 
       if (error) {
         setSlugError(error.message || 'Có lỗi khi kiểm tra slug');
@@ -336,7 +332,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         setSlugError('Slug đã tồn tại, vui lòng chọn slug khác');
       }
     } catch (err) {
-      console.error('Slug validation error:', err);
       setSlugError('Có lỗi khi kiểm tra slug');
     } finally {
       setIsValidatingSlug(false);
@@ -466,13 +461,15 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         // Category - convert categories array to primary category_id
         category_id: formData.categories.length > 0 ? formData.categories[0] : undefined,
 
+        // Relations - for junction tables
+        categories: formData.categories,
+        tags: formData.tags,
+
         // Publishing
         published_at: status === 'published' ? formData.published_date : undefined,
       };
 
-      console.log('ArticleEditor: Saving article with data:', articleData);
 
-      console.log(isEditMode ? 'Updating article:' : 'Creating article:', articleData);
 
       let data, error;
 
@@ -610,36 +607,28 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return { wordCount, readingTime, score, checks };
   }, [formData]);
 
-  // Show loading state for edit mode
-  if (isEditMode && isLoadingArticle) {
-    return (
-      <div className="article-editor bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Đang tải bài viết...</p>
-        </div>
-      </div>
-    );
-  }
+  // Loading state removed - show content immediately
 
   // Show error state for edit mode
   if (isEditMode && loadError) {
     return (
       <div className="article-editor bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="max-w-md mx-auto text-center">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-red-900 dark:text-red-100 mb-2">Không thể tải bài viết</h2>
+            <p className="text-red-700 dark:text-red-300 mb-4">{loadError}</p>
+            <button
+              onClick={() => window.location.href = '/admin/articles'}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
+            >
+              Quay lại danh sách
+            </button>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Không thể tải bài viết</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{loadError}</p>
-          <button
-            onClick={() => window.location.href = '/admin/articles'}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-          >
-            Quay lại danh sách
-          </button>
         </div>
       </div>
     );
@@ -688,24 +677,32 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               <button
                 onClick={() => handleSave('draft')}
                 disabled={isLoading}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                 title="Lưu nháp (Ctrl+S)"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                Lưu nháp
+                {isLoading ? (
+                  <LoadingSpinner size="sm" color="gray" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                )}
+                {isLoading ? 'Đang lưu...' : 'Lưu nháp'}
               </button>
               <button
                 onClick={() => handleSave('published')}
                 disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
                 title="Xuất bản (Ctrl+Shift+P)"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-                Xuất bản
+                {isLoading ? (
+                  <LoadingSpinner size="sm" color="white" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                )}
+                {isLoading ? 'Đang xuất bản...' : 'Xuất bản'}
               </button>
             </div>
           </div>
@@ -1094,8 +1091,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               <div className="space-y-2">
                 {categoriesLoading ? (
                   <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Đang tải danh mục...</p>
+                    <LoadingSpinner size="md" color="blue" className="mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Đang tải danh mục...</p>
                   </div>
                 ) : categories.length === 0 ? (
                   <div className="text-center py-4">
@@ -1368,8 +1365,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               {/* Author Selection */}
               {authorsLoading ? (
                 <div className="flex items-center justify-center py-4">
-                  <div className="w-4 h-4 border border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="ml-2 text-sm text-gray-500">Đang tải tác giả...</span>
+                  <LoadingSpinner size="sm" color="gray" className="mr-2" />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Đang tải tác giả...</span>
                 </div>
               ) : (
                 <select

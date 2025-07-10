@@ -474,11 +474,13 @@ export class ArticlesService {
     updateData: Partial<CreateArticleData>
   ): Promise<{ data: Article | null; error: any }> {
     try {
-      console.log('ArticlesService: Updating article:', { articleId, updateData });
 
-      // Prepare update data
+      // Extract categories and tags for separate processing
+      const { categories, tags, ...articleUpdateData } = updateData;
+
+      // Prepare update data for articles table only
       const processedUpdateData: any = {
-        ...updateData,
+        ...articleUpdateData,
         updated_at: new Date().toISOString()
       };
 
@@ -506,12 +508,21 @@ export class ArticlesService {
       const { data: updatedArticle, error } = await ArticleQueries.updateArticle(articleId, processedUpdateData);
 
       if (error) {
-        console.error('ArticlesService: Error updating article:', error);
         return { data: null, error };
       }
 
       if (!updatedArticle) {
         return { data: null, error: new Error('Không thể cập nhật bài viết') };
+      }
+
+      // Handle categories update if provided
+      if (categories !== undefined) {
+        await this.updateArticleCategories(articleId, categories);
+      }
+
+      // Handle tags update if provided
+      if (tags !== undefined) {
+        await this.updateArticleTags(articleId, tags);
       }
 
       // Invalidate cache
@@ -520,11 +531,9 @@ export class ArticlesService {
       // Enrich with related data
       const enrichedArticles = await this.enrichArticlesWithRelatedData([updatedArticle]);
 
-      console.log('ArticlesService: Successfully updated article');
       return { data: enrichedArticles[0], error: null };
 
     } catch (err) {
-      console.error('ArticlesService: Unexpected error updating article:', err);
       return { data: null, error: err };
     }
   }
@@ -741,32 +750,98 @@ export class ArticlesService {
    */
   static async updateTags(articleId: string, tags: string[]): Promise<{ error: any }> {
     try {
-      console.log('ArticlesService: Updating article tags:', { articleId, tags });
 
-      // Just update the updated_at timestamp in articles table
+      // 1. Update article timestamp
       const { error: updateError } = await ArticleQueries.updateArticle(articleId, {
         updated_at: new Date().toISOString()
       });
 
       if (updateError) {
-        console.error('ArticlesService: Error updating article timestamp:', updateError);
         return { error: updateError };
       }
 
-      // TODO: In a full implementation, update the article_tags junction table
-      // This would involve:
-      // 1. Delete existing tags for this article
-      // 2. Insert new tags (create tags if they don't exist)
-      // 3. Insert new article_tags relationships
+      // 2. Handle tags if provided
+      if (tags && tags.length > 0) {
+        // Create tags that don't exist
+        const tagIds: string[] = [];
+
+        for (const tagName of tags) {
+          if (!tagName.trim()) continue;
+
+          // Try to find existing tag
+          const { data: existingTag } = await supabase
+            .from('tags')
+            .select('id')
+            .eq('name', tagName.trim())
+            .single();
+
+          if (existingTag) {
+            tagIds.push(existingTag.id);
+          } else {
+            // Create new tag
+            const { data: newTag, error: createError } = await supabase
+              .from('tags')
+              .insert({
+                name: tagName.trim(),
+                slug: tagName.trim().toLowerCase().replace(/\s+/g, '-'),
+                usage_count: 1
+              })
+              .select('id')
+              .single();
+
+            if (createError) {
+              continue;
+            }
+
+            if (newTag) {
+              tagIds.push(newTag.id);
+            }
+          }
+        }
+
+        // 3. Delete existing article_tags relationships
+        const { error: deleteError } = await supabase
+          .from('article_tags')
+          .delete()
+          .eq('article_id', articleId);
+
+        if (deleteError) {
+          // Continue anyway
+        }
+
+        // 4. Insert new article_tags relationships
+        if (tagIds.length > 0) {
+          const tagRelations = tagIds.map(tagId => ({
+            article_id: articleId,
+            tag_id: tagId
+          }));
+
+          const { error: insertError } = await supabase
+            .from('article_tags')
+            .insert(tagRelations);
+
+          if (insertError) {
+            return { error: insertError };
+          }
+        }
+      } else {
+        // No tags provided - delete all existing tags for this article
+        const { error: deleteError } = await supabase
+          .from('article_tags')
+          .delete()
+          .eq('article_id', articleId);
+
+        if (deleteError) {
+          // Continue anyway
+        }
+      }
 
       // Invalidate cache
       this.invalidateArticlesCache();
 
-      console.log('ArticlesService: Successfully updated article tags');
       return { error: null };
 
     } catch (err) {
-      console.error('ArticlesService: Unexpected error updating article tags:', err);
       return { error: err };
     }
   }
@@ -860,6 +935,116 @@ export class ArticlesService {
     } catch (err) {
       console.error('ArticlesService: Unexpected error updating article categories:', err);
       return { error: err };
+    }
+  }
+
+  /**
+   * Update article categories (junction table)
+   */
+  private static async updateArticleCategories(articleId: string, categoryIds: string[]): Promise<void> {
+    try {
+      // Delete existing category relationships
+      await supabase
+        .from('article_categories')
+        .delete()
+        .eq('article_id', articleId);
+
+      // Insert new category relationships
+      if (categoryIds.length > 0) {
+        const categoryRelations = categoryIds.map(categoryId => ({
+          article_id: articleId,
+          category_id: categoryId
+        }));
+
+        await supabase
+          .from('article_categories')
+          .insert(categoryRelations);
+      }
+    } catch (err) {
+      console.error('ArticlesService: Error updating article categories:', err);
+      // Don't throw - continue with article update
+    }
+  }
+
+  /**
+   * Update article tags (junction table)
+   */
+  private static async updateArticleTags(articleId: string, tagNames: string[]): Promise<void> {
+    try {
+      // Delete existing tag relationships
+      await supabase
+        .from('article_tags')
+        .delete()
+        .eq('article_id', articleId);
+
+      // Process tags if provided
+      if (tagNames.length > 0) {
+        const tagIds: string[] = [];
+
+        for (const tagName of tagNames) {
+          if (!tagName.trim()) continue;
+
+          // Try to find existing tag
+          const { data: existingTag } = await supabase
+            .from('tags')
+            .select('id')
+            .eq('name', tagName.trim())
+            .single();
+
+          if (existingTag) {
+            tagIds.push(existingTag.id);
+          } else {
+            // Create new tag
+            const { data: newTag, error: createError } = await supabase
+              .from('tags')
+              .insert({
+                name: tagName.trim(),
+                slug: tagName.trim().toLowerCase().replace(/\s+/g, '-'),
+                usage_count: 1
+              })
+              .select('id')
+              .single();
+
+            if (!createError && newTag) {
+              tagIds.push(newTag.id);
+            }
+          }
+        }
+
+        // Insert new tag relationships
+        if (tagIds.length > 0) {
+          const tagRelations = tagIds.map(tagId => ({
+            article_id: articleId,
+            tag_id: tagId
+          }));
+
+          await supabase
+            .from('article_tags')
+            .insert(tagRelations);
+        }
+      }
+    } catch (err) {
+      console.error('ArticlesService: Error updating article tags:', err);
+      // Don't throw - continue with article update
+    }
+  }
+
+  /**
+   * Validate slug (for ArticleEditor)
+   */
+  static async validateSlug(slug: string, excludeId?: string): Promise<{ data: boolean; error: any }> {
+    try {
+      const { exists, error } = await ArticleQueries.checkSlugExists(slug, excludeId);
+
+      if (error) {
+        return { data: false, error };
+      }
+
+      // Return true if slug is available (not exists), false if taken
+      return { data: !exists, error: null };
+
+    } catch (err) {
+      return { data: false, error: err };
     }
   }
 
