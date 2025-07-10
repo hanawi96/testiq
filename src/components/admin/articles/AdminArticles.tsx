@@ -20,7 +20,6 @@ import { perfAnalyzer } from '../../../utils/performance/performance-analyzer';
 export default function AdminArticles() {
   const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
   const [stats, setStats] = useState<ArticleStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<ArticlesFilters>({
@@ -138,8 +137,6 @@ export default function AdminArticles() {
       perfAnalyzer.clear(); // Clear previous metrics
       perfAnalyzer.start('pageLoad');
 
-      setIsLoading(true);
-
       perfAnalyzer.start('parallelDataLoad');
       await Promise.all([
         fetchArticles(1),
@@ -147,7 +144,6 @@ export default function AdminArticles() {
       ]);
       perfAnalyzer.end('parallelDataLoad');
 
-      setIsLoading(false);
       perfAnalyzer.end('pageLoad');
     };
 
@@ -654,16 +650,7 @@ export default function AdminArticles() {
     return num.toString();
   };
 
-  if (isLoading && !articlesData) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-3">
-          <LoadingSpinner size="md" color="blue" />
-          <span className="text-gray-600 dark:text-gray-400 font-medium">Đang tải...</span>
-        </div>
-      </div>
-    );
-  }
+  // Loading state removed - show content immediately
 
   return (
     <div className="space-y-6">
@@ -763,7 +750,6 @@ export default function AdminArticles() {
               value={filters.search || ''}
               onChange={(value) => handleFilterChange({ search: value })}
               placeholder="Tiêu đề, tác giả, danh mục, tags..."
-              isLoading={isLoading}
               onClear={() => handleFilterChange({ search: '' })}
             />
           </div>
@@ -819,7 +805,6 @@ export default function AdminArticles() {
         totalResults={articlesData?.total || 0}
         currentPage={currentPage}
         totalPages={articlesData?.totalPages || 1}
-        isLoading={isLoading}
         className="mb-4"
       />
 

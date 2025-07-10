@@ -132,7 +132,6 @@ export class ArticleQueries {
    */
   static async getArticleById(articleId: string) {
     try {
-      console.log('ArticleQueries: Fetching article by ID:', articleId);
 
       const { data: article, error } = await supabase
         .from('articles')
@@ -141,15 +140,12 @@ export class ArticleQueries {
         .single();
 
       if (error) {
-        console.error('ArticleQueries: Error fetching article by ID:', error);
         return { data: null, error };
       }
 
-      console.log('ArticleQueries: Successfully fetched article by ID');
       return { data: article, error: null };
 
     } catch (err) {
-      console.error('ArticleQueries: Unexpected error fetching article by ID:', err);
       return { data: null, error: err };
     }
   }

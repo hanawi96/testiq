@@ -84,7 +84,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     cover_image_alt: '',
     lang: 'vi',
     article_type: 'article' as 'article' | 'page' | 'post',
-    is_public: true,
+    is_public: !isEditMode, // false for edit mode, true for create mode
     is_featured: false,
     schema_type: 'Article',
     robots_noindex: false,
@@ -105,6 +105,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [slugError, setSlugError] = useState('');
   const [isValidatingSlug, setIsValidatingSlug] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [isFormDataLoaded, setIsFormDataLoaded] = useState(!isEditMode); // true for create mode, false for edit mode
   const [showImageUpload, setShowImageUpload] = useState(false);
 
   // Load article data for edit mode
@@ -151,13 +152,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               cover_image_alt: data.cover_image_alt || '',
               lang: data.lang || 'vi',
               article_type: data.article_type || 'article',
-              is_public: true, // Default value
-              is_featured: data.featured || false,
+              is_public: data.status === 'published',
+              is_featured: data.featured === true,
               schema_type: data.schema_type || 'Article',
               robots_noindex: data.robots_directive?.includes('noindex') || false,
               published_date: data.published_at ? new Date(data.published_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
               author_id: data.author_id || ''
             });
+            setIsFormDataLoaded(true);
           }
         } catch (err) {
           setLoadError('Có lỗi xảy ra khi tải bài viết');
@@ -270,7 +272,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
     const autoSaveInterval = setInterval(() => {
       if (hasUnsavedChanges && formData.title.trim()) {
-        handleSave('draft');
+        handleSave('save');
       }
     }, 30000); // 30 seconds
 
@@ -401,7 +403,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     setShowImageUpload(false);
   };
 
-  const handleSave = async (status: 'draft' | 'published') => {
+  const handleSave = async (action: 'save') => {
     setIsLoading(true);
     setSaveStatus('Đang lưu...');
 
@@ -437,7 +439,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         content: formData.content.trim(),
         excerpt: formData.excerpt.trim(),
         slug: formData.slug.trim(),
-        status: status,
+        status: formData.is_public ? 'published' : 'draft',
         featured: formData.is_featured,
         lang: formData.lang,
         article_type: formData.article_type,
@@ -500,7 +502,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       }
 
       if (data) {
-        const successMessage = isEditMode ? '✅ Đã cập nhật bài viết thành công' : '✅ Đã tạo bài viết thành công';
+        const statusText = formData.is_public ? 'xuất bản' : 'lưu nháp';
+        const successMessage = isEditMode ? `✅ Đã cập nhật và ${statusText} bài viết thành công` : `✅ Đã tạo và ${statusText} bài viết thành công`;
         setSaveStatus(successMessage);
         setHasUnsavedChanges(false);
         setLastSaved(new Date());
@@ -675,34 +678,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 )}
               </div>
               <button
-                onClick={() => handleSave('draft')}
-                disabled={isLoading}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                title="Lưu nháp (Ctrl+S)"
-              >
-                {isLoading ? (
-                  <LoadingSpinner size="sm" color="gray" />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                )}
-                {isLoading ? 'Đang lưu...' : 'Lưu nháp'}
-              </button>
-              <button
-                onClick={() => handleSave('published')}
+                onClick={() => handleSave('save')}
                 disabled={isLoading}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
-                title="Xuất bản (Ctrl+Shift+P)"
+                title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
               >
                 {isLoading ? (
                   <LoadingSpinner size="sm" color="white" />
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 )}
-                {isLoading ? 'Đang xuất bản...' : 'Xuất bản'}
+                {isLoading ? 'Đang lưu...' : (formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp')}
               </button>
             </div>
           </div>
@@ -1025,42 +1013,54 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   <div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chế độ công khai</span>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
+                      {isFormDataLoaded ? (formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư') : 'Đang tải...'}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                      formData.is_public ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                        formData.is_public ? 'translate-x-6' : 'translate-x-1'
+                  {isFormDataLoaded ? (
+                    <button
+                      onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                        formData.is_public ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                       }`}
-                    />
-                  </button>
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                          formData.is_public ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  ) : (
+                    <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-gray-600">
+                      <div className="inline-block h-4 w-4 rounded-full bg-gray-300 dark:bg-gray-500 translate-x-1"></div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bài nổi bật</span>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường'}
+                      {isFormDataLoaded ? (formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường') : 'Đang tải...'}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                      formData.is_featured ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                        formData.is_featured ? 'translate-x-6' : 'translate-x-1'
+                  {isFormDataLoaded ? (
+                    <button
+                      onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                        formData.is_featured ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-600'
                       }`}
-                    />
-                  </button>
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                          formData.is_featured ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  ) : (
+                    <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-gray-600">
+                      <div className="inline-block h-4 w-4 rounded-full bg-gray-300 dark:bg-gray-500 translate-x-1"></div>
+                    </div>
+                  )}
                 </div>
 
                 <div>

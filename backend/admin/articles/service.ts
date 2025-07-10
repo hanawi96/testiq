@@ -86,6 +86,10 @@ export class ArticlesService {
     const wordCount = articleData.content.split(/\s+/).length;
     const readingTime = Math.ceil(wordCount / 200);
 
+    // Analyze links in content
+    const baseDomain = this.getBaseDomain();
+    const linkAnalysis = this.analyzeContentLinks(articleData.content, baseDomain);
+
     // Prepare article data for database
     const processedData = {
       title: articleData.title.trim(),
@@ -95,7 +99,7 @@ export class ArticlesService {
       lang: articleData.lang || 'vi',
       article_type: articleData.article_type || 'article',
       status: articleData.status || 'draft',
-      featured: articleData.featured || false,
+      featured: articleData.featured === true,
       author_id: authorId,
       category_id: articleData.category_id || null,
       parent_id: articleData.parent_id || null,
@@ -141,6 +145,8 @@ export class ArticlesService {
       // Content analysis
       word_count: wordCount,
       reading_time: readingTime,
+      internal_links: linkAnalysis.internal_links,
+      external_links: linkAnalysis.external_links,
 
       // Publishing
       published_at: articleData.status === 'published' ? new Date().toISOString() : null,
@@ -428,7 +434,6 @@ export class ArticlesService {
     authorId: string
   ): Promise<{ data: Article | null; error: any }> {
     try {
-      console.log('ArticlesService: Creating new article:', articleData);
 
       // Validate article data
       const validation = this.validateArticleData(articleData);
@@ -497,6 +502,12 @@ export class ArticlesService {
         const wordCount = updateData.content.split(/\s+/).length;
         processedUpdateData.reading_time = Math.ceil(wordCount / 200);
         processedUpdateData.word_count = wordCount;
+
+        // Analyze links in content
+        const baseDomain = this.getBaseDomain();
+        const linkAnalysis = this.analyzeContentLinks(updateData.content, baseDomain);
+        processedUpdateData.internal_links = linkAnalysis.internal_links;
+        processedUpdateData.external_links = linkAnalysis.external_links;
       }
 
       // Set published_at when publishing
@@ -649,13 +660,11 @@ export class ArticlesService {
    */
   static async getArticleForEdit(articleId: string): Promise<{ data: Article | null; error: any }> {
     try {
-      console.log('ArticlesService: Getting article for edit:', articleId);
 
       // Get article by ID with full data
       const result = await this.getArticleById(articleId);
 
       if (result.error || !result.data) {
-        console.error('ArticlesService: Error getting article for edit:', result.error);
         return { data: null, error: result.error || new Error('Không tìm thấy bài viết') };
       }
 
@@ -673,13 +682,11 @@ export class ArticlesService {
    */
   static async analyzeArticleLinks(articleId: string): Promise<{ data: LinkAnalysis | null; error: any }> {
     try {
-      console.log('ArticlesService: Analyzing links for article:', articleId);
 
       // Get article content
       const { data: article, error: fetchError } = await ArticleQueries.getArticleById(articleId);
 
       if (fetchError || !article) {
-        console.error('ArticlesService: Error fetching article for link analysis:', fetchError);
         return { data: null, error: fetchError || new Error('Article not found') };
       }
 
@@ -697,15 +704,12 @@ export class ArticlesService {
       const { error: updateError } = await ArticleQueries.updateArticle(articleId, updateData);
 
       if (updateError) {
-        console.error('ArticlesService: Error updating article with link analysis:', updateError);
         return { data: linkAnalysis, error: updateError };
       }
 
-      console.log('ArticlesService: Successfully analyzed article links');
       return { data: linkAnalysis, error: null };
 
     } catch (err) {
-      console.error('ArticlesService: Unexpected error analyzing article links:', err);
       return { data: null, error: err };
     }
   }
