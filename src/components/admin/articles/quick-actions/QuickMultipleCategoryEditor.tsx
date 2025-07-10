@@ -35,8 +35,6 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(currentCategoryIds);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
   // Load categories on mount with instant data
@@ -171,12 +169,6 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
 
         {/* Content */}
         <div className="p-4">
-          {error && (
-            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
@@ -266,20 +258,16 @@ const QuickMultipleCategoryEditor: React.FC<QuickMultipleCategoryEditorProps> = 
           <div className="flex items-center space-x-2">
             <button
               onClick={handleCancel}
-              disabled={isSaving}
-              className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors duration-200 disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors duration-200"
             >
               Hủy
             </button>
             <button
               onClick={handleSave}
-              disabled={isSaving || !hasChanges}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+              disabled={!hasChanges}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving && (
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-              )}
-              <span>{isSaving ? 'Đang lưu...' : 'Lưu'}</span>
+              Lưu
             </button>
           </div>
         </div>

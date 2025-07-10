@@ -424,9 +424,12 @@ export default function AdminArticles() {
     // Start loading state
     setLoadingTagIds(prev => new Set(prev).add(articleId));
 
-    // Optimistic UI update
+    // Optimistic UI update - only update UI fields, not database fields
     const updatedArticles = articlesData.articles.map(article =>
-      article.id === articleId ? { ...article, tags: newTags } : article
+      article.id === articleId ? {
+        ...article,
+        tag_names: newTags  // This is computed field for UI display
+      } : article
     );
     setArticlesData({ ...articlesData, articles: updatedArticles });
 
@@ -571,15 +574,13 @@ export default function AdminArticles() {
     // Start loading state
     setLoadingCategoryIds(prev => new Set(prev).add(articleId));
 
-    // Optimistic UI update
+    // Optimistic UI update - update all category-related fields
     const updatedArticles = articlesData.articles.map(article =>
       article.id === articleId ? {
         ...article,
-        category_ids: categoryIds,
-        category_names: categoryNames,
-        // Keep backward compatibility
-        category_id: categoryIds.length > 0 ? categoryIds[0] : undefined,
-        category_name: categoryNames.length > 0 ? categoryNames[0] : undefined
+        category_names: categoryNames,  // Computed field for UI display
+        category_ids: categoryIds,      // Array for QuickMultipleCategoryEditor
+        category_id: categoryIds.length > 0 ? categoryIds[0] : null  // Primary category for database
       } : article
     );
     setArticlesData({ ...articlesData, articles: updatedArticles });
@@ -1006,19 +1007,25 @@ export default function AdminArticles() {
                                 </div>
                               ) : (
                                 <div className="flex items-center space-x-2">
-                                  {(article.tags || []).slice(0, 3).map((tag, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
-                                    >
-                                      {typeof tag === 'string' ? tag : tag.name || tag}
-                                    </span>
-                                  ))}
-                                  {(article.tags || []).length > 3 && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      +{(article.tags || []).length - 3} khác
-                                    </span>
-                                  )}
+                                  {(() => {
+                                    const tags = article.tag_names || article.tags || [];
+                                    return tags.slice(0, 3).map((tag, index) => (
+                                      <span
+                                        key={index}
+                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+                                      >
+                                        {typeof tag === 'string' ? tag : tag.name || tag}
+                                      </span>
+                                    ));
+                                  })()}
+                                  {(() => {
+                                    const tags = article.tag_names || article.tags || [];
+                                    return tags.length > 3 && (
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        +{tags.length - 3} khác
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
                               )}
                               <button
@@ -1364,7 +1371,10 @@ export default function AdminArticles() {
         {quickTagsEditor && (
           <QuickTagsEditor
             articleId={quickTagsEditor.articleId}
-            currentTags={articlesData?.articles.find(a => a.id === quickTagsEditor.articleId)?.tags || []}
+            currentTags={(() => {
+              const article = articlesData?.articles.find(a => a.id === quickTagsEditor.articleId);
+              return article?.tag_names || article?.tags || [];
+            })()}
             onUpdate={handleTagsUpdate}
             onClose={() => setQuickTagsEditor(null)}
             position={quickTagsEditor.position}
@@ -1389,8 +1399,18 @@ export default function AdminArticles() {
         {quickCategoryEditor && (
           <QuickMultipleCategoryEditor
             articleId={quickCategoryEditor.articleId}
-            currentCategoryIds={articlesData?.articles.find(a => a.id === quickCategoryEditor.articleId)?.category_ids || []}
-            currentCategoryNames={articlesData?.articles.find(a => a.id === quickCategoryEditor.articleId)?.category_names || []}
+            currentCategoryIds={(() => {
+              const article = articlesData?.articles.find(a => a.id === quickCategoryEditor.articleId);
+              // Use category_ids if available, otherwise fallback to category_id as single item array
+              if (article?.category_ids && article.category_ids.length > 0) {
+                return article.category_ids;
+              }
+              return article?.category_id ? [article.category_id] : [];
+            })()}
+            currentCategoryNames={(() => {
+              const article = articlesData?.articles.find(a => a.id === quickCategoryEditor.articleId);
+              return article?.category_names || [];
+            })()}
             onUpdate={handleCategoryUpdate}
             onClose={() => setQuickCategoryEditor(null)}
             position={quickCategoryEditor.position}

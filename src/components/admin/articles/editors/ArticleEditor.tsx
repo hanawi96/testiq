@@ -139,8 +139,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               slug: data.slug || '',
               status: data.status || 'draft',
               focus_keyword: data.focus_keyword || '',
-              categories: data.category_ids || [], // Use category_ids array for checkboxes
-              tags: data.tags || [],
+              categories: data.category_ids || data.categories?.map((cat: any) => typeof cat === 'string' ? cat : cat.id) || [],
+              tags: data.tag_names || data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [],
               featured_image: data.cover_image || '',
               cover_image_alt: data.cover_image_alt || '',
               lang: data.lang || 'vi',
@@ -1149,14 +1149,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {formData.categories.map(catId => {
+                    {formData.categories.map((catId, index) => {
                       const category = categories.find(cat => cat.id === catId);
                       return category ? (
                         <span
-                          key={catId}
+                          key={`category-${index}-${catId}`}
                           className="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-300 text-xs rounded"
                         >
-                          {category.name}
+                          {typeof category === 'string' ? category : category.name}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1236,20 +1236,23 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {formData.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-700 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300 text-xs rounded"
-                        >
-                          #{tag}
-                          <button
-                            onClick={() => removeTag(tag)}
-                            className="ml-1 w-3 h-3 text-green-600 dark:text-green-400 hover:text-red-600 dark:hover:text-red-400"
+                      {formData.tags.map((tag, index) => {
+                        const tagName = typeof tag === 'string' ? tag : (tag?.name || String(tag));
+                        return (
+                          <span
+                            key={`tag-${index}-${tagName}`}
+                            className="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-700 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300 text-xs rounded"
                           >
-                            ×
-                          </button>
-                        </span>
-                      ))}
+                            #{tagName}
+                            <button
+                              onClick={() => removeTag(typeof tag === 'string' ? tag : tagName)}
+                              className="ml-1 w-3 h-3 text-green-600 dark:text-green-400 hover:text-red-600 dark:hover:text-red-400"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
