@@ -426,5 +426,7 @@ create index IF not exists idx_tags_slug on public.tags using btree (slug) TABLE
 
 create index IF not exists idx_tags_usage_count on public.tags using btree (usage_count desc) TABLESPACE pg_default;
 
--- Add some sample like_count data for testing
+-- Add some sample data for testing
 UPDATE articles SET like_count = FLOOR(RANDOM() * 50) + 5 WHERE like_count IS NULL OR like_count = 0;
+UPDATE articles SET view_count = FLOOR(RANDOM() * 1000) + 100 WHERE view_count IS NULL OR view_count = 0;
+UPDATE articles SET word_count = FLOOR(RANDOM() * 2000) + 500 WHERE word_count IS NULL OR word_count = 0;

@@ -7,7 +7,7 @@ interface QuickCategoryEditorProps {
   articleId: string;
   currentCategoryId: string | null;
   currentCategoryName: string | null;
-  onUpdate: (articleId: string, categoryId: string | null, categoryName: string | null) => void;
+  onUpdate: (articleId: string, categoryIds: string[], categoryNames: string[]) => void;
   onClose: () => void;
   position: { top: number; left: number };
 }
@@ -95,7 +95,11 @@ export default function QuickCategoryEditor({
       const selectedCategory = availableCategories.find(cat => cat.id === selectedCategoryId);
       const categoryName = selectedCategory?.name || null;
 
-      onUpdate(articleId, selectedCategoryId, categoryName);
+      // Convert to arrays format expected by handleCategoryUpdate
+      const categoryIds = selectedCategoryId ? [selectedCategoryId] : [];
+      const categoryNames = categoryName ? [categoryName] : [];
+
+      onUpdate(articleId, categoryIds, categoryNames);
       onClose();
     } catch (err) {
       setError('Có lỗi xảy ra khi cập nhật');
