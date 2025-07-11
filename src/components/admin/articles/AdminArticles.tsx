@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useReducer, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService } from '../../../../backend';
 import type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from '../../../../backend';
@@ -14,57 +14,184 @@ import SearchHighlight from '../common/SearchHighlight';
 import SearchStats from '../common/SearchStats';
 import { SkeletonStats, SkeletonTable } from '../common/Skeleton';
 import { SmartPreloader } from '../../../utils/admin/preloaders/preload-manager';
-import { perfAnalyzer } from '../../../utils/performance/performance-analyzer';
+
+// ===== OPTIMIZED STATE MANAGEMENT =====
+
+interface EditorPosition {
+  articleId: string;
+  position: { top: number; left: number };
+}
+
+interface LoadingStates {
+  stats: boolean;
+  articles: boolean;
+  updating: boolean;
+  authorIds: Set<string>;
+  categoryIds: Set<string>;
+  tagIds: Set<string>;
+}
+
+interface UIStates {
+  currentPage: number;
+  filters: ArticlesFilters;
+  selectedArticles: string[];
+  showBulkActions: boolean;
+}
+
+interface ModalStates {
+  quickTagsEditor: EditorPosition | null;
+  quickAuthorEditor: EditorPosition | null;
+  quickCategoryEditor: EditorPosition | null;
+  quickStatusEditor: EditorPosition | null;
+  linkAnalysisModal: { articleId: string; articleTitle: string } | null;
+}
+
+interface AdminArticlesState {
+  // Data
+  articlesData: ArticlesListResponse | null;
+  stats: ArticleStats | null;
+  error: string;
+
+  // Loading states
+  loading: LoadingStates;
+
+  // UI states
+  ui: UIStates;
+
+  // Modal states
+  modals: ModalStates;
+}
+
+type AdminArticlesAction =
+  | { type: 'SET_ARTICLES_DATA'; payload: ArticlesListResponse | null }
+  | { type: 'SET_STATS'; payload: ArticleStats | null }
+  | { type: 'SET_ERROR'; payload: string }
+  | { type: 'SET_LOADING'; payload: Partial<LoadingStates> }
+  | { type: 'SET_UI'; payload: Partial<UIStates> }
+  | { type: 'SET_MODAL'; payload: Partial<ModalStates> }
+  | { type: 'RESET_MODALS' }
+  | { type: 'TOGGLE_ARTICLE_SELECTION'; payload: string }
+  | { type: 'CLEAR_SELECTION' };
+
+const initialState: AdminArticlesState = {
+  articlesData: null,
+  stats: null,
+  error: '',
+  loading: {
+    stats: true,
+    articles: true,
+    updating: false,
+    authorIds: new Set(),
+    categoryIds: new Set(),
+    tagIds: new Set()
+  },
+  ui: {
+    currentPage: 1,
+    filters: {
+      status: 'all',
+      search: '',
+      sort_by: 'created_at',
+      sort_order: 'desc'
+    },
+    selectedArticles: [],
+    showBulkActions: false
+  },
+  modals: {
+    quickTagsEditor: null,
+    quickAuthorEditor: null,
+    quickCategoryEditor: null,
+    quickStatusEditor: null,
+    linkAnalysisModal: null
+  }
+};
+
+function adminArticlesReducer(state: AdminArticlesState, action: AdminArticlesAction): AdminArticlesState {
+  switch (action.type) {
+    case 'SET_ARTICLES_DATA':
+      return { ...state, articlesData: action.payload };
+
+    case 'SET_STATS':
+      return { ...state, stats: action.payload };
+
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+
+    case 'SET_LOADING':
+      return {
+        ...state,
+        loading: { ...state.loading, ...action.payload }
+      };
+
+    case 'SET_UI':
+      return {
+        ...state,
+        ui: { ...state.ui, ...action.payload }
+      };
+
+    case 'SET_MODAL':
+      return {
+        ...state,
+        modals: { ...state.modals, ...action.payload }
+      };
+
+    case 'RESET_MODALS':
+      return {
+        ...state,
+        modals: initialState.modals
+      };
+
+    case 'TOGGLE_ARTICLE_SELECTION':
+      const articleId = action.payload;
+      const isSelected = state.ui.selectedArticles.includes(articleId);
+      const newSelection = isSelected
+        ? state.ui.selectedArticles.filter(id => id !== articleId)
+        : [...state.ui.selectedArticles, articleId];
+
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          selectedArticles: newSelection,
+          showBulkActions: newSelection.length > 0
+        }
+      };
+
+    case 'CLEAR_SELECTION':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          selectedArticles: [],
+          showBulkActions: false
+        }
+      };
+
+    default:
+      return state;
+  }
+}
+
 
 export default function AdminArticles() {
-  const [articlesData, setArticlesData] = useState<ArticlesListResponse | null>(null);
-  const [stats, setStats] = useState<ArticleStats | null>(null);
-  const [error, setError] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const [isLoadingArticles, setIsLoadingArticles] = useState(true);
-  const [filters, setFilters] = useState<ArticlesFilters>({
-    status: 'all',
-    search: '',
-    sort_by: 'created_at',
-    sort_order: 'desc'
-  });
-  const [selectedArticles, setSelectedArticles] = useState<string[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [state, dispatch] = useReducer(adminArticlesReducer, initialState);
 
-  // Quick editors state
-  const [quickTagsEditor, setQuickTagsEditor] = useState<{
-    articleId: string;
-    position: { top: number; left: number };
-  } | null>(null);
-  const [quickAuthorEditor, setQuickAuthorEditor] = useState<{
-    articleId: string;
-    position: { top: number; left: number };
-  } | null>(null);
-
-  // Loading states for optimistic UI
-  const [loadingAuthorIds, setLoadingAuthorIds] = useState<Set<string>>(new Set());
-  const [loadingCategoryIds, setLoadingCategoryIds] = useState<Set<string>>(new Set());
-  const [loadingTagIds, setLoadingTagIds] = useState<Set<string>>(new Set());
-
-  // Link analysis modal
-  const [linkAnalysisModal, setLinkAnalysisModal] = useState<{
-    articleId: string;
-    articleTitle: string;
-  } | null>(null);
-
-  const [quickCategoryEditor, setQuickCategoryEditor] = useState<{
-    articleId: string;
-    position: { top: number; left: number };
-  } | null>(null);
-
-  const [quickStatusEditor, setQuickStatusEditor] = useState<{
-    articleId: string;
-    position: { top: number; left: number };
-  } | null>(null);
+  // Destructure for easier access
+  const { articlesData, stats, error, loading, ui, modals } = state;
+  const { currentPage, filters, selectedArticles, showBulkActions } = ui;
+  const {
+    quickTagsEditor,
+    quickAuthorEditor,
+    quickCategoryEditor,
+    quickStatusEditor,
+    linkAnalysisModal
+  } = modals;
 
   const limit = 10;
+
+  // Helper functions for cleaner code
+  const closeAllEditors = () => dispatch({ type: 'RESET_MODALS' });
+  const setModal = (payload: Partial<ModalStates>) => dispatch({ type: 'SET_MODAL', payload });
+  const setLoading = (payload: Partial<LoadingStates>) => dispatch({ type: 'SET_LOADING', payload });
 
   // Generate category color based on category name
   const getCategoryColor = (categoryName: string) => {
@@ -89,110 +216,92 @@ export default function AdminArticles() {
 
   // Fetch articles data
   const fetchArticles = useCallback(async (page: number = currentPage) => {
-    perfAnalyzer.start('fetchArticles', { page, filters });
-    setError('');
-    setIsLoadingArticles(true);
+    dispatch({ type: 'SET_ERROR', payload: '' });
+    dispatch({ type: 'SET_LOADING', payload: { articles: true } });
 
     try {
-      perfAnalyzer.start('apiCall');
       const { data, error: fetchError } = await ArticlesService.getArticles(page, limit, filters);
-      perfAnalyzer.end('apiCall');
 
       if (fetchError || !data) {
-        setError('Không thể tải danh sách bài viết');
-        perfAnalyzer.end('fetchArticles');
+        dispatch({ type: 'SET_ERROR', payload: 'Không thể tải danh sách bài viết' });
         return;
       }
 
-      perfAnalyzer.start('stateUpdate');
-      setArticlesData(data);
-      setIsLoadingArticles(false);
-      perfAnalyzer.end('stateUpdate');
-
-      // Use setTimeout to measure render time
-      setTimeout(() => {
-        perfAnalyzer.end('fetchArticles');
-        perfAnalyzer.printReport();
-      }, 0);
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: data });
+      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
 
     } catch (err) {
-      setError('Có lỗi xảy ra khi tải dữ liệu');
-      setIsLoadingArticles(false);
+      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi tải dữ liệu' });
+      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
       console.error('Frontend: Error fetching articles:', err);
-      perfAnalyzer.end('fetchArticles');
     }
   }, [currentPage, filters]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
-    setIsLoadingStats(true);
+    dispatch({ type: 'SET_LOADING', payload: { stats: true } });
     try {
       const { data: statsData, error: statsError } = await ArticlesService.getStats();
       if (!statsError && statsData) {
-        setStats(statsData);
+        dispatch({ type: 'SET_STATS', payload: statsData });
       }
     } catch (err) {
       console.warn('Could not fetch articles stats:', err);
     } finally {
-      setIsLoadingStats(false);
+      dispatch({ type: 'SET_LOADING', payload: { stats: false } });
     }
   }, []);
 
   // Initial load
   useEffect(() => {
     const loadData = async () => {
-      perfAnalyzer.clear(); // Clear previous metrics
-      perfAnalyzer.start('pageLoad');
-
-      perfAnalyzer.start('parallelDataLoad');
       await Promise.all([
         fetchArticles(1),
         fetchStats()
       ]);
-      perfAnalyzer.end('parallelDataLoad');
-
-      perfAnalyzer.end('pageLoad');
     };
 
     loadData();
 
     // SMART PRELOADING: Trigger intelligent preload on navigation
-    perfAnalyzer.mark('smartPreloadTrigger');
     SmartPreloader.triggerSmartPreload('navigation');
   }, [filters]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    dispatch({ type: 'SET_UI', payload: { currentPage: page } });
     fetchArticles(page);
   };
 
   // Handle filter change
   const handleFilterChange = (newFilters: Partial<ArticlesFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    setCurrentPage(1);
+    dispatch({
+      type: 'SET_UI',
+      payload: {
+        filters: { ...filters, ...newFilters },
+        currentPage: 1
+      }
+    });
   };
 
   // Handle article selection
   const handleSelectArticle = (articleId: string) => {
-    setSelectedArticles(prev => {
-      const newSelection = prev.includes(articleId)
-        ? prev.filter(id => id !== articleId)
-        : [...prev, articleId];
-      setShowBulkActions(newSelection.length > 0);
-      return newSelection;
-    });
+    dispatch({ type: 'TOGGLE_ARTICLE_SELECTION', payload: articleId });
   };
 
   // Handle select all
   const handleSelectAll = () => {
     if (selectedArticles.length === articlesData?.articles.length) {
-      setSelectedArticles([]);
-      setShowBulkActions(false);
+      dispatch({ type: 'CLEAR_SELECTION' });
     } else {
       const allIds = articlesData?.articles.map(a => a.id) || [];
-      setSelectedArticles(allIds);
-      setShowBulkActions(true);
+      dispatch({
+        type: 'SET_UI',
+        payload: {
+          selectedArticles: allIds,
+          showBulkActions: allIds.length > 0
+        }
+      });
     }
   };
 
@@ -200,22 +309,21 @@ export default function AdminArticles() {
   const handleBulkStatusUpdate = async (status: 'published' | 'draft' | 'archived') => {
     if (selectedArticles.length === 0) return;
     
-    setIsUpdating(true);
+    setLoading({ updating: true });
     try {
       const { data: updatedCount, error } = await ArticlesService.bulkUpdateStatus(selectedArticles, status);
       if (!error) {
         await fetchArticles(currentPage);
         await fetchStats();
-        setSelectedArticles([]);
-        setShowBulkActions(false);
+        dispatch({ type: 'CLEAR_SELECTION' });
         alert(`Đã cập nhật ${updatedCount} bài viết`);
       } else {
-        setError('Không thể cập nhật trạng thái bài viết');
+        dispatch({ type: 'SET_ERROR', payload: 'Không thể cập nhật trạng thái bài viết' });
       }
     } catch (err) {
-      setError('Có lỗi xảy ra khi cập nhật');
+      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi cập nhật' });
     } finally {
-      setIsUpdating(false);
+      setLoading({ updating: false });
     }
   };
 
@@ -223,19 +331,19 @@ export default function AdminArticles() {
   const handleDeleteArticle = async (articleId: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa bài viết này?')) return;
 
-    setIsUpdating(true);
+    setLoading({ updating: true });
     try {
       const { error } = await ArticlesService.deleteArticle(articleId);
       if (!error) {
         await fetchArticles(currentPage);
         await fetchStats();
       } else {
-        setError('Không thể xóa bài viết');
+        dispatch({ type: 'SET_ERROR', payload: 'Không thể xóa bài viết' });
       }
     } catch (err) {
-      setError('Có lỗi xảy ra khi xóa');
+      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi xóa' });
     } finally {
-      setIsUpdating(false);
+      setLoading({ updating: false });
     }
   };
 
@@ -247,12 +355,15 @@ export default function AdminArticles() {
     SmartPreloader.triggerSmartPreload('click');
 
     // Close other editors
-    setQuickAuthorEditor(null);
-    setQuickCategoryEditor(null);
+    setModal({
+      quickAuthorEditor: null,
+      quickCategoryEditor: null,
+      quickStatusEditor: null
+    });
 
     // Toggle: if same article editor is open, close it
     if (quickTagsEditor?.articleId === articleId) {
-      setQuickTagsEditor(null);
+      setModal({ quickTagsEditor: null });
       return;
     }
 
@@ -277,9 +388,11 @@ export default function AdminArticles() {
       top = rect.top - popupHeight - 4; // Show above button
     }
 
-    setQuickTagsEditor({
-      articleId,
-      position: { top, left }
+    setModal({
+      quickTagsEditor: {
+        articleId,
+        position: { top, left }
+      }
     });
   };
 
@@ -291,13 +404,15 @@ export default function AdminArticles() {
     SmartPreloader.triggerSmartPreload('click');
 
     // Close other editors
-    setQuickTagsEditor(null);
-    setQuickCategoryEditor(null);
-    setQuickStatusEditor(null);
+    setModal({
+      quickTagsEditor: null,
+      quickCategoryEditor: null,
+      quickStatusEditor: null
+    });
 
     // Toggle: if same article editor is open, close it
     if (quickAuthorEditor?.articleId === articleId) {
-      setQuickAuthorEditor(null);
+      setModal({ quickAuthorEditor: null });
       return;
     }
 
@@ -322,9 +437,11 @@ export default function AdminArticles() {
       top = rect.top - popupHeight - 4; // Show above button
     }
 
-    setQuickAuthorEditor({
-      articleId,
-      position: { top, left }
+    setModal({
+      quickAuthorEditor: {
+        articleId,
+        position: { top, left }
+      }
     });
   };
 
@@ -336,13 +453,15 @@ export default function AdminArticles() {
     SmartPreloader.triggerSmartPreload('click');
 
     // Close other editors first
-    setQuickTagsEditor(null);
-    setQuickAuthorEditor(null);
-    setQuickStatusEditor(null);
+    setModal({
+      quickTagsEditor: null,
+      quickAuthorEditor: null,
+      quickStatusEditor: null
+    });
 
     // Toggle: if same article editor is open, close it
     if (quickCategoryEditor?.articleId === articleId) {
-      setQuickCategoryEditor(null);
+      setModal({ quickCategoryEditor: null });
       return;
     }
 
@@ -368,9 +487,11 @@ export default function AdminArticles() {
       top = rect.top - popupHeight - 4; // Show above button
     }
 
-    setQuickCategoryEditor({
-      articleId,
-      position: { top, left }
+    setModal({
+      quickCategoryEditor: {
+        articleId,
+        position: { top, left }
+      }
     });
   };
 
@@ -379,13 +500,15 @@ export default function AdminArticles() {
     event.stopPropagation();
 
     // Close other editors
-    setQuickTagsEditor(null);
-    setQuickAuthorEditor(null);
-    setQuickCategoryEditor(null);
+    setModal({
+      quickTagsEditor: null,
+      quickAuthorEditor: null,
+      quickCategoryEditor: null
+    });
 
     // Toggle: if same article editor is open, close it
     if (quickStatusEditor?.articleId === articleId) {
-      setQuickStatusEditor(null);
+      setModal({ quickStatusEditor: null });
       return;
     }
 
@@ -410,9 +533,11 @@ export default function AdminArticles() {
       top = rect.top - popupHeight - 4; // Show above button
     }
 
-    setQuickStatusEditor({
-      articleId,
-      position: { top, left }
+    setModal({
+      quickStatusEditor: {
+        articleId,
+        position: { top, left }
+      }
     });
   };
 
@@ -424,7 +549,7 @@ export default function AdminArticles() {
     if (!originalArticle) return;
 
     // Start loading state
-    setLoadingTagIds(prev => new Set(prev).add(articleId));
+    setLoading({ tagIds: new Set(loading.tagIds).add(articleId) });
 
     // Optimistic UI update - only update UI fields, not database fields
     const updatedArticles = articlesData.articles.map(article =>
@@ -433,7 +558,7 @@ export default function AdminArticles() {
         tag_names: newTags  // This is computed field for UI display
       } : article
     );
-    setArticlesData({ ...articlesData, articles: updatedArticles });
+    dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: updatedArticles } });
 
     try {
       // Background API call
@@ -445,7 +570,7 @@ export default function AdminArticles() {
         const revertedArticles = articlesData.articles.map(article =>
           article.id === articleId ? originalArticle : article
         );
-        setArticlesData({ ...articlesData, articles: revertedArticles });
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: revertedArticles } });
       }
     } catch (err) {
       console.error('Error updating tags:', err);
@@ -453,14 +578,12 @@ export default function AdminArticles() {
       const revertedArticles = articlesData.articles.map(article =>
         article.id === articleId ? originalArticle : article
       );
-      setArticlesData({ ...articlesData, articles: revertedArticles });
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: revertedArticles } });
     } finally {
       // Remove loading state
-      setLoadingTagIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(articleId);
-        return newSet;
-      });
+      const newTagIds = new Set(loading.tagIds);
+      newTagIds.delete(articleId);
+      setLoading({ tagIds: newTagIds });
     }
   };
 
@@ -469,14 +592,14 @@ export default function AdminArticles() {
     if (!articlesData) return;
 
     // Close popup immediately for fast UX
-    setQuickAuthorEditor(null);
+    setModal({ quickAuthorEditor: null });
 
     // Store original article for rollback
     const originalArticle = articlesData.articles.find(article => article.id === articleId);
     if (!originalArticle) return;
 
     // Start loading state
-    setLoadingAuthorIds(prev => new Set(prev).add(articleId));
+    setLoading({ authorIds: new Set(loading.authorIds).add(articleId) });
 
     // Optimistic UI update
     const updatedArticles = articlesData.articles.map(article =>
@@ -487,7 +610,7 @@ export default function AdminArticles() {
         user_profiles: userProfile
       } : article
     );
-    setArticlesData({ ...articlesData, articles: updatedArticles });
+    dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: updatedArticles } });
 
     try {
       // Call API in background
@@ -498,7 +621,7 @@ export default function AdminArticles() {
         const rolledBackArticles = articlesData.articles.map(article =>
           article.id === articleId ? originalArticle : article
         );
-        setArticlesData({ ...articlesData, articles: rolledBackArticles });
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: rolledBackArticles } });
 
         // Show error (you can add toast notification here)
         console.error('Failed to update author:', updateError);
@@ -508,15 +631,13 @@ export default function AdminArticles() {
       const rolledBackArticles = articlesData.articles.map(article =>
         article.id === articleId ? originalArticle : article
       );
-      setArticlesData({ ...articlesData, articles: rolledBackArticles });
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: rolledBackArticles } });
       console.error('Error updating author:', err);
     } finally {
       // Remove loading state
-      setLoadingAuthorIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(articleId);
-        return newSet;
-      });
+      const newAuthorIds = new Set(loading.authorIds);
+      newAuthorIds.delete(articleId);
+      setLoading({ authorIds: newAuthorIds });
     }
   };
 
@@ -532,10 +653,10 @@ export default function AdminArticles() {
     const updatedArticles = articlesData.articles.map(article =>
       article.id === articleId ? { ...article, status: newStatus } : article
     );
-    setArticlesData({ ...articlesData, articles: updatedArticles });
+    dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: updatedArticles } });
 
     // Close the status editor
-    setQuickStatusEditor(null);
+    setModal({ quickStatusEditor: null });
 
     try {
       // Send API request
@@ -546,8 +667,8 @@ export default function AdminArticles() {
         const revertedArticles = articlesData.articles.map(article =>
           article.id === articleId ? originalArticle : article
         );
-        setArticlesData({ ...articlesData, articles: revertedArticles });
-        setError('Không thể cập nhật trạng thái bài viết');
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: revertedArticles } });
+        dispatch({ type: 'SET_ERROR', payload: 'Không thể cập nhật trạng thái bài viết' });
       } else {
         // Refresh stats on success
         await fetchStats();
@@ -557,8 +678,8 @@ export default function AdminArticles() {
       const revertedArticles = articlesData.articles.map(article =>
         article.id === articleId ? originalArticle : article
       );
-      setArticlesData({ ...articlesData, articles: revertedArticles });
-      setError('Có lỗi xảy ra khi cập nhật trạng thái');
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: revertedArticles } });
+      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi cập nhật trạng thái' });
     }
   };
 
@@ -567,14 +688,14 @@ export default function AdminArticles() {
     if (!articlesData) return;
 
     // Close popup immediately for fast UX
-    setQuickCategoryEditor(null);
+    setModal({ quickCategoryEditor: null });
 
     // Store original article for rollback
     const originalArticle = articlesData.articles.find(article => article.id === articleId);
     if (!originalArticle) return;
 
     // Start loading state
-    setLoadingCategoryIds(prev => new Set(prev).add(articleId));
+    setLoading({ categoryIds: new Set(loading.categoryIds).add(articleId) });
 
     // Optimistic UI update - update all category-related fields
     const updatedArticles = articlesData.articles.map(article =>
@@ -585,7 +706,7 @@ export default function AdminArticles() {
         category_id: categoryIds.length > 0 ? categoryIds[0] : null  // Primary category for database
       } : article
     );
-    setArticlesData({ ...articlesData, articles: updatedArticles });
+    dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: updatedArticles } });
 
     try {
       // Call API in background
@@ -596,7 +717,7 @@ export default function AdminArticles() {
         const rolledBackArticles = articlesData.articles.map(article =>
           article.id === articleId ? originalArticle : article
         );
-        setArticlesData({ ...articlesData, articles: rolledBackArticles });
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: rolledBackArticles } });
 
         // Show error (you can add toast notification here)
         console.error('Failed to update categories:', updateError);
@@ -606,15 +727,13 @@ export default function AdminArticles() {
       const rolledBackArticles = articlesData.articles.map(article =>
         article.id === articleId ? originalArticle : article
       );
-      setArticlesData({ ...articlesData, articles: rolledBackArticles });
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: rolledBackArticles } });
       console.error('Error updating categories:', err);
     } finally {
       // Remove loading state
-      setLoadingCategoryIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(articleId);
-        return newSet;
-      });
+      const newCategoryIds = new Set(loading.categoryIds);
+      newCategoryIds.delete(articleId);
+      setLoading({ categoryIds: newCategoryIds });
     }
   };
 
@@ -688,7 +807,7 @@ export default function AdminArticles() {
       )}
 
       {/* Stats Cards */}
-      {isLoadingStats ? (
+      {loading.stats ? (
         <SkeletonStats />
       ) : stats && (
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -832,10 +951,7 @@ export default function AdminArticles() {
                   Đã chọn {selectedArticles.length} bài viết
                 </span>
                 <button
-                  onClick={() => {
-                    setSelectedArticles([]);
-                    setShowBulkActions(false);
-                  }}
+                  onClick={() => dispatch({ type: 'CLEAR_SELECTION' })}
                   className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
                 >
                   Bỏ chọn
@@ -844,21 +960,21 @@ export default function AdminArticles() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleBulkStatusUpdate('published')}
-                  disabled={isUpdating}
+                  disabled={loading.updating}
                   className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm rounded-md transition-colors"
                 >
                   Xuất bản
                 </button>
                 <button
                   onClick={() => handleBulkStatusUpdate('draft')}
-                  disabled={isUpdating}
+                  disabled={loading.updating}
                   className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-400 text-white text-sm rounded-md transition-colors"
                 >
                   Chuyển nháp
                 </button>
                 <button
                   onClick={() => handleBulkStatusUpdate('archived')}
-                  disabled={isUpdating}
+                  disabled={loading.updating}
                   className="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white text-sm rounded-md transition-colors"
                 >
                   Lưu trữ
@@ -870,7 +986,7 @@ export default function AdminArticles() {
       </AnimatePresence>
 
       {/* Articles Table */}
-      {isLoadingArticles ? (
+      {loading.articles ? (
         <SkeletonTable rows={10} />
       ) : articlesData && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -966,7 +1082,7 @@ export default function AdminArticles() {
                             </div>
                             {/* Category info for mobile */}
                             <div className="sm:hidden mt-2 flex items-center">
-                              {loadingCategoryIds.has(article.id) ? (
+                              {loading.categoryIds.has(article.id) ? (
                                 <div className="flex items-center space-x-2">
                                   <LoadingSpinner size="sm" color="blue" />
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -986,7 +1102,7 @@ export default function AdminArticles() {
                               <button
                                 onClick={(e) => handleQuickCategoryEdit(e, article.id)}
                                 onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
-                                disabled={loadingCategoryIds.has(article.id)}
+                                disabled={loading.categoryIds.has(article.id)}
                                 className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Chỉnh sửa danh mục"
                                 data-quick-edit-button="category"
@@ -997,7 +1113,7 @@ export default function AdminArticles() {
                               </button>
                             </div>
                             <div className="flex items-center space-x-2 mt-2">
-                              {loadingTagIds.has(article.id) ? (
+                              {loading.tagIds.has(article.id) ? (
                                 <div className="flex items-center space-x-2">
                                   <LoadingSpinner size="sm" color="blue" />
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -1030,7 +1146,7 @@ export default function AdminArticles() {
                               <button
                                 onClick={(e) => handleQuickTagsEdit(e, article.id)}
                                 onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
-                                disabled={loadingTagIds.has(article.id)}
+                                disabled={loading.tagIds.has(article.id)}
                                 className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Chỉnh sửa tags"
                                 data-quick-edit-button="tags"
@@ -1091,9 +1207,11 @@ export default function AdminArticles() {
 
                                 {/* Analyze button for mobile */}
                                 <button
-                                  onClick={() => setLinkAnalysisModal({
-                                    articleId: article.id,
-                                    articleTitle: article.title
+                                  onClick={() => setModal({
+                                    linkAnalysisModal: {
+                                      articleId: article.id,
+                                      articleTitle: article.title
+                                    }
                                   })}
                                   className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
                                   title="Phân tích links"
@@ -1111,7 +1229,7 @@ export default function AdminArticles() {
                       {/* Categories */}
                       <td className="hidden sm:table-cell px-6 py-4">
                         <div className="flex items-center">
-                          {loadingCategoryIds.has(article.id) ? (
+                          {loading.categoryIds.has(article.id) ? (
                             <div className="flex items-center space-x-2">
                               <LoadingSpinner size="sm" color="blue" />
                               <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -1129,7 +1247,7 @@ export default function AdminArticles() {
                           <button
                             onClick={(e) => handleQuickCategoryEdit(e, article.id)}
                             onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
-                            disabled={loadingCategoryIds.has(article.id)}
+                            disabled={loading.categoryIds.has(article.id)}
                             className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa danh mục"
                             data-quick-edit-button="category"
@@ -1145,7 +1263,7 @@ export default function AdminArticles() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <div className="flex items-center space-x-2">
-                            {loadingAuthorIds.has(article.id) ? (
+                            {loading.authorIds.has(article.id) ? (
                               <div className="flex items-center space-x-2">
                                 <LoadingSpinner size="sm" color="blue" />
                                 <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -1161,7 +1279,7 @@ export default function AdminArticles() {
                           <button
                             onClick={(e) => handleQuickAuthorEdit(e, article.id)}
                             onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
-                            disabled={loadingAuthorIds.has(article.id)}
+                            disabled={loading.authorIds.has(article.id)}
                             className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa tác giả"
                             data-quick-edit-button="author"
@@ -1269,9 +1387,11 @@ export default function AdminArticles() {
 
                           {/* Analyze button */}
                           <button
-                            onClick={() => setLinkAnalysisModal({
-                              articleId: article.id,
-                              articleTitle: article.title
+                            onClick={() => setModal({
+                              linkAnalysisModal: {
+                                articleId: article.id,
+                                articleTitle: article.title
+                              }
                             })}
                             className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
                             title="Phân tích links"
@@ -1313,7 +1433,7 @@ export default function AdminArticles() {
                           {/* Delete */}
                           <button
                             onClick={() => handleDeleteArticle(article.id)}
-                            disabled={isUpdating}
+                            disabled={loading.updating}
                             className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-200 disabled:opacity-50"
                             title="Xóa"
                           >
@@ -1376,7 +1496,7 @@ export default function AdminArticles() {
               return article?.tag_names || article?.tags || [];
             })()}
             onUpdate={handleTagsUpdate}
-            onClose={() => setQuickTagsEditor(null)}
+            onClose={() => setModal({ quickTagsEditor: null })}
             position={quickTagsEditor.position}
           />
         )}
@@ -1389,7 +1509,7 @@ export default function AdminArticles() {
             currentAuthor={articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.user_profiles?.full_name || articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.author || ''}
             currentAuthorId={articlesData?.articles.find(a => a.id === quickAuthorEditor.articleId)?.author_id}
             onUpdate={handleAuthorUpdate}
-            onClose={() => setQuickAuthorEditor(null)}
+            onClose={() => setModal({ quickAuthorEditor: null })}
             position={quickAuthorEditor.position}
           />
         )}
@@ -1412,7 +1532,7 @@ export default function AdminArticles() {
               return article?.category_names || [];
             })()}
             onUpdate={handleCategoryUpdate}
-            onClose={() => setQuickCategoryEditor(null)}
+            onClose={() => setModal({ quickCategoryEditor: null })}
             position={quickCategoryEditor.position}
           />
         )}
@@ -1424,7 +1544,7 @@ export default function AdminArticles() {
             articleId={quickStatusEditor.articleId}
             currentStatus={articlesData?.articles.find(a => a.id === quickStatusEditor.articleId)?.status || 'draft'}
             onUpdate={handleStatusUpdateOptimistic}
-            onClose={() => setQuickStatusEditor(null)}
+            onClose={() => setModal({ quickStatusEditor: null })}
             position={quickStatusEditor.position}
           />
         )}
@@ -1436,7 +1556,7 @@ export default function AdminArticles() {
           articleId={linkAnalysisModal.articleId}
           articleTitle={linkAnalysisModal.articleTitle}
           isOpen={true}
-          onClose={() => setLinkAnalysisModal(null)}
+          onClose={() => setModal({ linkAnalysisModal: null })}
         />
       )}
     </div>

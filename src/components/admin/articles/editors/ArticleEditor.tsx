@@ -11,8 +11,7 @@ import '../../../../styles/tiptap-editor.css';
 import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../../utils/admin/preloaders/categories-preloader';
 import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../../utils/admin/preloaders/authors-preloader';
 
-// PERFORMANCE MONITORING
-import { editPageBenchmark } from '../../../../utils/performance/edit-page-benchmark';
+
 
 // LAZY LOAD heavy components
 const TiptapEditor = lazy(() => import('./TiptapEditor'));
@@ -120,13 +119,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     isEditorReady: false
   });
 
-  // PERFORMANCE MONITORING: Start benchmark
-  useEffect(() => {
-    editPageBenchmark.startBenchmark('after');
-    return () => {
-      editPageBenchmark.saveResults();
-    };
-  }, []);
+
 
   // INTELLIGENT PRELOADING: Start preloading immediately when component mounts
   useEffect(() => {
@@ -197,16 +190,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             // Mark data as loaded
             setLoadingState(prev => ({ ...prev, isDataLoaded: true }));
 
-            // PERFORMANCE: Trigger data loaded event
-            window.dispatchEvent(new CustomEvent('article-data-loaded'));
+
           }
 
           // Handle preloaded categories data
           if (categoriesData && categoriesData.length > 0) {
             setCategories(categoriesData);
-            // PERFORMANCE: Measure dropdown response time
-            const measureDropdown = editPageBenchmark.measureDropdownResponse('categories');
-            measureDropdown();
           } else {
             console.warn('No categories data available');
           }
@@ -214,9 +203,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           // Handle preloaded authors data
           if (authorsData && authorsData.length > 0) {
             setAuthors(authorsData);
-            // PERFORMANCE: Measure dropdown response time
-            const measureDropdown = editPageBenchmark.measureDropdownResponse('authors');
-            measureDropdown();
             // Set first author as default if no author selected
             if (!articleResult.data?.author_id) {
               setFormData(prev => ({ ...prev, author_id: authorsData[0].id }));
@@ -414,8 +400,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     setLoadingState(prev => ({ ...prev, isLoading: true }));
     setSaveStatus('Đang lưu...');
 
-    // PERFORMANCE: Measure save response time
-    const measureSave = editPageBenchmark.measureSaveResponse();
+
 
     try {
       // Validate required fields
@@ -523,8 +508,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           onSave(data);
         }
 
-        // PERFORMANCE: Complete save measurement
-        measureSave();
+
 
         // Redirect logic
         if (!isEditMode) {
