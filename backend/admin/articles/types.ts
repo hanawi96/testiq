@@ -1,129 +1,167 @@
 /**
- * Articles Module - Type Definitions
+ * Articles Module - Type Definitions (OPTIMIZED)
  * Tất cả interfaces và types cho articles module
+ *
+ * TYPES OPTIMIZATION:
+ * ✅ Base interfaces with composition
+ * ✅ Eliminated duplicate field definitions
+ * ✅ Consistent type definitions
+ * ✅ Simplified nested structures
  */
 
-export interface Article {
+// ===== ENUMS & CONSTANTS =====
+export type ArticleStatus = 'published' | 'draft' | 'archived';
+export type ArticleType = 'article' | 'page' | 'post';
+export type SortField = 'created_at' | 'updated_at' | 'views' | 'title';
+export type SortOrder = 'asc' | 'desc';
+export type SchemaType = 'Article' | 'BlogPosting' | 'NewsArticle' | 'WebPage';
+
+// ===== SHARED INTERFACES =====
+export interface BaseEntity {
   id: string;
-  title: string;
+  name: string;
   slug: string;
-  slug_history?: string[];
-  content: string;
-  excerpt?: string;
-  lang?: string;
-  article_type?: 'article' | 'page' | 'post';
-  status: 'published' | 'draft' | 'archived';
-  featured?: boolean;
-  author_id?: string;
-  category_id?: string;
-  parent_id?: string;
+  description?: string;
+}
 
-  // Author profile information from join
-  user_profiles?: {
-    id: string;
-    full_name: string;
-    email?: string;
-    role: string;
-  };
+export interface UserProfile {
+  id: string;
+  full_name: string;
+  email?: string;
+  role: string;
+  avatar_url?: string;
+}
 
-  // SEO fields
+// ===== SEO & METADATA INTERFACES =====
+export interface SEOFields {
   meta_title?: string;
   meta_description?: string;
   focus_keyword?: string;
   keywords?: string[];
   canonical_url?: string;
+}
 
-  // Open Graph fields
+export interface OpenGraphFields {
   og_title?: string;
   og_description?: string;
   og_image?: string;
   og_type?: string;
+}
 
-  // Twitter fields
+export interface TwitterFields {
   twitter_title?: string;
   twitter_description?: string;
   twitter_image?: string;
   twitter_card_type?: string;
+}
 
-  // Media fields
+export interface MediaFields {
   cover_image?: string;
   cover_image_alt?: string;
-  gallery_images?: any;
+  gallery_images?: Record<string, unknown>;
+}
 
-  // Schema fields
-  schema_type?: string;
-  author_schema?: any;
-  organization_schema?: any;
-  faq_schema?: any;
-  howto_schema?: any;
-  breadcrumb_schema?: any;
+export interface SchemaFields {
+  schema_type?: SchemaType;
+  author_schema?: Record<string, unknown>;
+  organization_schema?: Record<string, unknown>;
+  faq_schema?: Record<string, unknown>;
+  howto_schema?: Record<string, unknown>;
+  breadcrumb_schema?: Record<string, unknown>;
+}
 
-  // Content analysis
-  word_count?: number;
-  character_count?: number;
-  reading_time?: number; // in minutes
-  paragraph_count?: number;
-  heading_count?: any;
-  content_score?: number;
-  readability_score?: number;
-  keyword_density?: number;
-
-  // SEO settings
+export interface SEOSettings {
   robots_directive?: string;
   sitemap_include?: boolean;
   sitemap_priority?: number;
   sitemap_changefreq?: string;
+}
 
-  // Links and relations
-  internal_links?: any;
-  external_links?: any;
-  related_articles?: string[];
+// ===== CORE ARTICLE INTERFACES =====
+export interface BaseArticle extends SEOFields, OpenGraphFields, TwitterFields, MediaFields, SchemaFields, SEOSettings {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string;
+  lang?: string;
+  article_type?: ArticleType;
+  status: ArticleStatus;
+  featured?: boolean;
+  author_id?: string;
+  category_id?: string;
+  parent_id?: string;
+}
 
-  // Analytics
+export interface ContentAnalysis {
+  word_count?: number;
+  character_count?: number;
+  reading_time?: number;
+  paragraph_count?: number;
+  heading_count?: Record<string, number>;
+  content_score?: number;
+  readability_score?: number;
+  keyword_density?: number;
+}
+
+export interface ArticleAnalytics {
   view_count?: number;
   unique_views?: number;
   like_count?: number;
   bounce_rate?: number;
   avg_time_on_page?: number;
-  social_shares?: any;
+  social_shares?: Record<string, number>;
   backlinks_count?: number;
+}
 
-  // Search
-  search_index?: any;
-  indexed_at?: string;
-  last_crawled_at?: string;
-
-  // Timestamps
+export interface ArticleTimestamps {
   created_at: string;
   updated_at: string;
   published_at?: string;
   scheduled_at?: string;
   expires_at?: string;
+}
 
-  // Versioning
+export interface ArticleVersioning {
   version?: number;
   revision_notes?: string;
+  slug_history?: string[];
+}
 
-  // Categories and tags (from joins)
-  categories?: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    description?: string;
-  }>;
-  tags?: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    description?: string;
-  }>;
+export interface ArticleRelations {
+  // From database joins
+  user_profiles?: UserProfile;
+  categories?: BaseEntity[];
+  tags?: BaseEntity[];
 
-  // Additional computed fields
+  // Computed fields for backward compatibility
   author?: string;
   category?: string;
   tag_names?: string[];
   category_names?: string[];
   category_ids?: string[];
+  related_articles?: string[];
+
+  // Link analysis
+  internal_links?: LinkInfo[];
+  external_links?: LinkInfo[];
+}
+
+// ===== MAIN ARTICLE INTERFACE =====
+export interface Article extends
+  BaseArticle,
+  ContentAnalysis,
+  ArticleAnalytics,
+  ArticleTimestamps,
+  ArticleVersioning,
+  ArticleRelations {}
+
+// ===== UTILITY INTERFACES =====
+export interface LinkInfo {
+  url: string;
+  text: string;
+  title?: string;
+  domain?: string;
 }
 
 export interface ArticleStats {
@@ -133,18 +171,18 @@ export interface ArticleStats {
   archived: number;
   totalViews: number;
   avgReadingTime: number;
-  recentArticles: number; // articles in last 7 days
+  recentArticles: number;
 }
 
 export interface ArticlesFilters {
   search?: string;
-  status?: 'published' | 'draft' | 'archived' | 'all';
+  status?: ArticleStatus | 'all';
   author?: string;
   tag?: string;
   date_from?: string;
   date_to?: string;
-  sort_by?: 'created_at' | 'updated_at' | 'views' | 'title';
-  sort_order?: 'asc' | 'desc';
+  sort_by?: SortField;
+  sort_order?: SortOrder;
 }
 
 export interface ArticlesListResponse {
@@ -157,86 +195,52 @@ export interface ArticlesListResponse {
   hasPrev: boolean;
 }
 
-export interface CreateArticleData {
+// ===== CREATE/UPDATE INTERFACES =====
+export interface CreateArticleData extends
+  Partial<SEOFields>,
+  Partial<OpenGraphFields>,
+  Partial<TwitterFields>,
+  Partial<MediaFields>,
+  Partial<SchemaFields>,
+  Partial<SEOSettings> {
+
   // Required fields
   title: string;
   content: string;
-  slug?: string; // Auto-generated if not provided
 
-  // Basic article info
+  // Optional core fields
+  slug?: string;
   excerpt?: string;
   lang?: string;
-  article_type?: 'article' | 'page' | 'post';
-  status?: 'published' | 'draft' | 'archived';
+  article_type?: ArticleType;
+  status?: ArticleStatus;
   featured?: boolean;
   author_id?: string;
-  category_id?: string; // Primary category
+  category_id?: string;
   parent_id?: string;
 
-  // SEO fields
-  meta_title?: string;
-  meta_description?: string;
-  focus_keyword?: string;
-  keywords?: string[];
-  canonical_url?: string;
-
-  // Open Graph fields
-  og_title?: string;
-  og_description?: string;
-  og_image?: string;
-  og_type?: string;
-
-  // Twitter fields
-  twitter_title?: string;
-  twitter_description?: string;
-  twitter_image?: string;
-  twitter_card_type?: string;
-
-  // Media fields
-  cover_image?: string;
-  cover_image_alt?: string;
-  gallery_images?: any;
-
-  // Schema fields
-  schema_type?: string;
-  author_schema?: any;
-  organization_schema?: any;
-  faq_schema?: any;
-  howto_schema?: any;
-  breadcrumb_schema?: any;
-
-  // SEO settings
-  robots_directive?: string;
-  sitemap_include?: boolean;
-  sitemap_priority?: number;
-  sitemap_changefreq?: string;
-
-  // Relations (will be handled separately)
-  categories?: string[]; // Array of category IDs
-  tags?: string[]; // Array of tag IDs or names
+  // Relations (handled separately)
+  categories?: string[];
+  tags?: string[];
   related_articles?: string[];
 
   // Publishing
   published_at?: string;
   scheduled_at?: string;
   expires_at?: string;
-
-  // Versioning
   revision_notes?: string;
 }
 
-// Additional types for internal use
+// Utility types for different operations
+export type UpdateArticleData = Partial<CreateArticleData>;
+export type ArticleFormData = Pick<CreateArticleData, 'title' | 'content' | 'excerpt' | 'status' | 'featured'> &
+  Partial<SEOFields>;
+export type ArticlePreview = Pick<Article, 'id' | 'title' | 'slug' | 'excerpt' | 'status' | 'created_at' | 'author'>;
+
+// ===== ANALYSIS & INTERNAL TYPES =====
 export interface LinkAnalysis {
-  internal_links: Array<{
-    url: string;
-    text: string;
-    title?: string;
-  }>;
-  external_links: Array<{
-    url: string;
-    text: string;
-    domain: string;
-  }>;
+  internal_links: LinkInfo[];
+  external_links: LinkInfo[];
   total_links: number;
   internal_count: number;
   external_count: number;
@@ -245,26 +249,11 @@ export interface LinkAnalysis {
 export interface RelatedData {
   categories: Array<{
     article_id: string;
-    categories: {
-      id: string;
-      name: string;
-      slug: string;
-      description?: string;
-    };
+    categories: BaseEntity;
   }>;
   tags: Array<{
     article_id: string;
-    tags: {
-      id: string;
-      name: string;
-      slug: string;
-      description?: string;
-    };
+    tags: BaseEntity;
   }>;
-  profiles: Array<{
-    id: string;
-    full_name: string;
-    email?: string;
-    avatar_url?: string;
-  }>;
+  profiles: UserProfile[];
 }

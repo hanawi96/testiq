@@ -1,13 +1,22 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { CategoriesService, ArticlesService, UserProfilesService } from '../../../../../backend';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { ArticlesService } from '../../../../../backend';
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
-import TiptapEditor from './TiptapEditor';
-import ImageUpload from './ImageUpload';
+
+// PRELOADERS - Intelligent data loading
+import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../../utils/admin/preloaders/categories-preloader';
+import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../../utils/admin/preloaders/authors-preloader';
+
+// PERFORMANCE MONITORING
+import { editPageBenchmark } from '../../../../utils/performance/edit-page-benchmark';
+
+// LAZY LOAD heavy components
+const TiptapEditor = lazy(() => import('./TiptapEditor'));
+const ImageUpload = lazy(() => import('./ImageUpload'));
 
 
 
@@ -93,152 +102,150 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   });
 
   const [tagInput, setTagInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [authors, setAuthors] = useState<AuthorOption[]>([]);
-  const [authorsLoading, setAuthorsLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [slugError, setSlugError] = useState('');
-  const [isValidatingSlug, setIsValidatingSlug] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [isFormDataLoaded, setIsFormDataLoaded] = useState(!isEditMode); // true for create mode, false for edit mode
   const [showImageUpload, setShowImageUpload] = useState(false);
 
-  // Load article data for edit mode
+  // OPTIMIZED: Consolidated loading states
+  const [loadingState, setLoadingState] = useState({
+    isLoading: false,
+    isDataLoaded: !isEditMode, // true for create mode, false for edit mode
+    isValidatingSlug: false,
+    isEditorReady: false
+  });
+
+  // PERFORMANCE MONITORING: Start benchmark
+  useEffect(() => {
+    editPageBenchmark.startBenchmark('after');
+    return () => {
+      editPageBenchmark.saveResults();
+    };
+  }, []);
+
+  // INTELLIGENT PRELOADING: Start preloading immediately when component mounts
+  useEffect(() => {
+    // Start preloading dropdown data immediately (non-blocking)
+    preloadCategoriesData();
+    preloadAuthorsData();
+  }, []);
+
+  // OPTIMIZED: Parallel loading cho tất cả data cần thiết
   useEffect(() => {
     // Only run after component is mounted and we have an article ID
     if (articleId || currentArticleId) {
-      const loadArticle = async () => {
+      const loadAllData = async () => {
         setLoadError('');
 
         try {
-          const { data, error } = await ArticlesService.getArticleForEdit(articleId || currentArticleId!);
+          // OPTIMIZED: Use preloaded data + article fetch
+          const [articleResult, categoriesData, authorsData] = await Promise.all([
+            ArticlesService.getArticleForEdit(articleId || currentArticleId!),
+            // Use preloaded data if available, otherwise fetch
+            isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
+            isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
+          ]);
 
-          if (error) {
+          // Handle article data
+          if (articleResult.error) {
             setLoadError('Không thể tải bài viết');
             return;
           }
 
-          if (data) {
+          if (articleResult.data) {
             // Populate form with article data
             setFormData({
-              title: data.title || '',
-              content: data.content || '',
-              excerpt: data.excerpt || '',
-              meta_title: data.meta_title || '',
-              meta_description: data.meta_description || '',
-              slug: data.slug || '',
-              status: data.status || 'draft',
-              focus_keyword: data.focus_keyword || '',
+              title: articleResult.data.title || '',
+              content: articleResult.data.content || '',
+              excerpt: articleResult.data.excerpt || '',
+              meta_title: articleResult.data.meta_title || '',
+              meta_description: articleResult.data.meta_description || '',
+              slug: articleResult.data.slug || '',
+              status: articleResult.data.status || 'draft',
+              focus_keyword: articleResult.data.focus_keyword || '',
               categories: (() => {
                 // Convert single category_id to array, or use category_ids if available
-                if (data.category_ids && data.category_ids.length > 0) {
-                  return data.category_ids;
+                if (articleResult.data.category_ids && articleResult.data.category_ids.length > 0) {
+                  return articleResult.data.category_ids;
                 }
-                if (data.category_id) {
-                  return [data.category_id];
+                if (articleResult.data.category_id) {
+                  return [articleResult.data.category_id];
                 }
-                if (data.categories) {
-                  return data.categories.map((cat: any) => typeof cat === 'string' ? cat : cat.id);
+                if (articleResult.data.categories) {
+                  return articleResult.data.categories.map((cat: any) => typeof cat === 'string' ? cat : cat.id);
                 }
                 return [];
               })(),
-              tags: data.tag_names || data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [],
-              featured_image: data.cover_image || '',
-              cover_image_alt: data.cover_image_alt || '',
-              lang: data.lang || 'vi',
-              article_type: data.article_type || 'article',
-              is_public: data.status === 'published',
-              is_featured: data.featured === true,
-              schema_type: data.schema_type || 'Article',
-              robots_noindex: data.robots_directive?.includes('noindex') || false,
-              published_date: data.published_at ? new Date(data.published_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-              author_id: data.author_id || ''
+              tags: articleResult.data.tag_names || articleResult.data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [],
+              featured_image: articleResult.data.cover_image || '',
+              cover_image_alt: articleResult.data.cover_image_alt || '',
+              lang: articleResult.data.lang || 'vi',
+              article_type: articleResult.data.article_type || 'article',
+              is_public: articleResult.data.status === 'published',
+              is_featured: articleResult.data.featured === true,
+              schema_type: articleResult.data.schema_type || 'Article',
+              robots_noindex: articleResult.data.robots_directive?.includes('noindex') || false,
+              published_date: articleResult.data.published_at ? new Date(articleResult.data.published_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+              author_id: articleResult.data.author_id || ''
             });
-            setIsFormDataLoaded(true);
+
+            // Mark data as loaded
+            setLoadingState(prev => ({ ...prev, isDataLoaded: true }));
+
+            // PERFORMANCE: Trigger data loaded event
+            window.dispatchEvent(new CustomEvent('article-data-loaded'));
           }
+
+          // Handle preloaded categories data
+          if (categoriesData && categoriesData.length > 0) {
+            setCategories(categoriesData);
+            // PERFORMANCE: Measure dropdown response time
+            const measureDropdown = editPageBenchmark.measureDropdownResponse('categories');
+            measureDropdown();
+          } else {
+            console.warn('No categories data available');
+          }
+
+          // Handle preloaded authors data
+          if (authorsData && authorsData.length > 0) {
+            setAuthors(authorsData);
+            // PERFORMANCE: Measure dropdown response time
+            const measureDropdown = editPageBenchmark.measureDropdownResponse('authors');
+            measureDropdown();
+            // Set first author as default if no author selected
+            if (!articleResult.data?.author_id) {
+              setFormData(prev => ({ ...prev, author_id: authorsData[0].id }));
+            }
+          } else {
+            console.warn('No authors data available');
+            // Fallback to demo authors if preloader fails
+            const fallbackAuthors = FALLBACK_AUTHORS.map(author => ({
+              id: author.id,
+              full_name: author.name,
+              email: author.email,
+              role: author.role.toLowerCase(),
+              role_badge_color: 'text-blue-800 bg-blue-100 border-blue-200',
+              role_display_name: author.role
+            }));
+            setAuthors(fallbackAuthors);
+            if (!articleResult.data?.author_id) {
+              setFormData(prev => ({ ...prev, author_id: fallbackAuthors[0].id }));
+            }
+          }
+
         } catch (err) {
-          setLoadError('Có lỗi xảy ra khi tải bài viết');
+          setLoadError('Có lỗi xảy ra khi tải dữ liệu');
         }
       };
 
-      loadArticle();
+      loadAllData();
     }
   }, [articleId, currentArticleId]);
-
-  // Load categories from database
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const { data, error } = await CategoriesService.getAllCategories();
-        if (!error && data) {
-          setCategories(data);
-        } else {
-          console.error('Error loading categories:', error);
-        }
-      } catch (err) {
-        console.error('Error loading categories:', err);
-      } finally {
-        setCategoriesLoading(false);
-      }
-    };
-
-    loadCategories();
-  }, []);
-
-  // Load authors from database
-  useEffect(() => {
-    const loadAuthors = async () => {
-      try {
-        const { data, error } = await UserProfilesService.getAuthorOptions();
-        if (!error && data && data.length > 0) {
-          setAuthors(data);
-          // Set first author as default if no author selected
-          if (!formData.author_id && data.length > 0) {
-            setFormData(prev => ({ ...prev, author_id: data[0].id }));
-          }
-        } else {
-          console.error('Error loading authors:', error);
-          // Fallback to demo authors if database fails
-          const fallbackAuthors = FALLBACK_AUTHORS.map(author => ({
-            id: author.id,
-            full_name: author.name,
-            email: author.email,
-            role: author.role.toLowerCase(),
-            role_badge_color: 'text-blue-800 bg-blue-100 border-blue-200',
-            role_display_name: author.role
-          }));
-          setAuthors(fallbackAuthors);
-          if (!formData.author_id) {
-            setFormData(prev => ({ ...prev, author_id: fallbackAuthors[0].id }));
-          }
-        }
-      } catch (err) {
-        console.error('Error loading authors:', err);
-        // Fallback to demo authors
-        const fallbackAuthors = FALLBACK_AUTHORS.map(author => ({
-          id: author.id,
-          full_name: author.name,
-          email: author.email,
-          role: author.role.toLowerCase(),
-          role_badge_color: 'text-blue-800 bg-blue-100 border-blue-200',
-          role_display_name: author.role
-        }));
-        setAuthors(fallbackAuthors);
-        if (!formData.author_id) {
-          setFormData(prev => ({ ...prev, author_id: fallbackAuthors[0].id }));
-        }
-      } finally {
-        setAuthorsLoading(false);
-      }
-    };
-
-    loadAuthors();
-  }, []);
 
 
 
@@ -320,7 +327,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       return;
     }
 
-    setIsValidatingSlug(true);
+    setLoadingState(prev => ({ ...prev, isValidatingSlug: true }));
     setSlugError('');
 
     try {
@@ -336,7 +343,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     } catch (err) {
       setSlugError('Có lỗi khi kiểm tra slug');
     } finally {
-      setIsValidatingSlug(false);
+      setLoadingState(prev => ({ ...prev, isValidatingSlug: false }));
     }
   };
 
@@ -404,8 +411,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   };
 
   const handleSave = async (action: 'save') => {
-    setIsLoading(true);
+    setLoadingState(prev => ({ ...prev, isLoading: true }));
     setSaveStatus('Đang lưu...');
+
+    // PERFORMANCE: Measure save response time
+    const measureSave = editPageBenchmark.measureSaveResponse();
 
     try {
       // Validate required fields
@@ -513,6 +523,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           onSave(data);
         }
 
+        // PERFORMANCE: Complete save measurement
+        measureSave();
+
         // Redirect logic
         if (!isEditMode) {
           // Redirect to edit page after successful creation
@@ -530,7 +543,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       setSaveStatus('❌ Có lỗi xảy ra khi tạo bài viết');
       setTimeout(() => setSaveStatus(''), 3000);
     } finally {
-      setIsLoading(false);
+      setLoadingState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -543,24 +556,36 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     }));
   };
 
-  // SEO calculations với useMemo để optimize performance
+  // OPTIMIZED: SEO analysis với debouncing để tránh re-calculate liên tục
+  const [debouncedFormData, setDebouncedFormData] = useState(formData);
+
+  // Debounce formData changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFormData(formData);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [formData.title, formData.content, formData.meta_description, formData.slug, formData.focus_keyword]);
+
+  // SEO calculations chỉ chạy khi debouncedFormData thay đổi
   const seoAnalysis = useMemo(() => {
-    const wordCount = formData.content.split(' ').filter(word => word.length > 0).length;
+    const wordCount = debouncedFormData.content.split(' ').filter(word => word.length > 0).length;
     const readingTime = Math.ceil(wordCount / 200);
-    
+
     // SEO Score calculation
     let score = 0;
     const checks = [];
-    
+
     // Title check
-    const titleLength = formData.title.length;
+    const titleLength = debouncedFormData.title.length;
     if (titleLength >= 10 && titleLength <= 60) {
       score += 20;
       checks.push({ name: 'Tiêu đề', status: 'good', message: 'Độ dài tối ưu (10-60 ký tự)' });
     } else {
       checks.push({ name: 'Tiêu đề', status: 'bad', message: 'Nên từ 10-60 ký tự' });
     }
-    
+
     // Content check
     if (wordCount >= 300) {
       score += 25;
@@ -568,9 +593,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     } else {
       checks.push({ name: 'Nội dung', status: 'warning', message: `${wordCount} từ - Nên có ít nhất 300 từ` });
     }
-    
+
     // Meta description check
-    const metaLength = formData.meta_description.length;
+    const metaLength = debouncedFormData.meta_description.length;
     if (metaLength >= 120 && metaLength <= 160) {
       score += 20;
       checks.push({ name: 'Meta description', status: 'good', message: 'Độ dài tối ưu (120-160 ký tự)' });
@@ -579,21 +604,21 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     } else {
       checks.push({ name: 'Meta description', status: 'bad', message: 'Chưa có meta description' });
     }
-    
+
     // Slug check
-    if (formData.slug.length > 0) {
+    if (debouncedFormData.slug.length > 0) {
       score += 15;
       checks.push({ name: 'URL slug', status: 'good', message: 'Có URL slug' });
     } else {
       checks.push({ name: 'URL slug', status: 'bad', message: 'Cần có URL slug' });
     }
-    
+
     // Focus keyword check
-    if (formData.focus_keyword) {
-      const keyword = formData.focus_keyword.toLowerCase();
-      const titleHasKeyword = formData.title.toLowerCase().includes(keyword);
-      const contentHasKeyword = formData.content.toLowerCase().includes(keyword);
-      
+    if (debouncedFormData.focus_keyword) {
+      const keyword = debouncedFormData.focus_keyword.toLowerCase();
+      const titleHasKeyword = debouncedFormData.title.toLowerCase().includes(keyword);
+      const contentHasKeyword = debouncedFormData.content.toLowerCase().includes(keyword);
+
       if (titleHasKeyword && contentHasKeyword) {
         score += 20;
         checks.push({ name: 'Từ khóa', status: 'good', message: 'Xuất hiện trong title và content' });
@@ -666,7 +691,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     {saveStatus}
                   </span>
                 )}
-                {hasUnsavedChanges && !isLoading && (
+                {hasUnsavedChanges && !loadingState.isLoading && (
                   <span className="text-xs text-orange-600 dark:text-orange-400 px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded">
                     Chưa lưu
                   </span>
@@ -679,18 +704,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               </div>
               <button
                 onClick={() => handleSave('save')}
-                disabled={isLoading}
+                disabled={loadingState.isLoading}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
                 title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
               >
-                {isLoading ? (
+                {loadingState.isLoading ? (
                   <LoadingSpinner size="sm" color="white" />
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 )}
-                {isLoading ? 'Đang lưu...' : (formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp')}
+                {loadingState.isLoading ? 'Đang lưu...' : (formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp')}
               </button>
             </div>
           </div>
@@ -750,14 +775,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                         slugError ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-600'
                       }`}
                     />
-                    {isValidatingSlug && (
+                    {loadingState.isValidatingSlug && (
                       <div className="px-3 py-2 text-blue-600">
                         <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                       </div>
                     )}
-                    {formData.slug && !isValidatingSlug && (
+                    {formData.slug && !loadingState.isValidatingSlug && (
                       <button
                         onClick={() => {
                           const newSlug = generateSlug(formData.title);
@@ -810,14 +835,23 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
               <div className="flex-1 flex flex-col">
                 <div className="article-content-editor flex-1">
-                  <TiptapEditor
-                    value={formData.content}
-                    onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                    placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                    height="780px"
-                    flexHeight={true}
-                    className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                  />
+                  <Suspense fallback={
+                    <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 p-8 flex items-center justify-center min-h-[780px]">
+                      <div className="text-center">
+                        <LoadingSpinner size="lg" color="blue" className="mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400">Đang tải trình soạn thảo...</p>
+                      </div>
+                    </div>
+                  }>
+                    <TiptapEditor
+                      value={formData.content}
+                      onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                      placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
+                      height="780px"
+                      flexHeight={true}
+                      className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    />
+                  </Suspense>
                 </div>
               </div>
             </div>
@@ -1013,10 +1047,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   <div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chế độ công khai</span>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {isFormDataLoaded ? (formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư') : 'Đang tải...'}
+                      {loadingState.isDataLoaded ? (formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư') : 'Đang tải...'}
                     </p>
                   </div>
-                  {isFormDataLoaded ? (
+                  {loadingState.isDataLoaded ? (
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
@@ -1040,10 +1074,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   <div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bài nổi bật</span>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {isFormDataLoaded ? (formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường') : 'Đang tải...'}
+                      {loadingState.isDataLoaded ? (formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường') : 'Đang tải...'}
                     </p>
                   </div>
-                  {isFormDataLoaded ? (
+                  {loadingState.isDataLoaded ? (
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
@@ -1089,7 +1123,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               </div>
 
               <div className="space-y-2">
-                {categoriesLoading ? (
+                {!loadingState.isDataLoaded ? (
                   <div className="text-center py-4">
                     <LoadingSpinner size="md" color="blue" className="mb-2" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">Đang tải danh mục...</p>
@@ -1363,7 +1397,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               })()}
 
               {/* Author Selection */}
-              {authorsLoading ? (
+              {!loadingState.isDataLoaded ? (
                 <div className="flex items-center justify-center py-4">
                   <LoadingSpinner size="sm" color="gray" className="mr-2" />
                   <span className="text-sm text-gray-500 dark:text-gray-400">Đang tải tác giả...</span>
@@ -1390,10 +1424,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
       {/* Cover Image Upload Modal */}
       {showImageUpload && (
-        <ImageUpload
-          onImageUpload={handleCoverImageUpload}
-          onClose={() => setShowImageUpload(false)}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg">
+              <LoadingSpinner size="lg" color="blue" className="mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">Đang tải trình upload ảnh...</p>
+            </div>
+          </div>
+        }>
+          <ImageUpload
+            onImageUpload={handleCoverImageUpload}
+            onClose={() => setShowImageUpload(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

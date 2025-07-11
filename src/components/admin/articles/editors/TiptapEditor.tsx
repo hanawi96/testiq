@@ -457,6 +457,10 @@ export default function TiptapEditor({
       Superscript,
     ],
     content: value,
+    onCreate: ({ editor }) => {
+      // PERFORMANCE: Trigger editor ready event
+      window.dispatchEvent(new CustomEvent('editor-ready'));
+    },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       onChange(html);

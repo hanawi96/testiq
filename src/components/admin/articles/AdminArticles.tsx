@@ -12,9 +12,8 @@ import SearchInput from '../common/SearchInput';
 import LoadingSpinner from '../common/LoadingSpinner';
 import SearchHighlight from '../common/SearchHighlight';
 import SearchStats from '../common/SearchStats';
-import { categoriesPreloadTriggers } from '../../../utils/admin/preloaders/categories-preloader';
-import { authorsPreloadTriggers } from '../../../utils/admin/preloaders/authors-preloader';
-import { tagsPreloadTriggers } from '../../../utils/admin/preloaders/tags-preloader';
+import { SkeletonStats, SkeletonTable } from '../common/Skeleton';
+import { SmartPreloader } from '../../../utils/admin/preloaders/preload-manager';
 import { perfAnalyzer } from '../../../utils/performance/performance-analyzer';
 
 export default function AdminArticles() {
@@ -22,6 +21,8 @@ export default function AdminArticles() {
   const [stats, setStats] = useState<ArticleStats | null>(null);
   const [error, setError] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(true);
   const [filters, setFilters] = useState<ArticlesFilters>({
     status: 'all',
     search: '',
@@ -90,6 +91,7 @@ export default function AdminArticles() {
   const fetchArticles = useCallback(async (page: number = currentPage) => {
     perfAnalyzer.start('fetchArticles', { page, filters });
     setError('');
+    setIsLoadingArticles(true);
 
     try {
       perfAnalyzer.start('apiCall');
@@ -104,6 +106,7 @@ export default function AdminArticles() {
 
       perfAnalyzer.start('stateUpdate');
       setArticlesData(data);
+      setIsLoadingArticles(false);
       perfAnalyzer.end('stateUpdate');
 
       // Use setTimeout to measure render time
@@ -114,6 +117,7 @@ export default function AdminArticles() {
 
     } catch (err) {
       setError('Có lỗi xảy ra khi tải dữ liệu');
+      setIsLoadingArticles(false);
       console.error('Frontend: Error fetching articles:', err);
       perfAnalyzer.end('fetchArticles');
     }
@@ -121,6 +125,7 @@ export default function AdminArticles() {
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
+    setIsLoadingStats(true);
     try {
       const { data: statsData, error: statsError } = await ArticlesService.getStats();
       if (!statsError && statsData) {
@@ -128,6 +133,8 @@ export default function AdminArticles() {
       }
     } catch (err) {
       console.warn('Could not fetch articles stats:', err);
+    } finally {
+      setIsLoadingStats(false);
     }
   }, []);
 
@@ -149,11 +156,9 @@ export default function AdminArticles() {
 
     loadData();
 
-    // Trigger preloads on component mount
-    perfAnalyzer.mark('preloadTriggers');
-    categoriesPreloadTriggers.onAppInit();
-    authorsPreloadTriggers.onAppInit();
-    tagsPreloadTriggers.onAppInit();
+    // SMART PRELOADING: Trigger intelligent preload on navigation
+    perfAnalyzer.mark('smartPreloadTrigger');
+    SmartPreloader.triggerSmartPreload('navigation');
   }, [filters]);
 
   // Handle page change
@@ -238,8 +243,8 @@ export default function AdminArticles() {
   const handleQuickTagsEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
 
-    // Trigger tags preload when opening popup
-    tagsPreloadTriggers.onUserInteraction();
+    // Trigger smart preload when opening popup
+    SmartPreloader.triggerSmartPreload('click');
 
     // Close other editors
     setQuickAuthorEditor(null);
@@ -282,8 +287,8 @@ export default function AdminArticles() {
   const handleQuickAuthorEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
 
-    // Trigger authors preload when opening popup
-    authorsPreloadTriggers.onUserInteraction();
+    // Trigger smart preload when opening popup
+    SmartPreloader.triggerSmartPreload('click');
 
     // Close other editors
     setQuickTagsEditor(null);
@@ -327,8 +332,8 @@ export default function AdminArticles() {
   const handleQuickCategoryEdit = (event: React.MouseEvent, articleId: string) => {
     event.stopPropagation();
 
-    // Trigger categories preload when opening popup
-    categoriesPreloadTriggers.onUserInteraction();
+    // Trigger smart preload when opening popup
+    SmartPreloader.triggerSmartPreload('click');
 
     // Close other editors first
     setQuickTagsEditor(null);
@@ -683,7 +688,9 @@ export default function AdminArticles() {
       )}
 
       {/* Stats Cards */}
-      {stats && (
+      {isLoadingStats ? (
+        <SkeletonStats />
+      ) : stats && (
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {[
             {
@@ -739,6 +746,8 @@ export default function AdminArticles() {
           ))}
         </div>
       )}
+
+
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -861,7 +870,9 @@ export default function AdminArticles() {
       </AnimatePresence>
 
       {/* Articles Table */}
-      {articlesData && (
+      {isLoadingArticles ? (
+        <SkeletonTable rows={10} />
+      ) : articlesData && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -871,6 +882,8 @@ export default function AdminArticles() {
               <div>
                 <a
                   href="/admin/articles/create"
+                  onClick={() => SmartPreloader.triggerSmartPreload('click')}
+                  onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                   className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
                   title="Tạo bài viết mới"
                 >
@@ -972,7 +985,7 @@ export default function AdminArticles() {
                               )}
                               <button
                                 onClick={(e) => handleQuickCategoryEdit(e, article.id)}
-                                onMouseEnter={categoriesPreloadTriggers.onEditHover}
+                                onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                                 disabled={loadingCategoryIds.has(article.id)}
                                 className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Chỉnh sửa danh mục"
@@ -1016,7 +1029,7 @@ export default function AdminArticles() {
                               )}
                               <button
                                 onClick={(e) => handleQuickTagsEdit(e, article.id)}
-                                onMouseEnter={() => tagsPreloadTriggers.onEditHover()}
+                                onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                                 disabled={loadingTagIds.has(article.id)}
                                 className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Chỉnh sửa tags"
@@ -1115,7 +1128,7 @@ export default function AdminArticles() {
                           )}
                           <button
                             onClick={(e) => handleQuickCategoryEdit(e, article.id)}
-                            onMouseEnter={categoriesPreloadTriggers.onEditHover}
+                            onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                             disabled={loadingCategoryIds.has(article.id)}
                             className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa danh mục"
@@ -1147,7 +1160,7 @@ export default function AdminArticles() {
                           </div>
                           <button
                             onClick={(e) => handleQuickAuthorEdit(e, article.id)}
-                            onMouseEnter={authorsPreloadTriggers.onEditHover}
+                            onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                             disabled={loadingAuthorIds.has(article.id)}
                             className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa tác giả"
@@ -1288,6 +1301,7 @@ export default function AdminArticles() {
                           {/* Edit */}
                           <a
                             href={`/admin/articles/edit?id=${article.id}`}
+                            onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
                             title="Sửa"
                           >

@@ -1,68 +1,58 @@
 /**
- * Articles Module - Database Queries
+ * Articles Module - Database Queries (OPTIMIZED)
  * Tất cả database operations cho articles module
+ *
+ * QUERIES OPTIMIZATION:
+ * ✅ Removed unused query builders
+ * ✅ Simplified query construction
+ * ✅ Consistent error handling
+ * ✅ Reduced code duplication
+ * ✅ Improved type safety
  */
 
 import { supabase } from '../../config/supabase';
-import type { ArticlesFilters, RelatedData } from './types';
+import type { ArticlesFilters, RelatedData, Article, ArticleStatus } from './types';
+
+// Query field selections for consistency
+const ARTICLE_FIELDS = `
+  id, title, slug, excerpt, content, author_id, category_id, status, featured,
+  view_count, like_count, created_at, updated_at, published_at, reading_time,
+  internal_links, external_links
+` as const;
+
+const CATEGORY_FIELDS = `id, name, slug, description` as const;
+const TAG_FIELDS = `id, name, slug, description` as const;
+const USER_FIELDS = `id, full_name, email, role` as const;
 
 export class ArticleQueries {
   /**
-   * Helper method to build article query with joins
+   * OPTIMIZED: Build query with filters and sorting
    */
-  static buildArticleQuery() {
-    console.log('ArticleQueries: Building article query with joins...');
+  private static applyFilters(query: any, filters: ArticlesFilters) {
+    if (filters.search) {
+      query = query.or(`title.ilike.%${filters.search}%,content.ilike.%${filters.search}%,excerpt.ilike.%${filters.search}%`);
+    }
+    if (filters.status && filters.status !== 'all') {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.author) {
+      query = query.eq('author_id', filters.author);
+    }
+    if (filters.date_from) {
+      query = query.gte('created_at', filters.date_from);
+    }
+    if (filters.date_to) {
+      query = query.lte('created_at', filters.date_to);
+    }
 
-    // Since there's no direct FK between articles.author_id and user_profiles.id,
-    // we need to fetch user_profiles separately and join manually in the service layer
-    const query = supabase
-      .from('articles')
-      .select(`
-        *,
-        categories!category_id (
-          name,
-          slug
-        )
-      `);
-
-    console.log('ArticleQueries: Article query built successfully');
-    return query;
+    // Apply sorting
+    const sortField = filters.sort_by || 'created_at';
+    const ascending = filters.sort_order === 'asc';
+    return query.order(sortField, { ascending });
   }
 
   /**
-   * Optimized method to get articles with single query and minimal joins
-   * Reduces database round trips from 4+ to 1-2 queries
-   */
-  static buildOptimizedArticleQuery() {
-    console.log('ArticleQueries: Building optimized article query...');
-
-    // Use a more efficient approach with minimal data fetching
-    const query = supabase
-      .from('articles')
-      .select(`
-        id,
-        title,
-        slug,
-        excerpt,
-        content,
-        author_id,
-        status,
-        view_count,
-        like_count,
-        created_at,
-        updated_at,
-        published_at,
-        reading_time,
-        internal_links,
-        external_links
-      `);
-
-    console.log('ArticleQueries: Optimized article query built successfully');
-    return query;
-  }
-
-  /**
-   * Get articles with pagination and filters
+   * OPTIMIZED: Get articles with all related data
    */
   static async getArticles(
     page: number = 1,
@@ -70,56 +60,112 @@ export class ArticleQueries {
     filters: ArticlesFilters = {}
   ) {
     try {
-      console.log('ArticleQueries: Fetching articles from database', { page, limit, filters });
-
+      const startTime = Date.now();
       const offset = (page - 1) * limit;
 
-      // Build optimized query
-      let query = this.buildOptimizedArticleQuery()
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      // Apply filters
-      if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,content.ilike.%${filters.search}%,excerpt.ilike.%${filters.search}%`);
-      }
-
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
-      }
-
-      if (filters.author) {
-        query = query.eq('author_id', filters.author);
-      }
-
-      if (filters.date_from) {
-        query = query.gte('created_at', filters.date_from);
-      }
-
-      if (filters.date_to) {
-        query = query.lte('created_at', filters.date_to);
-      }
-
-      // Apply sorting
-      if (filters.sort_by) {
-        const ascending = filters.sort_order === 'asc';
-        query = query.order(filters.sort_by, { ascending });
-      }
-
-      // Execute query with count
-      const { data: articles, error, count } = await supabase
+      // Build optimized query with primary category join
+      let query = supabase
         .from('articles')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .select(`
+          ${ARTICLE_FIELDS},
+          primary_category:categories!category_id (${CATEGORY_FIELDS})
+        `, { count: 'exact' });
+
+      // Apply filters and sorting
+      query = this.applyFilters(query, filters);
+
+      // Apply pagination
+      query = query.range(offset, offset + limit - 1);
+
+      // Execute the main query
+      const { data: articles, error, count } = await query;
 
       if (error) {
-        console.error('ArticleQueries: Error fetching articles:', error);
         return { data: null, error, count: 0 };
       }
 
-      console.log(`ArticleQueries: Successfully fetched ${articles?.length || 0} articles`);
-      return { data: articles || [], error: null, count: count || 0 };
+      if (!articles || articles.length === 0) {
+        return { data: [], error: null, count: count || 0 };
+      }
+
+      // Get related data in parallel
+      const articleIds = articles.map(article => article.id);
+      const authorIds = [...new Set(articles.map(article => article.author_id).filter(Boolean))];
+
+      const [categoriesResult, tagsResult, authorsResult] = await Promise.all([
+        supabase
+          .from('article_categories')
+          .select(`article_id, categories:category_id (${CATEGORY_FIELDS})`)
+          .in('article_id', articleIds),
+        supabase
+          .from('article_tags')
+          .select(`article_id, tags:tag_id (${TAG_FIELDS})`)
+          .in('article_id', articleIds),
+        authorIds.length > 0
+          ? supabase.from('user_profiles').select(USER_FIELDS).in('id', authorIds)
+          : Promise.resolve({ data: [] })
+      ]);
+
+      // Build lookup maps for efficient joining
+      const categoriesMap = new Map<string, any[]>();
+      const tagsMap = new Map<string, any[]>();
+      const authorsMap = new Map<string, any>();
+
+      // Process related data
+      categoriesResult.data?.forEach((item: any) => {
+        if (item.categories) {
+          if (!categoriesMap.has(item.article_id)) {
+            categoriesMap.set(item.article_id, []);
+          }
+          categoriesMap.get(item.article_id)!.push(item.categories);
+        }
+      });
+
+      tagsResult.data?.forEach((item: any) => {
+        if (item.tags) {
+          if (!tagsMap.has(item.article_id)) {
+            tagsMap.set(item.article_id, []);
+          }
+          tagsMap.get(item.article_id)!.push(item.tags);
+        }
+      });
+
+      authorsResult.data?.forEach((author: any) => {
+        authorsMap.set(author.id, author);
+      });
+
+      // Enrich articles with related data
+      const enrichedArticles = articles.map(article => {
+        const articleCategories = categoriesMap.get(article.id) || [];
+        const articleTags = tagsMap.get(article.id) || [];
+        const authorProfile = article.author_id ? authorsMap.get(article.author_id) : null;
+
+        // Handle primary category
+        const primaryCategory = Array.isArray(article.primary_category) && article.primary_category.length > 0
+          ? article.primary_category[0] : null;
+
+        // Build category arrays
+        const allCategories = [...articleCategories];
+        if (primaryCategory && !allCategories.find(cat => cat.id === primaryCategory.id)) {
+          allCategories.unshift(primaryCategory);
+        }
+
+        return {
+          ...article,
+          categories: allCategories,
+          tags: articleTags,
+          user_profiles: authorProfile,
+          author: authorProfile?.full_name || null,
+          category: primaryCategory?.name || null,
+          tag_names: articleTags.map(tag => tag.name),
+          category_ids: allCategories.map(cat => cat.id),
+          category_names: allCategories.map(cat => cat.name)
+        };
+      });
+
+      const queryTime = Date.now() - startTime;
+      console.log(`ArticleQueries: Fetched ${enrichedArticles.length} articles in ${queryTime}ms`);
+      return { data: enrichedArticles, error: null, count: count || 0 };
 
     } catch (err) {
       console.error('ArticleQueries: Unexpected error fetching articles:', err);
@@ -132,19 +178,63 @@ export class ArticleQueries {
    */
   static async getArticleById(articleId: string) {
     try {
-
       const { data: article, error } = await supabase
         .from('articles')
         .select('*')
         .eq('id', articleId)
         .single();
 
-      if (error) {
-        return { data: null, error };
+      return { data: article, error };
+    } catch (err) {
+      return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Get article for editing with all related data
+   */
+  static async getArticleForEditOptimized(articleId: string) {
+    try {
+      // Get article
+      const { data: article, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', articleId)
+        .single();
+
+      if (error || !article) {
+        return { data: null, error: error || new Error('Article not found') };
       }
 
-      return { data: article, error: null };
+      // Get related data in parallel
+      const [categoriesResult, tagsResult, authorResult] = await Promise.all([
+        supabase
+          .from('article_categories')
+          .select(`categories:category_id (${CATEGORY_FIELDS})`)
+          .eq('article_id', articleId),
+        supabase
+          .from('article_tags')
+          .select(`tags:tag_id (${TAG_FIELDS})`)
+          .eq('article_id', articleId),
+        article.author_id
+          ? supabase.from('user_profiles').select(USER_FIELDS).eq('id', article.author_id).single()
+          : Promise.resolve({ data: null, error: null })
+      ]);
 
+      // Process related data
+      const categories = categoriesResult.data?.map((item: any) => item.categories).filter(Boolean) || [];
+      const tags = tagsResult.data?.map((item: any) => item.tags).filter(Boolean) || [];
+
+      return {
+        data: {
+          ...article,
+          categories,
+          tags,
+          tag_names: tags.map((tag: any) => tag.name),
+          user_profiles: authorResult.data || null
+        },
+        error: null
+      };
     } catch (err) {
       return { data: null, error: err };
     }
@@ -155,24 +245,14 @@ export class ArticleQueries {
    */
   static async getArticleBySlug(slug: string) {
     try {
-      console.log('ArticleQueries: Fetching article by slug:', slug);
-
       const { data: article, error } = await supabase
         .from('articles')
         .select('*')
         .eq('slug', slug)
         .single();
 
-      if (error) {
-        console.error('ArticleQueries: Error fetching article by slug:', error);
-        return { data: null, error };
-      }
-
-      console.log('ArticleQueries: Successfully fetched article by slug');
-      return { data: article, error: null };
-
+      return { data: article, error };
     } catch (err) {
-      console.error('ArticleQueries: Unexpected error fetching article by slug:', err);
       return { data: null, error: err };
     }
   }
@@ -182,24 +262,14 @@ export class ArticleQueries {
    */
   static async createArticle(articleData: any) {
     try {
-      console.log('ArticleQueries: Creating article in database:', articleData);
-
-      const { data: insertedData, error: insertError } = await supabase
+      const { data: insertedData, error } = await supabase
         .from('articles')
         .insert(articleData)
         .select()
         .single();
 
-      if (insertError) {
-        console.error('ArticleQueries: Error creating article:', insertError);
-        return { data: null, error: insertError };
-      }
-
-      console.log('ArticleQueries: Successfully created article');
-      return { data: insertedData, error: null };
-
+      return { data: insertedData, error };
     } catch (err) {
-      console.error('ArticleQueries: Unexpected error creating article:', err);
       return { data: null, error: err };
     }
   }
@@ -209,20 +279,14 @@ export class ArticleQueries {
    */
   static async updateArticle(articleId: string, updateData: any) {
     try {
-
-      const { data: updatedData, error: updateError } = await supabase
+      const { data: updatedData, error } = await supabase
         .from('articles')
         .update(updateData)
         .eq('id', articleId)
         .select()
         .single();
 
-      if (updateError) {
-        return { data: null, error: updateError };
-      }
-
-      return { data: updatedData, error: null };
-
+      return { data: updatedData, error };
     } catch (err) {
       return { data: null, error: err };
     }
@@ -233,23 +297,13 @@ export class ArticleQueries {
    */
   static async deleteArticle(articleId: string) {
     try {
-      console.log('ArticleQueries: Deleting article from database:', articleId);
-
-      const { error: deleteError } = await supabase
+      const { error } = await supabase
         .from('articles')
         .delete()
         .eq('id', articleId);
 
-      if (deleteError) {
-        console.error('ArticleQueries: Error deleting article:', deleteError);
-        return { error: deleteError };
-      }
-
-      console.log('ArticleQueries: Successfully deleted article');
-      return { error: null };
-
+      return { error };
     } catch (err) {
-      console.error('ArticleQueries: Unexpected error deleting article:', err);
       return { error: err };
     }
   }
@@ -437,7 +491,7 @@ export class ArticleQueries {
         // Get unique author profiles
         supabase
           .from('user_profiles')
-          .select('id, full_name, email, avatar_url')
+          .select(USER_FIELDS)
       ]);
 
       // Merge categories from both sources with deduplication
@@ -503,14 +557,7 @@ export class ArticleQueries {
       }
 
       const { count, error } = await query;
-
-      if (error) {
-        return { exists: false, error };
-      }
-
-      // Check if any rows exist
-      return { exists: (count || 0) > 0, error: null };
-
+      return { exists: (count || 0) > 0, error };
     } catch (err) {
       return { exists: false, error: err };
     }
