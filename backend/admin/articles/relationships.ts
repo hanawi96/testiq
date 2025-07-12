@@ -12,91 +12,75 @@ export class RelationshipsUtils {
    */
   static async updateTags(articleId: string, tags: string[]): Promise<{ error: any }> {
     try {
+      // FIXED: Khai báo tagIds ở scope đúng
+      const tagIds: string[] = [];
 
-      // 1. Update article timestamp
-      const { error: updateError } = await ArticleQueries.updateArticle(articleId, {
-        updated_at: new Date().toISOString()
-      });
-
-      if (updateError) {
-        return { error: updateError };
-      }
-
-      // 2. Handle tags if provided
+      // OPTIMIZED: Process tags if provided
       if (tags && tags.length > 0) {
-        // Create tags that don't exist
-        const tagIds: string[] = [];
+        // OPTIMIZED: Batch process tags
+        const cleanTags = tags.map(tag => tag.trim()).filter(Boolean);
 
-        for (const tagName of tags) {
-          if (!tagName.trim()) continue;
-
-          // Try to find existing tag
-          const { data: existingTag } = await supabase
+        if (cleanTags.length > 0) {
+          // OPTIMIZED: Single query để get existing tags
+          const { data: existingTags } = await supabase
             .from('tags')
-            .select('id')
-            .eq('name', tagName.trim())
-            .single();
+            .select('id, name')
+            .in('name', cleanTags);
 
-          if (existingTag) {
-            tagIds.push(existingTag.id);
-          } else {
-            // Create new tag
-            const { data: newTag, error: createError } = await supabase
+          const existingTagMap = new Map(existingTags?.map(tag => [tag.name, tag.id]) || []);
+
+          // OPTIMIZED: Batch create new tags
+          const newTagNames = cleanTags.filter(name => !existingTagMap.has(name));
+          if (newTagNames.length > 0) {
+            const { data: newTags } = await supabase
               .from('tags')
-              .insert({
-                name: tagName.trim(),
-                slug: tagName.trim().toLowerCase().replace(/\s+/g, '-'),
+              .insert(newTagNames.map(name => ({
+                name,
+                slug: name.toLowerCase().replace(/\s+/g, '-'),
                 usage_count: 1
-              })
-              .select('id')
-              .single();
+              })))
+              .select('id, name');
 
-            if (createError) {
-              continue;
-            }
-
-            if (newTag) {
-              tagIds.push(newTag.id);
-            }
+            // Add new tags to map
+            newTags?.forEach(tag => existingTagMap.set(tag.name, tag.id));
           }
-        }
 
-        // 3. Delete existing article_tags relationships
-        const { error: deleteError } = await supabase
-          .from('article_tags')
-          .delete()
-          .eq('article_id', articleId);
-
-        if (deleteError) {
-          // Continue anyway
-        }
-
-        // 4. Insert new article_tags relationships
-        if (tagIds.length > 0) {
-          const tagRelations = tagIds.map(tagId => ({
-            article_id: articleId,
-            tag_id: tagId
-          }));
-
-          const { error: insertError } = await supabase
-            .from('article_tags')
-            .insert(tagRelations);
-
-          if (insertError) {
-            return { error: insertError };
-          }
-        }
-      } else {
-        // No tags provided - delete all existing tags for this article
-        const { error: deleteError } = await supabase
-          .from('article_tags')
-          .delete()
-          .eq('article_id', articleId);
-
-        if (deleteError) {
-          // Continue anyway
+          // Collect all tag IDs
+          cleanTags.forEach(name => {
+            const id = existingTagMap.get(name);
+            if (id) tagIds.push(id);
+          });
         }
       }
+
+      // OPTIMIZED: Single transaction-like operation
+      // 1. Delete existing relationships
+      await supabase
+        .from('article_tags')
+        .delete()
+        .eq('article_id', articleId);
+
+      // 2. Insert new relationships if any
+      if (tagIds.length > 0) {
+        const tagRelations = tagIds.map(tagId => ({
+          article_id: articleId,
+          tag_id: tagId
+        }));
+
+        const { error: insertError } = await supabase
+          .from('article_tags')
+          .insert(tagRelations);
+
+        if (insertError) {
+          return { error: insertError };
+        }
+      }
+
+      // OPTIMIZED: Direct timestamp update - avoid extra query
+      await supabase
+        .from('articles')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', articleId);
 
       return { error: null };
 
@@ -147,9 +131,7 @@ export class RelationshipsUtils {
    */
   static async updateCategories(articleId: string, categoryIds: string[]): Promise<{ error: any }> {
     try {
-      console.log('RelationshipsUtils: Updating article categories:', { articleId, categoryIds });
-
-      // Set primary category (first one) - this field exists in articles table
+      // OPTIMIZED: Remove logging, direct processing
       const primaryCategoryId = categoryIds.length > 0 ? categoryIds[0] : null;
 
       // 1. Update primary category in articles table
@@ -228,68 +210,7 @@ export class RelationshipsUtils {
     }
   }
 
-  /**
-   * Update article tags (junction table) - for internal use
-   */
-  static async updateArticleTags(articleId: string, tagNames: string[]): Promise<void> {
-    try {
-      // Delete existing tag relationships
-      await supabase
-        .from('article_tags')
-        .delete()
-        .eq('article_id', articleId);
 
-      // Process tags if provided
-      if (tagNames.length > 0) {
-        const tagIds: string[] = [];
-
-        for (const tagName of tagNames) {
-          if (!tagName.trim()) continue;
-
-          // Try to find existing tag
-          const { data: existingTag } = await supabase
-            .from('tags')
-            .select('id')
-            .eq('name', tagName.trim())
-            .single();
-
-          if (existingTag) {
-            tagIds.push(existingTag.id);
-          } else {
-            // Create new tag
-            const { data: newTag, error: createError } = await supabase
-              .from('tags')
-              .insert({
-                name: tagName.trim(),
-                slug: tagName.trim().toLowerCase().replace(/\s+/g, '-'),
-                usage_count: 1
-              })
-              .select('id')
-              .single();
-
-            if (!createError && newTag) {
-              tagIds.push(newTag.id);
-            }
-          }
-        }
-
-        // Insert new tag relationships
-        if (tagIds.length > 0) {
-          const tagRelations = tagIds.map(tagId => ({
-            article_id: articleId,
-            tag_id: tagId
-          }));
-
-          await supabase
-            .from('article_tags')
-            .insert(tagRelations);
-        }
-      }
-    } catch (err) {
-      console.error('RelationshipsUtils: Error updating article tags:', err);
-      // Don't throw - continue with article update
-    }
-  }
 
   /**
    * Get all tags (for preloader and quick edit)

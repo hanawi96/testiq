@@ -22,8 +22,6 @@ export default function QuickTagsEditor({
   const [selectedTags, setSelectedTags] = useState<string[]>(currentTags);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackType, setFeedbackType] = useState<'success' | 'warning' | 'error'>('success');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -462,20 +460,15 @@ export default function QuickTagsEditor({
         <div className="flex justify-end space-x-2">
           <button
             onClick={onClose}
-            disabled={isLoading}
-            className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
+            className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
           >
             Hủy
           </button>
           <button
             onClick={handleSave}
-            disabled={isLoading}
-            className="px-3 py-1 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded transition-colors flex items-center space-x-1"
+            className="px-3 py-1 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded transition-colors"
           >
-            {isLoading && (
-              <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-            )}
-            <span>Lưu</span>
+            Lưu
           </button>
         </div>
       </div>

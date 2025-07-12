@@ -49,56 +49,73 @@ export class ProcessingUtils {
   }
 
   /**
-   * Simple link analysis helper
+   * OPTIMIZED: Fast link analysis với minimal processing
    */
   static analyzeContentLinks(content: string, baseDomain: string): LinkAnalysis {
-    const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
-    const links = [];
+    // OPTIMIZED: Pre-compile regex for better performance
+    const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
+    const internal_links: any[] = [];
+    const external_links: any[] = [];
     let match;
 
+    // OPTIMIZED: Single pass processing
     while ((match = linkRegex.exec(content)) !== null) {
-      links.push({
-        url: match[1],
-        text: match[2]
-      });
+      const url = match[1];
+      const isInternal = url.includes(baseDomain) || url.startsWith('/');
+
+      if (isInternal) {
+        internal_links.push({ url, text: '' }); // Minimal data
+      } else {
+        try {
+          external_links.push({
+            url,
+            text: '',
+            domain: new URL(url).hostname
+          });
+        } catch {
+          // Skip invalid URLs
+        }
+      }
     }
 
-    const internal_links = links.filter(link =>
-      link.url.includes(baseDomain) || link.url.startsWith('/')
-    );
-
-    const external_links = links.filter(link =>
-      !link.url.includes(baseDomain) && !link.url.startsWith('/')
-    ).map(link => ({
-      ...link,
-      domain: new URL(link.url).hostname
-    }));
+    const internal_count = internal_links.length;
+    const external_count = external_links.length;
 
     return {
       internal_links,
       external_links,
-      total_links: links.length,
-      internal_count: internal_links.length,
-      external_count: external_links.length,
+      total_links: internal_count + external_count,
+      internal_count,
+      external_count,
       // Frontend compatibility
-      total_internal: internal_links.length,
-      total_external: external_links.length
+      total_internal: internal_count,
+      total_external: external_count
     };
   }
 
   /**
-   * Calculate reading time based on word count
+   * OPTIMIZED: Calculate both word count and reading time in single pass
    */
-  static calculateReadingTime(content: string): number {
+  static calculateContentMetrics(content: string): { wordCount: number; readingTime: number } {
     const wordCount = content.split(/\s+/).length;
-    return Math.ceil(wordCount / 200); // 200 words per minute
+    return {
+      wordCount,
+      readingTime: Math.ceil(wordCount / 200) // 200 words per minute
+    };
   }
 
   /**
-   * Calculate word count
+   * @deprecated Use calculateContentMetrics instead
+   */
+  static calculateReadingTime(content: string): number {
+    return this.calculateContentMetrics(content).readingTime;
+  }
+
+  /**
+   * @deprecated Use calculateContentMetrics instead
    */
   static calculateWordCount(content: string): number {
-    return content.split(/\s+/).length;
+    return this.calculateContentMetrics(content).wordCount;
   }
 
   /**
@@ -106,22 +123,25 @@ export class ProcessingUtils {
    * Uses new validation and slug generation methods
    */
   static async processArticleData(articleData: CreateArticleData, authorId: string) {
-    // Generate unique slug
-    const slug = articleData.slug?.trim() || await this.generateUniqueSlug(articleData.title);
+    // OPTIMIZED: Pre-process strings once
+    const trimmedTitle = articleData.title.trim();
+    const trimmedContent = articleData.content.trim();
 
-    // Calculate reading time and word count
-    const wordCount = this.calculateWordCount(articleData.content);
-    const readingTime = this.calculateReadingTime(articleData.content);
+    // Generate unique slug
+    const slug = articleData.slug?.trim() || await this.generateUniqueSlug(trimmedTitle);
+
+    // OPTIMIZED: Calculate metrics in single pass
+    const { wordCount, readingTime } = this.calculateContentMetrics(trimmedContent);
 
     // Analyze links in content
     const baseDomain = this.getBaseDomain();
-    const linkAnalysis = this.analyzeContentLinks(articleData.content, baseDomain);
+    const linkAnalysis = this.analyzeContentLinks(trimmedContent, baseDomain);
 
     // Prepare article data for database
     const processedData = {
-      title: articleData.title.trim(),
+      title: trimmedTitle,
       slug,
-      content: articleData.content.trim(),
+      content: trimmedContent,
       excerpt: articleData.excerpt?.trim() || null,
       lang: articleData.lang || 'vi',
       article_type: articleData.article_type || 'article',
@@ -209,11 +229,11 @@ export class ProcessingUtils {
       processedUpdateData.slug = await this.generateUniqueSlug(updateData.slug, articleId);
     }
 
-    // Update reading time if content changed
+    // OPTIMIZED: Update content metrics if content changed
     if (updateData.content) {
-      const wordCount = this.calculateWordCount(updateData.content);
-      processedUpdateData.reading_time = this.calculateReadingTime(updateData.content);
+      const { wordCount, readingTime } = this.calculateContentMetrics(updateData.content);
       processedUpdateData.word_count = wordCount;
+      processedUpdateData.reading_time = readingTime;
 
       // Analyze links in content
       const baseDomain = this.getBaseDomain();

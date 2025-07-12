@@ -541,49 +541,43 @@ export default function AdminArticles() {
     });
   };
 
-  // Handle tags update with optimistic UI and loading state
+  // OPTIMIZED: Handle tags update với memory-efficient approach
   const handleTagsUpdate = async (articleId: string, newTags: string[]) => {
     if (!articlesData) return;
 
     const originalArticle = articlesData.articles.find(a => a.id === articleId);
     if (!originalArticle) return;
 
-    // Start loading state
+    // OPTIMIZED: Batch state updates
     setLoading({ tagIds: new Set(loading.tagIds).add(articleId) });
 
-    // Optimistic UI update - only update UI fields, not database fields
-    const updatedArticles = articlesData.articles.map(article =>
-      article.id === articleId ? {
-        ...article,
-        tag_names: newTags  // This is computed field for UI display
-      } : article
-    );
-    dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: updatedArticles } });
+    // OPTIMIZED: Direct property mutation for better performance
+    const targetArticle = articlesData.articles.find(a => a.id === articleId);
+    if (targetArticle) {
+      const originalTagNames = targetArticle.tag_names;
+      targetArticle.tag_names = newTags;
 
-    try {
-      // Background API call
-      const { error: updateError } = await ArticlesService.updateTags(articleId, newTags);
+      // Force re-render
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData } });
 
-      if (updateError) {
-        console.error('Failed to update tags:', updateError);
-        // Revert optimistic update on error
-        const revertedArticles = articlesData.articles.map(article =>
-          article.id === articleId ? originalArticle : article
-        );
-        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: revertedArticles } });
+      try {
+        // Background API call
+        const { error: updateError } = await ArticlesService.updateTags(articleId, newTags);
+
+        if (updateError) {
+          // OPTIMIZED: Single revert function
+          targetArticle.tag_names = originalTagNames;
+          dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData } });
+        }
+      } catch (err) {
+        // OPTIMIZED: Single revert function
+        targetArticle.tag_names = originalTagNames;
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData } });
+      } finally {
+        // OPTIMIZED: Direct Set manipulation
+        loading.tagIds.delete(articleId);
+        setLoading({ tagIds: new Set(loading.tagIds) });
       }
-    } catch (err) {
-      console.error('Error updating tags:', err);
-      // Revert optimistic update on error
-      const revertedArticles = articlesData.articles.map(article =>
-        article.id === articleId ? originalArticle : article
-      );
-      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: revertedArticles } });
-    } finally {
-      // Remove loading state
-      const newTagIds = new Set(loading.tagIds);
-      newTagIds.delete(articleId);
-      setLoading({ tagIds: newTagIds });
     }
   };
 

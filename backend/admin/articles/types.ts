@@ -19,15 +19,7 @@ export type UserId = string;
 export type CategoryId = string;
 export type TagId = string;
 
-// Type utilities cho future branded type migration
-export const createArticleId = (id: string): ArticleId => id;
-export const createUserId = (id: string): UserId => id;
-export const createCategoryId = (id: string): CategoryId => id;
-export const createTagId = (id: string): TagId => id;
-
-// Compatibility utilities cho readonly/mutable conversions
-export const toMutableArray = <T>(arr: readonly T[]): T[] => [...arr];
-export const toReadonlyArray = <T>(arr: T[]): readonly T[] => arr;
+// OPTIMIZED: Remove unused utility functions to reduce bundle size
 
 // Optimized union types với const assertions
 export const ARTICLE_STATUSES = ['published', 'draft', 'archived'] as const;
@@ -249,9 +241,9 @@ export interface ArticlesFilters {
   readonly sort_order?: SortOrder;
 }
 
-// Optimized list response với readonly arrays
+// OPTIMIZED: Lightweight list response - chỉ essential fields
 export interface ArticlesListResponse {
-  readonly articles: readonly Article[];
+  readonly articles: readonly ArticleListItem[]; // Sử dụng lightweight type
   readonly total: number;
   readonly page: number;
   readonly limit: number;
@@ -306,10 +298,8 @@ export type ArticleFormData = Pick<CreateArticleData, 'title' | 'content' | 'exc
 
 export type ArticlePreview = Pick<Article, 'id' | 'title' | 'slug' | 'excerpt' | 'status' | 'created_at' | 'author'>;
 
-// Advanced utility types cho performance
+// OPTIMIZED: Essential utility types only
 export type ArticleListItem = Pick<Article, 'id' | 'title' | 'slug' | 'status' | 'created_at' | 'author' | 'view_count'>;
-export type ArticleSummary = Pick<Article, 'id' | 'title' | 'excerpt' | 'cover_image' | 'published_at'>;
-export type ArticleMetadata = Pick<Article, 'id' | 'meta_title' | 'meta_description' | 'og_title' | 'og_description'>;
 
 // ===== PERFORMANCE-OPTIMIZED ANALYSIS & INTERNAL TYPES =====
 

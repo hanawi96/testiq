@@ -73,71 +73,31 @@ export class ArticlesService {
     filters: ArticlesFilters = {}
   ): Promise<{ data: ArticlesListResponse | null; error: any }> {
     try {
-      console.log('ArticlesService: Getting articles with optimized query', { page, limit, filters });
-
-      // Use the new optimized query that includes all related data
+      // OPTIMIZED: Remove verbose logging in production
       const { data: articles, error, count } = await ArticleQueries.getArticles(page, limit, filters);
 
       if (error) {
-        console.error('ArticlesService: Error fetching articles:', error);
-
-        // Fallback to demo data if table doesn't exist
-        const demoResponse = {
-          articles: [
-            {
-              id: '1',
-              title: 'Demo: Hướng dẫn làm bài test IQ hiệu quả',
-              slug: 'demo-huong-dan-lam-bai-test-iq-hieu-qua',
-              excerpt: 'Đây là dữ liệu demo. Vui lòng tạo bảng articles trong database.',
-              content: 'Nội dung demo...',
-              author: 'Demo Author',
-              status: 'published' as const,
-              tags: [],
-              tag_names: ['Demo', 'IQ Test'],
-              categories: [],
-              category_ids: [],
-              category_names: [],
-              view_count: 100,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              published_at: new Date().toISOString(),
-              reading_time: 5
-            }
-          ],
-          total: 1,
-          page: 1,
-          limit: 10,
-          totalPages: 1,
-          hasNext: false,
-          hasPrev: false
-        };
-
-        return { data: demoResponse, error: null };
+        // OPTIMIZED: Simple error handling without demo data
+        return { data: null, error };
       }
 
       if (!articles) {
         return { data: null, error: new Error('Không thể lấy danh sách bài viết') };
       }
 
-      // Articles are already enriched with all related data from the optimized query
-      // No need for additional enrichment step!
-
-      // Calculate pagination
+      // OPTIMIZED: Direct pagination calculation
       const totalPages = Math.ceil((count || 0) / limit);
-      const hasNext = page < totalPages;
-      const hasPrev = page > 1;
 
       const response: ArticlesListResponse = {
-        articles: articles, // Already enriched!
+        articles,
         total: count || 0,
         page,
         limit,
         totalPages,
-        hasNext,
-        hasPrev
+        hasNext: page < totalPages,
+        hasPrev: page > 1
       };
 
-      console.log('ArticlesService: Successfully retrieved articles (optimized)');
       return { data: response, error: null };
 
     } catch (err) {
@@ -151,20 +111,9 @@ export class ArticlesService {
    */
   static async getStats(): Promise<{ data: ArticleStats | null; error: any }> {
     try {
-      console.log('ArticlesService: Getting articles statistics');
-
-      const { data: stats, error } = await ArticleQueries.getArticlesStats();
-
-      if (error) {
-        console.error('ArticlesService: Error getting statistics:', error);
-        return { data: null, error };
-      }
-
-      console.log('ArticlesService: Successfully retrieved statistics');
-      return { data: stats, error: null };
-
+      // OPTIMIZED: Direct call without logging
+      return await ArticleQueries.getArticlesStats();
     } catch (err) {
-      console.error('ArticlesService: Unexpected error getting statistics:', err);
       return { data: null, error: err };
     }
   }
@@ -269,14 +218,13 @@ export class ArticlesService {
   }
 
   /**
-   * Update article
+   * Update article - OPTIMIZED: Loại bỏ duplicate logic
    */
   static async updateArticle(
     articleId: string,
     updateData: Partial<CreateArticleData>
   ): Promise<{ data: Article | null; error: any }> {
     try {
-
       // Extract categories and tags for separate processing
       const { categories, tags, ...articleUpdateData } = updateData;
 
@@ -294,38 +242,17 @@ export class ArticlesService {
         return { data: null, error: new Error(ERROR_MESSAGES.ARTICLE_UPDATE_FAILED) };
       }
 
-      // Update categories if provided
-      if (categories && Array.isArray(categories)) {
-        const { error: categoriesError } = await RelationshipsUtils.updateCategories(articleId, categories);
-        if (categoriesError) {
-          console.error('ArticlesService: Error updating categories:', categoriesError);
-          // Don't fail the whole operation, just log the error
-        }
-      }
-
-      // Update tags if provided
-      if (tags && Array.isArray(tags)) {
-        const { error: tagsError } = await RelationshipsUtils.updateTags(articleId, tags);
-        if (tagsError) {
-          console.error('ArticlesService: Error updating tags:', tagsError);
-          // Don't fail the whole operation, just log the error
-        }
-      }
-
-      // Handle categories update if provided
-      if (categories !== undefined) {
-        await RelationshipsUtils.updateArticleCategories(articleId, [...categories]);
-      }
-
-      // Handle tags update if provided
-      if (tags !== undefined) {
-        await RelationshipsUtils.updateArticleTags(articleId, [...tags]);
+      // OPTIMIZED: Single relationship update call
+      if (categories !== undefined || tags !== undefined) {
+        await Promise.all([
+          categories !== undefined ? RelationshipsUtils.updateCategories(articleId, categories) : Promise.resolve(),
+          tags !== undefined ? RelationshipsUtils.updateTags(articleId, tags) : Promise.resolve()
+        ]);
       }
 
       // Invalidate cache
       this.invalidateArticlesCache();
 
-      // SIMPLIFIED: Return basic article
       return { data: updatedArticle, error: null };
 
     } catch (err) {
@@ -485,14 +412,14 @@ export class ArticlesService {
 
 
   /**
-   * Update article tags (for quick edit)
+   * OPTIMIZED: Update article tags với smart cache invalidation
    */
   static async updateTags(articleId: string, tags: string[]): Promise<{ error: any }> {
     const result = await RelationshipsUtils.updateTags(articleId, tags);
 
+    // OPTIMIZED: Async cache invalidation - không block response
     if (!result.error) {
-      // Invalidate cache
-      this.invalidateArticlesCache();
+      setImmediate(() => this.invalidateArticlesCache());
     }
 
     return result;

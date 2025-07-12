@@ -313,7 +313,7 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 border border-gray-300 dark:border-gray-600">
+      <div className="popup-container bg-white dark:bg-gray-800 rounded-lg p-6 w-96 border border-gray-300 dark:border-gray-600">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Chèn liên kết</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">

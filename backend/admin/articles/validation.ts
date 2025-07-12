@@ -21,31 +21,25 @@ export const ERROR_MESSAGES = {
 } as const;
 
 export class ValidationUtils {
+  // OPTIMIZED: Validation rules as constants for better performance
+  private static readonly TITLE_MIN_LENGTH = 3;
+  private static readonly TITLE_MAX_LENGTH = 200;
+  private static readonly CONTENT_MIN_LENGTH = 10;
+
   /**
-   * OPTIMIZED: Comprehensive article data validation
-   * Validates all required fields and business rules
+   * OPTIMIZED: Fast validation với early return
    */
   static validateArticleData(articleData: CreateArticleData): { isValid: boolean; error?: string } {
-    // Title validation
+    // OPTIMIZED: Single trim and length check
     const title = articleData.title?.trim();
-    if (!title) {
-      return { isValid: false, error: ERROR_MESSAGES.TITLE_REQUIRED };
-    }
-    if (title.length < 3) {
-      return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_SHORT };
-    }
-    if (title.length > 200) {
-      return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_LONG };
-    }
+    if (!title) return { isValid: false, error: ERROR_MESSAGES.TITLE_REQUIRED };
+    if (title.length < this.TITLE_MIN_LENGTH) return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_SHORT };
+    if (title.length > this.TITLE_MAX_LENGTH) return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_LONG };
 
-    // Content validation
+    // OPTIMIZED: Single trim and length check
     const content = articleData.content?.trim();
-    if (!content) {
-      return { isValid: false, error: ERROR_MESSAGES.CONTENT_REQUIRED };
-    }
-    if (content.length < 10) {
-      return { isValid: false, error: ERROR_MESSAGES.CONTENT_TOO_SHORT };
-    }
+    if (!content) return { isValid: false, error: ERROR_MESSAGES.CONTENT_REQUIRED };
+    if (content.length < this.CONTENT_MIN_LENGTH) return { isValid: false, error: ERROR_MESSAGES.CONTENT_TOO_SHORT };
 
     return { isValid: true };
   }

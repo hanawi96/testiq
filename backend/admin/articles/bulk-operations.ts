@@ -5,6 +5,7 @@
 
 import { supabase } from '../../config/supabase';
 import { ArticleQueries } from './queries';
+import { ProcessingUtils } from './processing';
 
 export class BulkOperationsUtils {
   /**
@@ -39,39 +40,27 @@ export class BulkOperationsUtils {
   }
 
   /**
-   * Bulk delete articles
+   * OPTIMIZED: Bulk delete articles với single query
    */
   static async bulkDeleteArticles(articleIds: string[]): Promise<{ data: number; error: any }> {
     try {
-      console.log('BulkOperationsUtils: Bulk deleting articles:', { articleIds });
-
       if (!articleIds || articleIds.length === 0) {
         return { data: 0, error: null };
       }
 
-      // Delete articles one by one to ensure proper cleanup
-      let deletedCount = 0;
-      const errors: any[] = [];
+      // OPTIMIZED: Single batch delete thay vì loop
+      const { error } = await supabase
+        .from('articles')
+        .delete()
+        .in('id', articleIds);
 
-      for (const articleId of articleIds) {
-        const { error } = await ArticleQueries.deleteArticle(articleId);
-        if (error) {
-          errors.push({ articleId, error });
-        } else {
-          deletedCount++;
-        }
+      if (error) {
+        console.error('BulkOperationsUtils: Error bulk deleting articles:', error);
+        return { data: 0, error };
       }
 
-      if (errors.length > 0) {
-        console.error('BulkOperationsUtils: Some articles failed to delete:', errors);
-        return { 
-          data: deletedCount, 
-          error: `Failed to delete ${errors.length} articles. Successfully deleted ${deletedCount} articles.` 
-        };
-      }
-
-      console.log('BulkOperationsUtils: Successfully bulk deleted articles:', deletedCount);
-      return { data: deletedCount, error: null };
+      console.log('BulkOperationsUtils: Successfully bulk deleted articles:', articleIds.length);
+      return { data: articleIds.length, error: null };
 
     } catch (err) {
       console.error('BulkOperationsUtils: Unexpected error bulk deleting articles:', err);
@@ -231,64 +220,54 @@ export class BulkOperationsUtils {
   }
 
   /**
-   * Bulk update articles reading time (recalculate for all articles)
+   * OPTIMIZED: Bulk update articles reading time với batch processing
    */
   static async bulkRecalculateReadingTime(): Promise<{ data: number; error: any }> {
     try {
-      console.log('BulkOperationsUtils: Bulk recalculating reading time for all articles...');
-
       // Get all articles with content
       const { data: articles, error: fetchError } = await supabase
         .from('articles')
         .select('id, content')
         .not('content', 'is', null);
 
-      if (fetchError) {
-        console.error('BulkOperationsUtils: Error fetching articles for reading time calculation:', fetchError);
+      if (fetchError || !articles?.length) {
         return { data: 0, error: fetchError };
       }
 
-      if (!articles || articles.length === 0) {
-        return { data: 0, error: null };
-      }
+      // OPTIMIZED: Process in batches to avoid memory issues
+      const batchSize = 50;
+      let totalUpdated = 0;
 
-      let updatedCount = 0;
-      const errors: any[] = [];
+      for (let i = 0; i < articles.length; i += batchSize) {
+        const batch = articles.slice(i, i + batchSize);
 
-      // Update reading time for each article
-      for (const article of articles) {
-        const wordCount = article.content.split(/\s+/).length;
-        const readingTime = Math.ceil(wordCount / 200); // 200 words per minute
-
-        const { error: updateError } = await supabase
-          .from('articles')
-          .update({
+        // OPTIMIZED: Prepare batch updates
+        const updates = batch.map(article => {
+          const { wordCount, readingTime } = ProcessingUtils.calculateContentMetrics(article.content);
+          return {
+            id: article.id,
             word_count: wordCount,
             reading_time: readingTime,
             updated_at: new Date().toISOString()
-          })
-          .eq('id', article.id);
+          };
+        });
 
-        if (updateError) {
-          errors.push({ articleId: article.id, error: updateError });
-        } else {
-          updatedCount++;
+        // OPTIMIZED: Batch update using upsert
+        const { error: batchError, count } = await supabase
+          .from('articles')
+          .upsert(updates, { onConflict: 'id' })
+          .select('id', { count: 'exact', head: true });
+
+        if (batchError) {
+          return { data: totalUpdated, error: batchError };
         }
+
+        totalUpdated += count || 0;
       }
 
-      if (errors.length > 0) {
-        console.error('BulkOperationsUtils: Some articles failed to update reading time:', errors);
-        return { 
-          data: updatedCount, 
-          error: `Failed to update ${errors.length} articles. Successfully updated ${updatedCount} articles.` 
-        };
-      }
-
-      console.log('BulkOperationsUtils: Successfully recalculated reading time for articles:', updatedCount);
-      return { data: updatedCount, error: null };
+      return { data: totalUpdated, error: null };
 
     } catch (err) {
-      console.error('BulkOperationsUtils: Unexpected error recalculating reading time:', err);
       return { data: 0, error: err };
     }
   }

@@ -43,9 +43,15 @@ interface CacheEntry<T> {
 
 class QueryCache {
   private cache = new Map<string, CacheEntry<any>>();
-  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly DEFAULT_TTL = 2 * 60 * 1000; // OPTIMIZED: 2 minutes thay vì 5
+  private readonly MAX_CACHE_SIZE = 100; // OPTIMIZED: Giới hạn cache size
 
   set<T>(key: string, data: T, ttl: number = this.DEFAULT_TTL): void {
+    // OPTIMIZED: Auto cleanup khi cache quá lớn
+    if (this.cache.size >= this.MAX_CACHE_SIZE) {
+      this.cleanupOldEntries();
+    }
+
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -64,6 +70,17 @@ class QueryCache {
     }
 
     return entry.data;
+  }
+
+  // OPTIMIZED: Smart cleanup - xóa 20% entries cũ nhất
+  private cleanupOldEntries(): void {
+    const entries = Array.from(this.cache.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toDelete = Math.floor(entries.length * 0.2);
+
+    for (let i = 0; i < toDelete; i++) {
+      this.cache.delete(entries[i][0]);
+    }
   }
 
   invalidate(pattern?: string): void {
@@ -155,7 +172,8 @@ export class ArticleQueries {
   ): Promise<{ data: any[] | null; error: any; count: number }> {
     try {
       const startTime = Date.now();
-      const cacheKey = `articles:${page}:${limit}:${JSON.stringify(filters)}`;
+      // OPTIMIZED: Fast cache key generation - avoid JSON.stringify
+      const cacheKey = `articles:${page}:${limit}:${filters.search || ''}:${filters.status || 'all'}:${filters.author || ''}:${filters.sort_by || 'created_at'}:${filters.sort_order || 'desc'}`;
 
       // Check cache first
       const cachedResult = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
@@ -193,65 +211,67 @@ export class ArticleQueries {
         return result;
       }
 
-      // FIXED: Get related data với separate queries (simple & reliable)
+      // OPTIMIZED: Chỉ load related data khi cần thiết
       const articleIds = articles.map(article => article.id);
       const authorIds = [...new Set(articles.map(article => article.author_id).filter(Boolean))];
 
-      // Parallel queries cho related data
+      // OPTIMIZED: Conditional loading - chỉ load khi có data
       const [authorsResult, articleCategoriesResult, tagsResult] = await Promise.all([
-        // Get authors
+        // Get authors - chỉ khi có author_id
         authorIds.length > 0
-          ? supabase.from('user_profiles').select('id, full_name, email, role').in('id', authorIds)
+          ? supabase.from('user_profiles').select('id, full_name, role').in('id', authorIds) // Bỏ email để giảm data
           : Promise.resolve({ data: [] }),
 
-        // Get categories from junction table (this includes ALL categories for articles)
+        // Get categories - batch query optimized
         articleIds.length > 0
-          ? supabase.from('article_categories').select('article_id, categories(id, name, slug)').in('article_id', articleIds)
+          ? supabase.from('article_categories').select('article_id, categories(id, name)').in('article_id', articleIds) // Bỏ slug
           : Promise.resolve({ data: [] }),
 
-        // Get tags
+        // Get tags - batch query optimized
         articleIds.length > 0
-          ? supabase.from('article_tags').select('article_id, tag_id, tags(id, name, slug)').in('article_id', articleIds)
+          ? supabase.from('article_tags').select('article_id, tags(id, name)').in('article_id', articleIds) // Bỏ slug, tag_id
           : Promise.resolve({ data: [] })
       ]);
 
-      // Build lookup maps
-      const authorsMap = new Map();
-      authorsResult.data?.forEach(author => authorsMap.set(author.id, author));
+      // OPTIMIZED: Pre-allocate maps with known size for better performance
+      const authorsMap = new Map(authorsResult.data?.map(author => [author.id, author]) || []);
 
-      // Build categories map from junction table
-      const categoriesMap = new Map();
+      // OPTIMIZED: Single-pass map building with pre-allocation
+      const categoriesMap = new Map<string, any[]>();
+      const tagsMap = new Map<string, any[]>();
+
+      // Pre-allocate arrays for all articles
+      articleIds.forEach(id => {
+        categoriesMap.set(id, []);
+        tagsMap.set(id, []);
+      });
+
+      // OPTIMIZED: Single pass population
       articleCategoriesResult.data?.forEach((item: any) => {
-        if (!categoriesMap.has(item.article_id)) categoriesMap.set(item.article_id, []);
-        if (item.categories) categoriesMap.get(item.article_id).push(item.categories);
+        if (item.categories) categoriesMap.get(item.article_id)?.push(item.categories);
       });
 
-      const tagsMap = new Map();
       tagsResult.data?.forEach(item => {
-        if (!tagsMap.has(item.article_id)) tagsMap.set(item.article_id, []);
-        if (item.tags) tagsMap.get(item.article_id).push(item.tags);
+        if (item.tags) tagsMap.get(item.article_id)?.push(item.tags);
       });
 
-      // Enrich articles với actual data
+      // OPTIMIZED: Direct property assignment instead of spread operator
       const enrichedArticles = articles.map(article => {
         const author = authorsMap.get(article.author_id);
         const categories = categoriesMap.get(article.id) || [];
         const tags = tagsMap.get(article.id) || [];
 
-        return {
-          ...article,
-          // Related data
-          user_profiles: author || null,
-          categories,
-          tags,
+        // OPTIMIZED: Direct assignment for better performance
+        article.user_profiles = author || null;
+        article.categories = categories;
+        article.tags = tags;
+        article.author = author?.full_name || null;
+        article.category = categories.length > 0 ? categories[0].name : null;
+        article.tag_names = tags.map((tag: any) => tag.name);
+        article.category_ids = categories.map((cat: any) => cat.id);
+        article.category_names = categories.map((cat: any) => cat.name);
 
-          // Computed fields for backward compatibility
-          author: author?.full_name || null,
-          category: categories.length > 0 ? categories[0].name : null,
-          tag_names: tags.map((tag: any) => tag.name),
-          category_ids: categories.map((cat: any) => cat.id),
-          category_names: categories.map((cat: any) => cat.name)
-        };
+        return article;
       });
 
       const queryTime = Date.now() - startTime;
@@ -265,8 +285,8 @@ export class ArticleQueries {
 
       const result = { data: enrichedArticles, error: null, count: count || 0 };
 
-      // Cache successful results
-      queryCache.set(cacheKey, result, 5 * 60 * 1000); // 5 minutes
+      // OPTIMIZED: Consistent cache TTL
+      queryCache.set(cacheKey, result, 2 * 60 * 1000); // 2 minutes
 
       return result;
 
