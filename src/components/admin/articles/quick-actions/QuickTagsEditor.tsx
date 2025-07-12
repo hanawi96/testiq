@@ -314,11 +314,7 @@ export default function QuickTagsEditor({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        )}
+
 
         {/* Available Tags */}
         <div className="mb-3">

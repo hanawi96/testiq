@@ -108,14 +108,14 @@ const queryCache = new QueryCache();
 
 // ===== PERFORMANCE-OPTIMIZED FIELD SELECTIONS =====
 
-// Optimized field selections cho different use cases
+// ULTRA-OPTIMIZED: Minimal fields for list view
 const ARTICLE_LIST_FIELDS = `
   id, title, slug, excerpt, status, featured, author_id, category_id,
-  view_count, like_count, word_count, internal_links, external_links,
-  created_at, updated_at, published_at, reading_time
+  view_count, created_at, updated_at, published_at, reading_time,
+  internal_links, external_links
 ` as const;
 
-// Removed unused ARTICLE_FULL_FIELDS
+
 
 const ARTICLE_EDIT_FIELDS = `
   id, title, slug, content, excerpt, status, featured, author_id, category_id,
@@ -127,13 +127,9 @@ const ARTICLE_EDIT_FIELDS = `
   published_at, scheduled_at, expires_at, revision_notes
 ` as const;
 
-// Removed unused field constants for cleaner code
 
-// Performance monitoring
-const PERFORMANCE_THRESHOLDS = {
-  QUERY_WARNING: 1000, // 1 second
-  QUERY_ERROR: 3000,   // 3 seconds
-} as const;
+
+
 
 export class ArticleQueries {
   /**
@@ -156,8 +152,9 @@ export class ArticleQueries {
       query = query.lte('created_at', filters.date_to);
     }
 
-    // Apply sorting
-    const sortField = filters.sort_by || 'created_at';
+    // Apply sorting with field mapping
+    const sortBy = filters.sort_by || 'created_at';
+    const sortField = sortBy === 'views' ? 'view_count' : sortBy;
     const ascending = filters.sort_order === 'asc';
     return query.order(sortField, { ascending });
   }
@@ -184,12 +181,10 @@ export class ArticleQueries {
 
       const offset = (page - 1) * limit;
 
-      // SIMPLIFIED: Start with basic query first, then add JOINs if needed
+      // SIMPLE: Basic query without over-optimization
       let query = supabase
         .from('articles')
-        .select(`
-          ${ARTICLE_LIST_FIELDS}
-        `, { count: 'exact' });
+        .select(ARTICLE_LIST_FIELDS, { count: 'exact' });
 
       // Apply filters and sorting
       query = this.applyFilters(query, filters);
@@ -197,7 +192,7 @@ export class ArticleQueries {
       // Apply pagination
       query = query.range(offset, offset + limit - 1);
 
-      // Execute the optimized query
+      // Execute base query
       const { data: articles, error, count } = await query;
 
       if (error) {
@@ -207,47 +202,41 @@ export class ArticleQueries {
 
       if (!articles || articles.length === 0) {
         const result = { data: [], error: null, count: count || 0 };
-        queryCache.set(cacheKey, result, 2 * 60 * 1000); // 2 minutes for empty results
+        queryCache.set(cacheKey, result, 2 * 60 * 1000);
         return result;
       }
 
-      // OPTIMIZED: Chỉ load related data khi cần thiết
-      const articleIds = articles.map(article => article.id);
-      const authorIds = [...new Set(articles.map(article => article.author_id).filter(Boolean))];
+      // SIMPLE: Always fetch related data - simpler and often faster
+      const articleIds = articles.map(a => a.id);
+      const authorIds = [...new Set(articles.map(a => a.author_id).filter(Boolean))];
 
-      // OPTIMIZED: Conditional loading - chỉ load khi có data
-      const [authorsResult, articleCategoriesResult, tagsResult] = await Promise.all([
-        // Get authors - chỉ khi có author_id
+      // OPTIMIZED: Simple parallel queries
+      const [authorsResult, categoriesResult, tagsResult] = await Promise.all([
+        // Authors
         authorIds.length > 0
-          ? supabase.from('user_profiles').select('id, full_name, role').in('id', authorIds) // Bỏ email để giảm data
+          ? supabase.from('user_profiles').select('id, full_name, role').in('id', authorIds)
           : Promise.resolve({ data: [] }),
 
-        // Get categories - batch query optimized
-        articleIds.length > 0
-          ? supabase.from('article_categories').select('article_id, categories(id, name)').in('article_id', articleIds) // Bỏ slug
-          : Promise.resolve({ data: [] }),
+        // Categories
+        supabase.from('article_categories').select('article_id, categories(id, name)').in('article_id', articleIds),
 
-        // Get tags - batch query optimized
-        articleIds.length > 0
-          ? supabase.from('article_tags').select('article_id, tags(id, name)').in('article_id', articleIds) // Bỏ slug, tag_id
-          : Promise.resolve({ data: [] })
+        // Tags
+        supabase.from('article_tags').select('article_id, tags(id, name)').in('article_id', articleIds)
       ]);
 
-      // OPTIMIZED: Pre-allocate maps with known size for better performance
-      const authorsMap = new Map(authorsResult.data?.map(author => [author.id, author]) || []);
-
-      // OPTIMIZED: Single-pass map building with pre-allocation
+      // FAST: Build lookup maps
+      const authorsMap = new Map(authorsResult.data?.map(a => [a.id, a]) || []);
       const categoriesMap = new Map<string, any[]>();
       const tagsMap = new Map<string, any[]>();
 
-      // Pre-allocate arrays for all articles
+      // Initialize empty arrays
       articleIds.forEach(id => {
         categoriesMap.set(id, []);
         tagsMap.set(id, []);
       });
 
-      // OPTIMIZED: Single pass population
-      articleCategoriesResult.data?.forEach((item: any) => {
+      // Populate maps
+      categoriesResult.data?.forEach(item => {
         if (item.categories) categoriesMap.get(item.article_id)?.push(item.categories);
       });
 
@@ -255,32 +244,26 @@ export class ArticleQueries {
         if (item.tags) tagsMap.get(item.article_id)?.push(item.tags);
       });
 
-      // OPTIMIZED: Direct property assignment instead of spread operator
+      // FAST: Enrich articles
       const enrichedArticles = articles.map(article => {
         const author = authorsMap.get(article.author_id);
         const categories = categoriesMap.get(article.id) || [];
         const tags = tagsMap.get(article.id) || [];
 
-        // OPTIMIZED: Direct assignment for better performance
-        article.user_profiles = author || null;
-        article.categories = categories;
-        article.tags = tags;
-        article.author = author?.full_name || null;
-        article.category = categories.length > 0 ? categories[0].name : null;
-        article.tag_names = tags.map((tag: any) => tag.name);
-        article.category_ids = categories.map((cat: any) => cat.id);
-        article.category_names = categories.map((cat: any) => cat.name);
-
-        return article;
+        return {
+          ...article,
+          user_profiles: author || null,
+          categories,
+          tags,
+          author: author?.full_name || null,
+          category: categories[0]?.name || null,
+          tag_names: tags.map(t => t.name),
+          category_ids: categories.map(c => c.id),
+          category_names: categories.map(c => c.name)
+        };
       });
 
       const queryTime = Date.now() - startTime;
-
-      // Performance monitoring
-      if (queryTime > PERFORMANCE_THRESHOLDS.QUERY_WARNING) {
-        console.warn(`⚠️ Slow query detected: ${queryTime}ms for ${enrichedArticles.length} articles`);
-      }
-
       console.log(`✅ ArticleQueries: Fetched ${enrichedArticles.length} articles in ${queryTime}ms`);
 
       const result = { data: enrichedArticles, error: null, count: count || 0 };
@@ -560,62 +543,40 @@ export class ArticleQueries {
 
       console.log('ArticleQueries: Fetching articles statistics with optimized query');
 
-      // OPTIMIZED: Single query với all necessary data
+      // SIMPLE & FAST: Single query với minimal data
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
       const { data: articlesData, error } = await supabase
         .from('articles')
         .select('status, view_count, reading_time, created_at');
 
       if (error) {
-        console.error('ArticleQueries: Error getting articles data:', error);
+        console.error('ArticleQueries: Error getting stats:', error);
         return { data: null, error };
       }
 
       if (!articlesData) {
         const emptyStats = {
-          total: 0,
-          published: 0,
-          draft: 0,
-          archived: 0,
-          totalViews: 0,
-          avgReadingTime: 0,
-          recentArticles: 0
+          total: 0, published: 0, draft: 0, archived: 0,
+          totalViews: 0, avgReadingTime: 0, recentArticles: 0
         };
         return { data: emptyStats, error: null };
       }
 
-      // OPTIMIZED: Calculate all stats in single pass
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
+      // FAST: Single-pass calculation
       const weekAgoISO = weekAgo.toISOString();
-
-      let published = 0;
-      let draft = 0;
-      let archived = 0;
-      let totalViews = 0;
-      let totalReadingTime = 0;
-      let readingTimeCount = 0;
-      let recentArticles = 0;
+      let published = 0, draft = 0, archived = 0;
+      let totalViews = 0, totalReadingTime = 0, readingTimeCount = 0, recentArticles = 0;
 
       articlesData.forEach(article => {
         // Count by status
-        switch (article.status) {
-          case 'published':
-            published++;
-            break;
-          case 'draft':
-            draft++;
-            break;
-          case 'archived':
-            archived++;
-            break;
-        }
+        if (article.status === 'published') published++;
+        else if (article.status === 'draft') draft++;
+        else if (article.status === 'archived') archived++;
 
-        // Sum views
-        if (article.view_count) {
-          totalViews += article.view_count;
-        }
-
-        // Sum reading times
+        // Sum views and reading times
+        if (article.view_count) totalViews += article.view_count;
         if (article.reading_time) {
           totalReadingTime += article.reading_time;
           readingTimeCount++;
@@ -629,10 +590,7 @@ export class ArticleQueries {
 
       const stats = {
         total: articlesData.length,
-        published,
-        draft,
-        archived,
-        totalViews,
+        published, draft, archived, totalViews,
         avgReadingTime: readingTimeCount > 0 ? Math.round(totalReadingTime / readingTimeCount) : 0,
         recentArticles
       };

@@ -28,7 +28,7 @@ export type ArticleStatus = typeof ARTICLE_STATUSES[number];
 export const ARTICLE_TYPES = ['article', 'page', 'post'] as const;
 export type ArticleType = typeof ARTICLE_TYPES[number];
 
-export const SORT_FIELDS = ['created_at', 'updated_at', 'views', 'title'] as const;
+export const SORT_FIELDS = ['created_at', 'updated_at', 'views'] as const;
 export type SortField = typeof SORT_FIELDS[number];
 
 export const SORT_ORDERS = ['asc', 'desc'] as const;

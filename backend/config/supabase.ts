@@ -21,9 +21,9 @@ if (!supabaseServiceKey) {
 // Create Supabase client with optimized configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false, // Disable to avoid conflicts
+    autoRefreshToken: false, // Disable for admin interface
+    persistSession: false,   // Disable for admin interface
+    detectSessionInUrl: false,
   },
   global: {
     headers: {
@@ -36,7 +36,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   realtime: {
     params: {
-      eventsPerSecond: 2, // Limit realtime events
+      eventsPerSecond: 2,
     },
   },
 });

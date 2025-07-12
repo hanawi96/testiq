@@ -7,6 +7,7 @@ import QuickAuthorEditor from './quick-actions/QuickAuthorEditor';
 import QuickMultipleCategoryEditor from './quick-actions/QuickMultipleCategoryEditor';
 import LinkAnalysisModal from './modals/LinkAnalysisModal';
 import QuickStatusEditor from './quick-actions/QuickStatusEditor';
+import QuickTitleEditor from './quick-actions/QuickTitleEditor';
 import CategoryDisplay from './components/CategoryDisplay';
 import SearchInput from '../common/SearchInput';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -29,6 +30,7 @@ interface LoadingStates {
   authorIds: Set<string>;
   categoryIds: Set<string>;
   tagIds: Set<string>;
+  titleIds: Set<string>;
 }
 
 interface UIStates {
@@ -43,6 +45,7 @@ interface ModalStates {
   quickAuthorEditor: EditorPosition | null;
   quickCategoryEditor: EditorPosition | null;
   quickStatusEditor: EditorPosition | null;
+  quickTitleEditor: EditorPosition | null;
   linkAnalysisModal: { articleId: string; articleTitle: string } | null;
 }
 
@@ -83,7 +86,8 @@ const initialState: AdminArticlesState = {
     updating: false,
     authorIds: new Set(),
     categoryIds: new Set(),
-    tagIds: new Set()
+    tagIds: new Set(),
+    titleIds: new Set()
   },
   ui: {
     currentPage: 1,
@@ -101,6 +105,7 @@ const initialState: AdminArticlesState = {
     quickAuthorEditor: null,
     quickCategoryEditor: null,
     quickStatusEditor: null,
+    quickTitleEditor: null,
     linkAnalysisModal: null
   }
 };
@@ -183,6 +188,7 @@ export default function AdminArticles() {
     quickAuthorEditor,
     quickCategoryEditor,
     quickStatusEditor,
+    quickTitleEditor,
     linkAnalysisModal
   } = modals;
 
@@ -358,7 +364,8 @@ export default function AdminArticles() {
     setModal({
       quickAuthorEditor: null,
       quickCategoryEditor: null,
-      quickStatusEditor: null
+      quickStatusEditor: null,
+      quickTitleEditor: null
     });
 
     // Toggle: if same article editor is open, close it
@@ -384,8 +391,23 @@ export default function AdminArticles() {
     }
 
     // Adjust vertical position if popup would overflow viewport
-    if (top + popupHeight > window.innerHeight) {
-      top = rect.top - popupHeight - 4; // Show above button
+    const spaceBelow = window.innerHeight - rect.bottom - 4;
+    const spaceAbove = rect.top - 4;
+
+    if (spaceBelow < popupHeight) {
+      if (spaceAbove >= popupHeight) {
+        // Show above button if there's enough space
+        top = rect.top - popupHeight - 4;
+      } else {
+        // If neither space is enough, position to fit in viewport with margin
+        if (spaceAbove > spaceBelow) {
+          // More space above, position at top with margin
+          top = 16;
+        } else {
+          // More space below, position to fit in remaining space
+          top = Math.max(16, window.innerHeight - popupHeight - 16);
+        }
+      }
     }
 
     setModal({
@@ -407,7 +429,8 @@ export default function AdminArticles() {
     setModal({
       quickTagsEditor: null,
       quickCategoryEditor: null,
-      quickStatusEditor: null
+      quickStatusEditor: null,
+      quickTitleEditor: null
     });
 
     // Toggle: if same article editor is open, close it
@@ -433,8 +456,23 @@ export default function AdminArticles() {
     }
 
     // Adjust vertical position if popup would overflow viewport
-    if (top + popupHeight > window.innerHeight) {
-      top = rect.top - popupHeight - 4; // Show above button
+    const spaceBelow = window.innerHeight - rect.bottom - 4;
+    const spaceAbove = rect.top - 4;
+
+    if (spaceBelow < popupHeight) {
+      if (spaceAbove >= popupHeight) {
+        // Show above button if there's enough space
+        top = rect.top - popupHeight - 4;
+      } else {
+        // If neither space is enough, position to fit in viewport with margin
+        if (spaceAbove > spaceBelow) {
+          // More space above, position at top with margin
+          top = 16;
+        } else {
+          // More space below, position to fit in remaining space
+          top = Math.max(16, window.innerHeight - popupHeight - 16);
+        }
+      }
     }
 
     setModal({
@@ -456,7 +494,8 @@ export default function AdminArticles() {
     setModal({
       quickTagsEditor: null,
       quickAuthorEditor: null,
-      quickStatusEditor: null
+      quickStatusEditor: null,
+      quickTitleEditor: null
     });
 
     // Toggle: if same article editor is open, close it
@@ -468,7 +507,7 @@ export default function AdminArticles() {
     // Calculate position immediately
     const rect = event.currentTarget.getBoundingClientRect();
     const popupWidth = 288; // QuickCategoryEditor width (w-72 = 288px)
-    const popupHeight = 320; // Estimated popup height
+    const popupHeight = 480; // Estimated popup height with increased max-height for category list
 
     // Calculate position relative to viewport (for fixed positioning)
     let left = rect.left;
@@ -483,8 +522,23 @@ export default function AdminArticles() {
     }
 
     // Adjust vertical position if popup would overflow viewport
-    if (top + popupHeight > window.innerHeight) {
-      top = rect.top - popupHeight - 4; // Show above button
+    const spaceBelow = window.innerHeight - rect.bottom - 4;
+    const spaceAbove = rect.top - 4;
+
+    if (spaceBelow < popupHeight) {
+      if (spaceAbove >= popupHeight) {
+        // Show above button if there's enough space
+        top = rect.top - popupHeight - 4;
+      } else {
+        // If neither space is enough, position to fit in viewport with margin
+        if (spaceAbove > spaceBelow) {
+          // More space above, position at top with margin
+          top = 16;
+        } else {
+          // More space below, position to fit in remaining space
+          top = Math.max(16, window.innerHeight - popupHeight - 16);
+        }
+      }
     }
 
     setModal({
@@ -503,7 +557,8 @@ export default function AdminArticles() {
     setModal({
       quickTagsEditor: null,
       quickAuthorEditor: null,
-      quickCategoryEditor: null
+      quickCategoryEditor: null,
+      quickTitleEditor: null
     });
 
     // Toggle: if same article editor is open, close it
@@ -529,8 +584,23 @@ export default function AdminArticles() {
     }
 
     // Adjust vertical position if popup would overflow viewport
-    if (top + popupHeight > window.innerHeight) {
-      top = rect.top - popupHeight - 4; // Show above button
+    const spaceBelow = window.innerHeight - rect.bottom - 4;
+    const spaceAbove = rect.top - 4;
+
+    if (spaceBelow < popupHeight) {
+      if (spaceAbove >= popupHeight) {
+        // Show above button if there's enough space
+        top = rect.top - popupHeight - 4;
+      } else {
+        // If neither space is enough, position to fit in viewport with margin
+        if (spaceAbove > spaceBelow) {
+          // More space above, position at top with margin
+          top = 16;
+        } else {
+          // More space below, position to fit in remaining space
+          top = Math.max(16, window.innerHeight - popupHeight - 16);
+        }
+      }
     }
 
     setModal({
@@ -541,43 +611,162 @@ export default function AdminArticles() {
     });
   };
 
-  // OPTIMIZED: Handle tags update với memory-efficient approach
+  // Handle quick title edit with toggle behavior
+  const handleQuickTitleEdit = (event: React.MouseEvent, articleId: string) => {
+    event.stopPropagation();
+
+    // Close other editors
+    setModal({
+      quickTagsEditor: null,
+      quickAuthorEditor: null,
+      quickCategoryEditor: null,
+      quickStatusEditor: null
+    });
+
+    // Toggle: if same article editor is open, close it
+    if (quickTitleEditor?.articleId === articleId) {
+      setModal({ quickTitleEditor: null });
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const popupWidth = 400; // QuickTitleEditor width
+    const popupHeight = 200; // Estimated popup height
+
+    // Calculate position relative to viewport (for fixed positioning)
+    let left = rect.left;
+    let top = rect.bottom + 4;
+
+    // Adjust horizontal position if popup would overflow viewport
+    if (left + popupWidth > window.innerWidth) {
+      left = window.innerWidth - popupWidth - 16;
+    }
+    if (left < 16) {
+      left = 16;
+    }
+
+    // Adjust vertical position if popup would overflow viewport
+    const spaceBelow = window.innerHeight - rect.bottom - 4;
+    const spaceAbove = rect.top - 4;
+
+    if (spaceBelow < popupHeight) {
+      if (spaceAbove >= popupHeight) {
+        // Show above button if there's enough space
+        top = rect.top - popupHeight - 4;
+      } else {
+        // If neither space is enough, position to fit in viewport with margin
+        if (spaceAbove > spaceBelow) {
+          // More space above, position at top with margin
+          top = 16;
+        } else {
+          // More space below, position to fit in remaining space
+          top = Math.max(16, window.innerHeight - popupHeight - 16);
+        }
+      }
+    }
+
+    setModal({
+      quickTitleEditor: {
+        articleId,
+        position: { top, left }
+      }
+    });
+  };
+
+  // Handle tags update with instant UI feedback
   const handleTagsUpdate = async (articleId: string, newTags: string[]) => {
     if (!articlesData) return;
 
     const originalArticle = articlesData.articles.find(a => a.id === articleId);
     if (!originalArticle) return;
 
-    // OPTIMIZED: Batch state updates
+    // Store original data for rollback
+    const originalTagNames = originalArticle.tag_names || [];
+    const originalTags = originalArticle.tags || [];
+
+    // Start loading state
     setLoading({ tagIds: new Set(loading.tagIds).add(articleId) });
 
-    // OPTIMIZED: Direct property mutation for better performance
-    const targetArticle = articlesData.articles.find(a => a.id === articleId);
-    if (targetArticle) {
-      const originalTagNames = targetArticle.tag_names;
-      targetArticle.tag_names = newTags;
+    // INSTANT UI UPDATE: Apply optimistic update immediately
+    const optimisticData = {
+      ...articlesData,
+      lastUpdated: Date.now(),
+      articles: articlesData.articles.map(article =>
+        article.id === articleId
+          ? {
+              ...article,
+              tag_names: [...newTags],
+              tags: newTags.map(name => ({
+                id: `temp-${Date.now()}-${Math.random()}`,
+                name,
+                slug: ''
+              }))
+            }
+          : article
+      )
+    };
 
-      // Force re-render
-      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData } });
+    dispatch({ type: 'SET_ARTICLES_DATA', payload: optimisticData });
 
-      try {
-        // Background API call
-        const { error: updateError } = await ArticlesService.updateTags(articleId, newTags);
+    try {
+      // Background API call
+      const { data: updatedData, error: updateError } = await ArticlesService.updateTags(articleId, newTags);
 
-        if (updateError) {
-          // OPTIMIZED: Single revert function
-          targetArticle.tag_names = originalTagNames;
-          dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData } });
-        }
-      } catch (err) {
-        // OPTIMIZED: Single revert function
-        targetArticle.tag_names = originalTagNames;
-        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData } });
-      } finally {
-        // OPTIMIZED: Direct Set manipulation
-        loading.tagIds.delete(articleId);
-        setLoading({ tagIds: new Set(loading.tagIds) });
+      if (updateError) {
+        // ROLLBACK: Revert to original data
+        const rollbackData = {
+          ...optimisticData,
+          lastUpdated: Date.now(),
+          articles: optimisticData.articles.map(article =>
+            article.id === articleId
+              ? {
+                  ...article,
+                  tag_names: [...originalTagNames],
+                  tags: [...originalTags]
+                }
+              : article
+          )
+        };
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: rollbackData });
+      } else if (updatedData) {
+        // SUCCESS: Update with server data
+        const serverData = {
+          ...optimisticData,
+          lastUpdated: Date.now(),
+          articles: optimisticData.articles.map(article =>
+            article.id === articleId
+              ? {
+                  ...article,
+                  tags: [...updatedData.tags],
+                  tag_names: [...updatedData.tag_names]
+                }
+              : article
+          )
+        };
+
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: serverData });
       }
+    } catch (err) {
+      // ROLLBACK: Revert to original data
+      const rollbackData = {
+        ...optimisticData,
+        lastUpdated: Date.now(),
+        articles: optimisticData.articles.map(article =>
+          article.id === articleId
+            ? {
+                ...article,
+                tag_names: [...originalTagNames],
+                tags: [...originalTags]
+              }
+            : article
+        )
+      };
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: rollbackData });
+    } finally {
+      // Clear loading state
+      const newTagIds = new Set(loading.tagIds);
+      newTagIds.delete(articleId);
+      setLoading({ tagIds: newTagIds });
     }
   };
 
@@ -728,6 +917,53 @@ export default function AdminArticles() {
       const newCategoryIds = new Set(loading.categoryIds);
       newCategoryIds.delete(articleId);
       setLoading({ categoryIds: newCategoryIds });
+    }
+  };
+
+  // Handle title update with optimistic UI and loading state
+  const handleTitleUpdate = async (articleId: string, newTitle: string) => {
+    if (!articlesData) return;
+
+    // Close popup immediately for fast UX
+    setModal({ quickTitleEditor: null });
+
+    // Store original article for rollback
+    const originalArticle = articlesData.articles.find(article => article.id === articleId);
+    if (!originalArticle) return;
+
+    // Start loading state
+    setLoading({ titleIds: new Set(loading.titleIds).add(articleId) });
+
+    // Optimistic UI update
+    const updatedArticles = articlesData.articles.map(article =>
+      article.id === articleId ? { ...article, title: newTitle } : article
+    );
+    dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: updatedArticles } });
+
+    try {
+      // Send API request
+      const { error } = await ArticlesService.updateTitle(articleId, newTitle);
+
+      if (error) {
+        // Rollback on error
+        const rolledBackArticles = articlesData.articles.map(article =>
+          article.id === articleId ? originalArticle : article
+        );
+        dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: rolledBackArticles } });
+        dispatch({ type: 'SET_ERROR', payload: 'Không thể cập nhật tiêu đề bài viết' });
+      }
+    } catch (err) {
+      // Rollback on exception
+      const rolledBackArticles = articlesData.articles.map(article =>
+        article.id === articleId ? originalArticle : article
+      );
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: { ...articlesData, articles: rolledBackArticles } });
+      console.error('Error updating title:', err);
+    } finally {
+      // Remove loading state
+      const newTitleIds = new Set(loading.titleIds);
+      newTitleIds.delete(articleId);
+      setLoading({ titleIds: newTitleIds });
     }
   };
 
@@ -902,7 +1138,6 @@ export default function AdminArticles() {
               <option value="created_at">Ngày tạo</option>
               <option value="updated_at">Ngày cập nhật</option>
               <option value="views">Lượt xem</option>
-              <option value="title">Tiêu đề</option>
             </select>
           </div>
 
@@ -1068,11 +1303,24 @@ export default function AdminArticles() {
                             className="mt-1 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
-                              <SearchHighlight
-                                text={article.title}
-                                searchTerm={filters.search || ''}
-                              />
+                            <div className="flex items-start space-x-2">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 flex-1">
+                                <SearchHighlight
+                                  text={article.title}
+                                  searchTerm={filters.search || ''}
+                                />
+                              </div>
+                              <button
+                                onClick={(e) => handleQuickTitleEdit(e, article.id)}
+                                disabled={loading.titleIds.has(article.id)}
+                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Chỉnh sửa tiêu đề"
+                                data-quick-edit-button="title"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
                             </div>
                             {/* Category info for mobile */}
                             <div className="sm:hidden mt-2 flex items-center">
@@ -1117,21 +1365,21 @@ export default function AdminArticles() {
                               ) : (
                                 <div className="flex items-center space-x-2">
                                   {(() => {
-                                    const tags = article.tag_names || article.tags || [];
-                                    return tags.slice(0, 3).map((tag, index) => (
+                                    const tagNames = article.tag_names || [];
+                                    return tagNames.slice(0, 3).map((tagName, index) => (
                                       <span
-                                        key={index}
+                                        key={`${article.id}-tag-${index}-${tagName}`}
                                         className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
                                       >
-                                        {typeof tag === 'string' ? tag : tag.name || tag}
+                                        {tagName}
                                       </span>
                                     ));
                                   })()}
                                   {(() => {
-                                    const tags = article.tag_names || article.tags || [];
-                                    return tags.length > 3 && (
+                                    const tagNames = article.tag_names || [];
+                                    return tagNames.length > 3 && (
                                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        +{tags.length - 3} khác
+                                        +{tagNames.length - 3} khác
                                       </span>
                                     );
                                   })()}
@@ -1487,7 +1735,7 @@ export default function AdminArticles() {
             articleId={quickTagsEditor.articleId}
             currentTags={(() => {
               const article = articlesData?.articles.find(a => a.id === quickTagsEditor.articleId);
-              return article?.tag_names || article?.tags || [];
+              return article?.tag_names || [];
             })()}
             onUpdate={handleTagsUpdate}
             onClose={() => setModal({ quickTagsEditor: null })}
@@ -1528,6 +1776,21 @@ export default function AdminArticles() {
             onUpdate={handleCategoryUpdate}
             onClose={() => setModal({ quickCategoryEditor: null })}
             position={quickCategoryEditor.position}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {quickTitleEditor && (
+          <QuickTitleEditor
+            articleId={quickTitleEditor.articleId}
+            currentTitle={(() => {
+              const article = articlesData?.articles.find(a => a.id === quickTitleEditor.articleId);
+              return article?.title || '';
+            })()}
+            onUpdate={handleTitleUpdate}
+            onClose={() => setModal({ quickTitleEditor: null })}
+            position={quickTitleEditor.position}
           />
         )}
       </AnimatePresence>

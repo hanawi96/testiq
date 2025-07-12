@@ -8,6 +8,66 @@ import { ArticleQueries } from './queries';
 
 export class RelationshipsUtils {
   /**
+   * OPTIMIZED: Generate unique slugs for tags với batch processing
+   */
+  private static async generateUniqueTagSlugs(tagNames: string[]): Promise<Array<{name: string, slug: string, usage_count: number}>> {
+    // OPTIMIZED: Generate base slugs first với edge case handling
+    const baseSlugs = tagNames.map(name => {
+      let baseSlug = name.toLowerCase()
+        .replace(/[^\w\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-')     // Replace spaces with hyphens
+        .replace(/-+/g, '-')      // Replace multiple hyphens with single
+        .replace(/^-|-$/g, '');   // Remove leading/trailing hyphens
+
+      // FIXED: Handle edge case where slug becomes empty
+      if (!baseSlug) {
+        baseSlug = 'tag';
+      }
+
+      return { name, baseSlug };
+    });
+
+    // OPTIMIZED: Batch check existing slugs
+    const allPossibleSlugs = baseSlugs.map(item => item.baseSlug);
+    const { data: existingSlugs } = await supabase
+      .from('tags')
+      .select('slug')
+      .in('slug', allPossibleSlugs);
+
+    const existingSlugSet = new Set(existingSlugs?.map(item => item.slug) || []);
+
+    // OPTIMIZED: Generate unique slugs
+    const tagsToInsert = [];
+    for (const { name, baseSlug } of baseSlugs) {
+      let slug = baseSlug;
+      let counter = 1;
+
+      // Find unique slug
+      while (existingSlugSet.has(slug)) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+
+        // Safety limit
+        if (counter > 100) {
+          slug = `${baseSlug}-${Date.now()}`;
+          break;
+        }
+      }
+
+      // Add to set để tránh duplicates trong batch này
+      existingSlugSet.add(slug);
+
+      tagsToInsert.push({
+        name,
+        slug,
+        usage_count: 1
+      });
+    }
+
+    return tagsToInsert;
+  }
+
+  /**
    * Update article tags (for quick edit)
    */
   static async updateTags(articleId: string, tags: string[]): Promise<{ error: any }> {
@@ -29,20 +89,24 @@ export class RelationshipsUtils {
 
           const existingTagMap = new Map(existingTags?.map(tag => [tag.name, tag.id]) || []);
 
-          // OPTIMIZED: Batch create new tags
+          // OPTIMIZED: Batch create new tags với smart slug generation
           const newTagNames = cleanTags.filter(name => !existingTagMap.has(name));
           if (newTagNames.length > 0) {
-            const { data: newTags } = await supabase
+            // FIXED: Generate unique slugs để tránh conflicts
+            const tagsToInsert = await this.generateUniqueTagSlugs(newTagNames);
+
+            const { data: newTags, error: insertError } = await supabase
               .from('tags')
-              .insert(newTagNames.map(name => ({
-                name,
-                slug: name.toLowerCase().replace(/\s+/g, '-'),
-                usage_count: 1
-              })))
+              .insert(tagsToInsert)
               .select('id, name');
 
-            // Add new tags to map
-            newTags?.forEach(tag => existingTagMap.set(tag.name, tag.id));
+            if (insertError) {
+              console.error('RelationshipsUtils: Error inserting tags:', insertError);
+              // Continue with existing tags only
+            } else {
+              // Add new tags to map
+              newTags?.forEach(tag => existingTagMap.set(tag.name, tag.id));
+            }
           }
 
           // Collect all tag IDs

@@ -13,6 +13,7 @@
  */
 
 import { ArticleQueries } from './queries';
+import { supabase } from '../../config/supabase';
 import type {
   Article,
   ArticleStats,
@@ -412,17 +413,43 @@ export class ArticlesService {
 
 
   /**
-   * OPTIMIZED: Update article tags với smart cache invalidation
+   * OPTIMIZED: Update article tags với smart cache invalidation và return updated data
    */
-  static async updateTags(articleId: string, tags: string[]): Promise<{ error: any }> {
+  static async updateTags(articleId: string, tags: string[]): Promise<{ data?: { tags: any[], tag_names: string[] }; error: any }> {
     const result = await RelationshipsUtils.updateTags(articleId, tags);
 
-    // OPTIMIZED: Async cache invalidation - không block response
-    if (!result.error) {
-      setImmediate(() => this.invalidateArticlesCache());
+    if (result.error) {
+      return { error: result.error };
     }
 
-    return result;
+    // OPTIMIZED: Get updated tags data để return cho frontend
+    try {
+      // FIXED: Small delay để ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const { data: updatedTags } = await supabase
+        .from('article_tags')
+        .select('tags(id, name, slug)')
+        .eq('article_id', articleId);
+
+      const tagsArray = updatedTags?.map((item: any) => item.tags).filter(Boolean) || [];
+      const tagNames = tagsArray.map((tag: any) => tag.name);
+
+      // OPTIMIZED: Async cache invalidation - không block response
+      setTimeout(() => this.invalidateArticlesCache(), 0);
+
+      return {
+        data: {
+          tags: tagsArray,
+          tag_names: tagNames
+        },
+        error: null
+      };
+    } catch (err) {
+      // Nếu không get được updated data, vẫn return success
+      setTimeout(() => this.invalidateArticlesCache(), 0);
+      return { error: null };
+    }
   }
 
   /**
@@ -437,6 +464,36 @@ export class ArticlesService {
     }
 
     return result;
+  }
+
+  /**
+   * Update article title (for quick edit)
+   */
+  static async updateTitle(articleId: string, title: string): Promise<{ error: any }> {
+    try {
+      console.log('ArticlesService: Updating article title:', { articleId, title });
+
+      const updateData = {
+        title: title.trim(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await ArticleQueries.updateArticle(articleId, updateData);
+
+      if (error) {
+        console.error('ArticlesService: Error updating article title:', error);
+        return { error };
+      }
+
+      // Invalidate cache
+      this.invalidateArticlesCache();
+
+      return { error: null };
+
+    } catch (err) {
+      console.error('ArticlesService: Unexpected error updating title:', err);
+      return { error: err };
+    }
   }
 
   /**
