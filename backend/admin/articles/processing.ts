@@ -79,7 +79,10 @@ export class ProcessingUtils {
       external_links,
       total_links: links.length,
       internal_count: internal_links.length,
-      external_count: external_links.length
+      external_count: external_links.length,
+      // Frontend compatibility
+      total_internal: internal_links.length,
+      total_external: external_links.length
     };
   }
 

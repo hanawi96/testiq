@@ -320,6 +320,9 @@ export interface LinkAnalysis {
   readonly total_links: number;
   readonly internal_count: number;
   readonly external_count: number;
+  // Frontend compatibility
+  readonly total_internal: number;
+  readonly total_external: number;
 }
 
 // Optimized related data với type safety
