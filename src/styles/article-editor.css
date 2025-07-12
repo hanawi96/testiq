@@ -137,6 +137,20 @@
   /* No transitions */
 }
 
+/* Allow animations for loading spinners */
+.article-editor button .animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Save status indicators */
 .save-indicator {
   animation: fadeIn 0.3s ease-in-out;
@@ -285,6 +299,13 @@
 .tiptap-editor .transition {
   transition: none !important;
   animation-duration: 0s !important;
+}
+
+/* CRITICAL: Allow loading spinner animation */
+.article-editor .animate-spin,
+.article-editor .animate-spin svg {
+  animation: spin 1s linear infinite !important;
+  animation-duration: 1s !important;
 }
 
 /* Responsive performance optimizations */

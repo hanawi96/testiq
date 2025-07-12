@@ -201,6 +201,22 @@ import SEO from '../components/seo/SEO.astro';
       animation-delay: 0s !important;
     }
 
+    /* CRITICAL: Allow loading spinner animation */
+    .animate-spin,
+    .animate-spin svg {
+      animation: spin 1s linear infinite !important;
+      animation-duration: 1s !important;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     /* Vô hiệu hóa tất cả các transition cho dark mode */
     html, html.dark, html.dark *, *[class*="dark:"] {
       transition: none !important;
@@ -225,11 +241,14 @@ import SEO from '../components/seo/SEO.astro';
     *[class*="transition"],
     *[class*="duration"],
     *[class*="delay"],
-    *[class*="ease"],
-    *[class*="animate"] {
+    *[class*="ease"] {
       transition: none !important;
-      animation: none !important;
       transition-property: none !important;
+    }
+
+    /* Vô hiệu hóa animations EXCEPT animate-spin */
+    *[class*="animate"]:not(.animate-spin) {
+      animation: none !important;
     }
     
     /* Vô hiệu hóa hiệu ứng dark mode cho tất cả các phần tử */

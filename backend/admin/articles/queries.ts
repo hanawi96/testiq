@@ -343,7 +343,9 @@ export class ArticleQueries {
         user_profiles: author,
         categories,
         tags,
-        tag_names: tags.map((tag: any) => tag.name)
+        tag_names: tags.map((tag: any) => tag.name),
+        // Add category_ids for frontend compatibility
+        category_ids: categories.map((cat: any) => cat.id)
       };
 
       const queryTime = Date.now() - startTime;

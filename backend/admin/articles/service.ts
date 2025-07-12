@@ -294,6 +294,24 @@ export class ArticlesService {
         return { data: null, error: new Error(ERROR_MESSAGES.ARTICLE_UPDATE_FAILED) };
       }
 
+      // Update categories if provided
+      if (categories && Array.isArray(categories)) {
+        const { error: categoriesError } = await RelationshipsUtils.updateCategories(articleId, categories);
+        if (categoriesError) {
+          console.error('ArticlesService: Error updating categories:', categoriesError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
+
+      // Update tags if provided
+      if (tags && Array.isArray(tags)) {
+        const { error: tagsError } = await RelationshipsUtils.updateTags(articleId, tags);
+        if (tagsError) {
+          console.error('ArticlesService: Error updating tags:', tagsError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
+
       // Handle categories update if provided
       if (categories !== undefined) {
         await RelationshipsUtils.updateArticleCategories(articleId, [...categories]);

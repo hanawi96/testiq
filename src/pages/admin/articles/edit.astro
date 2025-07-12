@@ -17,23 +17,6 @@ import ArticleEditor from '../../../components/admin/articles/editors/ArticleEdi
 ---
 
 <AdminLayout title="Chỉnh sửa bài viết - Admin">
-  <!-- Breadcrumb Navigation -->
-  <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
-    <a href="/admin" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-      Admin
-    </a>
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-    </svg>
-    <a href="/admin/articles" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-      Bài viết
-    </a>
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-    </svg>
-    <span class="text-gray-900 dark:text-gray-100">Chỉnh sửa</span>
-  </div>
-
   <!-- Article Editor Component (Edit Mode) -->
   <ArticleEditor client:load />
 </AdminLayout>

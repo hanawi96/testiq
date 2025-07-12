@@ -195,12 +195,13 @@ export class ProcessingUtils {
    * Process update data for articles
    */
   static async processUpdateData(
-    updateData: Partial<CreateArticleData>, 
+    updateData: Partial<CreateArticleData>,
     articleId?: string
   ): Promise<any> {
     const processedUpdateData: any = {
       ...updateData,
-      updated_at: new Date().toISOString()
+      // Only auto-set updated_at if not provided by user
+      updated_at: updateData.updated_at || new Date().toISOString()
     };
 
     // Handle slug update with automatic uniqueness

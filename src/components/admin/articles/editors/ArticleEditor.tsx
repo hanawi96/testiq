@@ -97,6 +97,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     schema_type: 'Article',
     robots_noindex: false,
     published_date: new Date().toISOString().slice(0, 16),
+    updated_date: new Date().toISOString().slice(0, 16),
     author_id: ''
   });
 
@@ -184,6 +185,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               schema_type: articleResult.data.schema_type || 'Article',
               robots_noindex: articleResult.data.robots_directive?.includes('noindex') || false,
               published_date: articleResult.data.published_at ? new Date(articleResult.data.published_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+              updated_date: articleResult.data.updated_at ? new Date(articleResult.data.updated_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
               author_id: articleResult.data.author_id || ''
             });
 
@@ -398,7 +400,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   const handleSave = async (action: 'save') => {
     setLoadingState(prev => ({ ...prev, isLoading: true }));
-    setSaveStatus('Đang lưu...');
 
 
 
@@ -406,18 +407,21 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       // Validate required fields
       if (!formData.title.trim()) {
         setSaveStatus('❌ Tiêu đề không được để trống');
+        setLoadingState(prev => ({ ...prev, isLoading: false }));
         setTimeout(() => setSaveStatus(''), 3000);
         return;
       }
 
       if (!formData.content.trim()) {
         setSaveStatus('❌ Nội dung không được để trống');
+        setLoadingState(prev => ({ ...prev, isLoading: false }));
         setTimeout(() => setSaveStatus(''), 3000);
         return;
       }
 
       if (!formData.slug.trim()) {
         setSaveStatus('❌ Slug không được để trống');
+        setLoadingState(prev => ({ ...prev, isLoading: false }));
         setTimeout(() => setSaveStatus(''), 3000);
         return;
       }
@@ -464,6 +468,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
         // Publishing
         published_at: status === 'published' ? formData.published_date : undefined,
+
+        // Updated timestamp - allow user override
+        updated_at: formData.updated_date ? new Date(formData.updated_date).toISOString() : undefined,
       };
 
 
@@ -492,14 +499,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       if (error) {
         console.error(isEditMode ? 'Update article error:' : 'Create article error:', error);
         setSaveStatus('❌ ' + (error.message || 'Có lỗi xảy ra'));
+        setLoadingState(prev => ({ ...prev, isLoading: false }));
         setTimeout(() => setSaveStatus(''), 3000);
         return;
       }
 
       if (data) {
-        const statusText = formData.is_public ? 'xuất bản' : 'lưu nháp';
-        const successMessage = isEditMode ? `✅ Đã cập nhật và ${statusText} bài viết thành công` : `✅ Đã tạo và ${statusText} bài viết thành công`;
-        setSaveStatus(successMessage);
+        // Don't show long success message, only update lastSaved indicator
         setHasUnsavedChanges(false);
         setLastSaved(new Date());
 
@@ -516,10 +522,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           setTimeout(() => {
             window.location.href = `/admin/articles/edit?id=${data.id}`;
           }, 1500);
-        } else {
-          // For edit mode, just show success message
-          setTimeout(() => setSaveStatus(''), 3000);
         }
+        // For edit mode, no action needed - lastSaved indicator will show
       }
 
     } catch (error) {
@@ -1089,6 +1093,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     type="datetime-local"
                     value={formData.published_date}
                     onChange={(e) => setFormData(prev => ({ ...prev, published_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Ngày cập nhật
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formData.updated_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, updated_date: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
