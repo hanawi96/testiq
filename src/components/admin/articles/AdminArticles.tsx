@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useCallback } from 'react';
+import React, { useReducer, useEffect, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService } from '../../../../backend';
 import type { Article, ArticleStats, ArticlesFilters, ArticlesListResponse } from '../../../../backend';
@@ -13,7 +13,7 @@ import SearchInput from '../common/SearchInput';
 import LoadingSpinner from '../common/LoadingSpinner';
 import SearchHighlight from '../common/SearchHighlight';
 import SearchStats from '../common/SearchStats';
-import { SkeletonStats, SkeletonTable } from '../common/Skeleton';
+// Removed skeleton imports - no more loading animations
 import { SmartPreloader } from '../../../utils/admin/preloaders/preload-manager';
 
 // ===== OPTIMIZED STATE MANAGEMENT =====
@@ -177,8 +177,35 @@ function adminArticlesReducer(state: AdminArticlesState, action: AdminArticlesAc
 }
 
 
-export default function AdminArticles() {
-  const [state, dispatch] = useReducer(adminArticlesReducer, initialState);
+interface AdminArticlesProps {
+  initialData?: {
+    articles: ArticlesListResponse | null;
+    stats: ArticleStats | null;
+  };
+}
+
+export default function AdminArticles({ initialData }: AdminArticlesProps) {
+  // HYBRID APPROACH: Use initial data if available, but don't block UI
+  const smartInitialState = initialData ? {
+    ...initialState,
+    articlesData: initialData.articles,
+    stats: initialData.stats,
+    loading: {
+      ...initialState.loading,
+      articles: false, // Don't show loading if we have data
+      stats: false     // Don't show loading if we have data
+    }
+  } : initialState;
+
+  const [state, dispatch] = useReducer(adminArticlesReducer, smartInitialState);
+
+  // INSTANT UI: Track mount state for immediate UI display
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Mount immediately for instant UI
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Destructure for easier access
   const { articlesData, stats, error, loading, ui, modals } = state;
@@ -220,26 +247,30 @@ export default function AdminArticles() {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Fetch articles data
-  const fetchArticles = useCallback(async (page: number = currentPage) => {
-    dispatch({ type: 'SET_ERROR', payload: '' });
-    dispatch({ type: 'SET_LOADING', payload: { articles: true } });
+  // SMART FETCH: Background refresh with stale-while-revalidate
+  const fetchArticles = useCallback(async (page: number = currentPage, silent = false) => {
+    if (!silent) {
+      dispatch({ type: 'SET_ERROR', payload: '' });
+      dispatch({ type: 'SET_LOADING', payload: { articles: true } });
+    }
 
     try {
       const { data, error: fetchError } = await ArticlesService.getArticles(page, limit, filters);
 
       if (fetchError || !data) {
-        dispatch({ type: 'SET_ERROR', payload: 'Không thể tải danh sách bài viết' });
+        if (!silent) dispatch({ type: 'SET_ERROR', payload: 'Không thể tải danh sách bài viết' });
         return;
       }
 
       dispatch({ type: 'SET_ARTICLES_DATA', payload: data });
-      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
+      if (!silent) dispatch({ type: 'SET_LOADING', payload: { articles: false } });
 
     } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi tải dữ liệu' });
-      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
-      console.error('Frontend: Error fetching articles:', err);
+      if (!silent) {
+        dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi tải dữ liệu' });
+        dispatch({ type: 'SET_LOADING', payload: { articles: false } });
+        console.error('Frontend: Error fetching articles:', err);
+      }
     }
   }, [currentPage, filters]);
 
@@ -258,20 +289,38 @@ export default function AdminArticles() {
     }
   }, []);
 
-  // Initial load
+
+
+  // HYBRID LOAD: Only fetch if no initial data or filters changed
   useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([
-        fetchArticles(1),
-        fetchStats()
-      ]);
-    };
+    if (!isMounted) return;
 
-    loadData();
+    const needsRefresh = !articlesData ||
+      (initialData && (
+        filters.status !== 'all' ||
+        filters.search !== '' ||
+        filters.sort_by !== 'created_at' ||
+        filters.sort_order !== 'desc'
+      ));
 
-    // SMART PRELOADING: Trigger intelligent preload on navigation
+    if (needsRefresh) {
+      const loadData = async () => {
+        await Promise.all([
+          fetchArticles(1),
+          fetchStats()
+        ]);
+      };
+      loadData();
+    } else if (initialData && articlesData) {
+      // Background refresh for stale data (silent)
+      setTimeout(() => {
+        fetchArticles(1, true);
+        fetchStats();
+      }, 2000);
+    }
+
     SmartPreloader.triggerSmartPreload('navigation');
-  }, [filters]);
+  }, [isMounted, filters]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -1008,14 +1057,25 @@ export default function AdminArticles() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* STATIC HEADER - Hiển thị ngay lập tức */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý bài viết</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý nội dung và bài viết trên website</p>
         </div>
-
-
+        <div className="flex items-center space-x-3">
+          <a
+            href="/admin/articles/create"
+            onClick={() => SmartPreloader.triggerSmartPreload('click')}
+            onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
+            className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Thêm bài viết
+          </a>
+        </div>
       </div>
 
       {/* Error */}
@@ -1036,10 +1096,8 @@ export default function AdminArticles() {
         </motion.div>
       )}
 
-      {/* Stats Cards */}
-      {loading.stats ? (
-        <SkeletonStats />
-      ) : stats && (
+      {/* Stats Cards - NO SKELETON: Show immediately or nothing */}
+      {stats && (
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {[
             {
@@ -1075,12 +1133,9 @@ export default function AdminArticles() {
               textColor: 'text-purple-600 dark:text-purple-400'
             }
           ].map((stat, index) => (
-            <motion.div
+            <div
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg rounded-lg"
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow duration-200"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -1091,14 +1146,14 @@ export default function AdminArticles() {
                   <span className="text-2xl">{stat.icon}</span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
 
 
 
-      {/* Filters */}
+      {/* STATIC FILTERS - Hiển thị ngay lập tức */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
@@ -1214,10 +1269,8 @@ export default function AdminArticles() {
         )}
       </AnimatePresence>
 
-      {/* Articles Table */}
-      {loading.articles ? (
-        <SkeletonTable rows={10} />
-      ) : articlesData && (
+      {/* Articles Table - NO SKELETON: Show immediately or nothing */}
+      {articlesData ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -1725,6 +1778,24 @@ export default function AdminArticles() {
               </div>
             </div>
           )}
+        </div>
+      ) : (
+        // EMPTY STATE: Show when no data (no loading check needed)
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Chưa có bài viết nào</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">Bắt đầu tạo bài viết đầu tiên của bạn</p>
+          <a
+            href="/admin/articles/create"
+            className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Tạo bài viết mới
+          </a>
         </div>
       )}
 

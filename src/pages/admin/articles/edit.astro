@@ -1,6 +1,10 @@
 ---
+// Enable server-side rendering for URL parameters
+export const prerender = false;
+
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import ArticleEditor from '../../../components/admin/articles/editors/ArticleEditor.tsx';
+import { ArticleEditor } from '../../../components/admin/articles/editors';
+import { ArticlesService, CategoriesService, UserProfilesService } from '../../../../backend';
 
 // TODO: Add authentication and authorization checks
 // const isAuthenticated = true;
@@ -14,11 +18,32 @@ import ArticleEditor from '../../../components/admin/articles/editors/ArticleEdi
 // if (!allowedRoles.includes(userRole)) {
 //   return Astro.redirect('/admin');
 // }
+
+// Get article ID from URL parameters
+const articleId = Astro.url.searchParams.get('id');
+
+if (!articleId) {
+  return Astro.redirect('/admin/articles');
+}
+
+// HYBRID APPROACH: Pre-load data nhưng không block UI
+const [articleResult, categoriesResult, authorsResult] = await Promise.allSettled([
+  ArticlesService.getArticleForEdit(articleId),
+  CategoriesService.getAllCategories(),
+  UserProfilesService.getAuthorOptions()
+]);
+
+const initialData = {
+  article: articleResult.status === 'fulfilled' ? articleResult.value.data : null,
+  categories: categoriesResult.status === 'fulfilled' ? categoriesResult.value.data : null,
+  authors: authorsResult.status === 'fulfilled' ? authorsResult.value.data : null,
+  articleId: articleId
+};
 ---
 
 <AdminLayout title="Chỉnh sửa bài viết - Admin">
-  <!-- Article Editor Component (Edit Mode) -->
-  <ArticleEditor client:load />
+  <!-- HYBRID: UI tĩnh hiển thị ngay + pre-loaded data -->
+  <ArticleEditor client:load initialData={initialData} articleId={articleId} />
 </AdminLayout>
 
 <style>
@@ -152,19 +177,6 @@ import ArticleEditor from '../../../components/admin/articles/editors/ArticleEdi
   // Client-side functionality for article editing
   document.addEventListener('DOMContentLoaded', function() {
     console.log('Article edit page loaded');
-    
-    // Get article ID from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const articleId = urlParams.get('id');
-    
-    if (!articleId) {
-      // Redirect to articles list if no ID provided
-      window.location.href = '/admin/articles';
-      return;
-    }
-    
-    // Pass article ID to React component
-    window.articleEditId = articleId;
     
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {

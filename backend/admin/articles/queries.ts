@@ -169,8 +169,8 @@ export class ArticleQueries {
   ): Promise<{ data: any[] | null; error: any; count: number }> {
     try {
       const startTime = Date.now();
-      // OPTIMIZED: Fast cache key generation - avoid JSON.stringify
-      const cacheKey = `articles:${page}:${limit}:${filters.search || ''}:${filters.status || 'all'}:${filters.author || ''}:${filters.sort_by || 'created_at'}:${filters.sort_order || 'desc'}`;
+      // ULTRA FAST: Simple cache key
+      const cacheKey = `articles:${page}:${limit}:${filters.search || ''}:${filters.status || 'all'}:${filters.sort_by || 'created_at'}:${filters.sort_order || 'desc'}`;
 
       // Check cache first
       const cachedResult = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
@@ -202,7 +202,7 @@ export class ArticleQueries {
 
       if (!articles || articles.length === 0) {
         const result = { data: [], error: null, count: count || 0 };
-        queryCache.set(cacheKey, result, 2 * 60 * 1000);
+        queryCache.set(cacheKey, result, 5 * 60 * 1000);
         return result;
       }
 
@@ -268,8 +268,8 @@ export class ArticleQueries {
 
       const result = { data: enrichedArticles, error: null, count: count || 0 };
 
-      // OPTIMIZED: Consistent cache TTL
-      queryCache.set(cacheKey, result, 2 * 60 * 1000); // 2 minutes
+      // SMART CACHE: Longer TTL for admin pages
+      queryCache.set(cacheKey, result, 5 * 60 * 1000); // 5 minutes
 
       return result;
 
@@ -356,8 +356,8 @@ export class ArticleQueries {
 
       const result = { data: enrichedArticle, error: null };
 
-      // Cache edit data for 1 minute (edit data changes frequently)
-      queryCache.set(cacheKey, result, 1 * 60 * 1000);
+      // Cache edit data for 3 minutes
+      queryCache.set(cacheKey, result, 3 * 60 * 1000);
 
       return result;
     } catch (err) {
@@ -600,8 +600,8 @@ export class ArticleQueries {
 
       const result = { data: stats, error: null };
 
-      // Cache stats for 2 minutes (stats change less frequently)
-      queryCache.set(cacheKey, result, 2 * 60 * 1000);
+      // Cache stats for 10 minutes (stats change less frequently)
+      queryCache.set(cacheKey, result, 10 * 60 * 1000);
 
       return result;
 

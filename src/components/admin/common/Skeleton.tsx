@@ -5,9 +5,9 @@
 
 import React from 'react';
 
-// Base skeleton
+// ULTRA FAST: Base skeleton with optimized animation
 const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`} />
+  <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded will-change-auto ${className}`} />
 );
 
 // Stats card skeleton

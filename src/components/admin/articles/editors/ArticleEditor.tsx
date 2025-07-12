@@ -10,6 +10,7 @@ import '../../../../styles/tiptap-editor.css';
 // PRELOADERS - Intelligent data loading
 import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../../utils/admin/preloaders/categories-preloader';
 import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../../utils/admin/preloaders/authors-preloader';
+import { SmartPreloader } from '../../../../utils/admin/preloaders/preload-manager';
 
 
 
@@ -20,8 +21,16 @@ const ImageUpload = lazy(() => import('./ImageUpload'));
 
 
 
+interface ArticleEditorInitialData {
+  article: Article | null;
+  categories: Category[] | null;
+  authors: AuthorOption[] | null;
+  articleId: string;
+}
+
 interface ArticleEditorProps {
   articleId?: string; // Nếu có = edit mode, không có = create mode
+  initialData?: ArticleEditorInitialData; // Pre-loaded data từ server
   onSave?: (article: Article) => void;
   onCancel?: () => void;
 }
@@ -56,24 +65,21 @@ const FALLBACK_AUTHORS = [
 
 
 
-export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps) {
+export default function ArticleEditor({ articleId, initialData, onSave }: ArticleEditorProps) {
 
-  // Get article ID from props or URL params (chỉ sau khi mount)
-  const [currentArticleId, setCurrentArticleId] = useState<string | null>(articleId || null);
+  // HYBRID APPROACH: Use initial data if available, but don't block UI
+  const currentArticleId = articleId || initialData?.articleId || null;
 
   // Determine if we're in edit mode
-  const isEditMode = !!(articleId || currentArticleId);
+  const isEditMode = !!currentArticleId;
 
-  // Effect để get URL params
+  // INSTANT UI: Track mount state for immediate UI display
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Mount immediately for instant UI
   useEffect(() => {
-    if (!articleId) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const idFromUrl = urlParams.get('id');
-      if (idFromUrl) {
-        setCurrentArticleId(idFromUrl);
-      }
-    }
-  }, [articleId]);
+    setIsMounted(true);
+  }, []);
 
 
 
@@ -123,13 +129,20 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [loadError, setLoadError] = useState('');
   const [showImageUpload, setShowImageUpload] = useState(false);
 
-  // OPTIMIZED: Consolidated loading states
-  const [loadingState, setLoadingState] = useState({
+  // HYBRID APPROACH: Use initial data if available
+  const smartInitialState = initialData ? {
+    isLoading: false,
+    isDataLoaded: true, // We have pre-loaded data
+    isValidatingSlug: false,
+    isEditorReady: false
+  } : {
     isLoading: false,
     isDataLoaded: !isEditMode, // true for create mode, false for edit mode
     isValidatingSlug: false,
     isEditorReady: false
-  });
+  };
+
+  const [loadingState, setLoadingState] = useState(smartInitialState);
 
   // Professional autosave progress animation
   useEffect(() => {
@@ -158,24 +171,88 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
-  // INTELLIGENT PRELOADING: Start preloading immediately when component mounts
+  // HYBRID LOAD: Use initial data or fetch if needed
   useEffect(() => {
-    // Start preloading dropdown data immediately (non-blocking)
-    preloadCategoriesData();
-    preloadAuthorsData();
-  }, []);
+    if (!isMounted) return;
 
-  // OPTIMIZED: Parallel loading cho tất cả data cần thiết
-  useEffect(() => {
-    // Only run after component is mounted and we have an article ID
-    if (articleId || currentArticleId) {
+    // If we have initial data, use it immediately
+    if (initialData) {
+      console.log('🚀 HYBRID: Using pre-loaded data');
+
+      // Set article data
+      if (initialData.article) {
+        setFormData({
+          title: initialData.article.title || '',
+          content: initialData.article.content || '',
+          excerpt: initialData.article.excerpt || '',
+          meta_title: initialData.article.meta_title || '',
+          meta_description: initialData.article.meta_description || '',
+          slug: initialData.article.slug || '',
+          status: initialData.article.status || 'draft',
+          focus_keyword: initialData.article.focus_keyword || '',
+          categories: (() => {
+            if (initialData.article.category_ids && initialData.article.category_ids.length > 0) {
+              return initialData.article.category_ids;
+            }
+            if (initialData.article.category_id) {
+              return [initialData.article.category_id];
+            }
+            return [];
+          })(),
+          tags: initialData.article.tags || [],
+          featured_image: initialData.article.featured_image || '',
+          cover_image_alt: initialData.article.cover_image_alt || '',
+          lang: initialData.article.lang || 'vi',
+          article_type: initialData.article.article_type || 'article',
+          is_public: initialData.article.is_public || false,
+          is_featured: initialData.article.is_featured || false,
+          schema_type: initialData.article.schema_type || 'Article',
+          robots_noindex: initialData.article.robots_noindex || false,
+          published_date: initialData.article.published_date ?
+            new Date(initialData.article.published_date).toISOString().slice(0, 16) :
+            new Date().toISOString().slice(0, 16),
+          updated_date: new Date().toISOString().slice(0, 16),
+          author_id: initialData.article.author_id || ''
+        });
+        setHasUnsavedChanges(false); // Reset unsaved changes for loaded data
+      }
+
+      // Set categories data
+      if (initialData.categories && initialData.categories.length > 0) {
+        setCategories(initialData.categories);
+      }
+
+      // Set authors data
+      if (initialData.authors && initialData.authors.length > 0) {
+        setAuthors(initialData.authors);
+        // Set first author as default if no author selected
+        if (!initialData.article?.author_id) {
+          setFormData(prev => ({ ...prev, author_id: initialData.authors![0].id }));
+        }
+      }
+
+      // Background refresh for stale data (silent)
+      setTimeout(() => {
+        console.log('🔄 HYBRID: Background refresh starting');
+        refreshDataSilently();
+      }, 2000);
+
+      // Trigger smart preloading for navigation
+      SmartPreloader.triggerSmartPreload('navigation');
+
+      return;
+    }
+
+    // Fallback to old loading method if no initial data
+    if (currentArticleId) {
       const loadAllData = async () => {
         setLoadError('');
+        setLoadingState(prev => ({ ...prev, isLoading: true }));
 
         try {
           // OPTIMIZED: Use preloaded data + article fetch
           const [articleResult, categoriesData, authorsData] = await Promise.all([
-            ArticlesService.getArticleForEdit(articleId || currentArticleId!),
+            ArticlesService.getArticleForEdit(currentArticleId),
             // Use preloaded data if available, otherwise fetch
             isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
             isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
@@ -264,12 +341,51 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
         } catch (err) {
           setLoadError('Có lỗi xảy ra khi tải dữ liệu');
+          setLoadingState(prev => ({ ...prev, isLoading: false }));
         }
       };
 
       loadAllData();
     }
-  }, [articleId, currentArticleId]);
+  }, [isMounted, initialData, currentArticleId]);
+
+  // STALE-WHILE-REVALIDATE: Background refresh function
+  const refreshDataSilently = async () => {
+    if (!currentArticleId) return;
+
+    try {
+      console.log('🔄 Silent refresh: Fetching fresh data');
+      const [articleResult, categoriesData, authorsData] = await Promise.all([
+        ArticlesService.getArticleForEdit(currentArticleId),
+        preloadCategoriesData(),
+        preloadAuthorsData()
+      ]);
+
+      // Update data silently without affecting UI
+      if (articleResult.data && !hasUnsavedChanges) {
+        // Only update if user hasn't made changes
+        console.log('🔄 Silent refresh: Updating article data');
+        setFormData(prev => ({
+          ...prev,
+          // Only update non-user-editable fields
+          updated_date: articleResult.data.updated_at ?
+            new Date(articleResult.data.updated_at).toISOString().slice(0, 16) :
+            prev.updated_date
+        }));
+      }
+
+      // Always update dropdown data
+      if (categoriesData && categoriesData.length > 0) {
+        setCategories(categoriesData);
+      }
+      if (authorsData && authorsData.length > 0) {
+        setAuthors(authorsData);
+      }
+
+    } catch (err) {
+      console.warn('🔄 Silent refresh failed:', err);
+    }
+  };
 
 
 
@@ -793,7 +909,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   return (
     <div className="article-editor bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Sticky Header */}
+      {/* STATIC HEADER - Hiển thị ngay lập tức */}
       <div className="article-editor-header bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 shadow-sm">
         <div className="w-full p-4">
           <div className="flex items-center justify-between">
@@ -889,15 +1005,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         </div>
       </div>
 
-      {/* Main Content - Responsive 2 Column Layout */}
+      {/* PROGRESSIVE CONTENT - Show immediately or with data */}
       <div className="w-full py-4">
         <div className="article-editor-main">
 
           {/* Left Column - Main Content */}
           <div className="space-y-6">
 
-            {/* Title Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            {/* PROGRESSIVE LOADING: Show form immediately if we have data or in create mode */}
+            {(loadingState.isDataLoaded || !isEditMode) ? (
+              <>
+                {/* Title Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
               <div className="space-y-4">
                 {/* Title */}
                 <div>
@@ -1175,6 +1294,33 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </div>
               </div>
             </div>
+              </>
+            ) : (
+              /* LOADING STATE: Show minimal skeleton while loading */
+              <div className="space-y-6">
+                {/* Title Skeleton */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                  <div className="space-y-4">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                    <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  </div>
+                </div>
+
+                {/* Content Skeleton */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 mb-4"></div>
+                  <div className="h-96 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+
+                {/* Loading indicator */}
+                <div className="text-center py-8">
+                  <LoadingSpinner size="lg" color="blue" className="mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Đang tải dữ liệu bài viết...</p>
+                </div>
+              </div>
+            )}
 
           </div>
 
@@ -1595,7 +1741,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </select>
               )}
             </div>
-
 
           </div>
         </div>

@@ -1,8 +1,21 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { AdminArticles } from '../../components/admin/articles';
+import { ArticlesService } from '../../../backend';
+
+// HYBRID APPROACH: Pre-load data nhưng không block UI
+const [articlesResult, statsResult] = await Promise.allSettled([
+  ArticlesService.getArticles(1, 10, { status: 'all', sort_by: 'created_at', sort_order: 'desc' }),
+  ArticlesService.getStats()
+]);
+
+const initialData = {
+  articles: articlesResult.status === 'fulfilled' ? articlesResult.value.data : null,
+  stats: statsResult.status === 'fulfilled' ? statsResult.value.data : null
+};
 ---
 
 <AdminLayout title="Quản lý bài viết - Admin">
-  <AdminArticles client:load />
+  <!-- HYBRID: UI tĩnh hiển thị ngay + pre-loaded data -->
+  <AdminArticles client:load initialData={initialData} />
 </AdminLayout>
