@@ -104,6 +104,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [tagInput, setTagInput] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [authors, setAuthors] = useState<AuthorOption[]>([]);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -117,6 +118,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   useEffect(() => {
     console.log('📊 STATE: hasUnsavedChanges changed to', hasUnsavedChanges);
   }, [hasUnsavedChanges]);
+
   const [slugError, setSlugError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [showImageUpload, setShowImageUpload] = useState(false);
@@ -128,6 +130,31 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     isValidatingSlug: false,
     isEditorReady: false
   });
+
+  // Professional autosave progress animation
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout;
+
+    if (loadingState.isLoading || isAutoSaving) {
+      setSaveProgress(0);
+
+      // Smooth progress animation from 0 to 90% over 1.5s
+      progressInterval = setInterval(() => {
+        setSaveProgress(prev => {
+          if (prev >= 90) return 90; // Stop at 90%, complete on success
+          return prev + 2; // Increment by 2% every 30ms
+        });
+      }, 30);
+    } else {
+      // Complete progress and fade out
+      setSaveProgress(100);
+      setTimeout(() => setSaveProgress(0), 500);
+    }
+
+    return () => {
+      if (progressInterval) clearInterval(progressInterval);
+    };
+  }, [loadingState.isLoading, isAutoSaving]);
 
 
 
@@ -794,36 +821,68 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </span>
                 )}
                 {isAutoSaving && (
-                  <span className="text-xs text-blue-600 dark:text-blue-400 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded flex items-center gap-1">
-                    <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
-                    Đang tự động lưu...
-                  </span>
+                  <div className="flex items-center gap-3 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30 transition-all duration-300 ease-out">
+                    {/* Text */}
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">
+                      Đang tự động lưu...
+                    </span>
+
+                    {/* Progress Bar */}
+                    <div className="w-20 h-1 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-75 ease-out rounded-full"
+                        style={{ width: `${saveProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 )}
-                {hasUnsavedChanges && !loadingState.isLoading && !isAutoSaving && (
-                  <span className="text-xs text-orange-600 dark:text-orange-400 px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded">
-                    Chưa lưu
-                  </span>
-                )}
+
                 {lastSaved && !hasUnsavedChanges && (
-                  <span className="text-xs text-green-600 dark:text-green-400 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded">
-                    Đã lưu {lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-100 dark:border-green-800/30 transition-all duration-300">
+                    {/* Success checkmark with animation */}
+                    <div className="relative">
+                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {/* Subtle pulse effect */}
+                      <div className="absolute inset-0 w-4 h-4 bg-green-400 rounded-full opacity-20 animate-ping"></div>
+                    </div>
+
+                    <span className="text-xs font-medium text-green-700 dark:text-green-300 whitespace-nowrap">
+                      Đã lưu {lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
                 )}
               </div>
               <button
                 onClick={() => handleSave('save')}
                 disabled={loadingState.isLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 font-medium ${
+                  loadingState.isLoading
+                    ? 'bg-blue-500 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
+                }`}
                 title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
               >
                 {loadingState.isLoading ? (
-                  <LoadingSpinner size="sm" color="white" />
+                  <>
+                    <span>Đang lưu...</span>
+                    {/* Progress indicator */}
+                    <div className="w-16 h-1 bg-blue-300 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-white transition-all duration-75 rounded-full"
+                        style={{ width: `${saveProgress}%` }}
+                      ></div>
+                    </div>
+                  </>
                 ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
+                  </>
                 )}
-                {loadingState.isLoading ? 'Đang lưu...' : (formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp')}
               </button>
             </div>
           </div>
