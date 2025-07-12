@@ -92,7 +92,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     cover_image_alt: '',
     lang: 'vi',
     article_type: 'article' as 'article' | 'page' | 'post',
-    is_public: !isEditMode, // false for edit mode, true for create mode
+    is_public: false, // Default to draft for both create and edit mode
     is_featured: false,
     schema_type: 'Article',
     robots_noindex: false,
@@ -103,11 +103,20 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   const [tagInput, setTagInput] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
-
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [authors, setAuthors] = useState<AuthorOption[]>([]);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Debug: Track state changes (moved after state declarations)
+  useEffect(() => {
+    console.log('🎨 UI STATE: isAutoSaving changed to', isAutoSaving);
+  }, [isAutoSaving]);
+
+  useEffect(() => {
+    console.log('📊 STATE: hasUnsavedChanges changed to', hasUnsavedChanges);
+  }, [hasUnsavedChanges]);
   const [slugError, setSlugError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [showImageUpload, setShowImageUpload] = useState(false);
@@ -239,6 +248,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   // Track unsaved changes
   useEffect(() => {
+    console.log('📝 FORM CHANGE: Setting hasUnsavedChanges = true', {
+      title: formData.title.substring(0, 30) + '...',
+      contentLength: formData.content.length,
+      slug: formData.slug,
+      is_public: formData.is_public,
+      timestamp: new Date().toLocaleTimeString()
+    });
     setHasUnsavedChanges(true);
   }, [formData]);
 
@@ -261,18 +277,45 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Auto-save every 30 seconds
+  // IMPROVED: Smart auto-save with debouncing
   useEffect(() => {
-    if (!hasUnsavedChanges) return;
+    console.log('🔄 AUTOSAVE: useEffect triggered', {
+      hasUnsavedChanges,
+      hasTitle: !!formData.title.trim(),
+      title: formData.title.substring(0, 30) + '...',
+      contentLength: formData.content.length,
+      slug: formData.slug
+    });
 
-    const autoSaveInterval = setInterval(() => {
+    if (!hasUnsavedChanges || !formData.title.trim()) {
+      console.log('❌ AUTOSAVE: Skipped - no changes or no title', {
+        hasUnsavedChanges,
+        hasTitle: !!formData.title.trim()
+      });
+      return;
+    }
+
+    console.log('⏰ AUTOSAVE: Setting timeout (2s)...');
+
+    // Debounced auto-save: wait 2 seconds after last change, then save
+    const autoSaveTimeout = setTimeout(() => {
+      console.log('🚀 AUTOSAVE: Timeout triggered, checking conditions...');
       if (hasUnsavedChanges && formData.title.trim()) {
-        handleSave('save');
+        console.log('✅ AUTOSAVE: Conditions met, calling handleSave...');
+        handleSave('autosave'); // Use different action for autosave
+      } else {
+        console.log('❌ AUTOSAVE: Conditions not met at timeout', {
+          hasUnsavedChanges,
+          hasTitle: !!formData.title.trim()
+        });
       }
-    }, 30000); // 30 seconds
+    }, 2000); // 2 seconds debounce
 
-    return () => clearInterval(autoSaveInterval);
-  }, [hasUnsavedChanges, formData.title]);
+    return () => {
+      console.log('🧹 AUTOSAVE: Cleanup - clearing timeout');
+      clearTimeout(autoSaveTimeout);
+    };
+  }, [hasUnsavedChanges, formData.title, formData.content, formData.slug]);
 
   // Auto-generate slug from title
   const generateSlug = (title: string) => {
@@ -398,8 +441,31 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     setShowImageUpload(false);
   };
 
-  const handleSave = async (action: 'save') => {
-    setLoadingState(prev => ({ ...prev, isLoading: true }));
+  const handleSave = async (action: 'save' | 'autosave') => {
+    const isAutoSave = action === 'autosave';
+
+    console.log(`💾 SAVE: Starting ${isAutoSave ? 'AUTOSAVE' : 'MANUAL SAVE'}`, {
+      action,
+      isAutoSave,
+      isEditMode,
+      hasUnsavedChanges,
+      formData: {
+        title: formData.title.substring(0, 50) + '...',
+        contentLength: formData.content.length,
+        slug: formData.slug,
+        is_public: formData.is_public,
+        author_id: formData.author_id,
+        author_id_processed: formData.author_id.trim() || null
+      }
+    });
+
+    if (isAutoSave) {
+      console.log('🔵 AUTOSAVE: Setting isAutoSaving = true');
+      setIsAutoSaving(true);
+    } else {
+      console.log('🔄 MANUAL SAVE: Setting isLoading = true');
+      setLoadingState(prev => ({ ...prev, isLoading: true }));
+    }
 
 
 
@@ -433,12 +499,20 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       }
 
       // Prepare article data
+      const status = formData.is_public ? 'published' : 'draft';
+      console.log('📊 STATUS LOGIC:', {
+        is_public: formData.is_public,
+        calculated_status: status,
+        isEditMode,
+        isAutoSave
+      });
+
       const articleData: CreateArticleData = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         excerpt: formData.excerpt.trim(),
         slug: formData.slug.trim(),
-        status: formData.is_public ? 'published' : 'draft',
+        status,
         featured: formData.is_featured,
         lang: formData.lang,
         article_type: formData.article_type,
@@ -456,8 +530,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         // Schema
         schema_type: formData.schema_type,
 
-        // Author
-        author_id: formData.author_id,
+        // Author - handled by authorId parameter
 
         // Category - convert categories array to primary category_id
         category_id: formData.categories.length > 0 ? formData.categories[0] : undefined,
@@ -482,7 +555,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         const result = await ArticlesService.updateArticle(
           articleId || currentArticleId!,
           articleData,
-          formData.author_id // Author ID is already a string
+          formData.author_id.trim() || null // Convert empty string to null for UUID
         );
         data = result.data;
         error = result.error;
@@ -490,14 +563,22 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         // Create new article
         const result = await ArticlesService.createArticle(
           articleData,
-          formData.author_id // Author ID is already a string
+          formData.author_id.trim() || null // Convert empty string to null for UUID
         );
         data = result.data;
         error = result.error;
       }
 
       if (error) {
-        console.error(isEditMode ? 'Update article error:' : 'Create article error:', error);
+        console.error(`❌ SAVE ERROR (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
+          isEditMode,
+          isAutoSave,
+          error: error.message || error,
+          formData: {
+            title: formData.title.substring(0, 30),
+            contentLength: formData.content.length
+          }
+        });
         setSaveStatus('❌ ' + (error.message || 'Có lỗi xảy ra'));
         setLoadingState(prev => ({ ...prev, isLoading: false }));
         setTimeout(() => setSaveStatus(''), 3000);
@@ -505,9 +586,31 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       }
 
       if (data) {
-        // Don't show long success message, only update lastSaved indicator
+        console.log(`✅ SAVE SUCCESS (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
+          isAutoSave,
+          isEditMode,
+          articleId: data.id,
+          title: data.title?.substring(0, 30) + '...',
+          timestamp: new Date().toLocaleTimeString()
+        });
+
+        // Update save state
         setHasUnsavedChanges(false);
         setLastSaved(new Date());
+
+        console.log('📝 SAVE: Updated states', {
+          hasUnsavedChanges: false,
+          lastSaved: new Date().toLocaleTimeString()
+        });
+
+        // Show different messages for manual vs auto save
+        if (!isAutoSave) {
+          console.log('💬 MANUAL SAVE: Showing success message');
+          setSaveStatus('✅ Đã lưu thành công');
+          setTimeout(() => setSaveStatus(''), 2000);
+        } else {
+          console.log('🔇 AUTOSAVE: Silent success (no message)');
+        }
 
         // Call onSave callback if provided
         if (onSave) {
@@ -531,7 +634,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       setSaveStatus('❌ Có lỗi xảy ra khi tạo bài viết');
       setTimeout(() => setSaveStatus(''), 3000);
     } finally {
-      setLoadingState(prev => ({ ...prev, isLoading: false }));
+      console.log(`🏁 SAVE CLEANUP (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
+        isAutoSave,
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      if (isAutoSave) {
+        console.log('🔵 AUTOSAVE: Setting isAutoSaving = false');
+        setIsAutoSaving(false);
+      } else {
+        console.log('🔄 MANUAL SAVE: Setting isLoading = false');
+        setLoadingState(prev => ({ ...prev, isLoading: false }));
+      }
     }
   };
 
@@ -679,7 +793,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     {saveStatus}
                   </span>
                 )}
-                {hasUnsavedChanges && !loadingState.isLoading && (
+                {isAutoSaving && (
+                  <span className="text-xs text-blue-600 dark:text-blue-400 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded flex items-center gap-1">
+                    <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
+                    Đang tự động lưu...
+                  </span>
+                )}
+                {hasUnsavedChanges && !loadingState.isLoading && !isAutoSaving && (
                   <span className="text-xs text-orange-600 dark:text-orange-400 px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded">
                     Chưa lưu
                   </span>
