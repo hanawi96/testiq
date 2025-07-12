@@ -4,6 +4,7 @@ import { CategoriesService } from '../../../../backend';
 import type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from '../../../../backend';
 import CategoryModal from './CategoryModal';
 import QuickStatusEditor from './QuickStatusEditor';
+import QuickCategoryNameEditor from './QuickCategoryNameEditor';
 
 export default function AdminCategories() {
   const [categoriesData, setCategoriesData] = useState<CategoriesListResponse | null>(null);
@@ -29,6 +30,13 @@ export default function AdminCategories() {
   const [targetStatuses, setTargetStatuses] = useState<Record<string, 'active' | 'inactive'>>({});
   const [pendingStatusUpdates, setPendingStatusUpdates] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState<'activate' | 'deactivate' | null>(null);
+
+  // Quick name editor state
+  const [quickNameEditor, setQuickNameEditor] = useState<{
+    categoryId: string;
+    currentName: string;
+    position: { top: number; left: number };
+  } | null>(null);
 
   const limit = 10;
 
@@ -223,6 +231,57 @@ export default function AdminCategories() {
       // 6. CLEANUP
       setBulkActionLoading(null);
       setIsUpdating(false);
+    }
+  };
+
+  // Handle quick name edit
+  const handleQuickNameEdit = (event: React.MouseEvent, categoryId: string, currentName: string) => {
+    event.stopPropagation();
+
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const position = {
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX
+    };
+
+    setQuickNameEditor({
+      categoryId,
+      currentName,
+      position
+    });
+  };
+
+  // Handle quick name update
+  const handleQuickNameUpdate = async (categoryId: string, newName: string) => {
+    try {
+      // Optimistic update
+      if (categoriesData) {
+        const updatedCategories = categoriesData.categories.map(cat =>
+          cat.id === categoryId ? { ...cat, name: newName } : cat
+        );
+        setCategoriesData({
+          ...categoriesData,
+          categories: updatedCategories
+        });
+      }
+
+      // Close editor
+      setQuickNameEditor(null);
+
+      // API call
+      const { error } = await CategoriesService.updateCategory(categoryId, { name: newName });
+
+      if (error) {
+        // Revert optimistic update on error
+        await fetchCategories(currentPage);
+        throw new Error(error.message || 'Có lỗi xảy ra khi cập nhật tên danh mục');
+      }
+
+    } catch (err: any) {
+      console.error('Error updating category name:', err);
+      // Revert optimistic update
+      await fetchCategories(currentPage);
+      throw err;
     }
   };
 
@@ -838,8 +897,20 @@ export default function AdminCategories() {
                             className="mt-1 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {category.name}
+                            <div className="flex items-center group">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {category.name}
+                              </span>
+                              {/* Quick Edit Name Icon */}
+                              <button
+                                onClick={(e) => handleQuickNameEdit(e, category.id, category.name)}
+                                className="ml-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
+                                title="Chỉnh sửa nhanh tên danh mục"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                               {category.description}
@@ -1076,6 +1147,19 @@ export default function AdminCategories() {
         }}
         category={editingCategory}
       />
+
+      {/* Quick Name Editor */}
+      <AnimatePresence>
+        {quickNameEditor && (
+          <QuickCategoryNameEditor
+            categoryId={quickNameEditor.categoryId}
+            currentName={quickNameEditor.currentName}
+            onUpdate={handleQuickNameUpdate}
+            onClose={() => setQuickNameEditor(null)}
+            position={quickNameEditor.position}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

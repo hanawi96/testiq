@@ -18,17 +18,17 @@ if (!supabaseServiceKey) {
   console.log('✅ Supabase Service Role Key loaded successfully');
 }
 
-// Create Supabase client with optimized configuration
+// Create Supabase client with FIXED auth configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: false, // Disable for admin interface
-    persistSession: false,   // Disable for admin interface
-    detectSessionInUrl: false,
+    autoRefreshToken: true,  // ✅ Enable auto refresh for login persistence
+    persistSession: true,    // ✅ Enable session persistence
+    detectSessionInUrl: true, // ✅ Enable URL session detection
+    flowType: 'pkce'         // ✅ Use PKCE flow for security
   },
   global: {
     headers: {
       'apikey': supabaseAnonKey,
-      'Authorization': `Bearer ${supabaseAnonKey}`,
     },
   },
   db: {
