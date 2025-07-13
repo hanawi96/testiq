@@ -4,6 +4,9 @@ import type { Category, CreateArticleData, AuthorOption, Article } from '../../.
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
 import LoadingSpinner from '../../common/LoadingSpinner';
+import MediaUpload from '../create/components/MediaUpload';
+import TagsInput from '../create/components/TagsInput';
+import AuthorSelector from '../create/components/AuthorSelector';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -206,7 +209,6 @@ const SidebarSkeleton: React.FC = () => (
 
 // LAZY LOAD heavy components
 const TiptapEditor = lazy(() => import('./TiptapEditor'));
-const ImageUpload = lazy(() => import('./ImageUpload'));
 
 // Dropdown Section Component to prevent FOUC
 const DropdownSection: React.FC<{
@@ -238,13 +240,14 @@ const DropdownSection: React.FC<{
       </svg>
     </button>
     <div
-      className={`dropdown-content transition-all duration-300 ease-in-out overflow-hidden ${
-        isOpen ? 'max-h-[2000px] opacity-100 open' : 'max-h-0 opacity-0 closed'
+      className={`dropdown-content transition-all duration-300 ease-in-out ${
+        isOpen ? 'max-h-[2000px] opacity-100 open overflow-visible' : 'max-h-0 opacity-0 closed overflow-hidden'
       }`}
       style={{
         transitionProperty: 'max-height, opacity',
         transitionDuration: '300ms',
-        transitionTimingFunction: 'ease-in-out'
+        transitionTimingFunction: 'ease-in-out',
+        overflow: isOpen ? 'visible' : 'hidden'
       }}
     >
       <div style={{ display: isOpen ? 'block' : 'none' }}>
@@ -334,7 +337,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     author_id: ''
   });
 
-  const [tagInput, setTagInput] = useState('');
+
   const [saveStatus, setSaveStatus] = useState('');
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
@@ -348,7 +351,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   const [slugError, setSlugError] = useState('');
   const [loadError, setLoadError] = useState('');
-  const [showImageUpload, setShowImageUpload] = useState(false);
 
   // Dropdown state management for sidebar sections
   const [sidebarDropdowns, setSidebarDropdowns] = useState(() => {
@@ -725,54 +727,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
-  const handleAddTag = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
 
-      // Sử dụng utility function với options cho ArticleEditor
-      const result = processBulkTags(tagInput, formData.tags, {
-        maxLength: 50,
-        caseSensitive: false,
-        normalizeFunction: lowercaseNormalizeTag,
-        separator: ','
-      });
 
-      // Thêm valid tags vào formData
-      if (result.validTags.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          tags: [...prev.tags, ...result.validTags]
-        }));
-      }
 
-      // Hiển thị feedback
-      if (result.duplicates.length > 0 || result.tooLong.length > 0) {
-        const feedback = createTagFeedbackMessage(result);
-        setSaveStatus(`⚠️ ${feedback.message.split('\n')[1] || feedback.message}`); // Chỉ hiển thị warning part
-        setTimeout(() => setSaveStatus(''), 3000);
-      }
-
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
-  };
-
-  // Handle cover image upload
-  const handleCoverImageUpload = (url: string) => {
-    console.log('🖼️ ArticleEditor: Cover image uploaded, URL:', url);
-    setFormData(prev => {
-      const newData = { ...prev, featured_image: url };
-      console.log('🖼️ ArticleEditor: Updated formData.featured_image:', newData.featured_image);
-      return newData;
-    });
-    setShowImageUpload(false);
-  };
 
   const handleSave = async (action: 'save' | 'autosave') => {
     const isAutoSave = action === 'autosave';
@@ -1749,80 +1706,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               onToggle={() => toggleSidebarDropdown('tags')}
             >
 
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleAddTag}
-                    placeholder="Nhập tag (phân tách bằng dấu phẩy) và nhấn Enter..."
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                  />
-                  <button
-                    onClick={() => {
-                      if (tagInput.trim()) {
-                        // Sử dụng utility function với options cho ArticleEditor
-                        const result = processBulkTags(tagInput, formData.tags, {
-                          maxLength: 50,
-                          caseSensitive: false,
-                          normalizeFunction: lowercaseNormalizeTag,
-                          separator: ','
-                        });
-
-                        // Thêm valid tags vào formData
-                        if (result.validTags.length > 0) {
-                          setFormData(prev => ({
-                            ...prev,
-                            tags: [...prev.tags, ...result.validTags]
-                          }));
-                        }
-
-                        // Hiển thị feedback
-                        if (result.duplicates.length > 0 || result.tooLong.length > 0) {
-                          const feedback = createTagFeedbackMessage(result);
-                          setSaveStatus(`⚠️ ${feedback.message.split('\n')[1] || feedback.message}`); // Chỉ hiển thị warning part
-                          setTimeout(() => setSaveStatus(''), 3000);
-                        }
-
-                        setTagInput('');
-                      }
-                    }}
-                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium"
-                  >
-                    +
-                  </button>
-                </div>
-
-                {formData.tags.length > 0 && (
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-green-900 dark:text-green-300">
-                        Tags ({formData.tags.length})
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.tags.map((tag, index) => {
-                        const tagName = typeof tag === 'string' ? tag : (tag?.name || String(tag));
-                        return (
-                          <span
-                            key={`tag-${index}-${tagName}`}
-                            className="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-700 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300 text-xs rounded"
-                          >
-                            #{tagName}
-                            <button
-                              onClick={() => removeTag(typeof tag === 'string' ? tag : tagName)}
-                              className="ml-1 w-3 h-3 text-green-600 dark:text-green-400 hover:text-red-600 dark:hover:text-red-400"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <TagsInput
+                value={formData.tags}
+                onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                placeholder="Thêm tags cho bài viết..."
+                maxTags={20}
+                disabled={loadingState.isLoading}
+              />
             </DropdownSection>
 
             {/* Featured Image Section */}
@@ -1837,67 +1727,32 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               onToggle={() => toggleSidebarDropdown('featuredImage')}
             >
 
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={formData.featured_image}
-                    onChange={(e) => setFormData(prev => ({ ...prev, featured_image: e.target.value }))}
-                    placeholder="Nhập URL ảnh..."
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowImageUpload(true)}
-                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-1"
-                    title="Upload ảnh từ máy tính"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    Upload
-                  </button>
+              <Suspense fallback={
+                <div className="animate-pulse space-y-4">
+                  <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
                 </div>
-
-                {/* Alt text field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Alt text (Mô tả ảnh cho SEO)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.cover_image_alt}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cover_image_alt: e.target.value }))}
-                    placeholder="Mô tả ngắn gọn về nội dung ảnh..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Alt text giúp cải thiện SEO và accessibility
-                  </p>
-                </div>
-
-                {formData.featured_image && (
-                  <div className="relative bg-gray-50 dark:bg-gray-700 rounded-lg p-2 border border-gray-200 dark:border-gray-600">
-                    <img
-                      src={formData.featured_image}
-                      alt={formData.cover_image_alt || "Preview"}
-                      className="w-full h-32 object-cover rounded-md"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <button
-                      onClick={() => setFormData(prev => ({ ...prev, featured_image: '', cover_image_alt: '' }))}
-                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
-                    >
-                      ×
-                    </button>
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {formData.featured_image}
-                    </div>
-                  </div>
-                )}
-              </div>
+              }>
+                <MediaUpload
+                  value={formData.featured_image}
+                  alt={formData.cover_image_alt}
+                  onChange={(url: string, alt?: string) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      featured_image: url,
+                      cover_image_alt: alt || ''
+                    }));
+                  }}
+                  onRemove={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      featured_image: '',
+                      cover_image_alt: ''
+                    }));
+                  }}
+                  disabled={loadingState.isLoading}
+                />
+              </Suspense>
             </DropdownSection>
 
             {/* Author Section */}
@@ -1912,53 +1767,26 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               onToggle={() => toggleSidebarDropdown('author')}
             >
 
-              {/* Current Author Display */}
-              {(() => {
-                const currentAuthor = authors.find(author => author.id === formData.author_id);
-                return currentAuthor ? (
-                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {currentAuthor.full_name?.charAt(0)?.toUpperCase() || '?'}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                          {currentAuthor.full_name}
-                        </div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400">
-                          {currentAuthor.role_display_name}
-                        </div>
-                        {currentAuthor.email && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {currentAuthor.email}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : null;
-              })()}
 
-              {/* Author Selection */}
+
+              {/* Author Selection - New Compact Design */}
               {!loadingState.isDataLoaded ? (
                 <div className="flex items-center justify-center py-4">
                   <LoadingSpinner size="sm" color="gray" className="mr-2" />
                   <span className="text-sm text-gray-500 dark:text-gray-400">Đang tải tác giả...</span>
                 </div>
               ) : (
-                <select
-                  value={formData.author_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, author_id: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  {authors.map(author => (
-                    <option key={author.id} value={author.id}>
-                      {author.full_name} - {author.role_display_name}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Chọn tác giả
+                  </label>
+                  <AuthorSelector
+                    value={formData.author_id}
+                    authors={authors}
+                    onChange={(authorId) => setFormData(prev => ({ ...prev, author_id: authorId }))}
+                    disabled={loadingState.isLoading}
+                  />
+                </div>
               )}
             </DropdownSection>
 
@@ -1968,22 +1796,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         </div>
       </div>
 
-      {/* Cover Image Upload Modal */}
-      {showImageUpload && (
-        <Suspense fallback={
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg">
-              <LoadingSpinner size="lg" color="blue" className="mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">Đang tải trình upload ảnh...</p>
-            </div>
-          </div>
-        }>
-          <ImageUpload
-            onImageUpload={handleCoverImageUpload}
-            onClose={() => setShowImageUpload(false)}
-          />
-        </Suspense>
-      )}
+
     </div>
   );
 }

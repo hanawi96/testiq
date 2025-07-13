@@ -340,17 +340,18 @@
 
 .dropdown-section .dropdown-content {
   transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
-  overflow: hidden;
 }
 
 .dropdown-section .dropdown-content.open {
   max-height: 2000px;
   opacity: 1;
+  overflow: visible;
 }
 
 .dropdown-section .dropdown-content.closed {
   max-height: 0;
   opacity: 0;
+  overflow: hidden;
 }
 
 /* Prevent flash during page load */
@@ -393,4 +394,89 @@
   100% {
     background-position: -200% 0;
   }
+}
+
+/* Modern Tags Input Styles */
+.tags-input-container {
+  position: relative;
+}
+
+.tags-input-field {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.tags-input-field:focus-within {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.dark .tags-input-field:focus-within {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.tags-input-tag {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.tags-input-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.tags-input-suggestions {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.dark .tags-input-suggestions {
+  background: rgba(31, 41, 55, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.tags-input-suggestion-item {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tags-input-suggestion-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+  transform: translateX(4px);
+}
+
+.dark .tags-input-suggestion-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+/* Tag animation keyframes */
+@keyframes tagSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.tags-input-tag-enter {
+  animation: tagSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Feedback message styles */
+.tags-feedback-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.tags-feedback-error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }

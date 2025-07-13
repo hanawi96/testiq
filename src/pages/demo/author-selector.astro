@@ -1,0 +1,380 @@
+---
+// Demo page để test AuthorSelector component
+---
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo AuthorSelector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">
+                Demo AuthorSelector Component
+            </h1>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    Thiết kế mới - Nhỏ gọn & Hiện đại
+                </h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Chọn tác giả
+                        </label>
+                        <div id="author-selector-container"></div>
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Giá trị được chọn:
+                        </h3>
+                        <div id="selected-value" class="text-sm text-gray-600 dark:text-gray-400">
+                            Chưa chọn tác giả nào
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    Tính năng
+                </h2>
+                <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li>✅ Thiết kế nhỏ gọn, tiết kiệm diện tích</li>
+                    <li>✅ Hiển thị avatar và role badge</li>
+                    <li>✅ Tìm kiếm thông minh</li>
+                    <li>✅ Keyboard navigation (Arrow keys, Enter, Escape)</li>
+                    <li>✅ Dark mode support</li>
+                    <li>✅ Responsive design</li>
+                    <li>✅ Smooth animations</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- React và component -->
+    <script type="module">
+        import React, { useState } from 'https://esm.sh/react@18';
+        import { createRoot } from 'https://esm.sh/react-dom@18/client';
+        
+        // Mock AuthorSelector component (simplified version)
+        function AuthorSelector({ value, authors, onChange, disabled = false }) {
+            const [isOpen, setIsOpen] = React.useState(false);
+            const [searchQuery, setSearchQuery] = React.useState('');
+            const [hoveredIndex, setHoveredIndex] = React.useState(-1);
+            
+            const containerRef = React.useRef(null);
+            const searchInputRef = React.useRef(null);
+            
+            const selectedAuthor = authors.find(author => author.id === value);
+            
+            const filteredAuthors = authors.filter(author =>
+                author.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                author.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                author.role_display_name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            
+            const toggleDropdown = () => {
+                if (disabled) return;
+                setIsOpen(prev => !prev);
+                setSearchQuery('');
+                setHoveredIndex(-1);
+            };
+            
+            const selectAuthor = (authorId) => {
+                onChange(authorId);
+                setIsOpen(false);
+                setSearchQuery('');
+                setHoveredIndex(-1);
+            };
+            
+            const handleSearchChange = (e) => {
+                setSearchQuery(e.target.value);
+                setHoveredIndex(-1);
+            };
+            
+            // Click outside to close
+            React.useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (containerRef.current && !containerRef.current.contains(event.target)) {
+                        setIsOpen(false);
+                        setSearchQuery('');
+                        setHoveredIndex(-1);
+                    }
+                };
+                
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+            
+            // Focus search input when dropdown opens
+            React.useEffect(() => {
+                if (isOpen && searchInputRef.current) {
+                    setTimeout(() => searchInputRef.current?.focus(), 100);
+                }
+            }, [isOpen]);
+            
+            const getRoleBadgeStyle = (role) => {
+                const roleStyles = {
+                    admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+                    editor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+                    author: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+                    reviewer: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+                    default: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'
+                };
+                return roleStyles[role] || roleStyles.default;
+            };
+            
+            const getRoleIcon = (role) => {
+                const icons = {
+                    admin: '👑',
+                    editor: '✏️',
+                    author: '👤',
+                    default: '👤'
+                };
+                return icons[role] || icons.default;
+            };
+            
+            return React.createElement('div', {
+                ref: containerRef,
+                className: 'relative'
+            }, [
+                // Compact Author Display
+                React.createElement('div', {
+                    key: 'trigger',
+                    className: `relative w-full px-3 py-2.5 border rounded-lg cursor-pointer transition-all duration-200 ${
+                        isOpen
+                            ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10 shadow-sm'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
+                    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`,
+                    onClick: toggleDropdown
+                }, selectedAuthor ? [
+                    React.createElement('div', {
+                        key: 'selected',
+                        className: 'flex items-center gap-2.5'
+                    }, [
+                        // Compact Avatar
+                        React.createElement('div', {
+                            key: 'avatar',
+                            className: 'w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0'
+                        }, React.createElement('span', {
+                            className: 'text-xs font-semibold text-white'
+                        }, selectedAuthor.full_name?.charAt(0)?.toUpperCase() || '?')),
+                        
+                        // Author Info
+                        React.createElement('div', {
+                            key: 'info',
+                            className: 'flex-1 min-w-0'
+                        }, React.createElement('div', {
+                            className: 'flex items-center gap-2'
+                        }, [
+                            React.createElement('span', {
+                                key: 'name',
+                                className: 'font-medium text-gray-900 dark:text-gray-100 text-sm truncate'
+                            }, selectedAuthor.full_name),
+                            React.createElement('span', {
+                                key: 'role',
+                                className: `inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${getRoleBadgeStyle(selectedAuthor.role)}`
+                            }, [
+                                React.createElement('span', { key: 'icon' }, getRoleIcon(selectedAuthor.role)),
+                                selectedAuthor.role_display_name
+                            ])
+                        ])),
+                        
+                        // Dropdown Arrow
+                        React.createElement('div', {
+                            key: 'arrow',
+                            className: `text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`
+                        }, '▼')
+                    ])
+                ] : [
+                    React.createElement('div', {
+                        key: 'placeholder',
+                        className: 'flex items-center gap-2.5 text-gray-500 dark:text-gray-400'
+                    }, [
+                        React.createElement('div', {
+                            key: 'avatar',
+                            className: 'w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0'
+                        }, '👤'),
+                        React.createElement('span', {
+                            key: 'text',
+                            className: 'flex-1 text-sm'
+                        }, 'Chọn tác giả'),
+                        React.createElement('div', {
+                            key: 'arrow',
+                            className: `text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`
+                        }, '▼')
+                    ])
+                ]),
+                
+                // Compact Dropdown Menu
+                isOpen && React.createElement('div', {
+                    key: 'dropdown',
+                    className: 'absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden'
+                }, [
+                    // Search Input
+                    React.createElement('div', {
+                        key: 'search',
+                        className: 'p-2 border-b border-gray-100 dark:border-gray-700'
+                    }, React.createElement('div', {
+                        className: 'relative'
+                    }, [
+                        React.createElement('span', {
+                            key: 'search-icon',
+                            className: 'absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400'
+                        }, '🔍'),
+                        React.createElement('input', {
+                            key: 'search-input',
+                            ref: searchInputRef,
+                            type: 'text',
+                            value: searchQuery,
+                            onChange: handleSearchChange,
+                            placeholder: 'Tìm kiếm...',
+                            className: 'w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                        })
+                    ])),
+                    
+                    // Authors List
+                    React.createElement('div', {
+                        key: 'list',
+                        className: 'max-h-48 overflow-y-auto'
+                    }, filteredAuthors.length > 0 ? filteredAuthors.map((author, index) =>
+                        React.createElement('div', {
+                            key: author.id,
+                            className: `flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors ${
+                                hoveredIndex === index || author.id === value
+                                    ? 'bg-blue-50 dark:bg-blue-900/20'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                            }`,
+                            onClick: () => selectAuthor(author.id),
+                            onMouseEnter: () => setHoveredIndex(index)
+                        }, [
+                            // Compact Avatar
+                            React.createElement('div', {
+                                key: 'avatar',
+                                className: 'relative'
+                            }, [
+                                React.createElement('div', {
+                                    key: 'avatar-bg',
+                                    className: 'w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0'
+                                }, React.createElement('span', {
+                                    className: 'text-xs font-semibold text-white'
+                                }, author.full_name?.charAt(0)?.toUpperCase() || '?')),
+                                author.id === value && React.createElement('div', {
+                                    key: 'check',
+                                    className: 'absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border border-white dark:border-gray-800 flex items-center justify-center'
+                                }, '✓')
+                            ]),
+                            
+                            // Author Info
+                            React.createElement('div', {
+                                key: 'info',
+                                className: 'flex-1 min-w-0'
+                            }, React.createElement('div', {
+                                className: 'flex items-center gap-2'
+                            }, [
+                                React.createElement('span', {
+                                    key: 'name',
+                                    className: 'font-medium text-gray-900 dark:text-gray-100 text-sm truncate'
+                                }, author.full_name),
+                                React.createElement('span', {
+                                    key: 'role',
+                                    className: `inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${getRoleBadgeStyle(author.role)}`
+                                }, [
+                                    React.createElement('span', { key: 'icon' }, getRoleIcon(author.role)),
+                                    author.role_display_name
+                                ])
+                            ]))
+                        ])
+                    ) : React.createElement('div', {
+                        key: 'no-results',
+                        className: 'p-3 text-center text-gray-500 dark:text-gray-400 text-sm'
+                    }, 'Không tìm thấy tác giả'))
+                ])
+            ]);
+        }
+        
+        // Demo App
+        function DemoApp() {
+            const [selectedAuthorId, setSelectedAuthorId] = useState('');
+            
+            const authors = [
+                {
+                    id: '1',
+                    full_name: 'Nguyễn Văn A',
+                    email: 'admin@example.com',
+                    role: 'admin',
+                    role_display_name: 'Quản trị viên'
+                },
+                {
+                    id: '2',
+                    full_name: 'Trần Thị B',
+                    email: 'editor@example.com',
+                    role: 'editor',
+                    role_display_name: 'Biên tập viên'
+                },
+                {
+                    id: '3',
+                    full_name: 'Lê Văn C',
+                    email: 'author@example.com',
+                    role: 'author',
+                    role_display_name: 'Tác giả'
+                },
+                {
+                    id: '4',
+                    full_name: 'Phạm Thị D',
+                    email: 'reviewer@example.com',
+                    role: 'reviewer',
+                    role_display_name: 'Người duyệt'
+                }
+            ];
+            
+            const selectedAuthor = authors.find(author => author.id === selectedAuthorId);
+            
+            // Update selected value display
+            React.useEffect(() => {
+                const valueElement = document.getElementById('selected-value');
+                if (valueElement) {
+                    if (selectedAuthor) {
+                        valueElement.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium">${selectedAuthor.full_name}</span>
+                                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">${selectedAuthor.role_display_name}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">${selectedAuthor.email}</div>
+                        `;
+                    } else {
+                        valueElement.textContent = 'Chưa chọn tác giả nào';
+                    }
+                }
+            }, [selectedAuthor]);
+            
+            return React.createElement(AuthorSelector, {
+                value: selectedAuthorId,
+                authors: authors,
+                onChange: setSelectedAuthorId,
+                disabled: false
+            });
+        }
+        
+        // Render the demo
+        const container = document.getElementById('author-selector-container');
+        const root = createRoot(container);
+        root.render(React.createElement(DemoApp));
+    </script>
+</body>
+</html>
