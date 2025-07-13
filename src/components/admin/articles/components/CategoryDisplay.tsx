@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface CategoryDisplayProps {
-  categories: string[];
+  categories: readonly string[] | string[];
   maxVisible?: number;
   getCategoryColor: (categoryName: string) => string;
   className?: string;
