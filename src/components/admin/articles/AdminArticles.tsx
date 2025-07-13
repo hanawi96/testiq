@@ -13,7 +13,7 @@ import SearchInput from '../common/SearchInput';
 import LoadingSpinner from '../common/LoadingSpinner';
 import SearchHighlight from '../common/SearchHighlight';
 import SearchStats from '../common/SearchStats';
-// Removed skeleton imports - no more loading animations
+import { SkeletonStats, SkeletonTable } from '../common/Skeleton';
 import { SmartPreloader } from '../../../utils/admin/preloaders/preload-manager';
 
 // ===== OPTIMIZED STATE MANAGEMENT =====
@@ -185,19 +185,8 @@ interface AdminArticlesProps {
 }
 
 export default function AdminArticles({ initialData }: AdminArticlesProps) {
-  // HYBRID APPROACH: Use initial data if available, but don't block UI
-  const smartInitialState = initialData ? {
-    ...initialState,
-    articlesData: initialData.articles,
-    stats: initialData.stats,
-    loading: {
-      ...initialState.loading,
-      articles: false, // Don't show loading if we have data
-      stats: false     // Don't show loading if we have data
-    }
-  } : initialState;
-
-  const [state, dispatch] = useReducer(adminArticlesReducer, smartInitialState);
+  // FRESH DATA APPROACH: Always start with loading state for fresh data
+  const [state, dispatch] = useReducer(adminArticlesReducer, initialState);
 
   // INSTANT UI: Track mount state for immediate UI display
   const [isMounted, setIsMounted] = useState(false);
@@ -291,34 +280,23 @@ export default function AdminArticles({ initialData }: AdminArticlesProps) {
 
 
 
-  // HYBRID LOAD: Only fetch if no initial data or filters changed
+  // FRESH DATA LOAD: Always fetch fresh data on mount and filter changes
   useEffect(() => {
     if (!isMounted) return;
 
-    const needsRefresh = !articlesData ||
-      (initialData && (
-        filters.status !== 'all' ||
-        filters.search !== '' ||
-        filters.sort_by !== 'created_at' ||
-        filters.sort_order !== 'desc'
-      ));
+    const loadFreshData = async () => {
+      // Clear any existing cache first
+      const { ArticleQueries } = await import('../../../../backend/admin/articles/queries');
+      ArticleQueries.clearCache();
 
-    if (needsRefresh) {
-      const loadData = async () => {
-        await Promise.all([
-          fetchArticles(1),
-          fetchStats()
-        ]);
-      };
-      loadData();
-    } else if (initialData && articlesData) {
-      // Background refresh for stale data (silent)
-      setTimeout(() => {
-        fetchArticles(1, true);
-        fetchStats();
-      }, 2000);
-    }
+      // Fetch fresh data
+      await Promise.all([
+        fetchArticles(1),
+        fetchStats()
+      ]);
+    };
 
+    loadFreshData();
     SmartPreloader.triggerSmartPreload('navigation');
   }, [isMounted, filters]);
 
@@ -1096,8 +1074,10 @@ export default function AdminArticles({ initialData }: AdminArticlesProps) {
         </motion.div>
       )}
 
-      {/* Stats Cards - NO SKELETON: Show immediately or nothing */}
-      {stats && (
+      {/* Stats Cards - With Skeleton Loading */}
+      {loading.stats ? (
+        <SkeletonStats />
+      ) : stats ? (
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {[
             {
@@ -1149,9 +1129,7 @@ export default function AdminArticles({ initialData }: AdminArticlesProps) {
             </div>
           ))}
         </div>
-      )}
-
-
+      ) : null}
 
       {/* STATIC FILTERS - Hiển thị ngay lập tức */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -1269,8 +1247,10 @@ export default function AdminArticles({ initialData }: AdminArticlesProps) {
         )}
       </AnimatePresence>
 
-      {/* Articles Table - NO SKELETON: Show immediately or nothing */}
-      {articlesData ? (
+      {/* Articles Table - With Skeleton Loading */}
+      {loading.articles ? (
+        <SkeletonTable rows={10} />
+      ) : articlesData ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -1797,7 +1777,7 @@ export default function AdminArticles({ initialData }: AdminArticlesProps) {
             Tạo bài viết mới
           </a>
         </div>
-      )}
+      ) : null}
 
       {/* Quick Editors */}
       <AnimatePresence>

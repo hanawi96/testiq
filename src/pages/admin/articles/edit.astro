@@ -26,17 +26,12 @@ if (!articleId) {
   return Astro.redirect('/admin/articles');
 }
 
-// HYBRID APPROACH: Pre-load data nhưng không block UI
-const [articleResult, categoriesResult, authorsResult] = await Promise.allSettled([
-  ArticlesService.getArticleForEdit(articleId),
-  CategoriesService.getAllCategories(),
-  UserProfilesService.getAuthorOptions()
-]);
-
+// FRESH DATA APPROACH: Không pre-load để tránh cache cũ
+// Client sẽ fetch fresh data với skeleton loading
 const initialData = {
-  article: articleResult.status === 'fulfilled' ? articleResult.value.data : null,
-  categories: categoriesResult.status === 'fulfilled' ? categoriesResult.value.data : null,
-  authors: authorsResult.status === 'fulfilled' ? authorsResult.value.data : null,
+  article: null,
+  categories: null,
+  authors: null,
   articleId: articleId
 };
 ---

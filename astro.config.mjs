@@ -6,7 +6,7 @@ import node from '@astrojs/node';
 
 export default defineConfig({
   site: 'https://iqtest.yourdomain.com', // Thay đổi domain thực của bạn
-  output: 'hybrid', // Hybrid mode for admin pages
+  output: 'server', // Server mode for dynamic pages
   devToolbar: {
     enabled: false // Disable dev toolbar to prevent it from appearing in screenshots
   },

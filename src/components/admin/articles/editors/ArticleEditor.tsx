@@ -231,11 +231,11 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
         }
       }
 
-      // Background refresh for stale data (silent)
+      // FIXED: Immediate background refresh for instant data sync
       setTimeout(() => {
         console.log('🔄 HYBRID: Background refresh starting');
         refreshDataSilently();
-      }, 2000);
+      }, 100); // Reduced from 2000ms to 100ms
 
       // Trigger smart preloading for navigation
       SmartPreloader.triggerSmartPreload('navigation');
@@ -404,15 +404,10 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + S to save
+      // Ctrl/Cmd + S to publish
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        handleSave('draft');
-      }
-      // Ctrl/Cmd + Shift + P to publish
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
-        e.preventDefault();
-        handleSave('published');
+        handlePublish();
       }
     };
 
@@ -584,12 +579,20 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
     setShowImageUpload(false);
   };
 
-  const handleSave = async (action: 'save' | 'autosave') => {
-    const isAutoSave = action === 'autosave';
+  // Handle publish action - direct save with publish flag
+  const handlePublish = async () => {
+    console.log('📢 PUBLISH: Starting publish action');
+    handleSave('publish');
+  };
 
-    console.log(`💾 SAVE: Starting ${isAutoSave ? 'AUTOSAVE' : 'MANUAL SAVE'}`, {
+  const handleSave = async (action: 'save' | 'autosave' | 'publish') => {
+    const isAutoSave = action === 'autosave';
+    const isPublish = action === 'publish';
+
+    console.log(`💾 SAVE: Starting ${isAutoSave ? 'AUTOSAVE' : isPublish ? 'PUBLISH' : 'MANUAL SAVE'}`, {
       action,
       isAutoSave,
+      isPublish,
       isEditMode,
       hasUnsavedChanges,
       formData: {
@@ -606,7 +609,7 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
       console.log('🔵 AUTOSAVE: Setting isAutoSaving = true');
       setIsAutoSaving(true);
     } else {
-      console.log('🔄 MANUAL SAVE: Setting isLoading = true');
+      console.log(`🔄 ${isPublish ? 'PUBLISH' : 'MANUAL SAVE'}: Setting isLoading = true`);
       setLoadingState(prev => ({ ...prev, isLoading: true }));
     }
 
@@ -641,21 +644,26 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
         return;
       }
 
-      // Prepare article data
-      const status = formData.is_public ? 'published' : 'draft';
+      // CRITICAL: Calculate effective values FIRST
+      const effectiveIsPublic = isPublish ? true : formData.is_public;
+      const status = effectiveIsPublic ? 'published' : 'draft';
+
       console.log('📊 STATUS LOGIC:', {
-        is_public: formData.is_public,
+        isPublish,
+        original_is_public: formData.is_public,
+        effective_is_public: effectiveIsPublic,
         calculated_status: status,
         isEditMode,
         isAutoSave
       });
 
+      // Prepare article data with correct status
       const articleData: CreateArticleData = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         excerpt: formData.excerpt.trim(),
         slug: formData.slug.trim(),
-        status,
+        status, // ✅ Now uses correct calculated status
         featured: formData.is_featured,
         lang: formData.lang,
         article_type: formData.article_type,
@@ -691,10 +699,30 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
 
 
 
+      // DEBUG: Log the final articleData being sent
+      console.log('🔍 FINAL ARTICLE DATA:', {
+        articleId: articleId || currentArticleId,
+        isEditMode,
+        isPublish,
+        articleData: {
+          title: articleData.title,
+          status: articleData.status,
+          featured: articleData.featured,
+          content_length: articleData.content.length,
+          author_id: formData.author_id.trim() || null
+        }
+      });
+
       let data, error;
 
       if (isEditMode && (articleId || currentArticleId)) {
         // Update existing article
+        console.log('🔄 CALLING updateArticle with:', {
+          articleId: articleId || currentArticleId,
+          status: articleData.status,
+          authorId: formData.author_id.trim() || null
+        });
+
         const result = await ArticlesService.updateArticle(
           articleId || currentArticleId!,
           articleData,
@@ -713,9 +741,10 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
       }
 
       if (error) {
-        console.error(`❌ SAVE ERROR (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
+        console.error(`❌ SAVE ERROR (${isAutoSave ? 'AUTOSAVE' : isPublish ? 'PUBLISH' : 'MANUAL'}):`, {
           isEditMode,
           isAutoSave,
+          isPublish,
           error: error.message || error,
           formData: {
             title: formData.title.substring(0, 30),
@@ -729,8 +758,9 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
       }
 
       if (data) {
-        console.log(`✅ SAVE SUCCESS (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
+        console.log(`✅ SAVE SUCCESS (${isAutoSave ? 'AUTOSAVE' : isPublish ? 'PUBLISH' : 'MANUAL'}):`, {
           isAutoSave,
+          isPublish,
           isEditMode,
           articleId: data.id,
           title: data.title?.substring(0, 30) + '...',
@@ -741,18 +771,26 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
         setHasUnsavedChanges(false);
         setLastSaved(new Date());
 
+        // Update form state if published
+        if (isPublish) {
+          setFormData(prev => ({ ...prev, is_public: true, status: 'published' }));
+          console.log('📢 PUBLISH: Updated form state to published');
+        }
+
         console.log('📝 SAVE: Updated states', {
           hasUnsavedChanges: false,
-          lastSaved: new Date().toLocaleTimeString()
+          lastSaved: new Date().toLocaleTimeString(),
+          isPublish,
+          formUpdated: isPublish
         });
 
-        // Show different messages for manual vs auto save
-        if (!isAutoSave) {
+        // Show different messages for manual vs auto save vs publish
+        if (!isAutoSave && !isPublish) {
           console.log('💬 MANUAL SAVE: Showing success message');
           setSaveStatus('✅ Đã lưu thành công');
           setTimeout(() => setSaveStatus(''), 2000);
         } else {
-          console.log('🔇 AUTOSAVE: Silent success (no message)');
+          console.log(`🔇 ${isAutoSave ? 'AUTOSAVE' : 'PUBLISH'}: Silent success (no message)`);
         }
 
         // Call onSave callback if provided
@@ -777,8 +815,9 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
       setSaveStatus('❌ Có lỗi xảy ra khi tạo bài viết');
       setTimeout(() => setSaveStatus(''), 3000);
     } finally {
-      console.log(`🏁 SAVE CLEANUP (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
+      console.log(`🏁 SAVE CLEANUP (${isAutoSave ? 'AUTOSAVE' : isPublish ? 'PUBLISH' : 'MANUAL'}):`, {
         isAutoSave,
+        isPublish,
         timestamp: new Date().toLocaleTimeString()
       });
 
@@ -786,7 +825,7 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
         console.log('🔵 AUTOSAVE: Setting isAutoSaving = false');
         setIsAutoSaving(false);
       } else {
-        console.log('🔄 MANUAL SAVE: Setting isLoading = false');
+        console.log(`🔄 ${isPublish ? 'PUBLISH' : 'MANUAL SAVE'}: Setting isLoading = false`);
         setLoadingState(prev => ({ ...prev, isLoading: false }));
       }
     }
@@ -971,18 +1010,18 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
                 )}
               </div>
               <button
-                onClick={() => handleSave('save')}
+                onClick={() => handlePublish()}
                 disabled={loadingState.isLoading}
                 className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 font-medium ${
                   loadingState.isLoading
                     ? 'bg-blue-500 text-white cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
                 }`}
-                title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
+                title="Xuất bản bài viết (Ctrl+S)"
               >
                 {loadingState.isLoading ? (
                   <>
-                    <span>Đang lưu...</span>
+                    <span>Đang xuất bản...</span>
                     {/* Progress indicator */}
                     <div className="w-16 h-1 bg-blue-300 rounded-full overflow-hidden">
                       <div
@@ -996,7 +1035,7 @@ export default function ArticleEditor({ articleId, initialData, onSave }: Articl
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
+                    <span>Xuất bản</span>
                   </>
                 )}
               </button>

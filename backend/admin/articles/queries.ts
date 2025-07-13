@@ -43,7 +43,7 @@ interface CacheEntry<T> {
 
 class QueryCache {
   private cache = new Map<string, CacheEntry<any>>();
-  private readonly DEFAULT_TTL = 2 * 60 * 1000; // OPTIMIZED: 2 minutes thay vì 5
+  private readonly DEFAULT_TTL = 30 * 1000; // FIXED: 30 seconds for instant refresh
   private readonly MAX_CACHE_SIZE = 100; // OPTIMIZED: Giới hạn cache size
 
   set<T>(key: string, data: T, ttl: number = this.DEFAULT_TTL): void {
@@ -419,6 +419,17 @@ export class ArticleQueries {
     try {
       const startTime = Date.now();
 
+      console.log('🔍 ArticleQueries.updateArticle executing:', {
+        articleId,
+        updateData: {
+          title: updateData.title,
+          status: updateData.status,
+          featured: updateData.featured,
+          author_id: updateData.author_id,
+          keys: Object.keys(updateData)
+        }
+      });
+
       const { data: updatedData, error } = await supabase
         .from('articles')
         .update(updateData)
@@ -426,14 +437,28 @@ export class ArticleQueries {
         .select()
         .single();
 
+      console.log('🔍 Supabase update result:', {
+        success: !error,
+        error: error?.message || null,
+        updatedData: updatedData ? {
+          id: updatedData.id,
+          title: updatedData.title,
+          status: updatedData.status,
+          author_id: updatedData.author_id
+        } : null
+      });
+
       if (!error && updatedData) {
-        // Invalidate caches
+        // FIXED: Immediate cache invalidation for instant refresh
         queryCache.invalidate('articles:');
         queryCache.invalidate('stats');
         queryCache.invalidate(`article:edit:${articleId}`);
 
+        // Clear all related caches immediately
+        queryCache.invalidate();
+
         const queryTime = Date.now() - startTime;
-        console.log(`✅ ArticleQueries: Updated article in ${queryTime}ms`);
+        console.log(`✅ ArticleQueries: Updated article and cleared all caches in ${queryTime}ms`);
       }
 
       return { data: updatedData, error };

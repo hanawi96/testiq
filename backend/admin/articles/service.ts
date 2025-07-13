@@ -36,13 +36,20 @@ export class ArticlesService {
 
 
   /**
-   * Invalidate articles cache
+   * FIXED: Immediate cache invalidation for instant data refresh
    */
   private static invalidateArticlesCache(): void {
+    // Clear client-side cache
     if (typeof window !== 'undefined' && (window as any).__articlesCache) {
       console.log('🗑️ ArticlesService: Invalidating articles cache');
       delete (window as any).__articlesCache;
     }
+
+    // FIXED: Clear server-side query cache immediately
+    const { ArticleQueries } = require('./queries');
+    ArticleQueries.clearCachePattern('articles:');
+    ArticleQueries.clearCachePattern('article:edit:');
+    console.log('✅ ArticlesService: Server cache cleared immediately');
   }
 
 
@@ -223,14 +230,38 @@ export class ArticlesService {
    */
   static async updateArticle(
     articleId: string,
-    updateData: Partial<CreateArticleData>
+    updateData: Partial<CreateArticleData>,
+    authorId?: string | null
   ): Promise<{ data: Article | null; error: any }> {
     try {
+      console.log('🔍 ArticlesService.updateArticle called with:', {
+        articleId,
+        updateData: {
+          title: updateData.title,
+          status: updateData.status,
+          featured: updateData.featured,
+          content_length: updateData.content?.length || 0
+        },
+        authorId
+      });
+
       // Extract categories and tags for separate processing
       const { categories, tags, ...articleUpdateData } = updateData;
 
+      // Add author_id if provided
+      if (authorId) {
+        articleUpdateData.author_id = authorId;
+        console.log('✅ Added authorId to updateData:', authorId);
+      }
+
       // Process update data using ProcessingUtils
       const processedUpdateData = await ProcessingUtils.processUpdateData(articleUpdateData, articleId);
+
+      console.log('🔍 Processed update data:', {
+        status: processedUpdateData.status,
+        title: processedUpdateData.title,
+        author_id: processedUpdateData.author_id
+      });
 
       // Update article in database
       const { data: updatedArticle, error } = await ArticleQueries.updateArticle(articleId, processedUpdateData);
@@ -435,8 +466,8 @@ export class ArticlesService {
       const tagsArray = updatedTags?.map((item: any) => item.tags).filter(Boolean) || [];
       const tagNames = tagsArray.map((tag: any) => tag.name);
 
-      // OPTIMIZED: Async cache invalidation - không block response
-      setTimeout(() => this.invalidateArticlesCache(), 0);
+      // FIXED: Immediate cache invalidation for instant refresh
+      this.invalidateArticlesCache();
 
       return {
         data: {
@@ -485,7 +516,7 @@ export class ArticlesService {
         return { error };
       }
 
-      // Invalidate cache
+      // FIXED: Immediate cache invalidation
       this.invalidateArticlesCache();
 
       return { error: null };
