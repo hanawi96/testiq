@@ -27,15 +27,18 @@
 
 .tiptap-content .ProseMirror {
   @apply outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
-  min-height: 780px;
+  height: calc(1000px - 60px); /* 1000px - toolbar height (60px) */
   padding: 1.5rem;
   border-radius: 0 0 0.5rem 0.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Flex height support for dynamic sizing */
 .tiptap-editor.h-full .tiptap-content.flex-1 .ProseMirror {
   height: 100%;
-  min-height: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Placeholder */
@@ -209,7 +212,7 @@
 @media (max-width: 768px) {
   .tiptap-content .ProseMirror {
     padding: 0.75rem;
-    min-height: 600px;
+    height: calc(600px - 60px); /* 600px - toolbar height (60px) */
   }
   
   .tiptap-content .ProseMirror h1 {

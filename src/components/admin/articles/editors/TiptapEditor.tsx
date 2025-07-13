@@ -809,7 +809,7 @@ export default function TiptapEditor({
         <EditorContent
           editor={editor}
           className={`tiptap-content ${flexHeight ? 'flex-1' : ''}`}
-          style={flexHeight ? { height: '100%' } : { minHeight: height }}
+          style={flexHeight ? { height: '100%' } : { height: height }}
         />
       </div>
 

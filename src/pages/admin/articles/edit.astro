@@ -17,11 +17,281 @@ import ArticleEditor from '../../../components/admin/articles/editors/ArticleEdi
 ---
 
 <AdminLayout title="Chỉnh sửa bài viết - Admin">
-  <!-- Article Editor Component (Edit Mode) -->
-  <ArticleEditor client:load />
+  <!-- Pre-load dropdown states to prevent FOUC -->
+  <script is:inline>
+    // Pre-load article editor dropdown states
+    window.__ARTICLE_EDITOR_DROPDOWN_STATES__ = {};
+    try {
+      const dropdownKeys = ['categories', 'tags', 'author', 'featuredImage', 'seo'];
+      dropdownKeys.forEach(key => {
+        const stored = localStorage.getItem(`article-editor-dropdown-${key}`);
+        window.__ARTICLE_EDITOR_DROPDOWN_STATES__[key] = stored !== 'false';
+      });
+    } catch (e) {
+      // Fallback to all open
+      window.__ARTICLE_EDITOR_DROPDOWN_STATES__ = {
+        categories: true,
+        tags: true,
+        author: true,
+        featuredImage: true,
+        seo: true
+      };
+    }
+  </script>
+
+  <!-- FIXED: Static skeleton first, then React component -->
+  <div id="article-editor-container">
+    <!-- Static skeleton - shows immediately -->
+    <div id="static-skeleton" class="article-editor bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <style>
+        /* CRITICAL CSS: Inline để đảm bảo load ngay */
+        #static-skeleton .article-editor-main {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1rem;
+          align-items: stretch;
+        }
+
+        @media (min-width: 1024px) {
+          #static-skeleton .article-editor-main {
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+          }
+        }
+
+        #static-skeleton .article-sidebar-sticky {
+          position: sticky;
+          top: 6rem;
+        }
+
+        @media (max-width: 1023px) {
+          #static-skeleton .article-sidebar-sticky {
+            position: static;
+          }
+        }
+      </style>
+      <!-- Header -->
+      <div class="article-editor-header bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 shadow-sm">
+        <div class="w-full p-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+              <div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-6 w-48 mb-1"></div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-32"></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-9 w-20"></div>
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-9 w-24"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="w-full py-4">
+        <div class="article-editor-main">
+          <!-- Left Column -->
+          <div class="space-y-6">
+            <!-- Title Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div class="space-y-4">
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-24"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-3 w-12"></div>
+                  </div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-12 w-full"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Editor -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-5 h-5"></div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-5 w-32"></div>
+              </div>
+              <div class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 overflow-hidden" style="height: 780px;">
+                <!-- Toolbar Skeleton -->
+                <div class="border-b border-gray-300 dark:border-gray-600 p-3">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-8 h-8"></div>
+                  </div>
+                </div>
+                <!-- Content Area Skeleton -->
+                <div class="p-4 space-y-4" style="height: calc(780px - 60px); overflow-y: auto;">
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-3/4"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-1/2"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-2/3"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-1/3"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-5/6"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-full"></div>
+                  <!-- Add spacing at bottom -->
+                  <div class="h-32"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column - Sidebar -->
+          <div class="article-sidebar-sticky space-y-6">
+
+            <!-- Publish Box Skeleton -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-5 h-5"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-5 w-16"></div>
+                </div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-8 w-20"></div>
+              </div>
+              <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-24 mb-1"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-3 w-32"></div>
+                  </div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-12 h-6 rounded-full"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-20 mb-1"></div>
+                    <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-3 w-28"></div>
+                  </div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-12 h-6 rounded-full"></div>
+                </div>
+                <div class="flex gap-2">
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-10 flex-1"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-10 flex-1"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categories Skeleton -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-5 h-5"></div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-5 w-20"></div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-4 h-4"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-24"></div>
+                </div>
+                <div class="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-4 h-4"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-32"></div>
+                </div>
+                <div class="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-4 h-4"></div>
+                  <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 w-28"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tags Skeleton -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-5 h-5"></div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-5 w-12"></div>
+              </div>
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-10 w-full mb-2"></div>
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-3 w-40"></div>
+            </div>
+
+            <!-- Author Skeleton -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-5 h-5"></div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-5 w-16"></div>
+              </div>
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-10 w-full"></div>
+            </div>
+
+            <!-- Featured Image Skeleton -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded w-5 h-5"></div>
+                <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-5 w-24"></div>
+              </div>
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-32 w-full mb-3"></div>
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-10 w-full mb-2"></div>
+              <div class="animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-3 w-48"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- React component will replace skeleton -->
+    <ArticleEditor client:only="react" />
+  </div>
 </AdminLayout>
 
+
+
 <style>
+  /* Article Editor Grid Layout - Consistent with inline CSS */
+  .article-editor-main {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  @media (min-width: 1024px) {
+    .article-editor-main {
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+    }
+  }
+
+
+
+  /* Sidebar sticky positioning */
+  .article-sidebar-sticky {
+    position: sticky;
+    top: 6rem;
+  }
+
+  /* Mobile responsive - sidebar below content */
+  @media (max-width: 1023px) {
+    .article-sidebar-sticky {
+      position: static;
+    }
+  }
+
   /* Custom styles for article editing */
   :global(.prose) {
     @apply text-gray-700 dark:text-gray-300;
@@ -152,19 +422,36 @@ import ArticleEditor from '../../../components/admin/articles/editors/ArticleEdi
   // Client-side functionality for article editing
   document.addEventListener('DOMContentLoaded', function() {
     console.log('Article edit page loaded');
-    
+
+
+
     // Get article ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const articleId = urlParams.get('id');
-    
+
     if (!articleId) {
       // Redirect to articles list if no ID provided
       window.location.href = '/admin/articles';
       return;
     }
-    
+
     // Pass article ID to React component
     window.articleEditId = articleId;
+
+    // FIXED: Hide static skeleton when React component mounts
+    const hideStaticSkeleton = () => {
+      const skeleton = document.getElementById('static-skeleton');
+      if (skeleton) {
+        skeleton.style.display = 'none';
+        console.log('✅ Static skeleton hidden');
+      }
+    };
+
+    // Listen for React component mount
+    window.addEventListener('article-editor-mounted', hideStaticSkeleton);
+
+    // Fallback: hide after 3 seconds
+    setTimeout(hideStaticSkeleton, 3000);
     
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {

@@ -11,11 +11,248 @@ import '../../../../styles/tiptap-editor.css';
 import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../../utils/admin/preloaders/categories-preloader';
 import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../../utils/admin/preloaders/authors-preloader';
 
+// PROGRESSIVE LOADING: Skeleton components cho dữ liệu động
+const FieldSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`} />
+);
+
+const TitleSkeleton: React.FC = () => (
+  <div className="space-y-2">
+    <FieldSkeleton className="h-4 w-24" />
+    <FieldSkeleton className="h-12 w-full rounded-lg" />
+  </div>
+);
+
+const EditorSkeleton: React.FC = () => (
+  <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900" style={{ height: '1000px' }}>
+    {/* Toolbar Skeleton - khớp với TipTap toolbar */}
+    <div className="border-b border-gray-300 dark:border-gray-600 p-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        {Array.from({ length: 15 }, (_, i) => (
+          <FieldSkeleton key={i} className="w-8 h-8 rounded" />
+        ))}
+      </div>
+    </div>
+
+    {/* Content Area Skeleton - chiều cao cố định với scroll */}
+    <div className="p-4 space-y-4 overflow-y-auto overflow-x-hidden" style={{ height: 'calc(1000px - 60px)' }}>
+      {/* Simulate content lines */}
+      {Array.from({ length: 20 }, (_, i) => (
+        <FieldSkeleton
+          key={i}
+          className={`h-4 ${
+            i === 0 ? 'w-3/4' :
+            i === 4 ? 'w-1/2' :
+            i === 8 ? 'w-2/3' :
+            i === 12 ? 'w-1/3' :
+            i === 16 ? 'w-5/6' :
+            'w-full'
+          }`}
+        />
+      ))}
+
+      {/* Add some spacing at bottom */}
+      <div className="h-32"></div>
+    </div>
+  </div>
+);
+
+const ExcerptSkeleton: React.FC = () => (
+  <div className="space-y-3">
+    <FieldSkeleton className="h-24 w-full rounded-lg" />
+    <FieldSkeleton className="h-3 w-48" />
+  </div>
+);
+
+const SEOSkeleton: React.FC = () => (
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {/* Left side - SEO Score & Analysis */}
+    <div className="space-y-4">
+      {/* SEO Score */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+        <div className="text-center">
+          <FieldSkeleton className="h-8 w-16 mx-auto mb-2" />
+          <FieldSkeleton className="h-2 w-full rounded-full mb-2" />
+          <FieldSkeleton className="h-4 w-20 mx-auto" />
+        </div>
+      </div>
+
+      {/* SEO Checklist */}
+      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+        <FieldSkeleton className="h-4 w-24 mb-3" />
+        <div className="space-y-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <FieldSkeleton className="w-2 h-2 rounded-full" />
+              <FieldSkeleton className="h-3 w-20" />
+              <FieldSkeleton className="h-3 w-32 ml-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Right side - SEO Fields */}
+    <div className="space-y-4">
+      {/* Focus Keyword */}
+      <div>
+        <FieldSkeleton className="h-4 w-20 mb-2" />
+        <FieldSkeleton className="h-10 w-full rounded-lg" />
+        <FieldSkeleton className="h-3 w-56 mt-1" />
+      </div>
+      {/* Meta Title */}
+      <div>
+        <FieldSkeleton className="h-4 w-32 mb-2" />
+        <FieldSkeleton className="h-10 w-full rounded-lg" />
+        <FieldSkeleton className="h-3 w-24 mt-1" />
+      </div>
+      {/* Meta Description */}
+      <div>
+        <FieldSkeleton className="h-4 w-36 mb-2" />
+        <FieldSkeleton className="h-20 w-full rounded-lg" />
+        <FieldSkeleton className="h-3 w-28 mt-1" />
+      </div>
+    </div>
+  </div>
+);
+
+const SidebarSkeleton: React.FC = () => (
+  <div className="space-y-6">
+    {/* Publish Box Skeleton */}
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <FieldSkeleton className="w-5 h-5" />
+          <FieldSkeleton className="h-5 w-16" />
+        </div>
+        <FieldSkeleton className="h-8 w-20 rounded-lg" />
+      </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <FieldSkeleton className="h-4 w-24 mb-1" />
+            <FieldSkeleton className="h-3 w-32" />
+          </div>
+          <FieldSkeleton className="w-12 h-6 rounded-full" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <FieldSkeleton className="h-4 w-20 mb-1" />
+            <FieldSkeleton className="h-3 w-28" />
+          </div>
+          <FieldSkeleton className="w-12 h-6 rounded-full" />
+        </div>
+        <div className="flex gap-2">
+          <FieldSkeleton className="h-10 flex-1 rounded-lg" />
+          <FieldSkeleton className="h-10 flex-1 rounded-lg" />
+        </div>
+      </div>
+    </div>
+
+    {/* Categories Skeleton */}
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <FieldSkeleton className="w-5 h-5" />
+        <FieldSkeleton className="h-5 w-20" />
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+            <FieldSkeleton className="w-4 h-4" />
+            <FieldSkeleton className="h-4 w-24" />
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Tags Skeleton */}
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <FieldSkeleton className="w-5 h-5" />
+        <FieldSkeleton className="h-5 w-12" />
+      </div>
+      <FieldSkeleton className="h-10 w-full rounded-lg mb-2" />
+      <FieldSkeleton className="h-3 w-40" />
+      <div className="flex flex-wrap gap-2 mt-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <FieldSkeleton key={i} className="h-6 w-16 rounded" />
+        ))}
+      </div>
+    </div>
+
+    {/* Author Skeleton */}
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <FieldSkeleton className="w-5 h-5" />
+        <FieldSkeleton className="h-5 w-16" />
+      </div>
+      <FieldSkeleton className="h-10 w-full rounded-lg" />
+    </div>
+
+    {/* Featured Image Skeleton */}
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <FieldSkeleton className="w-5 h-5" />
+        <FieldSkeleton className="h-5 w-24" />
+      </div>
+      <FieldSkeleton className="h-32 w-full rounded-lg mb-3" />
+      <FieldSkeleton className="h-10 w-full rounded-lg mb-2" />
+      <FieldSkeleton className="h-3 w-48" />
+    </div>
+  </div>
+);
+
 
 
 // LAZY LOAD heavy components
 const TiptapEditor = lazy(() => import('./TiptapEditor'));
 const ImageUpload = lazy(() => import('./ImageUpload'));
+
+// Dropdown Section Component to prevent FOUC
+const DropdownSection: React.FC<{
+  title: string;
+  icon: React.ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ title, icon, isOpen, onToggle, children, className = '' }) => (
+  <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 dropdown-section ${className}`}>
+    <button
+      onClick={onToggle}
+      className="flex items-center justify-between w-full mb-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg p-2 -m-2 transition-colors duration-200"
+    >
+      <div className="flex items-center gap-2">
+        {icon}
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+      </div>
+      <svg
+        className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ease-in-out ${
+          isOpen ? 'rotate-180' : ''
+        }`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    <div
+      className={`dropdown-content transition-all duration-300 ease-in-out overflow-hidden ${
+        isOpen ? 'max-h-[2000px] opacity-100 open' : 'max-h-0 opacity-0 closed'
+      }`}
+      style={{
+        transitionProperty: 'max-height, opacity',
+        transitionDuration: '300ms',
+        transitionTimingFunction: 'ease-in-out'
+      }}
+    >
+      <div style={{ display: isOpen ? 'block' : 'none' }}>
+        {children}
+      </div>
+    </div>
+  </div>
+);
 
 
 
@@ -58,22 +295,18 @@ const FALLBACK_AUTHORS = [
 
 export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps) {
 
-  // Get article ID from props or URL params (chỉ sau khi mount)
-  const [currentArticleId, setCurrentArticleId] = useState<string | null>(articleId || null);
-
-  // Determine if we're in edit mode
-  const isEditMode = !!(articleId || currentArticleId);
-
-  // Effect để get URL params
-  useEffect(() => {
-    if (!articleId) {
+  // FIXED: Get article ID immediately (synchronous) để tránh flash
+  const getArticleId = () => {
+    if (articleId) return articleId;
+    if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      const idFromUrl = urlParams.get('id');
-      if (idFromUrl) {
-        setCurrentArticleId(idFromUrl);
-      }
+      return urlParams.get('id');
     }
-  }, [articleId]);
+    return null;
+  };
+
+  const currentArticleId = getArticleId();
+  const isEditMode = !!currentArticleId;
 
 
 
@@ -117,13 +350,45 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [loadError, setLoadError] = useState('');
   const [showImageUpload, setShowImageUpload] = useState(false);
 
-  // OPTIMIZED: Consolidated loading states
-  const [loadingState, setLoadingState] = useState({
-    isLoading: false,
-    isDataLoaded: !isEditMode, // true for create mode, false for edit mode
+  // Dropdown state management for sidebar sections
+  const [sidebarDropdowns, setSidebarDropdowns] = useState(() => {
+    // Use pre-loaded states to prevent FOUC
+    if (typeof window !== 'undefined' && (window as any).__ARTICLE_EDITOR_DROPDOWN_STATES__) {
+      return (window as any).__ARTICLE_EDITOR_DROPDOWN_STATES__;
+    }
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      return {
+        categories: localStorage.getItem('article-editor-dropdown-categories') !== 'false',
+        tags: localStorage.getItem('article-editor-dropdown-tags') !== 'false',
+        author: localStorage.getItem('article-editor-dropdown-author') !== 'false',
+        featuredImage: localStorage.getItem('article-editor-dropdown-featuredImage') !== 'false',
+        seo: localStorage.getItem('article-editor-dropdown-seo') !== 'false'
+      };
+    }
+    return {
+      categories: true,
+      tags: true,
+      author: true,
+      featuredImage: true,
+      seo: true
+    };
+  });
+
+  // FIXED: Use AdminArticles pattern - loading state in initialState
+  const initialLoadingState = {
+    isLoading: isEditMode, // true for edit mode, false for create mode
+    isDataLoaded: !isEditMode, // false for edit mode, true for create mode
     isValidatingSlug: false,
     isEditorReady: false
-  });
+  };
+
+  const [loadingState, setLoadingState] = useState(initialLoadingState);
+
+  // FIXED: Simple skeleton condition like AdminArticles
+  const shouldShowSkeleton = loadingState.isLoading && !loadingState.isDataLoaded;
+
+
 
   // Professional autosave progress animation
   useEffect(() => {
@@ -154,12 +419,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   // OPTIMIZED: Single useEffect for all data loading (avoid double execution)
   useEffect(() => {
+    // FIXED: Dispatch event to hide static skeleton
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('article-editor-mounted'));
+      console.log('🔄 React component mounted, dispatching event');
+    }
+
     const loadAllData = async () => {
       setLoadError('');
+
       console.log('🔄 ARTICLE EDITOR: Starting data load', {
-        articleId,
         currentArticleId,
-        mode: (articleId || currentArticleId) ? 'EDIT' : 'CREATE'
+        mode: currentArticleId ? 'EDIT' : 'CREATE'
       });
 
       // Start preloading immediately (non-blocking)
@@ -167,10 +438,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       preloadAuthorsData();
 
       try {
-        if (articleId || currentArticleId) {
+        if (currentArticleId) {
           // EDIT MODE: Load article + preloaded data
           const [articleResult, categoriesData, authorsData] = await Promise.all([
-            ArticlesService.getArticleForEdit(articleId || currentArticleId!),
+            ArticlesService.getArticleForEdit(currentArticleId),
             // Use preloaded data if available, otherwise fetch
             isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
             isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
@@ -221,7 +492,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             });
 
             // Mark data as loaded
-            setLoadingState(prev => ({ ...prev, isDataLoaded: true }));
+            setLoadingState(prev => ({ ...prev, isDataLoaded: true, isLoading: false }));
 
 
           }
@@ -305,12 +576,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
         } catch (err) {
           setLoadError('Có lỗi xảy ra khi tải dữ liệu');
+          setLoadingState(prev => ({ ...prev, isLoading: false, isDataLoaded: false }));
           console.error('Error loading data:', err);
         }
       };
 
       loadAllData();
-  }, [articleId, currentArticleId]);
+  }, []); // FIXED: Chỉ chạy 1 lần khi mount, không cần dependency
 
 
 
@@ -424,7 +696,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
     try {
       // Pass current article ID to exclude it from slug check in edit mode
-      const excludeId = isEditMode ? (articleId || currentArticleId) : undefined;
+      const excludeId = isEditMode ? currentArticleId : undefined;
       const { data: isValid, error } = await ArticlesService.validateSlug(slug, excludeId);
 
       if (error) {
@@ -620,10 +892,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
       let data, error;
 
-      if (isEditMode && (articleId || currentArticleId)) {
+      if (isEditMode && currentArticleId) {
         // Update existing article
         const result = await ArticlesService.updateArticle(
-          articleId || currentArticleId!,
+          currentArticleId,
           articleData,
           formData.author_id.trim() || null // Convert empty string to null for UUID
         );
@@ -731,6 +1003,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     }));
   };
 
+  // Toggle sidebar dropdown sections
+  const toggleSidebarDropdown = (section: keyof typeof sidebarDropdowns) => {
+    setSidebarDropdowns(prev => {
+      const newState = { ...prev, [section]: !prev[section] };
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`article-editor-dropdown-${section}`, newState[section].toString());
+      }
+      return newState;
+    });
+  };
+
   // OPTIMIZED: SEO analysis với debouncing để tránh re-calculate liên tục
   const [debouncedFormData, setDebouncedFormData] = useState(formData);
 
@@ -811,6 +1095,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   }, [formData]);
 
   // Loading state removed - show content immediately
+
+  // FIXED: Không cần skeleton nội bộ nữa vì đã có static skeleton từ Astro
+  // Static skeleton sẽ được hide khi component này mount
 
   // Show error state for edit mode
   if (isEditMode && loadError) {
@@ -947,24 +1234,31 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               <div className="space-y-4">
                 {/* Title */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Tiêu đề bài viết
-                    </label>
-                    {formData.title && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formData.title.length}/100
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => handleTitleChange(e.target.value)}
-                    placeholder="Nhập tiêu đề hấp dẫn cho bài viết..."
-                    className="w-full px-4 py-3 text-xl font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
-                    maxLength={100}
-                  />
+                  {/* PROGRESSIVE LOADING: Show skeleton for title when loading data in edit mode */}
+                  {shouldShowSkeleton ? (
+                    <TitleSkeleton />
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Tiêu đề bài viết
+                        </label>
+                        {formData.title && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {formData.title.length}/100
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => handleTitleChange(e.target.value)}
+                        placeholder="Nhập tiêu đề hấp dẫn cho bài viết..."
+                        className="w-full px-4 py-3 text-xl font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
+                        maxLength={100}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* URL Slug */}
@@ -1026,7 +1320,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             </div>
 
             {/* Content Editor Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 flex-1 flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1046,25 +1340,23 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 )}
               </div>
 
-              <div className="flex-1 flex flex-col">
-                <div className="article-content-editor flex-1">
-                  <Suspense fallback={
-                    <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 p-8 flex items-center justify-center min-h-[780px]">
-                      <div className="text-center">
-                        <LoadingSpinner size="lg" color="blue" className="mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400">Đang tải trình soạn thảo...</p>
-                      </div>
-                    </div>
-                  }>
-                    <TiptapEditor
-                      value={formData.content}
-                      onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                      placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                      height="780px"
-                      flexHeight={true}
-                      className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                    />
-                  </Suspense>
+              <div>
+                <div className="article-content-editor">
+                  {/* PROGRESSIVE LOADING: Show skeleton for editor when loading data in edit mode */}
+                  {shouldShowSkeleton ? (
+                    <EditorSkeleton />
+                  ) : (
+                    <Suspense fallback={<EditorSkeleton />}>
+                      <TiptapEditor
+                        value={formData.content}
+                        onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                        placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
+                        height="1000px"
+                        flexHeight={false}
+                        className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                      />
+                    </Suspense>
+                  )}
                 </div>
               </div>
             </div>
@@ -1081,19 +1373,24 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </span>
               </div>
 
-              <div className="space-y-3">
-                <textarea
-                  value={formData.excerpt}
-                  onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                  placeholder="Viết tóm tắt ngắn gọn và hấp dẫn để thu hút độc giả..."
-                  rows={4}
-                  maxLength={200}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Tóm tắt tốt sẽ hiển thị trong kết quả tìm kiếm và mạng xã hội
-                </p>
-              </div>
+              {/* PROGRESSIVE LOADING: Show skeleton for excerpt when loading data in edit mode */}
+              {shouldShowSkeleton ? (
+                <ExcerptSkeleton />
+              ) : (
+                <div className="space-y-3">
+                  <textarea
+                    value={formData.excerpt}
+                    onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
+                    placeholder="Viết tóm tắt ngắn gọn và hấp dẫn để thu hút độc giả..."
+                    rows={4}
+                    maxLength={200}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Tóm tắt tốt sẽ hiển thị trong kết quả tìm kiếm và mạng xã hội
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* SEO Settings Section */}
@@ -1105,7 +1402,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SEO & Tối ưu hóa</h2>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* PROGRESSIVE LOADING: Show skeleton for SEO when loading data in edit mode */}
+              {shouldShowSkeleton ? (
+                <SEOSkeleton />
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left side - SEO Score & Analysis */}
                 <div className="space-y-4">
                   {/* SEO Score */}
@@ -1220,12 +1521,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </div>
                 </div>
               </div>
+              )}
             </div>
 
           </div>
 
           {/* Right Column - Sidebar Settings */}
           <div className="article-sidebar-sticky space-y-6">
+
+            {/* PROGRESSIVE LOADING: Show skeleton for sidebar when loading data in edit mode */}
+            {shouldShowSkeleton ? (
+              <SidebarSkeleton />
+            ) : (
+              <>
 
             {/* Publish Box */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -1339,13 +1647,16 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             </div>
 
             {/* Categories Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
+            <DropdownSection
+              title="Danh mục"
+              icon={
                 <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Danh mục</h3>
-              </div>
+              }
+              isOpen={sidebarDropdowns.categories}
+              onToggle={() => toggleSidebarDropdown('categories')}
+            >
 
               <div className="space-y-2">
                 {!loadingState.isDataLoaded ? (
@@ -1424,16 +1735,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </div>
                 </div>
               )}
-            </div>
+            </DropdownSection>
 
             {/* Tags Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
+            <DropdownSection
+              title="Tags"
+              icon={
                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tags</h3>
-              </div>
+              }
+              isOpen={sidebarDropdowns.tags}
+              onToggle={() => toggleSidebarDropdown('tags')}
+            >
 
               <div className="space-y-3">
                 <div className="flex gap-2">
@@ -1509,16 +1823,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </div>
                 )}
               </div>
-            </div>
+            </DropdownSection>
 
             {/* Featured Image Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
+            <DropdownSection
+              title="Ảnh đại diện"
+              icon={
                 <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Ảnh đại diện</h3>
-              </div>
+              }
+              isOpen={sidebarDropdowns.featuredImage}
+              onToggle={() => toggleSidebarDropdown('featuredImage')}
+            >
 
               <div className="space-y-3">
                 <div className="flex gap-2">
@@ -1581,16 +1898,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </div>
                 )}
               </div>
-            </div>
+            </DropdownSection>
 
             {/* Author Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
+            <DropdownSection
+              title="Tác giả"
+              icon={
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tác giả</h3>
-              </div>
+              }
+              isOpen={sidebarDropdowns.author}
+              onToggle={() => toggleSidebarDropdown('author')}
+            >
 
               {/* Current Author Display */}
               {(() => {
@@ -1640,9 +1960,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   ))}
                 </select>
               )}
-            </div>
+            </DropdownSection>
 
-
+            </>
+            )}
           </div>
         </div>
       </div>

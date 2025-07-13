@@ -15,17 +15,16 @@
   background-color: rgba(31, 41, 55, 0.95);
 }
 
-/* Content editor height optimization - Increased by 30% */
+/* Content editor height optimization - Increased height for balance */
 .article-content-editor {
-  min-height: 780px;
+  height: 1000px;
+  overflow: hidden;
 }
 
 /* Sidebar sticky positioning */
 .article-sidebar-sticky {
   position: sticky;
   top: 6rem; /* 24 * 0.25rem = 6rem */
-  max-height: calc(100vh - 8rem);
-  overflow-y: auto;
   /* No transitions for instant dark mode switching */
 }
 
@@ -33,7 +32,6 @@
 @media (min-width: 768px) and (max-width: 1023px) {
   .article-sidebar-sticky {
     top: 5rem;
-    max-height: calc(100vh - 6rem);
   }
 }
 
@@ -74,7 +72,8 @@
   }
 
   .article-content-editor {
-    min-height: 910px; /* 700px + 30% = 910px */
+    height: 1200px; /* Increased for better balance */
+    overflow: hidden;
   }
 }
 
@@ -85,7 +84,8 @@
   }
 
   .article-content-editor {
-    min-height: 1040px; /* 800px + 30% = 1040px */
+    height: 1400px; /* Increased for better balance */
+    overflow: hidden;
   }
 }
 
@@ -93,7 +93,6 @@
 @media (max-width: 767px) {
   .article-sidebar-sticky {
     position: static;
-    max-height: none;
   }
 
   .article-editor-main {
@@ -249,31 +248,7 @@
   }
 }
 
-/* Improved scrollbar for sidebar */
-.article-sidebar-sticky::-webkit-scrollbar {
-  width: 6px;
-}
 
-.article-sidebar-sticky::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.article-sidebar-sticky::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-.article-sidebar-sticky::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.8);
-}
-
-.dark .article-sidebar-sticky::-webkit-scrollbar-thumb {
-  background: rgba(75, 85, 99, 0.5);
-}
-
-.dark .article-sidebar-sticky::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 85, 99, 0.8);
-}
 
 /* Performance optimizations */
 .article-editor * {
@@ -314,44 +289,78 @@
   .article-editor {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Mobile content editor height */
+  .article-content-editor {
+    height: 600px;
+    overflow: hidden;
+  }
 }
 
 /* Prevent layout shift during responsive transitions */
 .article-editor-main > div {
   min-width: 0; /* Prevent flex/grid items from overflowing */
-  display: flex;
-  flex-direction: column;
-  height: 100%; /* Đảm bảo cột con có chiều cao đầy đủ */
 }
 
-/* Đảm bảo content editor section có thể mở rộng để lấp đầy không gian còn lại */
-.article-editor-main > div:first-child .space-y-6 {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-/* Content editor section sẽ mở rộng để lấp đầy không gian */
-.article-editor-main > div:first-child .space-y-6 > div:nth-child(2) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Tiptap editor container sẽ mở rộng để lấp đầy không gian */
-.article-editor-main > div:first-child .space-y-6 > div:nth-child(2) > div:last-child {
-  flex: 1;
-}
-
-/* Tiptap editor sẽ có chiều cao đầy đủ */
+/* Tiptap editor với chiều cao cố định - khớp với container */
 .article-content-editor .tiptap-editor {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  height: 1000px;
 }
 
-.article-content-editor .tiptap-editor > div:last-child {
-  flex: 1;
+@media (min-width: 1440px) {
+  .article-content-editor .tiptap-editor {
+    height: 1200px;
+  }
+
+  .article-content-editor .tiptap-content .ProseMirror {
+    height: calc(1200px - 60px);
+  }
+}
+
+@media (min-width: 1920px) {
+  .article-content-editor .tiptap-editor {
+    height: 1400px;
+  }
+
+  .article-content-editor .tiptap-content .ProseMirror {
+    height: calc(1400px - 60px);
+  }
+}
+
+@media (max-width: 767px) {
+  .article-content-editor .tiptap-editor {
+    height: 600px;
+  }
+}
+
+/* Dropdown Section Animations - Prevent FOUC */
+.dropdown-section {
+  transition: all 0.3s ease-in-out;
+}
+
+.dropdown-section .dropdown-content {
+  transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.dropdown-section .dropdown-content.open {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.dropdown-section .dropdown-content.closed {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Prevent flash during page load */
+.article-editor-sidebar {
+  opacity: 1;
+  transition: opacity 0.1s ease-in-out;
+}
+
+.article-editor-sidebar.loading {
+  opacity: 0.7;
 }
 
 /* Responsive text scaling */

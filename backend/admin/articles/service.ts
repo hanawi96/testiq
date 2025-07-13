@@ -112,7 +112,7 @@ export class ArticlesService {
   }
 
   static async getArticleForEdit(articleId: string): Promise<{ data: Article | null; error: any }> {
-    return serviceWrapper(
+    return serviceWrapper<Article>(
       () => ArticleQueries.getArticleForEditOptimized(articleId),
       ERROR_MESSAGES.ARTICLE_NOT_FOUND
     );

@@ -299,7 +299,24 @@ export type ArticleFormData = Pick<CreateArticleData, 'title' | 'content' | 'exc
 export type ArticlePreview = Pick<Article, 'id' | 'title' | 'slug' | 'excerpt' | 'status' | 'created_at' | 'author'>;
 
 // OPTIMIZED: Essential utility types only
-export type ArticleListItem = Pick<Article, 'id' | 'title' | 'slug' | 'status' | 'created_at' | 'author' | 'view_count'>;
+export type ArticleListItem = Pick<Article,
+  | 'id'
+  | 'title'
+  | 'slug'
+  | 'status'
+  | 'created_at'
+  | 'updated_at'
+  | 'author'
+  | 'view_count'
+  | 'like_count'
+  | 'word_count'
+  | 'user_profiles'
+  | 'category_names'
+  | 'category_ids'
+  | 'tag_names'
+  | 'internal_links'
+  | 'external_links'
+>;
 
 // ===== PERFORMANCE-OPTIMIZED ANALYSIS & INTERNAL TYPES =====
 

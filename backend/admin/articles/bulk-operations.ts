@@ -103,8 +103,8 @@ export class BulkOperationsUtils {
 
       const { error: batchError, count } = await supabase
         .from('articles')
-        .upsert(updates, { onConflict: 'id' })
-        .select('id', { count: 'exact', head: true });
+        .upsert(updates, { onConflict: 'id', count: 'exact' })
+        .select('id');
 
       if (batchError) return { data: totalUpdated, error: batchError };
       totalUpdated += count || 0;

@@ -337,13 +337,13 @@ export class ArticleQueries {
   /**
    * PERFORMANCE OPTIMIZED: Get article for editing với single query approach
    */
-  static async getArticleForEditOptimized(articleId: string) {
+  static async getArticleForEditOptimized(articleId: string): Promise<{ data: Article | null; error: any }> {
     try {
       const startTime = Date.now();
       const cacheKey = `article:edit:${articleId}`;
 
       // Check cache first
-      const cached = queryCache.get(cacheKey);
+      const cached = queryCache.get<{ data: Article | null; error: any }>(cacheKey);
       if (cached) return cached;
 
       // Get article

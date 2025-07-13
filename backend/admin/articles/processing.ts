@@ -225,7 +225,7 @@ export class ProcessingUtils {
    * REFACTORED: Process update data - Compact & Efficient
    */
   static async processUpdateData(
-    updateData: Partial<CreateArticleData>,
+    updateData: Partial<CreateArticleData> & { updated_at?: string },
     articleId?: string
   ): Promise<any> {
     const processedUpdateData: any = {

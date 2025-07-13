@@ -32,5 +32,5 @@ export { RelationshipsUtils } from './relationships';
 // Export bulk operations utilities
 export { BulkOperationsUtils } from './bulk-operations';
 
-// Export performance utilities (NEW)
-export { PerformanceUtils, PerformanceTracker } from './performance';
+// Export performance utilities (SIMPLIFIED)
+export { PerformanceUtils, SimpleTimer } from './performance';
