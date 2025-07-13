@@ -8,10 +8,25 @@ import { ArticleQueries } from './queries';
 import type { CreateArticleData, LinkAnalysis } from './types';
 
 export class ProcessingUtils {
+  // ===== CACHED UTILITIES =====
+
+  private static _cachedBaseDomain: string | null = null;
+  private static readonly LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
+
   /**
-   * Get base domain for link analysis (environment-aware)
+   * OPTIMIZED: Cached base domain detection
    */
   static getBaseDomain(): string {
+    if (!this._cachedBaseDomain) {
+      this._cachedBaseDomain = this.detectBaseDomain();
+    }
+    return this._cachedBaseDomain;
+  }
+
+  /**
+   * EXTRACTED: Environment detection logic
+   */
+  private static detectBaseDomain(): string {
     // Check if we're in browser environment
     if (typeof window !== 'undefined') {
       return window.location.hostname;
@@ -49,22 +64,23 @@ export class ProcessingUtils {
   }
 
   /**
-   * OPTIMIZED: Fast link analysis với minimal processing
+   * REFACTORED: Fast link analysis with cached regex
    */
   static analyzeContentLinks(content: string, baseDomain: string): LinkAnalysis {
-    // OPTIMIZED: Pre-compile regex for better performance
-    const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
     const internal_links: any[] = [];
     const external_links: any[] = [];
     let match;
 
-    // OPTIMIZED: Single pass processing
-    while ((match = linkRegex.exec(content)) !== null) {
+    // Reset regex lastIndex for reuse
+    this.LINK_REGEX.lastIndex = 0;
+
+    // Single pass processing with pre-compiled regex
+    while ((match = this.LINK_REGEX.exec(content)) !== null) {
       const url = match[1];
       const isInternal = url.includes(baseDomain) || url.startsWith('/');
 
       if (isInternal) {
-        internal_links.push({ url, text: '' }); // Minimal data
+        internal_links.push({ url, text: '' });
       } else {
         try {
           external_links.push({
@@ -87,7 +103,6 @@ export class ProcessingUtils {
       total_links: internal_count + external_count,
       internal_count,
       external_count,
-      // Frontend compatibility
       total_internal: internal_count,
       total_external: external_count
     };
@@ -105,39 +120,37 @@ export class ProcessingUtils {
   }
 
   /**
-   * @deprecated Use calculateContentMetrics instead
+   * EXTRACTED: Process content data (metrics + links) in single operation
    */
-  static calculateReadingTime(content: string): number {
-    return this.calculateContentMetrics(content).readingTime;
+  private static processContentData(content: string) {
+    const metrics = this.calculateContentMetrics(content);
+    const linkAnalysis = this.analyzeContentLinks(content, this.getBaseDomain());
+
+    return {
+      word_count: metrics.wordCount,
+      reading_time: metrics.readingTime,
+      internal_links: linkAnalysis.internal_links,
+      external_links: linkAnalysis.external_links
+    };
   }
 
-  /**
-   * @deprecated Use calculateContentMetrics instead
-   */
-  static calculateWordCount(content: string): number {
-    return this.calculateContentMetrics(content).wordCount;
-  }
+
 
   /**
-   * OPTIMIZED: Process article data before saving
-   * Uses new validation and slug generation methods
+   * REFACTORED: Process article data - Compact & Efficient
    */
   static async processArticleData(articleData: CreateArticleData, authorId: string) {
-    // OPTIMIZED: Pre-process strings once
+    // Pre-process strings
     const trimmedTitle = articleData.title.trim();
     const trimmedContent = articleData.content.trim();
 
     // Generate unique slug
     const slug = articleData.slug?.trim() || await this.generateUniqueSlug(trimmedTitle);
 
-    // OPTIMIZED: Calculate metrics in single pass
-    const { wordCount, readingTime } = this.calculateContentMetrics(trimmedContent);
+    // Process content data (metrics + links) in single operation
+    const contentData = this.processContentData(trimmedContent);
 
-    // Analyze links in content
-    const baseDomain = this.getBaseDomain();
-    const linkAnalysis = this.analyzeContentLinks(trimmedContent, baseDomain);
-
-    // Prepare article data for database
+    // Build processed data
     const processedData = {
       title: trimmedTitle,
       slug,
@@ -150,6 +163,9 @@ export class ProcessingUtils {
       author_id: authorId,
       category_id: articleData.category_id || null,
       parent_id: articleData.parent_id || null,
+
+      // Content metrics & links
+      ...contentData,
 
       // SEO fields
       meta_title: articleData.meta_title || null,
@@ -189,12 +205,6 @@ export class ProcessingUtils {
       sitemap_priority: articleData.sitemap_priority || 0.5,
       sitemap_changefreq: articleData.sitemap_changefreq || 'weekly',
 
-      // Content analysis
-      word_count: wordCount,
-      reading_time: readingTime,
-      internal_links: linkAnalysis.internal_links,
-      external_links: linkAnalysis.external_links,
-
       // Publishing
       published_at: articleData.status === 'published' ? new Date().toISOString() : null,
       scheduled_at: articleData.scheduled_at || null,
@@ -212,7 +222,7 @@ export class ProcessingUtils {
   }
 
   /**
-   * Process update data for articles
+   * REFACTORED: Process update data - Compact & Efficient
    */
   static async processUpdateData(
     updateData: Partial<CreateArticleData>,
@@ -220,7 +230,6 @@ export class ProcessingUtils {
   ): Promise<any> {
     const processedUpdateData: any = {
       ...updateData,
-      // Only auto-set updated_at if not provided by user
       updated_at: updateData.updated_at || new Date().toISOString()
     };
 
@@ -229,17 +238,9 @@ export class ProcessingUtils {
       processedUpdateData.slug = await this.generateUniqueSlug(updateData.slug, articleId);
     }
 
-    // OPTIMIZED: Update content metrics if content changed
+    // Process content data if content changed
     if (updateData.content) {
-      const { wordCount, readingTime } = this.calculateContentMetrics(updateData.content);
-      processedUpdateData.word_count = wordCount;
-      processedUpdateData.reading_time = readingTime;
-
-      // Analyze links in content
-      const baseDomain = this.getBaseDomain();
-      const linkAnalysis = this.analyzeContentLinks(updateData.content, baseDomain);
-      processedUpdateData.internal_links = linkAnalysis.internal_links;
-      processedUpdateData.external_links = linkAnalysis.external_links;
+      Object.assign(processedUpdateData, this.processContentData(updateData.content));
     }
 
     // Set published_at when publishing

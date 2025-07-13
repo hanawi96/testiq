@@ -23,6 +23,22 @@ import { BulkOperationsUtils } from './bulk-operations';
 const nowISO = () => new Date().toISOString();
 
 /**
+ * REUSABLE: Create paginated response structure
+ */
+function createPaginatedResponse(articles: any[], count: number, page: number, limit: number): ArticlesListResponse {
+  const totalPages = Math.ceil(count / limit);
+  return {
+    articles,
+    total: count,
+    page,
+    limit,
+    totalPages,
+    hasNext: page < totalPages,
+    hasPrev: page > 1
+  };
+}
+
+/**
  * GENERIC: Service wrapper để eliminate duplicate try-catch patterns
  */
 async function serviceWrapper<T>(
@@ -56,44 +72,32 @@ export class ArticlesService {
 
   // ---------------- GETTERS ----------------
 
-  /** Get articles with pagination and filters - HIGH PERFORMANCE */
+  /** REFACTORED: Get articles with pagination and filters - Unified Pattern */
   static async getArticles(
     page: number = 1,
     limit: number = 20,
     filters: ArticlesFilters = {}
   ): Promise<{ data: ArticlesListResponse | null; error: any }> {
-    try {
+    return serviceWrapper(async () => {
       const { data: articles, error, count } = await ArticleQueries.getArticles(page, limit, filters);
-      if (error || !articles)
+      if (error || !articles) {
         return { data: null, error: error || new Error('Không thể lấy danh sách bài viết') };
+      }
 
-      const totalPages = Math.ceil((count || 0) / limit);
       return {
-        data: {
-          articles,
-          total: count || 0,
-          page,
-          limit,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        },
+        data: createPaginatedResponse(articles, count || 0, page, limit),
         error: null
       };
-    } catch (err) {
-      return { data: null, error: err };
-    }
+    });
   }
 
   // ===== REFACTORED GETTERS - Compact & Reusable =====
 
   static async getStats(): Promise<{ data: ArticleStats | null; error: any }> {
-    console.log(`🔍 [SERVICE REFACTOR] Getting stats...`);
     return serviceWrapper(() => ArticleQueries.getArticlesStats());
   }
 
   static async getArticleById(articleId: string): Promise<{ data: Article | null; error: any }> {
-    console.log(`🔍 [SERVICE REFACTOR] Getting article by ID: ${articleId}`);
     return serviceWrapper(
       () => ArticleQueries.getArticleById(articleId),
       ERROR_MESSAGES.ARTICLE_NOT_FOUND
@@ -101,7 +105,6 @@ export class ArticlesService {
   }
 
   static async getArticleBySlug(slug: string): Promise<{ data: Article | null; error: any }> {
-    console.log(`🔍 [SERVICE REFACTOR] Getting article by slug: ${slug}`);
     return serviceWrapper(
       () => ArticleQueries.getArticleBySlug(slug),
       ERROR_MESSAGES.ARTICLE_NOT_FOUND
@@ -109,7 +112,6 @@ export class ArticlesService {
   }
 
   static async getArticleForEdit(articleId: string): Promise<{ data: Article | null; error: any }> {
-    console.log(`🔍 [SERVICE REFACTOR] Getting article for edit: ${articleId}`);
     return serviceWrapper(
       () => ArticleQueries.getArticleForEditOptimized(articleId),
       ERROR_MESSAGES.ARTICLE_NOT_FOUND
@@ -124,8 +126,6 @@ export class ArticlesService {
     articleData: CreateArticleData,
     authorId: string
   ): Promise<{ data: Article | null; error: any }> {
-    console.log(`🔧 [SERVICE REFACTOR] Creating article for author: ${authorId}`);
-
     return serviceWrapper(async () => {
       const validation = ValidationUtils.validateArticleData(articleData);
       if (!validation.isValid) return { data: null, error: new Error(validation.error) };
@@ -139,8 +139,6 @@ export class ArticlesService {
     articleId: string,
     updateData: Partial<CreateArticleData>
   ): Promise<{ data: Article | null; error: any }> {
-    console.log(`🔧 [SERVICE REFACTOR] Updating article: ${articleId}`);
-
     return serviceWrapper(async () => {
       const { categories, tags, ...articleUpdateData } = updateData;
       const processedUpdateData = await ProcessingUtils.processUpdateData(articleUpdateData, articleId);
@@ -164,8 +162,6 @@ export class ArticlesService {
     articleId: string,
     status: 'published' | 'draft' | 'archived'
   ): Promise<{ data: Article | null; error: any }> {
-    console.log(`🔧 [SERVICE REFACTOR] Updating status to ${status} for article: ${articleId}`);
-
     const updateData: any = { status, updated_at: nowISO() };
     if (status === 'published') updateData.published_at = nowISO();
 
@@ -182,14 +178,12 @@ export class ArticlesService {
     articleIds: string[],
     status: 'published' | 'draft' | 'archived'
   ): Promise<{ data: number; error: any }> {
-    console.log(`🔧 [SERVICE REFACTOR] Bulk updating ${articleIds.length} articles to ${status}`);
     const result = await BulkOperationsUtils.bulkUpdateStatus(articleIds, status);
     if (!result.error) invalidateCache();
     return result;
   }
 
   static async deleteArticle(articleId: string): Promise<{ error: any }> {
-    console.log(`🗑️ [SERVICE REFACTOR] Deleting article: ${articleId}`);
     return serviceWrapper(async () => {
       const result = await ArticleQueries.deleteArticle(articleId);
       return { data: true, error: result.error };
@@ -197,21 +191,18 @@ export class ArticlesService {
   }
 
   static async updateTags(articleId: string, tags: string[]): Promise<{ data?: { tags: any[], tag_names: string[] }; error: any }> {
-    console.log(`🏷️ [SERVICE REFACTOR] Updating tags for article: ${articleId}`);
     const result = await RelationshipsUtils.updateTags(articleId, tags);
     if (!result.error) invalidateCache();
     return result;
   }
 
   static async updateAuthorById(articleId: string, authorId: string): Promise<{ error: any }> {
-    console.log(`👤 [SERVICE REFACTOR] Updating author for article: ${articleId} to ${authorId}`);
     const result = await RelationshipsUtils.updateAuthorById(articleId, authorId);
     if (!result.error) invalidateCache();
     return result;
   }
 
   static async updateTitle(articleId: string, title: string): Promise<{ error: any }> {
-    console.log(`📝 [SERVICE REFACTOR] Updating title for article: ${articleId}`);
     const updateData = { title: title.trim(), updated_at: nowISO() };
     return serviceWrapper(async () => {
       const result = await ArticleQueries.updateArticle(articleId, updateData);
@@ -220,41 +211,34 @@ export class ArticlesService {
   }
 
   static async updateCategory(articleId: string, categoryId: string | null): Promise<{ error: any }> {
-    console.log(`📂 [SERVICE REFACTOR] Updating category for article: ${articleId}`);
     const result = await RelationshipsUtils.updateCategory(articleId, categoryId);
     if (!result.error) invalidateCache();
     return result;
   }
 
   static async updateCategories(articleId: string, categoryIds: string[]): Promise<{ error: any }> {
-    console.log(`📂 [SERVICE REFACTOR] Updating categories for article: ${articleId}`);
     const result = await RelationshipsUtils.updateCategories(articleId, categoryIds);
     if (!result.error) invalidateCache();
     return result;
   }
 
-  // ===== REFACTORED MISC/UTILS - Compact & Efficient =====
+  // ===== MISC/UTILS - Clean & Efficient =====
 
   static async validateSlug(slug: string, excludeId?: string): Promise<{ data: boolean; error: any }> {
-    console.log(`✅ [SERVICE REFACTOR] Validating slug: ${slug}`);
     return ValidationUtils.validateSlug(slug, excludeId);
   }
 
   static async getTags(): Promise<string[]> {
-    console.log(`🏷️ [SERVICE REFACTOR] Getting all tags`);
     return RelationshipsUtils.getTags();
   }
 
   static async addSampleViewData(): Promise<{ success: boolean; error?: any }> {
-    console.log(`📊 [SERVICE REFACTOR] Adding sample view data`);
     const result = await BulkOperationsUtils.addSampleViewData();
     if (result.success) invalidateCache();
     return result;
   }
 
   static async analyzeArticleLinks(articleId: string): Promise<{ data: LinkAnalysis | null; error: any }> {
-    console.log(`🔗 [SERVICE REFACTOR] Analyzing links for article: ${articleId}`);
-
     return serviceWrapper(async () => {
       const { data: article, error: fetchError } = await ArticleQueries.getArticleById(articleId);
       if (fetchError || !article) return { data: null, error: fetchError || new Error('Article not found') };
@@ -273,26 +257,5 @@ export class ArticlesService {
     }, 'Failed to analyze article links', true);
   }
 
-  // ===== REFACTOR SUMMARY =====
-  static getRefactorSummary() {
-    console.log(`🎉 [SERVICE REFACTOR] REFACTOR COMPLETED:`);
-    console.log(`🎉 [SERVICE REFACTOR] ✅ Eliminated duplicate try-catch patterns`);
-    console.log(`🎉 [SERVICE REFACTOR] ✅ Unified error handling with serviceWrapper`);
-    console.log(`🎉 [SERVICE REFACTOR] ✅ Proper backend cache invalidation`);
-    console.log(`🎉 [SERVICE REFACTOR] ✅ Removed unnecessary async overhead`);
-    console.log(`🎉 [SERVICE REFACTOR] ✅ Compact & maintainable code`);
-    console.log(`🎉 [SERVICE REFACTOR] ✅ 100% backward compatibility maintained`);
-    return {
-      originalLines: 278,
-      refactoredLines: 'estimated ~150',
-      reduction: '~46%',
-      improvements: [
-        'Generic serviceWrapper eliminates duplicate code',
-        'Proper backend cache invalidation',
-        'Unified error handling pattern',
-        'Removed unnecessary async overhead',
-        'Compact method implementations'
-      ]
-    };
-  }
+
 }
