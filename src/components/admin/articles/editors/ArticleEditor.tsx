@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition } from 'react';
 import { ArticlesService } from '../../../../../backend';
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 import { generateSlug } from '../../../../utils/slug-generator';
@@ -109,15 +109,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [authors, setAuthors] = useState<AuthorOption[]>([]);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Track any save operation
 
-  // Debug: Track state changes (moved after state declarations)
-  useEffect(() => {
-    console.log('🎨 UI STATE: isAutoSaving changed to', isAutoSaving);
-  }, [isAutoSaving]);
 
-  useEffect(() => {
-    console.log('📊 STATE: hasUnsavedChanges changed to', hasUnsavedChanges);
-  }, [hasUnsavedChanges]);
 
   const [slugError, setSlugError] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -158,22 +152,23 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
-  // INTELLIGENT PRELOADING: Start preloading immediately when component mounts
+  // OPTIMIZED: Single useEffect for all data loading (avoid double execution)
   useEffect(() => {
-    // Start preloading dropdown data immediately (non-blocking)
-    preloadCategoriesData();
-    preloadAuthorsData();
-  }, []);
+    const loadAllData = async () => {
+      setLoadError('');
+      console.log('🔄 ARTICLE EDITOR: Starting data load', {
+        articleId,
+        currentArticleId,
+        mode: (articleId || currentArticleId) ? 'EDIT' : 'CREATE'
+      });
 
-  // OPTIMIZED: Parallel loading cho tất cả data cần thiết
-  useEffect(() => {
-    // Only run after component is mounted and we have an article ID
-    if (articleId || currentArticleId) {
-      const loadAllData = async () => {
-        setLoadError('');
+      // Start preloading immediately (non-blocking)
+      preloadCategoriesData();
+      preloadAuthorsData();
 
-        try {
-          // OPTIMIZED: Use preloaded data + article fetch
+      try {
+        if (articleId || currentArticleId) {
+          // EDIT MODE: Load article + preloaded data
           const [articleResult, categoriesData, authorsData] = await Promise.all([
             ArticlesService.getArticleForEdit(articleId || currentArticleId!),
             // Use preloaded data if available, otherwise fetch
@@ -262,26 +257,65 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             }
           }
 
+        } else {
+          // CREATE MODE: Load only preloaded data (no article to fetch)
+          console.log('🆕 CREATE MODE: Loading categories and authors for new article');
+
+          const [categoriesData, authorsData] = await Promise.all([
+            isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
+            isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
+          ]);
+
+          // FIXED: Batch all state updates in startTransition to avoid hydration conflicts
+          startTransition(() => {
+            // Prepare data
+            const finalCategories = categoriesData && categoriesData.length > 0 ? categoriesData : [];
+            let finalAuthors = authorsData && authorsData.length > 0 ? authorsData : [];
+            let defaultAuthorId = formData.author_id;
+
+            // Handle authors fallback
+            if (finalAuthors.length === 0) {
+              console.warn('CREATE MODE: No authors data available, using fallback');
+              finalAuthors = FALLBACK_AUTHORS.map(author => ({
+                id: author.id,
+                full_name: author.name,
+                email: author.email,
+                role: author.role.toLowerCase(),
+                role_badge_color: 'text-blue-800 bg-blue-100 border-blue-200',
+                role_display_name: author.role
+              }));
+            }
+
+            // Set default author if none selected
+            if (!defaultAuthorId && finalAuthors.length > 0) {
+              defaultAuthorId = finalAuthors[0].id;
+            }
+
+            // BATCH UPDATE: All state changes in one go
+            setCategories(finalCategories);
+            setAuthors(finalAuthors);
+            if (defaultAuthorId !== formData.author_id) {
+              setFormData(prev => ({ ...prev, author_id: defaultAuthorId }));
+            }
+            setLoadingState(prev => ({ ...prev, isDataLoaded: true }));
+
+            console.log(`✅ CREATE MODE: Loaded ${finalCategories.length} categories, ${finalAuthors.length} authors`);
+          });
+        }
+
         } catch (err) {
           setLoadError('Có lỗi xảy ra khi tải dữ liệu');
+          console.error('Error loading data:', err);
         }
       };
 
       loadAllData();
-    }
   }, [articleId, currentArticleId]);
 
 
 
   // Track unsaved changes
   useEffect(() => {
-    console.log('📝 FORM CHANGE: Setting hasUnsavedChanges = true', {
-      title: formData.title.substring(0, 30) + '...',
-      contentLength: formData.content.length,
-      slug: formData.slug,
-      is_public: formData.is_public,
-      timestamp: new Date().toLocaleTimeString()
-    });
     setHasUnsavedChanges(true);
   }, [formData]);
 
@@ -471,6 +505,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const handleSave = async (action: 'save' | 'autosave') => {
     const isAutoSave = action === 'autosave';
 
+    // PREVENT RACE CONDITION: Skip if already saving
+    if (isSaving) {
+      console.log(`⏸️ SAVE SKIPPED: Already saving (${isAutoSave ? 'AUTOSAVE' : 'MANUAL SAVE'})`);
+      return;
+    }
+
     console.log(`💾 SAVE: Starting ${isAutoSave ? 'AUTOSAVE' : 'MANUAL SAVE'}`, {
       action,
       isAutoSave,
@@ -485,6 +525,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         author_id_processed: formData.author_id.trim() || null
       }
     });
+
+    // Set saving state
+    setIsSaving(true);
 
     if (isAutoSave) {
       console.log('🔵 AUTOSAVE: Setting isAutoSaving = true');
@@ -665,6 +708,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         isAutoSave,
         timestamp: new Date().toLocaleTimeString()
       });
+
+      // Reset saving state to allow future saves
+      setIsSaving(false);
 
       if (isAutoSave) {
         console.log('🔵 AUTOSAVE: Setting isAutoSaving = false');

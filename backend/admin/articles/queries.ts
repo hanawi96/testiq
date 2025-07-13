@@ -171,19 +171,69 @@ function getOptimizedFields(context: 'admin' | 'public' | 'preview' | 'search' =
 
 
 
-const ARTICLE_EDIT_FIELDS = `
-  id, title, slug, content, excerpt, status, featured, author_id, category_id,
-  meta_title, meta_description, focus_keyword, keywords, canonical_url,
-  og_title, og_description, og_image, og_type,
-  twitter_title, twitter_description, twitter_image, twitter_card_type,
-  cover_image, cover_image_alt, schema_type, robots_directive,
-  sitemap_include, sitemap_priority, sitemap_changefreq,
-  published_at, scheduled_at, expires_at, revision_notes
-` as const;
 
 
 
 
+
+
+// ===== SHARED UTILITY FUNCTIONS =====
+
+/**
+ * REUSABLE: Fetch relationships for articles
+ */
+async function fetchRelationships(articles: any[]) {
+  if (!articles.length) return [{ data: [] }, { data: [] }];
+
+  const articleIds = articles.map(a => a.id);
+  const authorIds = [...new Set(articles.map(a => a.author_id).filter(Boolean))];
+
+  return Promise.all([
+    authorIds.length > 0
+      ? supabase.from('user_profiles').select('id, full_name, role').in('id', authorIds)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from('articles')
+      .select('id, article_categories(categories(id, name)), article_tags(tags(id, name))')
+      .in('id', articleIds)
+  ]);
+}
+
+/**
+ * REUSABLE: Enrich articles with relationships in single pass
+ */
+function enrichArticles(articles: any[], authorsData: any[], relationshipsData: any[]) {
+  const authorsMap = new Map(authorsData.map(a => [a.id, a]));
+
+  return articles.map(article => {
+    const author = authorsMap.get(article.author_id);
+    const relationships = relationshipsData.find(r => r.id === article.id);
+    const categories = relationships?.article_categories?.map((c: any) => c.categories).filter(Boolean) || [];
+    const tags = relationships?.article_tags?.map((t: any) => t.tags).filter(Boolean) || [];
+
+    return {
+      ...article,
+      user_profiles: author || null,
+      categories,
+      tags,
+      author: author?.full_name || null,
+      category: categories[0]?.name || null,
+      tag_names: tags.map((t: any) => t.name),
+      category_ids: categories.map((c: any) => c.id),
+      category_names: categories.map((c: any) => c.name)
+    };
+  });
+}
+
+/**
+ * REUSABLE: Cache and return result
+ */
+function cacheAndReturn(cacheKey: string, data: any[], count: number) {
+  const result = { data, error: null, count };
+  const cacheData = data.length > 0 ? createCacheableData(data, count) : { data: [], count, timestamp: Date.now() };
+  queryCache.set(cacheKey, cacheData, 2 * 60 * 1000);
+  return result;
+}
 
 export class ArticleQueries {
   /**
@@ -214,8 +264,7 @@ export class ArticleQueries {
   }
 
   /**
-   * PERFORMANCE OPTIMIZED: Get articles với single-query approach
-   * Bao gồm SEO fields (internal_links, external_links) cho admin monitoring
+   * REFACTORED: Get articles - Compact & Reusable
    */
   static async getArticles(
     page: number = 1,
@@ -224,253 +273,49 @@ export class ArticleQueries {
   ): Promise<{ data: any[] | null; error: any; count: number }> {
     try {
       const startTime = Date.now();
-      // OPTIMIZED: Hash-based cache key generation
       const cacheKey = createHashedCacheKey('articles', { page, limit, filters });
 
       // Check cache first
-      const cachedResult = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
-      if (cachedResult) {
-        // Return cached data với proper format
-        return {
-          data: cachedResult.data,
-          error: null,
-          count: cachedResult.count || 0
-        };
-      }
+      const cached = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
+      if (cached) return { data: cached.data, error: null, count: cached.count || 0 };
 
+      // Execute main query
       const offset = (page - 1) * limit;
-
-      // OPTIMIZED: Context-aware field selection for admin interface
-      const optimizedFields = getOptimizedFields('admin');
       let query = supabase
         .from('articles')
-        .select(optimizedFields, { count: 'exact' });
+        .select(getOptimizedFields('admin'), { count: 'exact' });
 
-      // Apply filters and sorting
       query = this.applyFilters(query, filters);
-
-      // Apply pagination
       query = query.range(offset, offset + limit - 1);
 
-      // Execute base query
       const { data: articles, error, count } = await query;
 
-      if (error) {
-        console.error('Query error:', error);
-        return { data: null, error, count: 0 };
-      }
+      if (error) return { data: null, error, count: 0 };
+      if (!articles?.length) return cacheAndReturn(cacheKey, [], count || 0);
 
-      if (!articles || articles.length === 0) {
-        const result = { data: [], error: null, count: count || 0 };
-        // Cache empty result với lightweight data
-        const emptyCache = { data: [], count: count || 0, timestamp: Date.now() };
-        queryCache.set(cacheKey, emptyCache, 2 * 60 * 1000);
-        return result;
-      }
+      // Fetch and enrich relationships
+      const [authorsResult, relationshipsResult] = await fetchRelationships(articles);
 
-      // PHASE 3: OPTIMIZED QUERY APPROACH - Efficient relationship processing
-      console.log(`🚀 [PHASE 3 CHECK] Starting optimized query approach...`);
-      console.log(`📊 [PHASE 3 CHECK] Articles to process: ${articles.length}`);
-
-      // PHASE 3 OPTIMIZED: Smart single query approach
-      console.log(`🔧 [PHASE 3 CHECK] Using optimized approach - relationships only...`);
-
-      const articleIds = articles.map((a: any) => a.id);
-      const authorIds = [...new Set(articles.map((a: any) => a.author_id).filter(Boolean))];
-
-      // ULTIMATE OPTIMIZATION: Single relationship query + separate author query
-      const relationshipQueryStart = Date.now();
-      const [authorsResult, relationshipsResult] = await Promise.all([
-        // Authors query (fast)
-        authorIds.length > 0
-          ? supabase.from('user_profiles').select('id, full_name, role').in('id', authorIds)
-          : Promise.resolve({ data: [] }),
-
-        // OPTIMIZED: Single query cho categories + tags với better performance
-        supabase
-          .from('articles')
-          .select(`
-            id,
-            article_categories(categories(id, name)),
-            article_tags(tags(id, name))
-          `)
-          .in('id', articleIds)
-      ]);
-
-      const relationshipQueryTime = Date.now() - relationshipQueryStart;
-      console.log(`⚡ [PHASE 3 CHECK] Optimized queries completed in ${relationshipQueryTime}ms`);
-      console.log(`📊 [PHASE 3 CHECK] Authors: ${authorsResult.data?.length || 0}, Relationships: ${relationshipsResult.data?.length || 0}`);
-
-      // Check for errors (handle both types)
+      // Handle errors safely
       const authorsError = 'error' in authorsResult ? authorsResult.error : null;
-      const relationshipsError = relationshipsResult.error;
+      const relationshipsError = 'error' in relationshipsResult ? relationshipsResult.error : null;
 
       if (authorsError || relationshipsError) {
-        console.error(`❌ [PHASE 3 CHECK] Optimized queries failed, falling back to Phase 2 method:`,
-          authorsError || relationshipsError);
-        const fallbackResult = await this.getArticlesPhase2Fallback(articles, count || 0);
-        return fallbackResult;
+        return { data: null, error: authorsError || relationshipsError, count: 0 };
       }
 
-      // PHASE 3: OPTIMIZED data processing with minimal overhead
-      console.log(`⚡ [PHASE 3 CHECK] Processing data with optimized approach...`);
-      const processingStart = Date.now();
+      const enrichedArticles = enrichArticles(articles, authorsResult.data || [], relationshipsResult.data || []);
 
-      // Build efficient lookup maps
-      const authorsMap = new Map(authorsResult.data?.map((a: any) => [a.id, a]) || []);
-      const relationshipsMap = new Map<string, { categories: any[], tags: any[] }>();
-
-      // Initialize relationships map
-      articles.forEach((article: any) => {
-        relationshipsMap.set(article.id, { categories: [], tags: [] });
-      });
-
-      // Process relationships efficiently
-      relationshipsResult.data?.forEach((item: any) => {
-        const articleId = item.id;
-        const relationships = relationshipsMap.get(articleId);
-
-        if (relationships) {
-          // Process categories
-          if (item.article_categories) {
-            relationships.categories = item.article_categories
-              .map((catRel: any) => catRel.categories)
-              .filter(Boolean);
-          }
-
-          // Process tags
-          if (item.article_tags) {
-            relationships.tags = item.article_tags
-              .map((tagRel: any) => tagRel.tags)
-              .filter(Boolean);
-          }
-        }
-      });
-
-      // OPTIMIZED: Direct enrichment without nested loops
-      const enrichedArticles = articles.map((article: any) => {
-        const author = authorsMap.get(article.author_id);
-        const relationships = relationshipsMap.get(article.id) || { categories: [], tags: [] };
-        const { categories, tags } = relationships;
-
-        return {
-          ...article,
-          user_profiles: author || null,
-          categories,
-          tags,
-          author: author?.full_name || null,
-          category: categories[0]?.name || null,
-          tag_names: tags.map((t: any) => t.name),
-          category_ids: categories.map((c: any) => c.id),
-          category_names: categories.map((c: any) => c.name)
-        };
-      });
-
-      const processingTime = Date.now() - processingStart;
-      console.log(`⚡ [PHASE 3 CHECK] Data processing completed in ${processingTime}ms`);
-      console.log(`📊 [PHASE 3 CHECK] Zero-copy processing: ${enrichedArticles.length} articles enriched`);
-
-      const queryTime = Date.now() - startTime;
-
-      console.log(`🎉 [PHASE 3 CHECK] OPTIMIZED PROCESSING COMPLETED:`);
-      console.log(`🎉 [PHASE 3 CHECK] Total time: ${queryTime}ms`);
-      console.log(`🎉 [PHASE 3 CHECK] Relationship queries time: ${relationshipQueryTime}ms`);
-      console.log(`🎉 [PHASE 3 CHECK] Processing time: ${processingTime}ms`);
-      console.log(`🎉 [PHASE 3 CHECK] Articles processed: ${enrichedArticles.length}`);
-      console.log(`🎉 [PHASE 3 CHECK] Query optimization: 4 → 2 (50% reduction)`);
-      console.log(`🎉 [PHASE 3 CHECK] Efficient Maps processing: Minimal overhead`);
-      console.log(`🎉 [PHASE 3 CHECK] PHASE 3 OPTIMIZATION SUCCESS! 🚀`);
-
-      const result = { data: enrichedArticles, error: null, count: count || 0 };
-
-      // OPTIMIZED: Cache lightweight data only
-      const cacheableData = createCacheableData(enrichedArticles, count || 0);
-      queryCache.set(cacheKey, cacheableData, 2 * 60 * 1000); // 2 minutes
-
-      return result;
+      console.log(`✅ ArticleQueries: ${enrichedArticles.length} articles in ${Date.now() - startTime}ms`);
+      return cacheAndReturn(cacheKey, enrichedArticles, count || 0);
 
     } catch (err) {
-      console.error('ArticleQueries: Unexpected error fetching articles:', err);
+      console.error('ArticleQueries: Error fetching articles:', err);
       return { data: null, error: err, count: 0 };
     }
   }
 
-  /**
-   * PHASE 2 FALLBACK: Backup method nếu single query fails
-   */
-  private static async getArticlesPhase2Fallback(articles: any[], count: number): Promise<{ data: any[] | null; error: any; count: number }> {
-    try {
-      console.log(`🔄 [PHASE 3 CHECK] Executing Phase 2 fallback method...`);
 
-      const articleIds = articles.map((a: any) => a.id);
-      const authorIds = [...new Set(articles.map((a: any) => a.author_id).filter(Boolean))];
-
-      // Phase 2 parallel queries
-      const [authorsResult, relationshipsResult] = await Promise.all([
-        authorIds.length > 0
-          ? supabase.from('user_profiles').select('id, full_name, role').in('id', authorIds)
-          : Promise.resolve({ data: [] }),
-        supabase
-          .from('articles')
-          .select(`
-            id,
-            article_categories!inner(categories!inner(id, name)),
-            article_tags!inner(tags!inner(id, name))
-          `)
-          .in('id', articleIds)
-      ]);
-
-      // Build lookup maps
-      const authorsMap = new Map(authorsResult.data?.map((a: any) => [a.id, a]) || []);
-      const categoriesMap = new Map<string, any[]>();
-      const tagsMap = new Map<string, any[]>();
-
-      // Process relationships
-      relationshipsResult.data?.forEach((item: any) => {
-        const articleId = item.id;
-        if (!categoriesMap.has(articleId)) categoriesMap.set(articleId, []);
-        if (!tagsMap.has(articleId)) tagsMap.set(articleId, []);
-
-        item.article_categories?.forEach((catRel: any) => {
-          if (catRel.categories) {
-            categoriesMap.get(articleId)!.push(catRel.categories);
-          }
-        });
-
-        item.article_tags?.forEach((tagRel: any) => {
-          if (tagRel.tags) {
-            tagsMap.get(articleId)!.push(tagRel.tags);
-          }
-        });
-      });
-
-      // Enrich articles
-      const enrichedArticles = articles.map((article: any) => {
-        const author = authorsMap.get(article.author_id);
-        const categories = categoriesMap.get(article.id) || [];
-        const tags = tagsMap.get(article.id) || [];
-
-        return {
-          ...article,
-          user_profiles: author || null,
-          categories,
-          tags,
-          author: author?.full_name || null,
-          category: categories[0]?.name || null,
-          tag_names: tags.map((t: any) => t.name),
-          category_ids: categories.map((c: any) => c.id),
-          category_names: categories.map((c: any) => c.name)
-        };
-      });
-
-      console.log(`✅ [PHASE 3 CHECK] Fallback completed successfully`);
-      return { data: enrichedArticles, error: null, count };
-
-    } catch (err) {
-      console.error(`❌ [PHASE 3 CHECK] Fallback method also failed:`, err);
-      return { data: null, error: err, count: 0 };
-    }
-  }
 
   /**
    * Get article by ID
@@ -498,63 +343,30 @@ export class ArticleQueries {
       const cacheKey = `article:edit:${articleId}`;
 
       // Check cache first
-      const cachedArticle = queryCache.get(cacheKey);
-      if (cachedArticle) {
-        console.log(`✅ Cache hit for edit article query (${Date.now() - startTime}ms)`);
-        return cachedArticle;
-      }
+      const cached = queryCache.get(cacheKey);
+      if (cached) return cached;
 
-      // SIMPLIFIED: Basic query without JOINs for now
+      // Get article
       const { data: article, error } = await supabase
         .from('articles')
-        .select(`${ARTICLE_EDIT_FIELDS}`)
+        .select('*')
         .eq('id', articleId)
         .single();
 
-      if (error || !article) {
-        const result = { data: null, error: error || new Error('Article not found') };
-        return result;
-      }
+      if (error || !article) return { data: null, error: error || new Error('Article not found') };
 
-      // FIXED: Get related data cho edit form from junction tables
-      const [authorResult, categoriesResult, tagsResult] = await Promise.all([
-        // Get author
-        article.author_id
-          ? supabase.from('user_profiles').select('id, full_name, email, role').eq('id', article.author_id).single()
-          : Promise.resolve({ data: null }),
+      // Reuse shared function for relationships
+      const [authorsResult, relationshipsResult] = await fetchRelationships([article]);
+      const enrichedArticles = enrichArticles([article], authorsResult.data || [], relationshipsResult.data || []);
 
-        // Get categories from junction table
-        supabase.from('article_categories').select('categories(id, name, slug)').eq('article_id', articleId),
+      const result = { data: enrichedArticles[0] || null, error: null };
+      queryCache.set(cacheKey, result, 1 * 60 * 1000); // 1 minute cache
 
-        // Get tags
-        supabase.from('article_tags').select('tag_id, tags(id, name, slug)').eq('article_id', articleId)
-      ]);
-
-      const author = authorResult.data;
-      const categories = categoriesResult.data?.map((item: any) => item.categories).filter(Boolean) || [];
-      const tags = tagsResult.data?.map((item: any) => item.tags).filter(Boolean) || [];
-
-      const enrichedArticle = {
-        ...article,
-        user_profiles: author,
-        categories,
-        tags,
-        tag_names: tags.map((tag: any) => tag.name),
-        // Add category_ids for frontend compatibility
-        category_ids: categories.map((cat: any) => cat.id)
-      };
-
-      const queryTime = Date.now() - startTime;
-      console.log(`✅ ArticleQueries: Fetched article for edit in ${queryTime}ms`);
-
-      const result = { data: enrichedArticle, error: null };
-
-      // Cache edit data for 1 minute (edit data changes frequently)
-      queryCache.set(cacheKey, result, 1 * 60 * 1000);
-
+      console.log(`✅ ArticleQueries: Article for edit in ${Date.now() - startTime}ms`);
       return result;
+
     } catch (err) {
-      console.error('ArticleQueries: Error fetching article for edit:', err);
+      console.error('ArticleQueries: Error getting article for edit:', err);
       return { data: null, error: err };
     }
   }
@@ -728,13 +540,8 @@ export class ArticleQueries {
       const cacheKey = 'articles:stats';
 
       // Check cache first
-      const cachedStats = queryCache.get<{ data: ArticleStats | null; error: any }>(cacheKey);
-      if (cachedStats) {
-        console.log(`✅ Cache hit for stats query (${Date.now() - startTime}ms)`);
-        return cachedStats;
-      }
-
-      console.log('ArticleQueries: Fetching articles statistics with optimized query');
+      const cached = queryCache.get<{ data: ArticleStats | null; error: any }>(cacheKey);
+      if (cached) return cached;
 
       // SIMPLE & FAST: Single query với minimal data
       const weekAgo = new Date();
@@ -744,18 +551,11 @@ export class ArticleQueries {
         .from('articles')
         .select('status, view_count, reading_time, created_at');
 
-      if (error) {
-        console.error('ArticleQueries: Error getting stats:', error);
-        return { data: null, error };
-      }
-
-      if (!articlesData) {
-        const emptyStats = {
-          total: 0, published: 0, draft: 0, archived: 0,
-          totalViews: 0, avgReadingTime: 0, recentArticles: 0
-        };
-        return { data: emptyStats, error: null };
-      }
+      if (error) return { data: null, error };
+      if (!articlesData) return {
+        data: { total: 0, published: 0, draft: 0, archived: 0, totalViews: 0, avgReadingTime: 0, recentArticles: 0 },
+        error: null
+      };
 
       // FAST: Single-pass calculation
       const weekAgoISO = weekAgo.toISOString();

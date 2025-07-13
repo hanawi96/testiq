@@ -209,35 +209,65 @@ export class RelationshipsUtils {
         return { error: updateError };
       }
 
-      // 2. Delete existing categories for this article from article_categories
-      const { error: deleteError } = await supabase
-        .from('article_categories')
-        .delete()
-        .eq('article_id', articleId);
-
-      if (deleteError) {
-        console.error('RelationshipsUtils: Error deleting existing categories:', deleteError);
-        // Continue anyway - this is not critical
-      }
-
-      // 3. Insert new article_categories relationships for all categories
+      // 2. OPTIMIZED: Upsert categories to avoid race conditions
       if (categoryIds.length > 0) {
-        const categoryRelations = categoryIds.map(categoryId => ({
-          article_id: articleId,
-          category_id: categoryId
-        }));
-
-        const { error: insertError } = await supabase
+        // First, get existing categories for this article
+        const { data: existingCategories } = await supabase
           .from('article_categories')
-          .insert(categoryRelations);
+          .select('category_id')
+          .eq('article_id', articleId);
 
-        if (insertError) {
-          console.error('RelationshipsUtils: Error inserting new categories:', insertError);
-          // Continue anyway - primary category is already updated
+        const existingCategoryIds = existingCategories?.map(c => c.category_id) || [];
+
+        // Find categories to add and remove
+        const categoriesToAdd = categoryIds.filter(id => !existingCategoryIds.includes(id));
+        const categoriesToRemove = existingCategoryIds.filter(id => !categoryIds.includes(id));
+
+        // Remove categories that are no longer needed
+        if (categoriesToRemove.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('article_categories')
+            .delete()
+            .eq('article_id', articleId)
+            .in('category_id', categoriesToRemove);
+
+          if (deleteError) {
+            console.error('RelationshipsUtils: Error removing old categories:', deleteError);
+          }
+        }
+
+        // Add new categories (only ones that don't exist)
+        if (categoriesToAdd.length > 0) {
+          const categoryRelations = categoriesToAdd.map(categoryId => ({
+            article_id: articleId,
+            category_id: categoryId
+          }));
+
+          const { error: insertError } = await supabase
+            .from('article_categories')
+            .upsert(categoryRelations, {
+              onConflict: 'article_id,category_id',
+              ignoreDuplicates: true
+            });
+
+          if (insertError) {
+            console.error('RelationshipsUtils: Error adding new categories:', insertError);
+            // Continue anyway - primary category is already updated
+          }
+        }
+      } else {
+        // No categories selected - remove all existing ones
+        const { error: deleteAllError } = await supabase
+          .from('article_categories')
+          .delete()
+          .eq('article_id', articleId);
+
+        if (deleteAllError) {
+          console.error('RelationshipsUtils: Error removing all categories:', deleteAllError);
         }
       }
 
-      console.log('RelationshipsUtils: Successfully updated article categories');
+      console.log('✅ RelationshipsUtils: Successfully updated article categories (race-condition safe)');
       return { error: null };
 
     } catch (err) {
