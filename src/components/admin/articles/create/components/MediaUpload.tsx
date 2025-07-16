@@ -51,7 +51,7 @@ export default function MediaUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
 
-  // Update alt text when prop changes
+  // Update alt text when prop changess
   useEffect(() => {
     setAltText(alt || '');
   }, [alt]);
