@@ -21,6 +21,7 @@ export default function AdminArticles() {
     modals,
     // UI State
     currentPage,
+    limit,
     filters,
     selectedArticles,
     showBulkActions,
@@ -48,16 +49,17 @@ export default function AdminArticles() {
 
   // Articles Operations
   const {
-    limit,
     fetchStats,
     handlePageChange,
     handleFilterChange,
+    handleLimitChange,
     handleSelectArticle,
     handleSelectAll,
     handleBulkStatusUpdate,
     handleDeleteArticle
   } = useArticlesOperations({
     currentPage,
+    limit,
     filters,
     selectedArticles,
     articlesData,
@@ -165,6 +167,7 @@ export default function AdminArticles() {
         currentPage={currentPage}
         limit={limit}
         onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
         onDeleteArticle={handleDeleteArticle}
         onQuickTagsEdit={handleQuickTagsEdit}
         onQuickAuthorEdit={handleQuickAuthorEdit}

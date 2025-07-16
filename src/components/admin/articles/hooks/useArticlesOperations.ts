@@ -6,10 +6,11 @@ import { SmartPreloader } from '../../../../utils/admin/preloaders/preload-manag
 interface ArticlesOperationsConfig {
   // State
   currentPage: number;
+  limit: number;
   filters: ArticlesFilters;
   selectedArticles: string[];
   articlesData: ArticlesListResponse | null;
-  
+
   // Actions
   dispatch: (action: any) => void;
   setLoading: (payload: any) => void;
@@ -18,14 +19,13 @@ interface ArticlesOperationsConfig {
 export function useArticlesOperations(config: ArticlesOperationsConfig) {
   const {
     currentPage,
+    limit,
     filters,
     selectedArticles,
     articlesData,
     dispatch,
     setLoading
   } = config;
-
-  const limit = 10;
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -55,6 +55,16 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
         return;
       }
 
+      // Auto-redirect to valid page if current page is out of range
+      if (data.articles.length === 0 && data.total > 0 && page > 1) {
+        const maxPage = Math.ceil(data.total / limit);
+        const validPage = Math.min(page, maxPage);
+        if (validPage !== page) {
+          dispatch({ type: 'SET_UI', payload: { currentPage: validPage } });
+          return fetchArticles(validPage);
+        }
+      }
+
       dispatch({ type: 'SET_ARTICLES_DATA', payload: data });
       dispatch({ type: 'SET_LOADING', payload: { articles: false } });
 
@@ -63,7 +73,7 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
       dispatch({ type: 'SET_LOADING', payload: { articles: false } });
       console.error('Frontend: Error fetching articles:', err);
     }
-  }, [currentPage, filters, dispatch]);
+  }, [currentPage, filters, dispatch, limit]);
 
   // Initial load
   useEffect(() => {
@@ -82,9 +92,17 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
 
   // Handle page change
   const handlePageChange = useCallback((page: number) => {
+    // Validate page before changing
+    if (articlesData && page > articlesData.totalPages) {
+      return; // Don't allow navigation to invalid pages
+    }
+    if (page < 1) {
+      return; // Don't allow navigation to pages less than 1
+    }
+
     dispatch({ type: 'SET_UI', payload: { currentPage: page } });
     fetchArticles(page);
-  }, [dispatch, fetchArticles]);
+  }, [dispatch, fetchArticles, articlesData]);
 
   // Handle filter change
   const handleFilterChange = useCallback((newFilters: Partial<ArticlesFilters>) => {
@@ -96,6 +114,17 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
       }
     });
   }, [dispatch, filters]);
+
+  // Handle limit change
+  const handleLimitChange = useCallback((newLimit: number) => {
+    dispatch({
+      type: 'SET_UI',
+      payload: {
+        limit: newLimit,
+        currentPage: 1 // Reset to page 1 when changing limit
+      }
+    });
+  }, [dispatch]);
 
   // Handle article selection
   const handleSelectArticle = useCallback((articleId: string) => {
@@ -161,9 +190,6 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
   }, [setLoading, fetchArticles, currentPage, fetchStats, dispatch]);
 
   return {
-    // Constants
-    limit,
-
     // Data fetching
     fetchStats,
     fetchArticles,
@@ -171,6 +197,7 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
     // Event handlers
     handlePageChange,
     handleFilterChange,
+    handleLimitChange,
     handleSelectArticle,
     handleSelectAll,
     handleBulkStatusUpdate,

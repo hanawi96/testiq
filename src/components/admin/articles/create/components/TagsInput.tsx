@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Hash, Plus } from 'lucide-react';
 import { processBulkTags, lowercaseNormalizeTag } from '../../../../../utils/tag-processing';
 import { getInstantTagsData, preloadTagsData, isTagsDataReady } from '../../../../../utils/admin/preloaders/tags-preloader';
@@ -215,40 +214,34 @@ export default function TagsInput({
       <div className="relative group" style={{ position: 'relative', zIndex: 1, overflow: 'visible' }}>
         <div
           className={`
-            relative flex flex-wrap items-center gap-3 px-3 py-2 border rounded-xl transition-all duration-300 ease-out
+            relative flex flex-wrap items-center gap-3 px-3 py-2 border rounded-xl
             bg-white dark:bg-gray-800/50 backdrop-blur-sm
-            border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 group-hover:shadow-lg group-hover:shadow-primary-500/5
+            border-gray-200 dark:border-gray-700
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}
           `}
           onClick={() => !disabled && inputRef.current?.focus()}
         >
           {/* Modern Tags Display */}
-          <AnimatePresence>
-            {value.map((tag, index) => (
-              <motion.span
-                key={`${tag}-${index}`}
-                initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: -10 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-lg shadow-sm"
-              >
-                <span className="font-medium">{tag}</span>
-                {!disabled && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTag(tag);
-                    }}
-                    className="ml-1 p-1 rounded-full hover:text-red-500 transition-colors duration-200"
-                    title="Xóa tag"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </motion.span>
-            ))}
-          </AnimatePresence>
+          {value.map((tag, index) => (
+            <span
+              key={`${tag}-${index}`}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm rounded-lg shadow-sm"
+            >
+              <span className="font-medium">{tag}</span>
+              {!disabled && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTag(tag);
+                  }}
+                  className="ml-1 p-1 rounded-full"
+                  title="Xóa tag"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </span>
+          ))}
 
           {/* Modern Input Field */}
           {canAddMore && (
@@ -274,12 +267,7 @@ export default function TagsInput({
 
           {/* Add Button */}
           {newTag.trim() && canAddMore && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={() => {
                 const result = processBulkTags(newTag, value, {
                   maxLength: 50,
@@ -294,11 +282,11 @@ export default function TagsInput({
                 setShowSuggestions(false);
                 setHighlightedIndex(-1);
               }}
-              className="px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-200 text-sm font-medium"
+              className="px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-medium"
               title="Thêm tag"
             >
               <Plus size={14} />
-            </motion.button>
+            </button>
           )}
         </div>
 
@@ -320,15 +308,15 @@ export default function TagsInput({
                 key={suggestion}
                 onClick={() => handleSuggestionClick(suggestion)}
                 className={`
-                  group inline-flex items-center gap-2 px-3 py-2 text-sm rounded-xl transition-all duration-200 font-medium
+                  inline-flex items-center gap-2 px-3 py-2 text-sm rounded-xl font-medium
                   ${highlightedIndex === index
-                    ? 'bg-gradient-to-r from-primary-500 to-purple-500 text-white shadow-lg shadow-primary-500/25 scale-105'
-                    : 'bg-white dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary-50 hover:to-purple-50 dark:hover:from-primary-900/20 dark:hover:to-purple-900/20 hover:text-primary-700 dark:hover:text-primary-300 hover:shadow-md hover:scale-105 border border-gray-200 dark:border-gray-600'
+                    ? 'bg-gradient-to-r from-primary-500 to-purple-500 text-white'
+                    : 'bg-white dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
                   }
                 `}
               >
                 <span>{highlightMatch(suggestion, newTag)}</span>
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${highlightedIndex === index ? 'bg-white/20' : 'bg-primary-100 dark:bg-primary-900/30 group-hover:bg-primary-200 dark:group-hover:bg-primary-800/50'}`}>
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${highlightedIndex === index ? 'bg-white/20' : 'bg-primary-100 dark:bg-primary-900/30'}`}>
                   <Plus size={10} className={highlightedIndex === index ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
                 </div>
               </button>

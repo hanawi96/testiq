@@ -279,7 +279,7 @@ export class ArticleQueries {
       const cached = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
       if (cached) return { data: cached.data, error: null, count: cached.count || 0 };
 
-      // Execute main query
+      // Execute main query with count
       const offset = (page - 1) * limit;
       let query = supabase
         .from('articles')
@@ -290,8 +290,17 @@ export class ArticleQueries {
 
       const { data: articles, error, count } = await query;
 
-      if (error) return { data: null, error, count: 0 };
-      if (!articles?.length) return cacheAndReturn(cacheKey, [], count || 0);
+      if (error) return { data: null, error, count: count || 0 };
+
+      // Handle out of range pages gracefully
+      const totalCount = count || 0;
+      const maxPage = Math.ceil(totalCount / limit) || 1;
+
+      if (page > maxPage && totalCount > 0) {
+        return { data: [], error: null, count: totalCount };
+      }
+
+      if (!articles?.length) return cacheAndReturn(cacheKey, [], totalCount);
 
       // Fetch and enrich relationships
       const [authorsResult, relationshipsResult] = await fetchRelationships(articles);
@@ -301,13 +310,13 @@ export class ArticleQueries {
       const relationshipsError = 'error' in relationshipsResult ? relationshipsResult.error : null;
 
       if (authorsError || relationshipsError) {
-        return { data: null, error: authorsError || relationshipsError, count: 0 };
+        return { data: null, error: authorsError || relationshipsError, count: totalCount };
       }
 
       const enrichedArticles = enrichArticles(articles, authorsResult.data || [], relationshipsResult.data || []);
 
       console.log(`✅ ArticleQueries: ${enrichedArticles.length} articles in ${Date.now() - startTime}ms`);
-      return cacheAndReturn(cacheKey, enrichedArticles, count || 0);
+      return cacheAndReturn(cacheKey, enrichedArticles, totalCount);
 
     } catch (err) {
       console.error('ArticleQueries: Error fetching articles:', err);

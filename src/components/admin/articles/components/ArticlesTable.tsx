@@ -31,6 +31,7 @@ interface ArticlesTableProps {
   currentPage: number;
   limit: number;
   onPageChange: (page: number) => void;
+  onLimitChange: (limit: number) => void;
   
   // Actions
   onDeleteArticle: (articleId: string) => void;
@@ -58,6 +59,7 @@ export default function ArticlesTable({
   currentPage,
   limit,
   onPageChange,
+  onLimitChange,
   onDeleteArticle,
   onQuickTagsEdit,
   onQuickAuthorEdit,
@@ -526,26 +528,48 @@ export default function ArticlesTable({
               trong tổng số {articlesData.total.toLocaleString()} bài viết
             </div>
 
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={!articlesData.hasPrev}
-                className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Trước
-              </button>
+            <div className="flex items-center space-x-4">
+              {/* Page Navigation */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Trước
+                </button>
 
-              <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                Trang {currentPage} / {articlesData.totalPages}
-              </span>
+                <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Trang {currentPage} / {articlesData.totalPages}
+                </span>
 
-              <button
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={!articlesData.hasNext}
-                className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Sau
-              </button>
+                <button
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage >= articlesData.totalPages}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Sau
+                </button>
+              </div>
+
+              {/* Items Per Page */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-700 dark:text-gray-300">Hiển thị:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => onLimitChange(Number(e.target.value))}
+                  className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                  <option value={300}>300</option>
+                  <option value={500}>500</option>
+                </select>
+                <span className="text-sm text-gray-700 dark:text-gray-300">/ trang</span>
+              </div>
             </div>
           </div>
         </div>

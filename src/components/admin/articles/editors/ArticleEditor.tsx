@@ -1464,7 +1464,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       value={formData.focus_keyword}
                       onChange={(e) => setFormData(prev => ({ ...prev, focus_keyword: e.target.value }))}
                       placeholder="Nhập từ khóa chính cho bài viết..."
-                      className="w-full px-4 py-3.5 border-2 rounded-xl
+                      className="w-full px-4 py-3.5 border rounded-xl
                         bg-white dark:bg-gray-800/50 backdrop-blur-sm
                         text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
                         focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
@@ -1499,7 +1499,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
                       placeholder="Tiêu đề hiển thị trên Google..."
                       maxLength={60}
-                      className="w-full px-4 py-3.5 border-2 rounded-xl
+                      className="w-full px-4 py-3.5 border rounded-xl
                         bg-white dark:bg-gray-800/50 backdrop-blur-sm
                         text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
                         focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500
@@ -1534,7 +1534,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       placeholder="Mô tả ngắn gọn hiển thị trên Google..."
                       maxLength={160}
                       rows={4}
-                      className="w-full px-4 py-3.5 border-2 rounded-xl resize-none
+                      className="w-full px-4 py-3.5 border rounded-xl resize-none
                         bg-white dark:bg-gray-800/50 backdrop-blur-sm
                         text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
                         focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500

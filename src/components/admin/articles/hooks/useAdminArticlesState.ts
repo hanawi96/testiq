@@ -21,6 +21,7 @@ export interface LoadingStates {
 
 export interface UIStates {
   currentPage: number;
+  limit: number;
   filters: ArticlesFilters;
   selectedArticles: string[];
   showBulkActions: boolean;
@@ -78,6 +79,7 @@ const initialState: AdminArticlesState = {
   },
   ui: {
     currentPage: 1,
+    limit: 10,
     filters: {
       status: 'all',
       search: '',
@@ -187,6 +189,7 @@ export function useAdminArticlesState() {
     modals: state.modals,
     // Destructured UI state
     currentPage: state.ui.currentPage,
+    limit: state.ui.limit,
     filters: state.ui.filters,
     selectedArticles: state.ui.selectedArticles,
     showBulkActions: state.ui.showBulkActions,
