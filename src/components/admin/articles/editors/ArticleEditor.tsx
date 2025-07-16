@@ -367,7 +367,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         tags: localStorage.getItem('article-editor-dropdown-tags') !== 'false',
         author: localStorage.getItem('article-editor-dropdown-author') !== 'false',
         featuredImage: localStorage.getItem('article-editor-dropdown-featuredImage') !== 'false',
-        seo: localStorage.getItem('article-editor-dropdown-seo') !== 'false'
+        seo: localStorage.getItem('article-editor-dropdown-seo') !== 'false',
+        seoIndex: localStorage.getItem('article-editor-dropdown-seoIndex') !== 'false'
       };
     }
     return {
@@ -375,7 +376,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       tags: true,
       author: true,
       featuredImage: true,
-      seo: true
+      seo: true,
+      seoIndex: true
     };
   });
 
@@ -1788,6 +1790,95 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </div>
               )}
             </DropdownSection>
+
+            {/* SEO Index Control Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tối ưu tìm kiếm</h3>
+              </div>
+
+              <div className="space-y-4">
+                {/* Index/NoIndex Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                      formData.robots_noindex
+                        ? 'bg-red-100 dark:bg-red-900/30'
+                        : 'bg-green-100 dark:bg-green-900/30'
+                    }`}>
+                      {formData.robots_noindex ? (
+                        <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          Cho phép lập chỉ mục
+                        </span>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                          formData.robots_noindex
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        }`}>
+                          {formData.robots_noindex ? 'NoIndex' : 'Index'}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {formData.robots_noindex
+                          ? 'Bài viết sẽ không xuất hiện trên Google và các công cụ tìm kiếm'
+                          : 'Bài viết có thể được lập chỉ mục và hiển thị trên Google'
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, robots_noindex: !prev.robots_noindex }))}
+                    disabled={loadingState.isLoading}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 ${
+                      formData.robots_noindex
+                        ? 'bg-red-500 focus:ring-red-500/20'
+                        : 'bg-green-500 focus:ring-green-500/20'
+                    } ${loadingState.isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                    title={formData.robots_noindex ? 'Bật chế độ Index' : 'Bật chế độ NoIndex'}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+                        formData.robots_noindex ? 'translate-x-1' : 'translate-x-6'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Additional SEO Info */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                      <p className="font-medium mb-1">Lưu ý về Index/NoIndex:</p>
+                      <ul className="space-y-1 text-blue-600 dark:text-blue-400">
+                        <li>• <strong>Index:</strong> Bài viết sẽ xuất hiện trên Google</li>
+                        <li>• <strong>NoIndex:</strong> Bài viết sẽ bị ẩn khỏi kết quả tìm kiếm</li>
+                        <li>• Thay đổi có thể mất vài ngày để có hiệu lực</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>
