@@ -3,6 +3,7 @@ import { supabase } from '../../backend/config/supabase';
 export interface BlogPost {
   id: string;
   title: string;
+  slug: string;
   excerpt: string;
   content: string;
   author: string;
@@ -186,6 +187,7 @@ export class BlogService {
         return {
           id: article.id,
           title: article.title,
+          slug: article.slug,
           excerpt: article.excerpt || 'Nội dung thú vị đang chờ bạn khám phá...',
           content: article.content,
           author: authorName,
