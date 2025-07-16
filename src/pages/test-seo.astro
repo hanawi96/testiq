@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Test SEO Page - Kiểm tra astro-seo"
+  description="Trang test để kiểm tra xem astro-seo có hoạt động hay không"
+  keywords="test seo, astro-seo, meta tags"
+  ogImage="/og-test.jpg"
+  type="website"
+  noindex={false}
+>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-20">
+    <div class="max-w-4xl mx-auto px-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+          🔍 Test SEO Page
+        </h1>
+        
+        <div class="space-y-4">
+          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+            <h2 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+              Cách kiểm tra astro-seo:
+            </h2>
+            <ol class="list-decimal list-inside space-y-2 text-blue-800 dark:text-blue-200">
+              <li>Mở Developer Tools (F12)</li>
+              <li>Vào tab Elements/Inspector</li>
+              <li>Tìm thẻ &lt;head&gt;</li>
+              <li>Kiểm tra các meta tags</li>
+            </ol>
+          </div>
+
+          <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+            <h2 class="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+              Các thẻ cần tìm:
+            </h2>
+            <ul class="list-disc list-inside space-y-1 text-green-800 dark:text-green-200 text-sm">
+              <li>&lt;title&gt;Test SEO Page - Kiểm tra astro-seo&lt;/title&gt;</li>
+              <li>&lt;meta name="description" content="Trang test để kiểm tra..."&gt;</li>
+              <li>&lt;meta name="keywords" content="test seo, astro-seo, meta tags"&gt;</li>
+              <li>&lt;meta property="og:title" content="Test SEO Page..."&gt;</li>
+              <li>&lt;meta property="og:description" content="Trang test..."&gt;</li>
+              <li>&lt;meta property="og:image" content=".../og-test.jpg"&gt;</li>
+              <li>&lt;meta name="twitter:card" content="summary_large_image"&gt;</li>
+              <li>&lt;meta name="robots" content="index,follow"&gt;</li>
+            </ul>
+          </div>
+
+          <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+            <h2 class="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+              ⚠️ Nếu không thấy các thẻ trên:
+            </h2>
+            <ul class="list-disc list-inside space-y-1 text-yellow-800 dark:text-yellow-200 text-sm">
+              <li>astro-seo chưa hoạt động đúng</li>
+              <li>Có lỗi trong cấu hình</li>
+              <li>Component SEO.astro có vấn đề</li>
+            </ul>
+          </div>
+
+          <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+            <h2 class="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
+              🔧 Debug Steps:
+            </h2>
+            <ol class="list-decimal list-inside space-y-1 text-purple-800 dark:text-purple-200 text-sm">
+              <li>Kiểm tra console có lỗi không</li>
+              <li>Xem Network tab có load astro-seo không</li>
+              <li>Kiểm tra file SEO.astro syntax</li>
+              <li>Verify import paths</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

@@ -153,7 +153,7 @@ const formatDate = (dateString: string) => {
               </div>
               
               <div>
-                <a href={`/blog/${post.id}`} class="inline-flex items-center px-5 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+                <a href={`/blog/${post.slug}`} class="inline-flex items-center px-5 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                   Đọc tiếp
                   <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -191,7 +191,7 @@ const formatDate = (dateString: string) => {
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {blogPosts.map(post => (
-          <a href={`/blog/${post.id}`} class="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 flex flex-col">
+          <a href={`/blog/${post.slug}`} class="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 flex flex-col">
             <!-- Post Image -->
             <div class="relative h-48 overflow-hidden">
               <div class="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-500/10 group-hover:opacity-75 dark:from-blue-500/20 dark:to-purple-600/20"></div>

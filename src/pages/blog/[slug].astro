@@ -1,0 +1,260 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleSEO from '../../components/seo/ArticleSEO.astro';
+import { ArticlesService } from '../../../backend/admin/articles/service';
+
+export async function getStaticPaths() {
+  try {
+    // Lấy tất cả bài viết published để generate static paths
+    const { data: articlesResponse } = await ArticlesService.getArticles(1, 1000, { 
+      status: 'published' 
+    });
+
+    if (!articlesResponse?.articles) {
+      console.warn('No published articles found for static generation');
+      return [];
+    }
+
+    const paths = articlesResponse.articles.map((article) => ({
+      params: { slug: article.slug },
+      props: { article }
+    }));
+
+    console.log(`Generated ${paths.length} static paths for blog articles`);
+    return paths;
+
+  } catch (error) {
+    console.error('Error generating static paths for blog articles:', error);
+    return [];
+  }
+}
+
+const { article } = Astro.props;
+const { slug } = Astro.params;
+
+// Fallback nếu không có article (shouldn't happen với static generation)
+if (!article) {
+  return Astro.redirect('/blog');
+}
+
+// Format date
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: 'long', 
+    day: 'numeric'
+  });
+};
+
+// Calculate reading time
+const calculateReadingTime = (content: string) => {
+  const wordsPerMinute = 200;
+  const words = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+  return Math.ceil(words / wordsPerMinute);
+};
+
+const readingTime = article.reading_time || calculateReadingTime(article.content);
+const publishedDate = formatDate(article.published_at || article.created_at);
+---
+
+<BaseLayout>
+  <!-- SEO cho bài viết -->
+  <ArticleSEO
+    title={article.meta_title || article.title}
+    description={article.meta_description || article.excerpt}
+    author={article.author_name || 'IQ Test Team'}
+    publishedTime={article.published_at || article.created_at}
+    modifiedTime={article.updated_at}
+    category={article.category_name}
+    tags={article.tag_names || []}
+    coverImage={article.cover_image}
+    readingTime={readingTime}
+    wordCount={article.word_count}
+    slug={article.slug}
+    slot="head"
+  />
+
+  <article class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Breadcrumb -->
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div class="max-w-4xl mx-auto px-4 py-4">
+        <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+          <a href="/blog" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            Blog
+          </a>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+          <span class="text-gray-900 dark:text-gray-100 font-medium">{article.title}</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Article Header -->
+    <header class="bg-white dark:bg-gray-800 py-12">
+      <div class="max-w-4xl mx-auto px-4">
+        <!-- Category Badge -->
+        {article.category_name && (
+          <div class="mb-6">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
+              {article.category_name}
+            </span>
+          </div>
+        )}
+
+        <!-- Title -->
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+          {article.title}
+        </h1>
+
+        <!-- Excerpt -->
+        {article.excerpt && (
+          <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+            {article.excerpt}
+          </p>
+        )}
+
+        <!-- Meta Info -->
+        <div class="flex flex-wrap items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+          <!-- Author -->
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+              {(article.author_name || 'Admin').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p class="font-medium text-gray-900 dark:text-white">
+                {article.author_name || 'IQ Test Team'}
+              </p>
+              <p class="text-sm">{publishedDate}</p>
+            </div>
+          </div>
+
+          <!-- Reading Time -->
+          <div class="flex items-center space-x-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>{readingTime} phút đọc</span>
+          </div>
+
+          <!-- Views (if available) -->
+          {article.view_count && (
+            <div class="flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              <span>{article.view_count.toLocaleString()} lượt xem</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <!-- Featured Image -->
+    {article.cover_image && (
+      <div class="bg-white dark:bg-gray-800 pb-8">
+        <div class="max-w-4xl mx-auto px-4">
+          <img
+            src={article.cover_image}
+            alt={article.cover_image_alt || article.title}
+            class="w-full h-64 md:h-96 object-cover rounded-xl shadow-lg"
+          />
+        </div>
+      </div>
+    )}
+
+    <!-- Article Content -->
+    <main class="bg-white dark:bg-gray-800 py-12">
+      <div class="max-w-4xl mx-auto px-4">
+        <div class="prose prose-lg dark:prose-invert max-w-none">
+          <div class="article-content" set:html={article.content}></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Tags -->
+    {article.tag_names && article.tag_names.length > 0 && (
+      <section class="bg-gray-50 dark:bg-gray-900 py-8">
+        <div class="max-w-4xl mx-auto px-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Tags</h3>
+          <div class="flex flex-wrap gap-2">
+            {article.tag_names.map((tag: string) => (
+              <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Back to Blog -->
+    <section class="bg-white dark:bg-gray-800 py-8 border-t border-gray-200 dark:border-gray-700">
+      <div class="max-w-4xl mx-auto px-4">
+        <a 
+          href="/blog"
+          class="inline-flex items-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Quay lại Blog
+        </a>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .article-content {
+    @apply text-gray-800 dark:text-gray-200;
+  }
+  
+  .article-content h1,
+  .article-content h2,
+  .article-content h3,
+  .article-content h4,
+  .article-content h5,
+  .article-content h6 {
+    @apply text-gray-900 dark:text-gray-100 font-bold mb-4 mt-8;
+  }
+  
+  .article-content h1 { @apply text-3xl; }
+  .article-content h2 { @apply text-2xl; }
+  .article-content h3 { @apply text-xl; }
+  .article-content h4 { @apply text-lg; }
+  
+  .article-content p {
+    @apply mb-4 leading-relaxed;
+  }
+  
+  .article-content ul,
+  .article-content ol {
+    @apply mb-4 pl-6;
+  }
+  
+  .article-content li {
+    @apply mb-2;
+  }
+  
+  .article-content blockquote {
+    @apply border-l-4 border-primary-500 pl-4 italic text-gray-600 dark:text-gray-400 my-6;
+  }
+  
+  .article-content code {
+    @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm;
+  }
+  
+  .article-content pre {
+    @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-6;
+  }
+  
+  .article-content img {
+    @apply rounded-lg shadow-md my-6;
+  }
+  
+  .article-content a {
+    @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline;
+  }
+</style>
