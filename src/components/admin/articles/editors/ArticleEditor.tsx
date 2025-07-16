@@ -1806,17 +1806,17 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 {/* Index/NoIndex Toggle */}
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
                       formData.robots_noindex
                         ? 'bg-red-100 dark:bg-red-900/30'
                         : 'bg-green-100 dark:bg-green-900/30'
                     }`}>
                       {formData.robots_noindex ? (
-                        <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       )}
@@ -1846,7 +1846,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, robots_noindex: !prev.robots_noindex }))}
                     disabled={loadingState.isLoading}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 ${
                       formData.robots_noindex
                         ? 'bg-red-500 focus:ring-red-500/20'
                         : 'bg-green-500 focus:ring-green-500/20'
@@ -1854,7 +1854,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     title={formData.robots_noindex ? 'Bật chế độ Index' : 'Bật chế độ NoIndex'}
                   >
                     <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
                         formData.robots_noindex ? 'translate-x-1' : 'translate-x-6'
                       }`}
                     />
