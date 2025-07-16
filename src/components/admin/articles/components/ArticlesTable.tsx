@@ -520,7 +520,7 @@ export default function ArticlesTable({
       )}
 
       {/* Pagination */}
-      {articlesData.totalPages > 1 && (
+      {articlesData.total > 0 && (
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -529,30 +529,32 @@ export default function ArticlesTable({
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Page Navigation */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage <= 1}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Trước
-                </button>
+              {/* Page Navigation - Only show if more than 1 page */}
+              {articlesData.totalPages > 1 && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Trước
+                  </button>
 
-                <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Trang {currentPage} / {articlesData.totalPages}
-                </span>
+                  <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Trang {currentPage} / {articlesData.totalPages}
+                  </span>
 
-                <button
-                  onClick={() => onPageChange(currentPage + 1)}
-                  disabled={currentPage >= articlesData.totalPages}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Sau
-                </button>
-              </div>
+                  <button
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage >= articlesData.totalPages}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Sau
+                  </button>
+                </div>
+              )}
 
-              {/* Items Per Page */}
+              {/* Items Per Page - Always show */}
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700 dark:text-gray-300">Hiển thị:</span>
                 <select
