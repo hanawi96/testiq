@@ -379,18 +379,24 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     };
   });
 
-  // FIXED: Use AdminArticles pattern - loading state in initialState
+  // PROGRESSIVE LOADING: UI tĩnh hiển thị ngay, data động load sau
   const initialLoadingState = {
-    isLoading: isEditMode, // true for edit mode, false for create mode
+    isLoading: false, // UI tĩnh hiển thị ngay
     isDataLoaded: !isEditMode, // false for edit mode, true for create mode
     isValidatingSlug: false,
-    isEditorReady: false
+    isEditorReady: false,
+    // Separate loading states for different sections
+    isLoadingArticleData: isEditMode,
+    isLoadingCategories: !isEditMode, // Create mode: categories load instantly
+    isLoadingAuthors: !isEditMode // Create mode: authors load instantly
   };
 
   const [loadingState, setLoadingState] = useState(initialLoadingState);
 
-  // FIXED: Simple skeleton condition like AdminArticles
-  const shouldShowSkeleton = loadingState.isLoading && !loadingState.isDataLoaded;
+  // Progressive loading: Show static UI immediately, skeleton for dynamic data
+  const shouldShowArticleSkeleton = isEditMode && loadingState.isLoadingArticleData;
+  const shouldShowCategoriesSkeleton = loadingState.isLoadingCategories;
+  const shouldShowAuthorsSkeleton = loadingState.isLoadingAuthors;
 
 
 
@@ -495,8 +501,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               author_id: articleResult.data.author_id || ''
             });
 
-            // Mark data as loaded
-            setLoadingState(prev => ({ ...prev, isDataLoaded: true, isLoading: false }));
+            // Mark article data as loaded
+            setLoadingState(prev => ({
+              ...prev,
+              isDataLoaded: true,
+              isLoadingArticleData: false
+            }));
 
 
           }
@@ -572,7 +582,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             if (defaultAuthorId !== formData.author_id) {
               setFormData(prev => ({ ...prev, author_id: defaultAuthorId }));
             }
-            setLoadingState(prev => ({ ...prev, isDataLoaded: true }));
+            setLoadingState(prev => ({
+              ...prev,
+              isDataLoaded: true,
+              isLoadingCategories: false,
+              isLoadingAuthors: false
+            }));
 
             console.log(`✅ CREATE MODE: Loaded ${finalCategories.length} categories, ${finalAuthors.length} authors`);
           });
@@ -1188,13 +1203,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           {/* Left Column - Main Content */}
           <div className="space-y-6">
 
-            {/* Title Section */}
+            {/* Title Section - Static Box */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
               <div className="space-y-4">
-                {/* Title */}
+                {/* Title - Dynamic Content */}
                 <div>
-                  {/* PROGRESSIVE LOADING: Show skeleton for title when loading data in edit mode */}
-                  {shouldShowSkeleton ? (
+                  {shouldShowArticleSkeleton ? (
                     <TitleSkeleton />
                   ) : (
                     <>
@@ -1220,7 +1234,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   )}
                 </div>
 
-                {/* URL Slug */}
+                {/* URL Slug - Always show static structure */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     URL Slug
@@ -1287,7 +1301,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </svg>
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Nội dung bài viết</h2>
                 </div>
-                {formData.content && (
+                {/* Dynamic Stats - Only show when data loaded */}
+                {!shouldShowArticleSkeleton && formData.content && (
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <span className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded">
                       {formData.content.split(' ').filter(word => word.length > 0).length} từ
@@ -1301,8 +1316,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
               <div>
                 <div className="article-content-editor">
-                  {/* PROGRESSIVE LOADING: Show skeleton for editor when loading data in edit mode */}
-                  {shouldShowSkeleton ? (
+                  {/* PROGRESSIVE LOADING: Show skeleton for editor when loading article data */}
+                  {shouldShowArticleSkeleton ? (
                     <EditorSkeleton />
                   ) : (
                     <Suspense fallback={<EditorSkeleton />}>
@@ -1332,8 +1347,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </span>
               </div>
 
-              {/* PROGRESSIVE LOADING: Show skeleton for excerpt when loading data in edit mode */}
-              {shouldShowSkeleton ? (
+              {/* PROGRESSIVE LOADING: Show skeleton for excerpt when loading article data */}
+              {shouldShowArticleSkeleton ? (
                 <ExcerptSkeleton />
               ) : (
                 <div className="space-y-3">
@@ -1361,8 +1376,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SEO & Tối ưu hóa</h2>
               </div>
 
-              {/* PROGRESSIVE LOADING: Show skeleton for SEO when loading data in edit mode */}
-              {shouldShowSkeleton ? (
+              {/* PROGRESSIVE LOADING: Show skeleton for SEO when loading article data */}
+              {shouldShowArticleSkeleton ? (
                 <SEOSkeleton />
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1554,14 +1569,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
           </div>
 
-          {/* Right Column - Sidebar Settings */}
+          {/* Right Column - Sidebar Settings - Static Structure */}
           <div className="article-sidebar-sticky space-y-6">
-
-            {/* PROGRESSIVE LOADING: Show skeleton for sidebar when loading data in edit mode */}
-            {shouldShowSkeleton ? (
-              <SidebarSkeleton />
-            ) : (
-              <>
 
             {/* Publish Box */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -1666,11 +1675,22 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
             {/* Categories Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <CategorySelector
-                value={formData.categories}
-                onChange={(categories) => setFormData(prev => ({ ...prev, categories }))}
-                disabled={loadingState.isLoading}
-              />
+              {shouldShowCategoriesSkeleton ? (
+                <div className="space-y-3">
+                  <FieldSkeleton className="h-5 w-24" />
+                  <div className="grid grid-cols-2 gap-2">
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <FieldSkeleton key={i} className="h-8 rounded-lg" />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <CategorySelector
+                  value={formData.categories}
+                  onChange={(categories) => setFormData(prev => ({ ...prev, categories }))}
+                  disabled={loadingState.isLoading}
+                />
+              )}
             </div>
 
             {/* Tags Section */}
@@ -1748,11 +1768,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
-              {/* Author Selection - New Compact Design */}
-              {!loadingState.isDataLoaded ? (
-                <div className="flex items-center justify-center py-4">
-                  <LoadingSpinner size="sm" color="gray" className="mr-2" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Đang tải tác giả...</span>
+              {/* Author Selection - Progressive Loading */}
+              {shouldShowAuthorsSkeleton ? (
+                <div className="space-y-3">
+                  <FieldSkeleton className="h-5 w-24" />
+                  <FieldSkeleton className="h-10 w-full rounded-lg" />
                 </div>
               ) : (
                 <div>
@@ -1769,8 +1789,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               )}
             </DropdownSection>
 
-            </>
-            )}
           </div>
         </div>
       </div>

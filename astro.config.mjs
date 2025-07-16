@@ -6,7 +6,10 @@ import node from '@astrojs/node';
 
 export default defineConfig({
   site: 'https://iqtest.yourdomain.com', // Thay đổi domain thực của bạn
-  output: 'static', // Static generation
+  output: 'hybrid', // Hybrid: static by default, server-side when needed
+  adapter: node({
+    mode: 'standalone'
+  }),
   devToolbar: {
     enabled: false // Disable dev toolbar to prevent it from appearing in screenshots
   },

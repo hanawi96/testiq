@@ -490,7 +490,7 @@ export default function ArticlesTable({
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <a
-                        href={`/admin/articles/edit/${article.id}`}
+                        href={`/admin/articles/edit?id=${article.id}`}
                         onClick={() => SmartPreloader.triggerSmartPreload('click')}
                         onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                         className="p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
@@ -524,8 +524,7 @@ export default function ArticlesTable({
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700 dark:text-gray-300">
-              Hiển thị {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, articlesData.total)}
-              trong tổng số {articlesData.total.toLocaleString()} bài viết
+              {Math.min(currentPage * limit, articlesData.total)}/{articlesData.total} bài viết
             </div>
 
             <div className="flex items-center space-x-4">
@@ -535,9 +534,11 @@ export default function ArticlesTable({
                   <button
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage <= 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Trước
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
                   </button>
 
                   <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -547,9 +548,11 @@ export default function ArticlesTable({
                   <button
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage >= articlesData.totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Sau
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </div>
               )}
