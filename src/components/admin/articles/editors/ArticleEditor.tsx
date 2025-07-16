@@ -8,6 +8,7 @@ import MediaUpload from '../create/components/MediaUpload';
 import TagsInput from '../create/components/TagsInput';
 import AuthorSelector from '../create/components/AuthorSelector';
 import CategorySelector from '../create/components/CategorySelector';
+import DateTimePicker from '../create/components/DateTimePicker';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -1645,29 +1646,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Ngày xuất bản
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.published_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, published_date: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
+                <DateTimePicker
+                  label="Ngày xuất bản"
+                  value={formData.published_date}
+                  onChange={(value) => setFormData(prev => ({ ...prev, published_date: value }))}
+                  disabled={loadingState.isLoading}
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Ngày cập nhật
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.updated_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, updated_date: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
+                <DateTimePicker
+                  label="Ngày cập nhật"
+                  value={formData.updated_date}
+                  onChange={(value) => setFormData(prev => ({ ...prev, updated_date: value }))}
+                  disabled={loadingState.isLoading}
+                />
 
 
               </div>
