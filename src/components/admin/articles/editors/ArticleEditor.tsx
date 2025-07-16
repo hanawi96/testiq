@@ -7,6 +7,7 @@ import LoadingSpinner from '../../common/LoadingSpinner';
 import MediaUpload from '../create/components/MediaUpload';
 import TagsInput from '../create/components/TagsInput';
 import AuthorSelector from '../create/components/AuthorSelector';
+import CategorySelector from '../create/components/CategorySelector';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -1363,50 +1364,86 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               {shouldShowSkeleton ? (
                 <SEOSkeleton />
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left side - SEO Score & Analysis */}
-                <div className="space-y-4">
-                  {/* SEO Score */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <div className="text-center">
-                      <div className={`text-2xl font-bold mb-2 ${
-                        seoAnalysis.score >= 80 ? 'text-green-600' :
-                        seoAnalysis.score >= 60 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {seoAnalysis.score}
-                        <span className="text-sm text-gray-500 dark:text-gray-400">/100</span>
+                <div className="space-y-6">
+                  {/* SEO Score Card */}
+                  <div className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Điểm SEO</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Đánh giá tổng thể</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-3xl font-bold ${
+                            seoAnalysis.score >= 80 ? 'text-green-600 dark:text-green-400' :
+                            seoAnalysis.score >= 60 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {seoAnalysis.score}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">/100</div>
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+
+                      {/* Progress Bar */}
+                      <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
                         <div
-                          className={`h-2 rounded-full ${
-                            seoAnalysis.score >= 80 ? 'bg-green-500' :
-                            seoAnalysis.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                          className={`h-full rounded-full ${
+                            seoAnalysis.score >= 80 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                            seoAnalysis.score >= 60 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-red-500 to-pink-500'
                           }`}
                           style={{ width: `${seoAnalysis.score}%` }}
                         ></div>
                       </div>
-                      <div className={`text-sm font-medium ${
-                        seoAnalysis.score >= 80 ? 'text-green-700 dark:text-green-400' :
-                        seoAnalysis.score >= 60 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-700 dark:text-red-400'
-                      }`}>
-                        {seoAnalysis.score >= 80 ? 'Xuất sắc' :
-                         seoAnalysis.score >= 60 ? 'Tốt' : 'Cần cải thiện'}
+
+                      {/* Status Badge */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Trạng thái tối ưu</span>
+                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          seoAnalysis.score >= 80 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                          seoAnalysis.score >= 60 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                        }`}>
+                          {seoAnalysis.score >= 80 ? '🎯 Xuất sắc' :
+                           seoAnalysis.score >= 60 ? '⚡ Tốt' : '🔧 Cần cải thiện'}
+                        </div>
                       </div>
-                    </div>
                   </div>
 
                   {/* SEO Checklist */}
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Checklist SEO</h4>
-                    <div className="space-y-2">
+                  <div className="bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-800 dark:to-gray-800/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Checklist SEO</h4>
+                    </div>
+                    <div className="space-y-3">
                       {seoAnalysis.checks.map((check, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            check.status === 'good' ? 'bg-green-500' :
-                            check.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                        <div key={index} className="flex items-center gap-3 p-3 rounded-xl">
+                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                            check.status === 'good' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                            check.status === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-red-500 to-pink-500'
                           }`}></div>
-                          <span className="text-xs text-gray-700 dark:text-gray-300">{check.name}</span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{check.message}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{check.name}</span>
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                check.status === 'good' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                                check.status === 'warning' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                              }`}>
+                                {check.message}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1414,28 +1451,46 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </div>
 
                 {/* Right side - SEO Fields */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Focus Keyword */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
                       Từ khóa chính
                     </label>
                     <input
                       type="text"
                       value={formData.focus_keyword}
                       onChange={(e) => setFormData(prev => ({ ...prev, focus_keyword: e.target.value }))}
-                      placeholder="Nhập từ khóa chính..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                      placeholder="Nhập từ khóa chính cho bài viết..."
+                      className="w-full px-4 py-3.5 border-2 rounded-xl
+                        bg-white dark:bg-gray-800/50 backdrop-blur-sm
+                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
+                        focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
+                        border-gray-200 dark:border-gray-700"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       Từ khóa chính giúp tối ưu hóa nội dung cho search engine
-                    </p>
+                    </div>
                   </div>
 
                   {/* Meta Title */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Meta Title ({formData.meta_title.length}/60)
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+                      Meta Title
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        formData.meta_title.length >= 50 && formData.meta_title.length <= 60
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : formData.meta_title.length > 60
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {formData.meta_title.length}/60
+                      </span>
                     </label>
                     <input
                       type="text"
@@ -1443,37 +1498,52 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
                       placeholder="Tiêu đề hiển thị trên Google..."
                       maxLength={60}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full px-4 py-3.5 border-2 rounded-xl
+                        bg-white dark:bg-gray-800/50 backdrop-blur-sm
+                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
+                        focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500
+                        border-gray-200 dark:border-gray-700"
                     />
-                    <div className={`text-xs mt-1 ${
-                      formData.meta_title.length >= 50 && formData.meta_title.length <= 60 ? 'text-green-600 dark:text-green-400' :
-                      formData.meta_title.length > 60 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                      Tối ưu: 50-60 ký tự
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Tiêu đề hiển thị trên kết quả tìm kiếm Google
                     </div>
                   </div>
 
                   {/* Meta Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Meta Description ({formData.meta_description.length}/160)
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500"></div>
+                      Meta Description
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        formData.meta_description.length >= 120 && formData.meta_description.length <= 160
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : formData.meta_description.length > 160
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {formData.meta_description.length}/160
+                      </span>
                     </label>
                     <textarea
                       value={formData.meta_description}
                       onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
                       placeholder="Mô tả ngắn gọn hiển thị trên Google..."
                       maxLength={160}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                      rows={4}
+                      className="w-full px-4 py-3.5 border-2 rounded-xl resize-none
+                        bg-white dark:bg-gray-800/50 backdrop-blur-sm
+                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
+                        focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500
+                        border-gray-200 dark:border-gray-700"
                     />
-                    <div className={`text-xs mt-1 ${
-                      formData.meta_description.length >= 120 && formData.meta_description.length <= 160
-                        ? 'text-green-600 dark:text-green-400'
-                        : formData.meta_description.length > 160
-                        ? 'text-red-600 dark:text-red-400'
-                        : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                      Tối ưu: 120-160 ký tự
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Mô tả ngắn gọn hiển thị trên kết quả tìm kiếm Google
                     </div>
                   </div>
                 </div>
@@ -1604,95 +1674,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             </div>
 
             {/* Categories Section */}
-            <DropdownSection
-              title="Danh mục"
-              icon={
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-              }
-              isOpen={sidebarDropdowns.categories}
-              onToggle={() => toggleSidebarDropdown('categories')}
-            >
-
-              <div className="space-y-2">
-                {!loadingState.isDataLoaded ? (
-                  <div className="text-center py-4">
-                    <LoadingSpinner size="md" color="blue" className="mb-2" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Đang tải danh mục...</p>
-                  </div>
-                ) : categories.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Không có danh mục nào</p>
-                  </div>
-                ) : (
-                  categories.map((cat) => {
-                    const isSelected = formData.categories.includes(cat.id);
-                    return (
-                      <label
-                        key={cat.id}
-                        className={`flex items-center p-3 rounded-lg border cursor-pointer ${
-                          isSelected
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                            : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleCategoryToggle(cat.id)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                        <span className={`ml-3 text-sm font-medium ${
-                          isSelected
-                            ? 'text-blue-900 dark:text-blue-200'
-                            : 'text-gray-700 dark:text-gray-300'
-                        }`}>
-                          {cat.name}
-                        </span>
-                        {isSelected && (
-                          <svg className="ml-auto w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-
-              {formData.categories.length > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
-                      Đã chọn ({formData.categories.length})
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.categories.map((catId, index) => {
-                      const category = categories.find(cat => cat.id === catId);
-                      return category ? (
-                        <span
-                          key={`category-${index}-${catId}`}
-                          className="inline-flex items-center px-2 py-1 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-300 text-xs rounded"
-                        >
-                          {typeof category === 'string' ? category : category.name}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCategoryToggle(catId);
-                            }}
-                            className="ml-1 w-3 h-3 text-blue-600 dark:text-blue-400 hover:text-red-600 dark:hover:text-red-400"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-              )}
-            </DropdownSection>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <CategorySelector
+                value={formData.categories}
+                onChange={(categories) => setFormData(prev => ({ ...prev, categories }))}
+                disabled={loadingState.isLoading}
+              />
+            </div>
 
             {/* Tags Section */}
             <DropdownSection

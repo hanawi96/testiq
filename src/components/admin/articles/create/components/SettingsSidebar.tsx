@@ -1,6 +1,7 @@
 import React from 'react';
 import AuthorSelector from './AuthorSelector';
 import TagsInput from './TagsInput';
+import CategorySelector from './CategorySelector';
 
 interface FormData {
   title: string;
@@ -10,6 +11,7 @@ interface FormData {
   featured: boolean;
   author_id: string;
   tags: string[];
+  categories: string[];
   [key: string]: any;
 }
 
@@ -204,6 +206,13 @@ export default function SettingsSidebar({
                     </div>
                   )}
                 </div>
+
+                {/* Categories */}
+                <CategorySelector
+                  value={formData.categories || []}
+                  onChange={(categories) => onChange('categories', categories)}
+                  disabled={isSubmitting}
+                />
 
                 {/* Status */}
                 <div>
