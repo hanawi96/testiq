@@ -544,6 +544,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             }
           }
 
+          // Reset unsaved changes after loading article data
+          setHasUnsavedChanges(false);
+          setInitialFormData(formData);
+
         } else {
           // CREATE MODE: Load only preloaded data (no article to fetch)
           console.log('🆕 CREATE MODE: Loading categories and authors for new article');
@@ -607,10 +611,31 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
-  // Track unsaved changes
+  // Track unsaved changes - only when user actually makes changes
+  const [initialFormData, setInitialFormData] = useState<any>(null);
+
   useEffect(() => {
-    setHasUnsavedChanges(true);
-  }, [formData]);
+    // Set initial form data on first load
+    if (!initialFormData) {
+      setInitialFormData(formData);
+      return;
+    }
+
+    // Check if form data actually changed from initial state
+    const hasActualChanges = (
+      formData.title !== initialFormData.title ||
+      formData.content !== initialFormData.content ||
+      formData.excerpt !== initialFormData.excerpt ||
+      formData.slug !== initialFormData.slug ||
+      formData.is_public !== initialFormData.is_public ||
+      formData.is_featured !== initialFormData.is_featured ||
+      formData.author_id !== initialFormData.author_id ||
+      formData.category_id !== initialFormData.category_id ||
+      JSON.stringify(formData.tags) !== JSON.stringify(initialFormData.tags)
+    );
+
+    setHasUnsavedChanges(hasActualChanges);
+  }, [formData, initialFormData]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -644,6 +669,15 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     if (!hasUnsavedChanges) {
       console.log('❌ AUTOSAVE: Skipped - no changes', {
         hasUnsavedChanges
+      });
+      return;
+    }
+
+    // Skip autosave if content is too short (less than 10 characters)
+    if (formData.content.trim().length < 10) {
+      console.log('❌ AUTOSAVE: Skipped - content too short', {
+        contentLength: formData.content.trim().length,
+        minRequired: 10
       });
       return;
     }
