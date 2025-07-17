@@ -467,13 +467,31 @@ export default function TiptapEditor({
         },
         gapcursor: {},
       }),
-      // OPTIMIZED: Image Extension with performance settings
+      // OPTIMIZED: Image Extension with alt text support
       Image.configure({
         inline: true,
         allowBase64: false, // Disabled for better performance - use URLs instead
         HTMLAttributes: {
           class: 'tiptap-image',
           loading: 'lazy', // Lazy loading for better performance
+        },
+        // Ensure alt attribute is preserved in HTML output
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            alt: {
+              default: null,
+              parseHTML: element => element.getAttribute('alt'),
+              renderHTML: attributes => {
+                if (!attributes.alt) {
+                  return {};
+                }
+                return {
+                  alt: attributes.alt,
+                };
+              },
+            },
+          };
         },
       }),
 
