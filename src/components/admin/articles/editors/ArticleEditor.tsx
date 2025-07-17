@@ -826,8 +826,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
     try {
-      // Validate required fields
-      if (!formData.title.trim()) {
+      // Validate required fields (skip for autosave)
+      if (!isAutoSave && !formData.title.trim()) {
         setSaveStatus('❌ Tiêu đề không được để trống');
         setLoadingState(prev => ({ ...prev, isLoading: false }));
         setTimeout(() => setSaveStatus(''), 3000);
