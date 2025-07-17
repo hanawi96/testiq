@@ -262,58 +262,117 @@ export default function ImageCropper({
           setCropArea(prev => ({ ...prev, x: newX, y: newY }));
         }
       } else if (isResizing && resizeHandle) {
-        // Handle crop area resizing
+        // Handle crop area resizing with proper aspect ratio maintenance
         const deltaX = e.clientX - dragStart.x;
         const deltaY = e.clientY - dragStart.y;
 
         let newCropArea = { ...cropArea };
 
-        // Calculate resize based on handle
-        switch (resizeHandle) {
-          case 'nw':
-            newCropArea.x = Math.max(0, cropArea.x + deltaX);
-            newCropArea.y = Math.max(0, cropArea.y + deltaY);
-            newCropArea.width = Math.max(50, cropArea.width - deltaX);
-            newCropArea.height = Math.max(50, cropArea.height - deltaY);
-            break;
-          case 'ne':
-            newCropArea.y = Math.max(0, cropArea.y + deltaY);
-            newCropArea.width = Math.max(50, cropArea.width + deltaX);
-            newCropArea.height = Math.max(50, cropArea.height - deltaY);
-            break;
-          case 'sw':
-            newCropArea.x = Math.max(0, cropArea.x + deltaX);
-            newCropArea.width = Math.max(50, cropArea.width - deltaX);
-            newCropArea.height = Math.max(50, cropArea.height + deltaY);
-            break;
-          case 'se':
-            newCropArea.width = Math.max(50, cropArea.width + deltaX);
-            newCropArea.height = Math.max(50, cropArea.height + deltaY);
-            break;
-        }
-
-        // Maintain aspect ratio if selected
         if (selectedRatio) {
-          if (resizeHandle === 'se') {
+          // FIXED: Maintain aspect ratio during resize
+          // Use the primary dimension based on handle direction and calculate the other
+          let newWidth, newHeight;
+
+          switch (resizeHandle) {
+            case 'se': // Southeast - expand from top-left anchor
+              // Use the larger delta to determine primary dimension
+              if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+                newWidth = Math.max(50, cropArea.width + deltaX);
+                newHeight = newWidth / selectedRatio;
+              } else {
+                newHeight = Math.max(50, cropArea.height + deltaY);
+                newWidth = newHeight * selectedRatio;
+              }
+              break;
+
+            case 'nw': // Northwest - expand from bottom-right anchor
+              if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+                newWidth = Math.max(50, cropArea.width - deltaX);
+                newHeight = newWidth / selectedRatio;
+              } else {
+                newHeight = Math.max(50, cropArea.height - deltaY);
+                newWidth = newHeight * selectedRatio;
+              }
+              newCropArea.x = cropArea.x + cropArea.width - newWidth;
+              newCropArea.y = cropArea.y + cropArea.height - newHeight;
+              break;
+
+            case 'ne': // Northeast - expand from bottom-left anchor
+              if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+                newWidth = Math.max(50, cropArea.width + deltaX);
+                newHeight = newWidth / selectedRatio;
+              } else {
+                newHeight = Math.max(50, cropArea.height - deltaY);
+                newWidth = newHeight * selectedRatio;
+              }
+              newCropArea.y = cropArea.y + cropArea.height - newHeight;
+              break;
+
+            case 'sw': // Southwest - expand from top-right anchor
+              if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+                newWidth = Math.max(50, cropArea.width - deltaX);
+                newHeight = newWidth / selectedRatio;
+              } else {
+                newHeight = Math.max(50, cropArea.height + deltaY);
+                newWidth = newHeight * selectedRatio;
+              }
+              newCropArea.x = cropArea.x + cropArea.width - newWidth;
+              break;
+          }
+
+          // Apply calculated dimensions
+          newCropArea.width = newWidth;
+          newCropArea.height = newHeight;
+
+          // Ensure crop area stays within image bounds and adjust if needed
+          if (newCropArea.x < 0) {
+            newCropArea.x = 0;
+            newCropArea.width = Math.min(newCropArea.width, imageDimensions.width);
             newCropArea.height = newCropArea.width / selectedRatio;
-          } else if (resizeHandle === 'ne') {
-            newCropArea.height = newCropArea.width / selectedRatio;
-            newCropArea.y = cropArea.y + cropArea.height - newCropArea.height;
-            newCropArea.y = Math.max(0, newCropArea.y);
-          } else if (resizeHandle === 'nw') {
-            newCropArea.height = newCropArea.width / selectedRatio;
-            newCropArea.x = cropArea.x + cropArea.width - newCropArea.width;
-            newCropArea.y = cropArea.y + cropArea.height - newCropArea.height;
-            newCropArea.x = Math.max(0, newCropArea.x);
-            newCropArea.y = Math.max(0, newCropArea.y);
-          } else {
+          }
+          if (newCropArea.y < 0) {
+            newCropArea.y = 0;
+            newCropArea.height = Math.min(newCropArea.height, imageDimensions.height);
             newCropArea.width = newCropArea.height * selectedRatio;
           }
-        }
+          if (newCropArea.x + newCropArea.width > imageDimensions.width) {
+            newCropArea.width = imageDimensions.width - newCropArea.x;
+            newCropArea.height = newCropArea.width / selectedRatio;
+          }
+          if (newCropArea.y + newCropArea.height > imageDimensions.height) {
+            newCropArea.height = imageDimensions.height - newCropArea.y;
+            newCropArea.width = newCropArea.height * selectedRatio;
+          }
 
-        // Ensure crop area stays within image bounds
-        newCropArea.width = Math.min(newCropArea.width, imageDimensions.width - newCropArea.x);
-        newCropArea.height = Math.min(newCropArea.height, imageDimensions.height - newCropArea.y);
+        } else {
+          // Free crop - original logic
+          switch (resizeHandle) {
+            case 'nw':
+              newCropArea.x = Math.max(0, cropArea.x + deltaX);
+              newCropArea.y = Math.max(0, cropArea.y + deltaY);
+              newCropArea.width = Math.max(50, cropArea.width - deltaX);
+              newCropArea.height = Math.max(50, cropArea.height - deltaY);
+              break;
+            case 'ne':
+              newCropArea.y = Math.max(0, cropArea.y + deltaY);
+              newCropArea.width = Math.max(50, cropArea.width + deltaX);
+              newCropArea.height = Math.max(50, cropArea.height - deltaY);
+              break;
+            case 'sw':
+              newCropArea.x = Math.max(0, cropArea.x + deltaX);
+              newCropArea.width = Math.max(50, cropArea.width - deltaX);
+              newCropArea.height = Math.max(50, cropArea.height + deltaY);
+              break;
+            case 'se':
+              newCropArea.width = Math.max(50, cropArea.width + deltaX);
+              newCropArea.height = Math.max(50, cropArea.height + deltaY);
+              break;
+          }
+
+          // Ensure crop area stays within image bounds
+          newCropArea.width = Math.min(newCropArea.width, imageDimensions.width - newCropArea.x);
+          newCropArea.height = Math.min(newCropArea.height, imageDimensions.height - newCropArea.y);
+        }
 
         setCropArea(newCropArea);
         setDragStart({ x: e.clientX, y: e.clientY });

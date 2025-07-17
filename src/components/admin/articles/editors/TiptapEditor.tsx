@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -401,6 +402,9 @@ export default function TiptapEditor({
   // OPTIMIZED: Unified popup management
   const { activePopup, openPopup, closePopup, isPopupOpen } = usePopupManager();
 
+  // State cho image hover overlay - ĐƠN GIẢN
+  const [hoveredImage, setHoveredImage] = useState<HTMLImageElement | null>(null);
+
   // Image alt edit popup state
   const [imageAltEdit, setImageAltEdit] = useState<{
     isOpen: boolean;
@@ -414,14 +418,7 @@ export default function TiptapEditor({
     imageElement: null
   });
 
-  // Image hover overlay state
-  const [imageHoverOverlay, setImageHoverOverlay] = useState<{
-    isOpen: boolean;
-    imageElement: HTMLImageElement | null;
-  }>({
-    isOpen: false,
-    imageElement: null
-  });
+
   const editor = useEditor({
     extensions: [
       // OPTIMIZED: StarterKit with performance-focused configuration
@@ -555,41 +552,39 @@ export default function TiptapEditor({
         detail: { initTime: performance.now() - startTime }
       }));
 
-      // Add image hover handler for overlay
+      // SIÊU NHANH: Hover listeners cho instant overlay
       const editorElement = editor.view.dom;
-      let hoverTimeout: NodeJS.Timeout;
 
       const handleImageHover = (event: Event) => {
         const target = event.target as HTMLElement;
         if (target.tagName === 'IMG') {
           const img = target as HTMLImageElement;
 
-          // Clear any existing timeout
-          clearTimeout(hoverTimeout);
-
-          // Show overlay after short delay
-          hoverTimeout = setTimeout(() => {
-            setImageHoverOverlay({
-              isOpen: true,
-              imageElement: img
-            });
-          }, 300);
+          // INSTANT: Hiển thị ngay lập tức (0ms delay)
+          setHoveredImage(img);
         }
       };
 
       const handleImageLeave = (event: Event) => {
         const target = event.target as HTMLElement;
+        const relatedTarget = (event as MouseEvent).relatedTarget as HTMLElement;
+
         if (target.tagName === 'IMG') {
-          clearTimeout(hoverTimeout);
+          // INSTANT: Không có delay, ẩn ngay lập tức
+          const hasOpenModal = document.querySelector('.fixed.inset-0.bg-black\\/50, .fixed.inset-0.z-50');
+          const isHoveringOverlay = relatedTarget?.closest('.image-hover-overlay');
+
+          if (!isHoveringOverlay && !hasOpenModal) {
+            setHoveredImage(null);
+          }
         }
       };
 
       editorElement.addEventListener('mouseenter', handleImageHover, true);
       editorElement.addEventListener('mouseleave', handleImageLeave, true);
 
-      // Store cleanup function
+      // Store cleanup
       (editor as any)._imageHoverCleanup = () => {
-        clearTimeout(hoverTimeout);
         editorElement.removeEventListener('mouseenter', handleImageHover, true);
         editorElement.removeEventListener('mouseleave', handleImageLeave, true);
       };
@@ -601,6 +596,13 @@ export default function TiptapEditor({
       // OPTIMIZED: Debounced content updates for better performance
       const html = editor.getHTML();
       onChange(html);
+    },
+
+    onDestroy: ({ editor }) => {
+      // Cleanup event listeners
+      if ((editor as any)._imageHoverCleanup) {
+        (editor as any)._imageHoverCleanup();
+      }
     },
 
     // OPTIMIZED: Editor properties for better performance
@@ -977,33 +979,46 @@ export default function TiptapEditor({
         />
       )}
 
-      {/* Image Hover Overlay */}
-      {imageHoverOverlay.isOpen && imageHoverOverlay.imageElement && editor && (
-        <ImageHoverOverlay
-          imageElement={imageHoverOverlay.imageElement}
-          editor={editor}
-          onClose={() => setImageHoverOverlay({ isOpen: false, imageElement: null })}
-        />
-      )}
+      {/* SIÊU NHANH: Image Hover Overlay */}
+      <AnimatePresence>
+        {hoveredImage && editor && (
+          <ImageHoverOverlay
+            key={hoveredImage.src} // Key để trigger animation
+            imageElement={hoveredImage}
+            editor={editor}
+            onClose={() => setHoveredImage(null)}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Custom CSS for image hover effects */}
+
+
+      {/* CSS tối ưu cho images với hover overlay */}
       <style>{`
         .tiptap-content img {
-          cursor: pointer;
-          transition: all 0.2s ease;
           border-radius: 8px;
-          position: relative;
+          max-width: 100%;
+          height: auto;
+          cursor: pointer;
+          transition: all 0.15s ease; /* SIÊU NHANH */
         }
 
         .tiptap-content img:hover {
-          transform: scale(1.01);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          border: 2px solid #3b82f6;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
 
         .tiptap-content .ProseMirror img.ProseMirror-selectednode {
           border: 2px solid #3b82f6;
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Overlay positioning */
+        .image-hover-overlay {
+          pointer-events: none;
+        }
+
+        .image-hover-overlay > div {
+          pointer-events: auto;
         }
       `}</style>
     </div>

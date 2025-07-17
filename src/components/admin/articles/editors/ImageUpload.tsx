@@ -126,14 +126,14 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
     }, 200);
 
     try {
-      // Use replaceImage for smart cleanup if replacing existing image
+      // FIXED: Upload với preserved filename cho TipTap editor
       const uploadMethod = existingImageUrl
         ? ImageStorageService.replaceImage(existingImageUrl, file, {
             folder: 'articles',
             maxWidth: 1920,
             maxHeight: 1080,
           })
-        : ImageStorageService.uploadImage(file, {
+        : ImageStorageService.uploadImageWithPreservedName(file, {
             folder: 'articles',
             maxWidth: 1920,
             maxHeight: 1080,

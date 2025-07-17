@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Edit3, Crop, RefreshCw, Trash2 } from 'lucide-react';
 import ImageCropper from '../../../ui/ImageCropper';
@@ -33,38 +33,7 @@ export default function ImageHoverOverlay({
     processingType: null
   });
 
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-
-  // Calculate overlay position
-  useEffect(() => {
-    if (imageElement) {
-      const rect = imageElement.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-      
-      setPosition({
-        x: rect.left + scrollLeft + rect.width / 2,
-        y: rect.top + scrollTop + rect.height / 2
-      });
-    }
-  }, [imageElement]);
-
-  // Close overlay when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
-        if (!overlayState.showCropper && !overlayState.showAltEdit && !overlayState.showReplace) {
-          onClose();
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose, overlayState]);
-
-  // Get image position in editor
+  // Tìm vị trí image trong TipTap document
   const getImagePosition = () => {
     const { state } = editor;
     const { doc } = state;
@@ -81,17 +50,18 @@ export default function ImageHoverOverlay({
   };
 
   // Handle crop
-  const handleCrop = () => {
+  const handleCrop = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setOverlayState(prev => ({ ...prev, showCropper: true }));
   };
 
   // Handle crop save
   const handleCropSave = async (croppedImageUrl: string) => {
-    setOverlayState(prev => ({ 
-      ...prev, 
-      showCropper: false, 
-      isProcessing: true, 
-      processingType: 'crop' 
+    setOverlayState(prev => ({
+      ...prev,
+      showCropper: false,
+      isProcessing: true,
+      processingType: 'crop'
     }));
 
     try {
@@ -107,7 +77,7 @@ export default function ImageHoverOverlay({
       );
 
       if (data && !error) {
-        // Update image in editor
+        // Update image trong editor
         const imagePos = getImagePosition();
         if (imagePos !== -1) {
           editor.chain()
@@ -126,12 +96,14 @@ export default function ImageHoverOverlay({
       console.error('Crop error:', error);
     } finally {
       setOverlayState(prev => ({ ...prev, isProcessing: false, processingType: null }));
-      onClose();
+      // FIXED: Đóng overlay sau khi hoàn thành
+      setTimeout(() => onClose(), 100);
     }
   };
 
   // Handle alt text edit
-  const handleAltEdit = () => {
+  const handleAltEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setOverlayState(prev => ({ ...prev, showAltEdit: true }));
   };
 
@@ -146,11 +118,13 @@ export default function ImageHoverOverlay({
         .run();
     }
     setOverlayState(prev => ({ ...prev, showAltEdit: false }));
-    onClose();
+    // FIXED: Đóng overlay sau khi hoàn thành
+    setTimeout(() => onClose(), 100);
   };
 
   // Handle replace
-  const handleReplace = () => {
+  const handleReplace = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setOverlayState(prev => ({ ...prev, showReplace: true }));
   };
 
@@ -165,11 +139,13 @@ export default function ImageHoverOverlay({
         .run();
     }
     setOverlayState(prev => ({ ...prev, showReplace: false }));
-    onClose();
+    // FIXED: Đóng overlay sau khi hoàn thành
+    setTimeout(() => onClose(), 100);
   };
 
   // Handle delete
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm('Bạn có chắc chắn muốn xóa ảnh này?')) return;
 
     setOverlayState(prev => ({ 
@@ -198,65 +174,106 @@ export default function ImageHoverOverlay({
       console.error('Delete error:', error);
     } finally {
       setOverlayState(prev => ({ ...prev, isProcessing: false, processingType: null }));
-      onClose();
+      // FIXED: Đóng overlay sau khi hoàn thành
+      setTimeout(() => onClose(), 100);
     }
   };
 
-  const overlayStyle = {
-    position: 'absolute' as const,
-    left: position.x,
-    top: position.y,
-    transform: 'translate(-50%, -50%)',
-    zIndex: 1000
-  };
+  // Tính toán vị trí overlay
+  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (imageElement) {
+      const updatePosition = () => {
+        const rect = imageElement.getBoundingClientRect();
+        setOverlayPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        });
+      };
+
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, { passive: true });
+      window.addEventListener('resize', updatePosition, { passive: true });
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [imageElement]);
 
   return (
     <>
-      {/* Main Overlay */}
-      <motion.div
-        ref={overlayRef}
-        style={overlayStyle}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.8 }}
-        className="bg-gray-800/90 backdrop-blur-md rounded-xl p-2 flex items-center gap-2 shadow-2xl border border-gray-600"
+      {/* SIÊU NHANH: Hover Overlay - giống MediaUpload */}
+      <div
+        className="image-hover-overlay fixed pointer-events-none z-50"
+        style={{
+          left: overlayPosition.x,
+          top: overlayPosition.y,
+          transform: 'translate(-50%, -50%)'
+        }}
       >
-        <button
-          onClick={handleAltEdit}
-          disabled={overlayState.isProcessing}
-          className="p-2 text-white hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-50"
-          title="Edit Alt Text"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.15 }} // SIÊU NHANH
+          className="bg-black/80 backdrop-blur-md rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto"
+          onMouseEnter={() => {}} // Prevent overlay from disappearing
+          onMouseLeave={(e) => {
+            // INSTANT: Đóng ngay lập tức nếu không có modal
+            const hasOpenModal = overlayState.showCropper || overlayState.showAltEdit || overlayState.showReplace;
+            if (!hasOpenModal) {
+              onClose();
+            }
+          }}
         >
-          <Edit3 size={16} />
-        </button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleCrop}
+            disabled={overlayState.isProcessing}
+            className="p-3 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/30 transition-all duration-150 shadow-lg disabled:opacity-50"
+            title="Crop ảnh"
+          >
+            <Crop size={16} />
+          </motion.button>
 
-        <button
-          onClick={handleCrop}
-          disabled={overlayState.isProcessing}
-          className="p-2 text-white hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50"
-          title="Crop Image"
-        >
-          <Crop size={16} />
-        </button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleAltEdit}
+            disabled={overlayState.isProcessing}
+            className="p-3 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/30 transition-all duration-150 shadow-lg disabled:opacity-50"
+            title="Chỉnh sửa Alt text"
+          >
+            <Edit3 size={16} />
+          </motion.button>
 
-        <button
-          onClick={handleReplace}
-          disabled={overlayState.isProcessing}
-          className="p-2 text-white hover:bg-yellow-600 rounded-lg transition-colors disabled:opacity-50"
-          title="Replace Image"
-        >
-          <RefreshCw size={16} />
-        </button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleReplace}
+            disabled={overlayState.isProcessing}
+            className="p-3 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/30 transition-all duration-150 shadow-lg disabled:opacity-50"
+            title="Thay thế ảnh"
+          >
+            <RefreshCw size={16} />
+          </motion.button>
 
-        <button
-          onClick={handleDelete}
-          disabled={overlayState.isProcessing}
-          className="p-2 text-white hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50"
-          title="Delete Image"
-        >
-          <Trash2 size={16} />
-        </button>
-      </motion.div>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleDelete}
+            disabled={overlayState.isProcessing}
+            className="p-3 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-red-500/50 transition-all duration-150 shadow-lg disabled:opacity-50"
+            title="Xóa ảnh"
+          >
+            <Trash2 size={16} />
+          </motion.button>
+        </motion.div>
+      </div>
 
       {/* Modals */}
       <AnimatePresence>
@@ -264,7 +281,10 @@ export default function ImageHoverOverlay({
           <ImageCropper
             imageUrl={imageElement.src}
             onCrop={handleCropSave}
-            onCancel={() => setOverlayState(prev => ({ ...prev, showCropper: false }))}
+            onCancel={() => {
+              setOverlayState(prev => ({ ...prev, showCropper: false }));
+              // Không đóng overlay ngay, để user có thể chọn action khác
+            }}
             initialAspectRatio={null}
           />
         )}
@@ -273,8 +293,11 @@ export default function ImageHoverOverlay({
           <ImageAltEditPopup
             currentAlt={imageElement.alt || ''}
             onSave={handleAltSave}
-            onCancel={() => setOverlayState(prev => ({ ...prev, showAltEdit: false }))}
-            position={position}
+            onCancel={() => {
+              setOverlayState(prev => ({ ...prev, showAltEdit: false }));
+              // Không đóng overlay ngay, để user có thể chọn action khác
+            }}
+            isModal={true} // Sử dụng modal mode cho TipTap
             imageElement={imageElement}
           />
         )}
@@ -282,7 +305,10 @@ export default function ImageHoverOverlay({
         {overlayState.showReplace && (
           <ImageUpload
             onImageUpload={handleReplaceUpload}
-            onClose={() => setOverlayState(prev => ({ ...prev, showReplace: false }))}
+            onClose={() => {
+              setOverlayState(prev => ({ ...prev, showReplace: false }));
+              // Không đóng overlay ngay, để user có thể chọn action khác
+            }}
             existingImageUrl={imageElement.src}
           />
         )}

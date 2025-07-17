@@ -26,7 +26,7 @@ export class ImageStorageService {
   private static readonly ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
   /**
-   * Upload image to Supabase Storage
+   * Upload image to Supabase Storage (original method)
    */
   static async uploadImage(
     file: File,
@@ -89,6 +89,64 @@ export class ImageStorageService {
   }
 
   /**
+   * Upload image with preserved filename for TipTap editor
+   */
+  static async uploadImageWithPreservedName(
+    file: File,
+    options: ImageUploadOptions = {}
+  ): Promise<{ data: ImageUploadResult | null; error: any }> {
+    try {
+      // Fast validation
+      const validation = this.validateFile(file);
+      if (!validation.valid) {
+        return { data: null, error: new Error(validation.error) };
+      }
+
+      // Generate preserved filename with duplicate handling
+      const folder = options.folder || 'articles';
+      const fileName = await this.generatePreservedFileName(file.name, folder);
+      const filePath = `${folder}/${fileName}`;
+
+      // Parallel processing: dimensions + optimization
+      const [dimensions, optimizedFile] = await Promise.all([
+        this.getImageDimensions(file),
+        this.smartOptimizeImage(file, options),
+      ]);
+
+      // Upload to Supabase
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from(this.BUCKET_NAME)
+        .upload(filePath, optimizedFile, {
+          cacheControl: '31536000', // 1 year cache
+          upsert: false, // Don't overwrite existing files
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabaseAdmin.storage
+        .from(this.BUCKET_NAME)
+        .getPublicUrl(filePath);
+
+      const result: ImageUploadResult = {
+        url: urlData.publicUrl,
+        path: filePath,
+        width: dimensions.width,
+        height: dimensions.height,
+        size: optimizedFile.size,
+      };
+
+      return { data: result, error: null };
+
+    } catch (error) {
+      console.error('ImageStorageService: Upload with preserved name error:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
    * Delete image from storage
    */
   static async deleteImage(path: string): Promise<{ success: boolean; error: any }> {
@@ -132,8 +190,8 @@ export class ImageStorageService {
     options: ImageUploadOptions = {}
   ): Promise<{ data: ImageUploadResult | null; error: any }> {
     try {
-      // Upload new image first
-      const uploadResult = await this.uploadImage(newFile, options);
+      // FIXED: Upload new image với preserved filename
+      const uploadResult = await this.uploadImageWithPreservedName(newFile, options);
 
       if (uploadResult.error || !uploadResult.data) {
         return uploadResult;
@@ -176,7 +234,7 @@ export class ImageStorageService {
   }
 
   /**
-   * Generate unique filename
+   * Generate unique filename (original method)
    */
   private static generateFileName(originalName: string): string {
     const timestamp = Date.now();
@@ -186,8 +244,71 @@ export class ImageStorageService {
       .replace(/[^a-z0-9]/g, '-')
       .replace(/-+/g, '-')
       .substring(0, 20);
-    
+
     return `${baseName}-${timestamp}-${random}.${extension}`;
+  }
+
+  /**
+   * Generate filename preserving original name with smart duplicate handling
+   */
+  private static async generatePreservedFileName(
+    originalName: string,
+    folder: string = 'articles'
+  ): Promise<string> {
+    // ENHANCED: Clean and normalize filename with edge case handling
+    const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
+    let baseName = originalName.split('.')[0]
+      .replace(/[^a-zA-Z0-9\-_\s]/g, '') // Remove special chars except dash, underscore, space
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/^[-_]+|[-_]+$/g, '') // Remove leading/trailing dashes and underscores
+      .trim();
+
+    // Handle edge cases
+    if (!baseName || baseName.length === 0) {
+      baseName = 'image'; // Default name for invalid filenames
+    }
+
+    // Limit length for storage compatibility
+    if (baseName.length > 50) {
+      baseName = baseName.substring(0, 50);
+    }
+
+    const cleanFileName = `${baseName}.${extension}`;
+
+    // OPTIMIZED: Batch check for existing files to reduce API calls
+    const { data: existingFiles } = await supabaseAdmin.storage
+      .from(this.BUCKET_NAME)
+      .list(folder, {
+        search: baseName, // Search by base name to get all potential conflicts
+        limit: 100
+      });
+
+    // If no files found, return original name
+    if (!existingFiles || existingFiles.length === 0) {
+      return cleanFileName;
+    }
+
+    // Create set of existing filenames for fast lookup
+    const existingNames = new Set(existingFiles.map(file => file.name));
+
+    // If original name doesn't exist, return it
+    if (!existingNames.has(cleanFileName)) {
+      return cleanFileName;
+    }
+
+    // Find next available number
+    let counter = 1;
+    let newFileName: string;
+
+    do {
+      newFileName = `${baseName}_${counter}.${extension}`;
+      if (!existingNames.has(newFileName)) {
+        break;
+      }
+      counter++;
+    } while (counter < 1000); // Safety limit
+
+    return newFileName;
   }
 
   /**

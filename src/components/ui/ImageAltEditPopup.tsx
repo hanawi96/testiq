@@ -5,8 +5,9 @@ interface ImageAltEditPopupProps {
   currentAlt: string;
   onSave: (newAlt: string) => void;
   onCancel: () => void;
-  position: { x: number; y: number };
+  position?: { x: number; y: number }; // Optional - nếu không có thì dùng modal mode
   imageElement?: HTMLImageElement;
+  isModal?: boolean; // Explicit modal mode flag
 }
 
 export default function ImageAltEditPopup({
@@ -14,7 +15,8 @@ export default function ImageAltEditPopup({
   onSave,
   onCancel,
   position,
-  imageElement
+  imageElement,
+  isModal = false
 }: ImageAltEditPopupProps) {
   const [altText, setAltText] = useState(currentAlt);
   const [isValid, setIsValid] = useState(false);
@@ -120,12 +122,9 @@ export default function ImageAltEditPopup({
     };
   };
 
-  return (
-    <div
-      ref={popupRef}
-      style={getPopupStyle()}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 animate-in fade-in zoom-in-95 duration-200"
-    >
+  // Render modal hoặc positioned popup
+  const renderContent = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 animate-in fade-in zoom-in-95 duration-200">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -136,7 +135,7 @@ export default function ImageAltEditPopup({
             Edit Alt Text
           </h3>
         </div>
-        
+
         <button
           onClick={onCancel}
           className="w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
@@ -160,68 +159,61 @@ export default function ImageAltEditPopup({
           value={altText}
           onChange={(e) => setAltText(e.target.value)}
           placeholder="Describe this image for accessibility..."
-          rows={3}
-          className={`
-            w-full px-3 py-2 rounded-lg border-2 transition-all duration-200
-            resize-none focus:outline-none text-sm
-            ${isValid
-              ? 'border-green-300 dark:border-green-600 focus:border-green-500 focus:ring-2 focus:ring-green-500/20'
-              : altText.length > 0
-                ? 'border-red-300 dark:border-red-600 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-                : 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-            }
-            bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
-            placeholder-gray-500 dark:placeholder-gray-400
-          `}
+          className="w-full h-20 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          maxLength={125}
         />
-      </div>
 
-      {/* Character Count & Status */}
-      <div className="flex items-center justify-between text-xs mb-4">
-        <span className={`font-medium ${getCharacterCountColor()}`}>
-          {getCharacterCount()}/{MAX_LENGTH}
-        </span>
-        
-        {altText.length > 0 && (
-          <span className={`flex items-center gap-1 ${isValid ? 'text-green-600' : 'text-red-600'}`}>
-            {isValid ? (
-              <>
-                <Check className="w-3 h-3" />
-                Valid
-              </>
-            ) : (
-              <>
-                <X className="w-3 h-3" />
-                {altText.length < MIN_LENGTH ? `Need ${MIN_LENGTH - altText.length} more` : 'Too long'}
-              </>
-            )}
+        {/* Character Count */}
+        <div className="flex justify-between items-center mt-1">
+          <span className={`text-xs ${getCharacterCountColor()}`}>
+            {getCharacterCount()}/{125} characters
           </span>
-        )}
+          {altText.length < MIN_LENGTH && (
+            <span className="text-xs text-red-500">
+              Minimum {MIN_LENGTH} characters
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons */}
       <div className="flex gap-2">
         <button
           onClick={onCancel}
-          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
         >
           Cancel
         </button>
-        
         <button
           onClick={handleSave}
           disabled={!isValid}
-          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-1"
         >
-          <Check className="w-3 h-3" />
+          <Check className="w-4 h-4" />
           Save
         </button>
       </div>
+    </div>
+  );
 
-      {/* Keyboard Shortcuts Hint */}
-      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-        <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Enter</kbd> to save • <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Esc</kbd> to cancel
+  // Modal mode hoặc positioned mode
+  if (isModal || !position) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div ref={popupRef} className="w-full max-w-md">
+          {renderContent()}
+        </div>
       </div>
+    );
+  }
+
+  // Positioned mode (existing behavior)
+  return (
+    <div
+      ref={popupRef}
+      style={getPopupStyle()}
+    >
+      {renderContent()}
     </div>
   );
 }
