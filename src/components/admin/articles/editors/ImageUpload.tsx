@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { Image, Upload, X, Loader2 } from 'lucide-react';
 import { ImageStorageService } from '../../../../../backend/storage/image-storage';
+import AltTextInput from '../../../ui/AltTextInput';
 
 interface ImageUploadProps {
-  onImageUpload: (url: string) => void;
+  onImageUpload: (url: string, alt: string) => void;
   onClose: () => void;
   existingImageUrl?: string; // For replacement/cleanup
 }
@@ -14,6 +15,7 @@ const uploadCache = new Map<string, string>();
 export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [altText, setAltText] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -74,9 +76,9 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
 
     if (cachedUrl) {
       console.log('✅ Using cached image URL:', cachedUrl);
-      onImageUpload(cachedUrl);
-      setUploadSuccess('✅ Sử dụng ảnh đã upload!');
-      setTimeout(() => onClose(), 500);
+      // For cached images, we still need alt text
+      setPreviewUrl(cachedUrl);
+      setUploadSuccess('✅ Sử dụng ảnh đã upload! Vui lòng thêm mô tả.');
       setIsUploading(false);
       return;
     }
@@ -125,16 +127,11 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
         // Cache the uploaded image
         uploadCache.set(cacheKey, data.url);
 
-        // Immediately update the editor and close modal
-        onImageUpload(data.url);
+        // Set preview URL to show alt text input
+        setPreviewUrl(data.url);
 
-        // Show brief success notification
-        setUploadSuccess(`✅ ${existingImageUrl ? 'Thay thế' : 'Upload'} thành công!`);
-
-        // Close modal after brief success display
-        setTimeout(() => {
-          onClose();
-        }, 500);
+        // Show success notification
+        setUploadSuccess(`✅ ${existingImageUrl ? 'Thay thế' : 'Upload'} thành công! Vui lòng thêm mô tả.`);
         return;
       }
 
@@ -146,8 +143,8 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        onImageUpload(result);
-        onClose();
+        setPreviewUrl(result);
+        setUploadSuccess('✅ Upload thành công! Vui lòng thêm mô tả.');
       };
       reader.readAsDataURL(file);
 
@@ -205,7 +202,15 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
   // Handle URL input
   const handleUrlSubmit = () => {
     if (imageUrl.trim()) {
-      onImageUpload(imageUrl.trim());
+      setPreviewUrl(imageUrl.trim());
+      setUploadSuccess('✅ URL thêm thành công! Vui lòng thêm mô tả.');
+    }
+  };
+
+  // Handle final insert with alt text
+  const handleInsertImage = () => {
+    if (previewUrl && altText.trim().length >= 5) {
+      onImageUpload(previewUrl, altText.trim());
       onClose();
     }
   };
@@ -296,6 +301,19 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
           )}
         </div>
 
+        {/* Alt Text Input - Show when image is uploaded/previewed */}
+        {previewUrl && (
+          <div className="mb-6">
+            <AltTextInput
+              value={altText}
+              onChange={setAltText}
+              placeholder="Describe this image for accessibility and SEO..."
+              required={true}
+              className="w-full"
+            />
+          </div>
+        )}
+
         {/* Success Message */}
         {uploadSuccess && (
           <div className="bg-green-500 bg-opacity-10 border border-green-500 rounded-lg p-3 mb-4">
@@ -342,13 +360,25 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
           </div>
         </div>
 
-        {/* Cancel Button */}
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
-        >
-          Hủy
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+          >
+            Hủy
+          </button>
+
+          {previewUrl && (
+            <button
+              onClick={handleInsertImage}
+              disabled={!altText.trim() || altText.trim().length < 5}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              Chèn ảnh ✨
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

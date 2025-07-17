@@ -591,10 +591,10 @@ export default function TiptapEditor({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activePopup, closePopup]);
 
-  // Handle image upload
-  const handleImageUpload = (url: string) => {
+  // Handle image upload with alt text
+  const handleImageUpload = (url: string, alt: string) => {
     if (editor) {
-      editor.chain().focus().setImage({ src: url }).run();
+      editor.chain().focus().setImage({ src: url, alt: alt }).run();
     }
   };
 
