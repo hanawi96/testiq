@@ -641,10 +641,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       slug: formData.slug
     });
 
-    if (!hasUnsavedChanges || !formData.title.trim()) {
-      console.log('❌ AUTOSAVE: Skipped - no changes or no title', {
-        hasUnsavedChanges,
-        hasTitle: !!formData.title.trim()
+    if (!hasUnsavedChanges) {
+      console.log('❌ AUTOSAVE: Skipped - no changes', {
+        hasUnsavedChanges
       });
       return;
     }
@@ -654,13 +653,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     // Debounced auto-save: wait 2 seconds after last change, then save
     const autoSaveTimeout = setTimeout(() => {
       console.log('🚀 AUTOSAVE: Timeout triggered, checking conditions...');
-      if (hasUnsavedChanges && formData.title.trim()) {
+      if (hasUnsavedChanges) {
         console.log('✅ AUTOSAVE: Conditions met, calling handleSave...');
         handleSave('autosave'); // Use different action for autosave
       } else {
         console.log('❌ AUTOSAVE: Conditions not met at timeout', {
-          hasUnsavedChanges,
-          hasTitle: !!formData.title.trim()
+          hasUnsavedChanges
         });
       }
     }, 2000); // 2 seconds debounce
@@ -681,6 +679,46 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim();
+  };
+
+  // Generate draft title for autosave
+  const generateDraftTitle = async (): Promise<string> => {
+    try {
+      // Get existing draft articles to determine next number
+      const { data: articlesResponse } = await ArticlesService.getArticles(1, 100, {
+        status: 'draft',
+        search: 'Bài viết nháp'
+      });
+
+      if (!articlesResponse?.articles) {
+        return 'Bài viết nháp';
+      }
+
+      // Count existing draft articles with pattern "Bài viết nháp" or "Bài viết nháp X"
+      const draftPattern = /^Bài viết nháp( \d+)?$/;
+      const existingDrafts = articlesResponse.articles.filter(article =>
+        draftPattern.test(article.title)
+      );
+
+      if (existingDrafts.length === 0) {
+        return 'Bài viết nháp';
+      }
+
+      // Find highest number
+      let maxNumber = 1;
+      existingDrafts.forEach(article => {
+        const match = article.title.match(/^Bài viết nháp( (\d+))?$/);
+        if (match) {
+          const number = match[2] ? parseInt(match[2]) : 1;
+          maxNumber = Math.max(maxNumber, number);
+        }
+      });
+
+      return `Bài viết nháp ${maxNumber + 1}`;
+    } catch (error) {
+      console.error('Error generating draft title:', error);
+      return `Bài viết nháp ${Date.now()}`;
+    }
   };
 
   const handleTitleChange = (title: string) => {
@@ -825,8 +863,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         isAutoSave
       });
 
+      // Handle empty title for autosave
+      let finalTitle = formData.title.trim();
+      if (!finalTitle && isAutoSave) {
+        finalTitle = await generateDraftTitle();
+        console.log('🏷️ AUTOSAVE: Generated draft title:', finalTitle);
+
+        // Update form data with generated title
+        setFormData(prev => ({ ...prev, title: finalTitle }));
+      }
+
       const articleData: CreateArticleData = {
-        title: formData.title.trim(),
+        title: finalTitle,
         content: formData.content.trim(),
         excerpt: formData.excerpt.trim(),
         slug: formData.slug.trim(),
@@ -881,7 +929,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         // Create new article
         const result = await ArticlesService.createArticle(
           articleData,
-          formData.author_id.trim() || null // Convert empty string to null for UUID
+          formData.author_id.trim() || null, // Convert empty string to null for UUID
+          isAutoSave // Pass autosave flag for validation
         );
         data = result.data;
         error = result.error;

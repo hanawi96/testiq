@@ -29,12 +29,19 @@ export class ValidationUtils {
   /**
    * OPTIMIZED: Fast validation với early return
    */
-  static validateArticleData(articleData: CreateArticleData): { isValid: boolean; error?: string } {
+  static validateArticleData(articleData: CreateArticleData, isAutosave: boolean = false): { isValid: boolean; error?: string } {
     // OPTIMIZED: Single trim and length check
     const title = articleData.title?.trim();
-    if (!title) return { isValid: false, error: ERROR_MESSAGES.TITLE_REQUIRED };
-    if (title.length < this.TITLE_MIN_LENGTH) return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_SHORT };
-    if (title.length > this.TITLE_MAX_LENGTH) return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_LONG };
+
+    // For autosave, allow empty title (will be auto-generated)
+    if (!isAutosave) {
+      if (!title) return { isValid: false, error: ERROR_MESSAGES.TITLE_REQUIRED };
+      if (title.length < this.TITLE_MIN_LENGTH) return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_SHORT };
+    } else if (title && title.length < this.TITLE_MIN_LENGTH) {
+      return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_SHORT };
+    }
+
+    if (title && title.length > this.TITLE_MAX_LENGTH) return { isValid: false, error: ERROR_MESSAGES.TITLE_TOO_LONG };
 
     // OPTIMIZED: Single trim and length check
     const content = articleData.content?.trim();

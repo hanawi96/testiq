@@ -124,10 +124,11 @@ export class ArticlesService {
 
   static async createArticle(
     articleData: CreateArticleData,
-    authorId: string
+    authorId: string,
+    isAutosave: boolean = false
   ): Promise<{ data: Article | null; error: any }> {
     return serviceWrapper(async () => {
-      const validation = ValidationUtils.validateArticleData(articleData);
+      const validation = ValidationUtils.validateArticleData(articleData, isAutosave);
       if (!validation.isValid) return { data: null, error: new Error(validation.error) };
 
       const { processedData } = await ProcessingUtils.processArticleData(articleData, authorId);
