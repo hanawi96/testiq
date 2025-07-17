@@ -915,6 +915,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         setFormData(prev => ({ ...prev, title: finalTitle }));
       }
 
+      console.log('💾 SAVE: formData before save:', {
+        featured_image: formData.featured_image,
+        cover_image_alt: formData.cover_image_alt,
+        title: formData.title
+      });
+
       const articleData: CreateArticleData = {
         title: finalTitle,
         content: formData.content.trim(),
@@ -1829,10 +1835,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   value={formData.featured_image}
                   alt={formData.cover_image_alt || formData.title || 'Ảnh đại diện bài viết'}
                   onChange={(url: string, alt?: string) => {
+                    console.log('🖼️ MediaUpload onChange:', { url, alt, currentAlt: formData.cover_image_alt });
                     setFormData(prev => ({
                       ...prev,
                       featured_image: url,
-                      cover_image_alt: alt || formData.title || 'Ảnh đại diện bài viết'
+                      cover_image_alt: alt !== undefined ? alt : (prev.title || 'Ảnh đại diện bài viết')
                     }));
                   }}
                   onRemove={() => {
