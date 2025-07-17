@@ -33,6 +33,16 @@ export class BlogService {
   }
 
   /**
+   * Clear cache khi có cập nhật bài viết
+   */
+  static clearCache(): void {
+    console.log('BlogService: Clearing cache...');
+    articlesCache = null;
+    categoriesCache = null;
+    cacheTimestamp = 0;
+  }
+
+  /**
    * Lấy danh sách bài viết published cho trang blog (với caching)
    */
   static async getPublishedArticles(): Promise<BlogPost[]> {

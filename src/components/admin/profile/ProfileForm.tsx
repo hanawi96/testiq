@@ -179,7 +179,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 
       {/* Form Content */}
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        
+
         {/* Full Name Field */}
         <div>
           <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

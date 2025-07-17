@@ -9,6 +9,7 @@ import TagsInput from '../create/components/TagsInput';
 import AuthorSelector from '../create/components/AuthorSelector';
 import CategorySelector from '../create/components/CategorySelector';
 import DateTimePicker from '../create/components/DateTimePicker';
+import { BlogService } from '../../../../services/blog-service';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -340,9 +341,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   });
 
 
-  const [saveStatus, setSaveStatus] = useState('');
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isManualSaving, setIsManualSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
+  const [validationError, setValidationError] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [authors, setAuthors] = useState<AuthorOption[]>([]);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -406,7 +408,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   useEffect(() => {
     let progressInterval: NodeJS.Timeout;
 
-    if (loadingState.isLoading || isAutoSaving) {
+    if (isAutoSaving) {
       setSaveProgress(0);
 
       // Smooth progress animation from 0 to 90% over 1.5s
@@ -425,7 +427,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => {
       if (progressInterval) clearInterval(progressInterval);
     };
-  }, [loadingState.isLoading, isAutoSaving]);
+  }, [isAutoSaving]);
 
 
 
@@ -660,6 +662,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   useEffect(() => {
     console.log('🔄 AUTOSAVE: useEffect triggered', {
       hasUnsavedChanges,
+      isManualSaving,
       hasTitle: !!formData.title.trim(),
       title: formData.title.substring(0, 30) + '...',
       contentLength: formData.content.length,
@@ -669,6 +672,30 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     if (!hasUnsavedChanges) {
       console.log('❌ AUTOSAVE: Skipped - no changes', {
         hasUnsavedChanges
+      });
+      return;
+    }
+
+    // Skip autosave if manual save is in progress
+    if (isManualSaving) {
+      console.log('❌ AUTOSAVE: Skipped - manual save in progress', {
+        isManualSaving
+      });
+      return;
+    }
+
+    // Skip autosave if title is empty
+    if (!formData.title.trim()) {
+      console.log('❌ AUTOSAVE: Skipped - no title', {
+        title: formData.title
+      });
+      return;
+    }
+
+    // Skip autosave if slug is empty
+    if (!formData.slug.trim()) {
+      console.log('❌ AUTOSAVE: Skipped - no slug', {
+        slug: formData.slug
       });
       return;
     }
@@ -701,7 +728,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       console.log('🧹 AUTOSAVE: Cleanup - clearing timeout');
       clearTimeout(autoSaveTimeout);
     };
-  }, [hasUnsavedChanges, formData.title, formData.content, formData.slug]);
+  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug]);
 
   // Auto-generate slug from title
   const generateSlug = (title: string) => {
@@ -715,47 +742,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       .trim();
   };
 
-  // Generate draft title for autosave
-  const generateDraftTitle = async (): Promise<string> => {
-    try {
-      // Get existing draft articles to determine next number
-      const { data: articlesResponse } = await ArticlesService.getArticles(1, 100, {
-        status: 'draft',
-        search: 'Bài viết nháp'
-      });
 
-      if (!articlesResponse?.articles) {
-        return 'Bài viết nháp';
-      }
-
-      // Count existing draft articles with pattern "Bài viết nháp" or "Bài viết nháp X"
-      const draftPattern = /^Bài viết nháp( \d+)?$/;
-      const existingDrafts = articlesResponse.articles.filter(article =>
-        draftPattern.test(article.title)
-      );
-
-      if (existingDrafts.length === 0) {
-        return 'Bài viết nháp';
-      }
-
-      // Find highest number
-      let maxNumber = 1;
-      existingDrafts.forEach(article => {
-        const match = article.title.match(/^Bài viết nháp( (\d+))?$/);
-        if (match) {
-          const number = match[2] ? parseInt(match[2]) : 1;
-          maxNumber = Math.max(maxNumber, number);
-        }
-      });
-
-      return `Bài viết nháp ${maxNumber + 1}`;
-    } catch (error) {
-      console.error('Error generating draft title:', error);
-      return `Bài viết nháp ${Date.now()}`;
-    }
-  };
 
   const handleTitleChange = (title: string) => {
+    // Clear validation error when user starts typing title
+    if (validationError.includes('Tiêu đề')) {
+      setValidationError('');
+    }
+
     setFormData(prev => {
       const updates: any = {
         title,
@@ -780,6 +774,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
       return { ...prev, ...updates };
     });
+
+    // Trigger autosave
+    setHasUnsavedChanges(true);
   };
 
   // Validate slug uniqueness
@@ -858,43 +855,16 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       console.log('🔵 AUTOSAVE: Setting isAutoSaving = true');
       setIsAutoSaving(true);
     } else {
-      console.log('🔄 MANUAL SAVE: Setting isLoading = true');
-      setLoadingState(prev => ({ ...prev, isLoading: true }));
+      console.log('🔄 MANUAL SAVE: Setting isManualSaving = true, isAutoSaving = true');
+      setIsManualSaving(true);
+      setIsAutoSaving(true); // Sử dụng chung hiển thị autosave
     }
 
 
 
     try {
-      // Validate required fields (skip for autosave)
-      if (!isAutoSave && !formData.title.trim()) {
-        setSaveStatus('❌ Tiêu đề không được để trống');
-        setLoadingState(prev => ({ ...prev, isLoading: false }));
-        setTimeout(() => setSaveStatus(''), 3000);
-        return;
-      }
-
-      if (!formData.content.trim()) {
-        setSaveStatus('❌ Nội dung không được để trống');
-        setLoadingState(prev => ({ ...prev, isLoading: false }));
-        setTimeout(() => setSaveStatus(''), 3000);
-        return;
-      }
-
-      // Skip slug validation for autosave
-      if (!isAutoSave) {
-        if (!formData.slug.trim()) {
-          setSaveStatus('❌ Slug không được để trống');
-          setLoadingState(prev => ({ ...prev, isLoading: false }));
-          setTimeout(() => setSaveStatus(''), 3000);
-          return;
-        }
-
-        if (slugError) {
-          setSaveStatus('❌ ' + slugError);
-          setTimeout(() => setSaveStatus(''), 3000);
-          return;
-        }
-      }
+      // Clear previous validation errors
+      setValidationError('');
 
       // Prepare article data
       const status = formData.is_public ? 'published' : 'draft';
@@ -905,14 +875,44 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         isAutoSave
       });
 
-      // Handle empty title for autosave
-      let finalTitle = formData.title.trim();
-      if (!finalTitle && isAutoSave) {
-        finalTitle = await generateDraftTitle();
-        console.log('🏷️ AUTOSAVE: Generated draft title:', finalTitle);
+      // Store original title for validation
+      const originalTitle = formData.title.trim();
+      const finalTitle = originalTitle;
 
-        // Update form data with generated title
-        setFormData(prev => ({ ...prev, title: finalTitle }));
+      // Validate required fields AFTER auto-title generation (skip for autosave)
+      if (!isAutoSave && !originalTitle) {
+        setValidationError('❌ Tiêu đề không được để trống');
+        setIsManualSaving(false);
+        setIsAutoSaving(false);
+        setTimeout(() => setValidationError(''), 5000);
+        return;
+      }
+
+      if (!formData.content.trim()) {
+        setValidationError('❌ Nội dung không được để trống');
+        if (!isAutoSave) setIsManualSaving(false);
+        setIsAutoSaving(false);
+        setTimeout(() => setValidationError(''), 5000);
+        return;
+      }
+
+      // Skip slug validation for autosave
+      if (!isAutoSave) {
+        if (!formData.slug.trim()) {
+          setValidationError('❌ Slug không được để trống');
+          setIsManualSaving(false);
+          setIsAutoSaving(false);
+          setTimeout(() => setValidationError(''), 5000);
+          return;
+        }
+
+        if (slugError) {
+          setValidationError('❌ ' + slugError);
+          setIsManualSaving(false);
+          setIsAutoSaving(false);
+          setTimeout(() => setValidationError(''), 5000);
+          return;
+        }
       }
 
       console.log('💾 SAVE: formData before save:', {
@@ -994,9 +994,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             contentLength: formData.content.length
           }
         });
-        setSaveStatus('❌ ' + (error.message || 'Có lỗi xảy ra'));
-        setLoadingState(prev => ({ ...prev, isLoading: false }));
-        setTimeout(() => setSaveStatus(''), 3000);
+        setValidationError('❌ ' + (error.message || 'Có lỗi xảy ra khi lưu'));
+        if (!isAutoSave) {
+          setIsManualSaving(false);
+        }
+        setIsAutoSaving(false); // Tắt hiển thị chung khi có lỗi
+        setTimeout(() => setValidationError(''), 5000);
         return;
       }
 
@@ -1020,12 +1023,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
         // Show different messages for manual vs auto save
         if (!isAutoSave) {
-          console.log('💬 MANUAL SAVE: Showing success message');
-          setSaveStatus('✅ Đã lưu thành công');
-          setTimeout(() => setSaveStatus(''), 2000);
+          console.log('💬 MANUAL SAVE: Success (using autosave indicator)');
         } else {
           console.log('🔇 AUTOSAVE: Silent success (no message)');
         }
+
+        // Clear BlogService cache để cập nhật frontend
+        BlogService.clearCache();
 
         // Call onSave callback if provided
         if (onSave) {
@@ -1061,8 +1065,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         console.log('🔵 AUTOSAVE: Setting isAutoSaving = false');
         setIsAutoSaving(false);
       } else {
-        console.log('🔄 MANUAL SAVE: Setting isLoading = false');
-        setLoadingState(prev => ({ ...prev, isLoading: false }));
+        console.log('🔄 MANUAL SAVE: Setting isManualSaving = false, isAutoSaving = false');
+        setIsManualSaving(false);
+        setIsAutoSaving(false); // Tắt hiển thị chung
       }
     }
   };
@@ -1215,22 +1220,28 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {isEditMode ? 'Cập nhật và quản lý nội dung' : 'Viết và xuất bản nội dung chất lượng'}
+                  {!isEditMode && ' • Tự động lưu khi có tiêu đề và slug'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               {/* Save Status & Indicators */}
               <div className="flex items-center gap-2">
-                {saveStatus && (
-                  <span className="text-sm text-gray-600 dark:text-gray-400 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                    {saveStatus}
-                  </span>
+                {validationError && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg border border-red-200 dark:border-red-800/30 transition-all duration-300 ease-out">
+                    <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-xs font-medium text-red-700 dark:text-red-300 whitespace-nowrap">
+                      {validationError}
+                    </span>
+                  </div>
                 )}
                 {isAutoSaving && (
                   <div className="flex items-center gap-3 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30 transition-all duration-300 ease-out">
                     {/* Text */}
                     <span className="text-xs font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">
-                      Đang tự động lưu...
+                      {isManualSaving ? 'Đang lưu...' : 'Đang tự động lưu...'}
                     </span>
 
                     {/* Progress Bar */}
@@ -1262,33 +1273,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               </div>
               <button
                 onClick={() => handleSave('save')}
-                disabled={loadingState.isLoading}
+                disabled={isAutoSaving}
                 className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 font-medium ${
-                  loadingState.isLoading
-                    ? 'bg-blue-500 text-white cursor-not-allowed'
+                  isAutoSaving
+                    ? 'bg-blue-500 text-white cursor-not-allowed opacity-75'
                     : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
                 }`}
                 title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
               >
-                {loadingState.isLoading ? (
-                  <>
-                    <span>Đang lưu...</span>
-                    {/* Progress indicator */}
-                    <div className="w-16 h-1 bg-blue-300 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-white transition-all duration-75 rounded-full"
-                        style={{ width: `${saveProgress}%` }}
-                      ></div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
-                  </>
-                )}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
               </button>
             </div>
           </div>

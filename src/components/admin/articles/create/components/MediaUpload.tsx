@@ -7,9 +7,11 @@ import {
   Camera,
   Edit3,
   Trash2,
-  Eye
+  Eye,
+  Crop
 } from 'lucide-react';
 import { ImageStorageService } from '../../../../../../backend/storage/image-storage';
+import ImageCropper from '../../../../ui/ImageCropper';
 
 interface MediaUploadProps {
   value?: string; // Current image URL
@@ -22,6 +24,7 @@ interface MediaUploadProps {
 
 interface UploadState {
   isUploading: boolean;
+  uploadType: 'normal' | 'crop';
   progress: number;
   error: string | null;
   success: string | null;
@@ -39,6 +42,7 @@ export default function MediaUpload({
 }: MediaUploadProps) {
   const [state, setState] = useState<UploadState>({
     isUploading: false,
+    uploadType: 'normal',
     progress: 0,
     error: null,
     success: null,
@@ -48,6 +52,7 @@ export default function MediaUpload({
   
   const [altText, setAltText] = useState(alt || '');
   const [showAltEditor, setShowAltEditor] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
 
@@ -80,10 +85,11 @@ export default function MediaUpload({
       return;
     }
 
-    setState(prev => ({ 
-      ...prev, 
-      isUploading: true, 
-      error: null, 
+    setState(prev => ({
+      ...prev,
+      isUploading: true,
+      uploadType: 'normal', // Mark as normal upload
+      error: null,
       success: null,
       progress: 0,
       previewUrl: URL.createObjectURL(file)
@@ -197,6 +203,113 @@ export default function MediaUpload({
     }
   }, [value, altText, onChange]);
 
+  // Handle crop save with instant loading feedback
+  const handleCropSave = useCallback(async (croppedImageUrl: string, cropData?: any) => {
+    // INSTANT UX: Start loading immediately when crop is initiated
+    setState(prev => ({
+      ...prev,
+      isUploading: true,
+      uploadType: 'crop', // Mark as crop upload
+      progress: 10,
+      success: null,
+      error: null
+    }));
+
+    try {
+      // Check if we got actual cropped image or just crop data
+      if (cropData && croppedImageUrl === value) {
+        // Fallback: Server-side crop not implemented, just use original
+        console.log('Crop data received (server-side crop not implemented):', cropData);
+        setState(prev => ({
+          ...prev,
+          success: 'Crop settings applied (using original image)',
+          isUploading: false,
+          progress: 100,
+          previewUrl: null // ← CLEAN: Use original image
+        }));
+
+        setTimeout(() => {
+          setState(prev => ({ ...prev, success: null }));
+        }, 3000);
+        return;
+      }
+
+      // Update progress for better UX
+      setState(prev => ({ ...prev, progress: 30 }));
+
+      // INSTANT UI: Show cropped image immediately
+      setState(prev => ({
+        ...prev,
+        progress: 30,
+        previewUrl: croppedImageUrl // ← INSTANT: Show cropped result immediately
+      }));
+
+      // Normal flow: Convert blob URL to file
+      const response = await fetch(croppedImageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
+
+      setState(prev => ({ ...prev, progress: 50 }));
+
+      // Upload cropped image
+      const uploadMethod = value
+        ? ImageStorageService.replaceImage(value, file, {
+            folder: 'articles',
+            maxWidth: 1920,
+            maxHeight: 1080,
+          })
+        : ImageStorageService.uploadImage(file, {
+            folder: 'articles',
+            maxWidth: 1920,
+            maxHeight: 1080,
+          });
+
+      setState(prev => ({ ...prev, progress: 80 }));
+
+      const { data, error } = await uploadMethod;
+
+      if (data && !error) {
+        // INSTANT UI UPDATE: Update image immediately
+        setState(prev => ({
+          ...prev,
+          success: 'Crop và upload thành công!',
+          isUploading: false,
+          progress: 100,
+          previewUrl: null // ← CLEAN: Use final URL from parent
+        }));
+
+        // Update parent component
+        onChange(data.url, altText);
+
+        // Clean up blob URL if it's a blob
+        if (croppedImageUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(croppedImageUrl);
+        }
+
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setState(prev => ({ ...prev, success: null }));
+        }, 3000);
+      } else {
+        throw new Error(error?.message || 'Upload failed');
+      }
+    } catch (error: any) {
+      console.error('Crop upload error:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'Lỗi khi upload ảnh đã crop',
+        isUploading: false,
+        progress: 0,
+        previewUrl: null // ← CLEAN: Reset preview on error
+      }));
+
+      // Clean up blob URL if it's a blob
+      if (croppedImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(croppedImageUrl);
+      }
+    }
+  }, [value, altText, onChange]);
+
   // Clear error after 5 seconds
   useEffect(() => {
     if (state.error) {
@@ -240,17 +353,63 @@ export default function MediaUpload({
         />
 
         {hasImage ? (
-          // Image Preview
+          // Image Preview with Enhanced Loading States
           <div className="relative">
             <img
               src={displayUrl}
               alt={altText || 'Preview'}
-              className="w-full h-48 object-cover rounded-lg"
+              className={`w-full h-48 object-cover rounded-lg transition-all duration-300 ${
+                state.isUploading ? 'opacity-50 scale-105' : ''
+              }`}
             />
-            
-            {/* Overlay with actions */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-lg flex items-center justify-center media-upload-overlay">
-              <div className="flex items-center space-x-3">
+
+            {/* Loading overlay for crop processing */}
+            {state.isUploading && state.uploadType === 'crop' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-lg"
+                role="status"
+                aria-live="polite"
+                aria-label={`Đang xử lý crop ảnh, ${state.progress}% hoàn thành`}
+              >
+                <div className="text-center text-white">
+                  <div className="relative w-16 h-16 mx-auto mb-3">
+                    <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
+                    <div
+                      className="absolute inset-0 border-4 border-white border-t-transparent rounded-full animate-spin"
+                      role="progressbar"
+                      aria-valuenow={state.progress}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    ></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Crop className="w-6 h-6 text-white" aria-hidden="true" />
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium">Đang xử lý crop...</p>
+                  <p className="text-xs opacity-75">{state.progress}%</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Overlay with actions - hidden during upload */}
+            {!state.isUploading && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-lg flex items-center justify-center media-upload-overlay">
+                <div className="flex items-center space-x-3">
+                <motion.button
+                  whileHover={{ scale: 1.1, y: -2 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCropper(true);
+                  }}
+                  className="p-3 bg-white/20 backdrop-blur-md rounded-xl text-white hover:bg-white/30 transition-all duration-200 media-upload-button shadow-lg"
+                  title="Crop ảnh"
+                >
+                  <Crop size={18} />
+                </motion.button>
+
                 <motion.button
                   whileHover={{ scale: 1.1, y: -2 }}
                   whileTap={{ scale: 0.9 }}
@@ -289,11 +448,12 @@ export default function MediaUpload({
                 >
                   <Trash2 size={18} />
                 </motion.button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Upload progress overlay */}
-            {state.isUploading && (
+            {state.isUploading && state.uploadType === 'normal' && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -467,6 +627,28 @@ export default function MediaUpload({
             <AlertCircle size={16} className="text-red-600 dark:text-red-400" />
             <span className="text-sm text-red-800 dark:text-red-200">{state.error}</span>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Image Cropper */}
+      <AnimatePresence>
+        {showCropper && value && (
+          <ImageCropper
+            imageUrl={value}
+            onCrop={handleCropSave}
+            onCancel={() => {
+              setShowCropper(false);
+              // Reset any loading states if user cancels
+              setState(prev => ({
+                ...prev,
+                isUploading: false,
+                uploadType: 'normal',
+                progress: 0,
+                error: null
+              }));
+            }}
+            initialAspectRatio={16/9}
+          />
         )}
       </AnimatePresence>
 
