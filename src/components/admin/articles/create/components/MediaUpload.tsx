@@ -471,7 +471,7 @@ export default function MediaUpload({
       </AnimatePresence>
 
       {/* Alt Text Display */}
-      {hasImage && altText && !showAltEditor && (
+      {hasImage && !showAltEditor && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -480,13 +480,13 @@ export default function MediaUpload({
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className={`w-2 h-2 rounded-full ${altText ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                  Alt Text
+                  Alt Text {!altText && '(Mặc định)'}
                 </p>
               </div>
               <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                "{altText}"
+                "{altText || 'Chưa có mô tả ảnh'}"
               </p>
             </div>
             <motion.button

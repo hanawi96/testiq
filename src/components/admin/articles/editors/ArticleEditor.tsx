@@ -762,6 +762,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         meta_title: title.length <= 60 ? title : title.substring(0, 60)
       };
 
+      // Auto-update cover image alt text if it's empty or default
+      if (!prev.cover_image_alt || prev.cover_image_alt === 'Ảnh đại diện bài viết' || prev.cover_image_alt === prev.title) {
+        updates.cover_image_alt = title || 'Ảnh đại diện bài viết';
+      }
+
       // Only auto-generate slug for create mode
       if (!isEditMode) {
         const newSlug = generateSlug(title);
@@ -1822,12 +1827,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               }>
                 <MediaUpload
                   value={formData.featured_image}
-                  alt={formData.cover_image_alt}
+                  alt={formData.cover_image_alt || formData.title || 'Ảnh đại diện bài viết'}
                   onChange={(url: string, alt?: string) => {
                     setFormData(prev => ({
                       ...prev,
                       featured_image: url,
-                      cover_image_alt: alt || ''
+                      cover_image_alt: alt || formData.title || 'Ảnh đại diện bài viết'
                     }));
                   }}
                   onRemove={() => {
