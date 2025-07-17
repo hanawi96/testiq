@@ -25,7 +25,7 @@ interface MediaUploadProps {
 
 interface UploadState {
   isUploading: boolean;
-  uploadType: 'normal' | 'crop';
+  uploadType: 'normal' | 'crop' | 'rename';
   progress: number;
   error: string | null;
   success: string | null;
@@ -53,15 +53,35 @@ export default function MediaUpload({
   });
   
   const [altText, setAltText] = useState(alt || '');
+  const [fileName, setFileName] = useState('');
   const [showAltEditor, setShowAltEditor] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
 
-  // Update alt text when prop changess
+  // Update alt text when prop changes
   useEffect(() => {
     setAltText(alt || '');
   }, [alt]);
+
+  // Update filename when value changes
+  useEffect(() => {
+    if (value) {
+      const extractedFileName = ImageStorageService.extractFileNameFromUrl(value);
+      if (extractedFileName) {
+        // Tách tên file và extension
+        const lastDotIndex = extractedFileName.lastIndexOf('.');
+        const nameWithoutExtension = lastDotIndex > 0
+          ? extractedFileName.substring(0, lastDotIndex)
+          : extractedFileName;
+        setFileName(nameWithoutExtension);
+      } else {
+        setFileName('');
+      }
+    } else {
+      setFileName('');
+    }
+  }, [value]);
 
   // File validation
   const validateFile = (file: File): { valid: boolean; error?: string } => {
@@ -193,17 +213,82 @@ export default function MediaUpload({
     }
   }, [handleFileUpload]);
 
-  // Handle alt text save
-  const handleAltSave = useCallback(() => {
-    if (value) {
-      onChange(value, altText);
-      setShowAltEditor(false);
-      setState(prev => ({ ...prev, success: 'Alt text đã được cập nhật!' }));
-      setTimeout(() => {
-        setState(prev => ({ ...prev, success: null }));
-      }, 2000);
+  // Handle alt text and filename save
+  const handleAltSave = useCallback(async () => {
+    if (!value) return;
+
+    const currentFullFileName = ImageStorageService.extractFileNameFromUrl(value);
+    let currentNameOnly = '';
+    if (currentFullFileName) {
+      const lastDotIndex = currentFullFileName.lastIndexOf('.');
+      currentNameOnly = lastDotIndex > 0
+        ? currentFullFileName.substring(0, lastDotIndex)
+        : currentFullFileName;
     }
-  }, [value, altText, onChange]);
+
+    const hasFileNameChanged = fileName && currentNameOnly && fileName !== currentNameOnly;
+
+    // Ẩn popup ngay lập tức
+    setShowAltEditor(false);
+
+    try {
+      setState(prev => ({
+        ...prev,
+        isUploading: true,
+        uploadType: hasFileNameChanged ? 'rename' : 'normal',
+        progress: 10
+      }));
+
+      let finalUrl = value;
+
+      // If filename changed, rename the file
+      if (hasFileNameChanged) {
+        setState(prev => ({ ...prev, progress: 50 }));
+
+        // Ghép tên file với extension gốc
+        let finalFileName = fileName;
+        if (currentFullFileName) {
+          const lastDotIndex = currentFullFileName.lastIndexOf('.');
+          const extension = lastDotIndex > 0 ? currentFullFileName.substring(lastDotIndex) : '.jpg';
+          finalFileName = fileName + extension;
+        }
+
+        const renameResult = await ImageStorageService.renameImage(value, finalFileName, {
+          folder: 'articles'
+        });
+
+        if (renameResult.error || !renameResult.data) {
+          throw new Error(renameResult.error?.message || 'Lỗi khi đổi tên file');
+        }
+
+        finalUrl = renameResult.data.url;
+        setState(prev => ({ ...prev, progress: 80 }));
+      }
+
+      // Update with new URL and alt text
+      onChange(finalUrl, altText);
+
+      setState(prev => ({
+        ...prev,
+        isUploading: false,
+        progress: 100,
+        success: hasFileNameChanged ? 'Tên file và Alt text đã được cập nhật!' : 'Alt text đã được cập nhật!'
+      }));
+
+      setTimeout(() => {
+        setState(prev => ({ ...prev, success: null, progress: 0 }));
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Save error:', error);
+      setState(prev => ({
+        ...prev,
+        isUploading: false,
+        progress: 0,
+        error: error.message || 'Lỗi khi cập nhật thông tin ảnh'
+      }));
+    }
+  }, [value, altText, fileName, onChange]);
 
   // Handle crop save with instant loading feedback
   const handleCropSave = useCallback(async (croppedImageUrl: string, cropData?: any) => {
@@ -522,8 +607,8 @@ export default function MediaUpload({
             )}
 
             {/* Upload progress overlay */}
-            {state.isUploading && state.uploadType === 'normal' && (
-              <motion.div 
+            {state.isUploading && (state.uploadType === 'normal' || state.uploadType === 'rename') && (
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/70 to-black/60 rounded-lg flex items-center justify-center backdrop-blur-sm"
@@ -535,7 +620,13 @@ export default function MediaUpload({
                   >
                     <Loader2 size={40} className="mx-auto mb-4 text-primary-400" />
                   </motion.div>
-                  <p className="text-lg font-medium mb-3">Đang upload...</p>
+                  <p className="text-lg font-medium mb-3">
+                    {state.uploadType === 'rename'
+                      ? (state.progress < 50 ? 'Đang cập nhật...' :
+                         state.progress < 80 ? 'Đang đổi tên file...' :
+                         'Hoàn tất...')
+                      : 'Đang upload...'}
+                  </p>
                   <div className="w-40 bg-gray-700/50 rounded-full h-3 mt-2 overflow-hidden">
                     <motion.div
                       className="bg-gradient-to-r from-primary-500 to-purple-500 h-3 rounded-full media-upload-progress"
@@ -629,10 +720,28 @@ export default function MediaUpload({
                   <Edit3 size={20} className="text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Chỉnh sửa Alt Text
+                  Chỉnh sửa ảnh đại diện
                 </h3>
               </div>
 
+              {/* Filename Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Tên file ảnh (không bao gồm đuôi)
+                </label>
+                <input
+                  type="text"
+                  value={fileName}
+                  onChange={(e) => setFileName(e.target.value)}
+                  placeholder="Ví dụ: anh-dai-dien-bai-viet"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all backdrop-blur-sm"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Đuôi file (.jpg, .png) sẽ được giữ nguyên. Tên file sẽ được làm sạch tự động.
+                </p>
+              </div>
+
+              {/* Alt Text Input */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Mô tả hình ảnh cho accessibility và SEO
@@ -654,7 +763,8 @@ export default function MediaUpload({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowAltEditor(false)}
-                  className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors font-medium"
+                  disabled={state.isUploading}
+                  className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors font-medium disabled:opacity-50"
                 >
                   Hủy
                 </motion.button>
@@ -662,9 +772,13 @@ export default function MediaUpload({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAltSave}
-                  className="px-6 py-3 bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-700 hover:to-purple-700 text-white rounded-xl transition-all font-medium shadow-lg"
+                  disabled={state.isUploading}
+                  className="px-6 py-3 bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-700 hover:to-purple-700 text-white rounded-xl transition-all font-medium shadow-lg disabled:opacity-50 flex items-center space-x-2"
                 >
-                  Lưu thay đổi
+                  {state.isUploading && (
+                    <Loader2 size={16} className="animate-spin" />
+                  )}
+                  <span>{state.isUploading ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
                 </motion.button>
               </div>
             </motion.div>
@@ -721,13 +835,29 @@ export default function MediaUpload({
         )}
       </AnimatePresence>
 
-      {/* Alt Text Display */}
+      {/* Image Info Display */}
       {hasImage && !showAltEditor && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700"
+          className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700 space-y-4"
         >
+          {/* Filename Info */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className={`w-2 h-2 rounded-full ${fileName ? 'bg-blue-500' : 'bg-gray-400'}`}></div>
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                  Tên file
+                </p>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-mono">
+                {fileName || 'Không xác định'}
+              </p>
+            </div>
+          </div>
+
+          {/* Alt Text Info */}
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
@@ -745,7 +875,7 @@ export default function MediaUpload({
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowAltEditor(true)}
               className="p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-gray-600/50"
-              title="Chỉnh sửa Alt text"
+              title="Chỉnh sửa ảnh đại diện"
             >
               <Edit3 size={16} />
             </motion.button>

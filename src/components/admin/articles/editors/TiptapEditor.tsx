@@ -34,11 +34,13 @@ import {
   Subscript as SubscriptIcon,
   Superscript as SuperscriptIcon,
   Type,
-  Highlighter
+  Highlighter,
+  Loader2
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
 import ImageAltEditPopup from '../../../ui/ImageAltEditPopup';
 import ImageHoverOverlay from './ImageHoverOverlay';
+import { ImageStorageService } from '../../../../../backend/storage/image-storage';
 
 interface TiptapEditorProps {
   value: string;
@@ -419,6 +421,8 @@ export default function TiptapEditor({
   });
 
 
+
+
   const editor = useEditor({
     extensions: [
       // OPTIMIZED: StarterKit with performance-focused configuration
@@ -690,12 +694,37 @@ export default function TiptapEditor({
     }
   };
 
-  // Handle image alt text save
-  const handleImageAltSave = (newAlt: string) => {
-    if (editor && imageAltEdit.imageElement) {
-      // Simple approach: Select the image and update its attributes
-      const { imageElement } = imageAltEdit;
-      const src = imageElement.src;
+  // Handle image alt text and filename save
+  const handleImageAltSave = async (newAlt: string, newFileName?: string) => {
+    if (!editor || !imageAltEdit.imageElement) return;
+
+    const { imageElement } = imageAltEdit;
+    const currentFileName = ImageStorageService.extractFileNameFromUrl(imageElement.src);
+    const hasFileNameChanged = newFileName && currentFileName && newFileName !== currentFileName;
+
+    try {
+      let finalUrl = imageElement.src;
+
+      // If filename changed, rename the file
+      if (hasFileNameChanged) {
+        const renameResult = await ImageStorageService.renameImage(imageElement.src, newFileName, {
+          folder: 'articles'
+        });
+
+        if (renameResult.error || !renameResult.data) {
+          throw new Error(renameResult.error?.message || 'Lỗi khi đổi tên file');
+        }
+
+        finalUrl = renameResult.data.url;
+
+        // Preload ảnh mới để đảm bảo hiển thị ngay lập tức
+        await new Promise((resolve, reject) => {
+          const img = document.createElement('img');
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = finalUrl;
+        });
+      }
 
       // Find the image node position in the editor
       const { state } = editor;
@@ -703,7 +732,7 @@ export default function TiptapEditor({
       let imagePos = -1;
 
       doc.descendants((node, pos) => {
-        if (node.type.name === 'image' && node.attrs.src === src) {
+        if (node.type.name === 'image' && node.attrs.src === imageElement.src) {
           imagePos = pos;
           return false; // Stop searching
         }
@@ -714,18 +743,31 @@ export default function TiptapEditor({
         editor.chain()
           .focus()
           .setNodeSelection(imagePos)
-          .updateAttributes('image', { alt: newAlt })
+          .updateAttributes('image', {
+            src: finalUrl,
+            alt: newAlt
+          })
           .run();
-      }
-    }
 
-    // Close popup
-    setImageAltEdit({
-      isOpen: false,
-      currentAlt: '',
-      position: { x: 0, y: 0 },
-      imageElement: null
-    });
+        // CRITICAL FIX: Reset hover state để hover buttons hoạt động với ảnh mới
+        // Delay để đảm bảo DOM đã cập nhật với ảnh mới
+        setTimeout(() => {
+          setHoveredImage(null);
+        }, 50);
+      }
+
+      // Close popup after successful save
+      setImageAltEdit({
+        isOpen: false,
+        currentAlt: '',
+        position: { x: 0, y: 0 },
+        imageElement: null
+      });
+
+    } catch (error: any) {
+      console.error('Save error:', error);
+      throw error; // Re-throw để popup có thể handle
+    }
   };
 
   // Handle image alt edit cancel
@@ -976,6 +1018,7 @@ export default function TiptapEditor({
           onCancel={handleImageAltCancel}
           position={imageAltEdit.position}
           imageElement={imageAltEdit.imageElement}
+          enableFileNameEdit={true} // Enable filename editing for TipTap images
         />
       )}
 

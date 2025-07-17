@@ -12,6 +12,17 @@ interface ImageUploadProps {
 // Simple cache for uploaded images (session-based)
 const uploadCache = new Map<string, string>();
 
+// UTILITY: Extract filename without extension for alt text
+const extractFileNameForAlt = (fileName: string): string => {
+  return fileName
+    .split('.')[0] // Remove extension
+    .replace(/[_-]/g, ' ') // Replace underscores and dashes with spaces
+    .replace(/\s+/g, ' ') // Normalize multiple spaces
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, l => l.toUpperCase()); // Title case
+};
+
 // Utility function to clear cache for a specific URL
 const clearCacheForUrl = (url: string) => {
   // Clear from upload cache
@@ -101,9 +112,10 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
 
     if (cachedUrl) {
       console.log('✅ Using cached image URL:', cachedUrl);
-      // For cached images, we still need alt text
+      // FIXED: Auto-set alt text for cached images too
       setPreviewUrl(cachedUrl);
-      setUploadSuccess('✅ Sử dụng ảnh đã upload! Vui lòng thêm mô tả.');
+      setAltText(extractFileNameForAlt(file.name));
+      setUploadSuccess('✅ Sử dụng ảnh đã upload! Mô tả đã được tự động điền.');
       setIsUploading(false);
       return;
     }
@@ -116,9 +128,10 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
       return;
     }
 
-    // Instant preview for better UX
+    // FIXED: Auto-set alt text from filename + instant preview
     const preview = URL.createObjectURL(file);
     setPreviewUrl(preview);
+    setAltText(extractFileNameForAlt(file.name));
 
     // Simulate progress for better UX
     const progressInterval = setInterval(() => {
@@ -156,7 +169,7 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
         setPreviewUrl(data.url);
 
         // Show success notification
-        setUploadSuccess(`✅ ${existingImageUrl ? 'Thay thế' : 'Upload'} thành công! Vui lòng thêm mô tả.`);
+        setUploadSuccess(`✅ ${existingImageUrl ? 'Thay thế' : 'Upload'} thành công! Mô tả đã được tự động điền.`);
         return;
       }
 
@@ -169,7 +182,7 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setPreviewUrl(result);
-        setUploadSuccess('✅ Upload thành công! Vui lòng thêm mô tả.');
+        setUploadSuccess('✅ Upload thành công! Mô tả đã được tự động điền.');
       };
       reader.readAsDataURL(file);
 

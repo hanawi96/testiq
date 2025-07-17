@@ -182,6 +182,22 @@ export class ImageStorageService {
   }
 
   /**
+   * Extract filename from Supabase URL
+   */
+  static extractFileNameFromUrl(url: string): string | null {
+    try {
+      const path = this.extractPathFromUrl(url);
+      if (!path) return null;
+
+      // Get filename from path (last part after /)
+      const pathParts = path.split('/');
+      return pathParts[pathParts.length - 1] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Smart cleanup: delete old image when replacing with new one
    */
   static async replaceImage(
@@ -212,6 +228,109 @@ export class ImageStorageService {
 
     } catch (error) {
       console.error('ImageStorageService: Replace error:', error);
+      return { data: null, error };
+    }
+  }
+
+  /**
+   * Rename image file in storage with new filename
+   */
+  static async renameImage(
+    currentImageUrl: string,
+    newFileName: string,
+    options: ImageUploadOptions = {}
+  ): Promise<{ data: ImageUploadResult | null; error: any }> {
+    try {
+      if (!supabaseAdmin) {
+        return { data: null, error: new Error('Supabase admin client not configured') };
+      }
+
+      // Extract current path from URL
+      const currentPath = this.extractPathFromUrl(currentImageUrl);
+      if (!currentPath) {
+        return { data: null, error: new Error('Không thể xác định đường dẫn file hiện tại') };
+      }
+
+      // Get folder from current path
+      const pathParts = currentPath.split('/');
+      const folder = pathParts.slice(0, -1).join('/') || (options.folder || 'articles');
+
+      // Clean and validate new filename
+      const extension = currentPath.split('.').pop()?.toLowerCase() || 'jpg';
+      let cleanBaseName = newFileName
+        .replace(/\.[^/.]+$/, '') // Remove extension if provided
+        .replace(/[^a-zA-Z0-9\-_\s]/g, '') // Remove special chars
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .replace(/^[-_]+|[-_]+$/g, '') // Remove leading/trailing dashes and underscores
+        .trim();
+
+      // Handle edge cases
+      if (!cleanBaseName || cleanBaseName.length === 0) {
+        cleanBaseName = 'image'; // Default name for invalid filenames
+      }
+
+      // Limit length for storage compatibility
+      if (cleanBaseName.length > 50) {
+        cleanBaseName = cleanBaseName.substring(0, 50);
+      }
+
+      const newCleanFileName = `${cleanBaseName}.${extension}`;
+
+      // Check if new filename already exists (with duplicate handling)
+      const finalFileName = await this.generatePreservedFileName(newCleanFileName, folder);
+      const finalPath = `${folder}/${finalFileName}`;
+
+      // If the new path is the same as current, no need to rename
+      if (finalPath === currentPath) {
+        // Get current file info for response
+        const { data: urlData } = supabaseAdmin.storage
+          .from(this.BUCKET_NAME)
+          .getPublicUrl(currentPath);
+
+        return {
+          data: {
+            url: urlData.publicUrl,
+            path: currentPath,
+            size: 0 // We don't have size info for existing files
+          },
+          error: null
+        };
+      }
+
+      // Copy file to new location
+      const { error: copyError } = await supabaseAdmin.storage
+        .from(this.BUCKET_NAME)
+        .copy(currentPath, finalPath);
+
+      if (copyError) {
+        return { data: null, error: copyError };
+      }
+
+      // Delete old file
+      const { error: deleteError } = await supabaseAdmin.storage
+        .from(this.BUCKET_NAME)
+        .remove([currentPath]);
+
+      if (deleteError) {
+        console.warn('Failed to delete old file after rename:', deleteError);
+        // Continue anyway, the copy was successful
+      }
+
+      // Get public URL for new file
+      const { data: urlData } = supabaseAdmin.storage
+        .from(this.BUCKET_NAME)
+        .getPublicUrl(finalPath);
+
+      const result: ImageUploadResult = {
+        url: urlData.publicUrl,
+        path: finalPath,
+        size: 0 // We don't have size info for copied files
+      };
+
+      return { data: result, error: null };
+
+    } catch (error) {
+      console.error('ImageStorageService: Rename error:', error);
       return { data: null, error };
     }
   }
@@ -276,6 +395,10 @@ export class ImageStorageService {
     const cleanFileName = `${baseName}.${extension}`;
 
     // OPTIMIZED: Batch check for existing files to reduce API calls
+    if (!supabaseAdmin) {
+      return cleanFileName; // Return original name if no admin client
+    }
+
     const { data: existingFiles } = await supabaseAdmin.storage
       .from(this.BUCKET_NAME)
       .list(folder, {

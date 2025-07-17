@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit3, Crop, RefreshCw, Trash2 } from 'lucide-react';
+import { Edit3, Crop, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import ImageCropper from '../../../ui/ImageCropper';
 import ImageAltEditPopup from '../../../ui/ImageAltEditPopup';
 import ImageUpload from './ImageUpload';
@@ -17,7 +17,7 @@ interface OverlayState {
   showAltEdit: boolean;
   showReplace: boolean;
   isProcessing: boolean;
-  processingType: 'crop' | 'replace' | 'delete' | null;
+  processingType: 'crop' | 'replace' | 'delete' | 'alt-edit' | null;
 }
 
 export default function ImageHoverOverlay({ 
@@ -107,19 +107,56 @@ export default function ImageHoverOverlay({
     setOverlayState(prev => ({ ...prev, showAltEdit: true }));
   };
 
-  // Handle alt text save
-  const handleAltSave = (newAlt: string) => {
-    const imagePos = getImagePosition();
-    if (imagePos !== -1) {
-      editor.chain()
-        .focus()
-        .setNodeSelection(imagePos)
-        .updateAttributes('image', { alt: newAlt })
-        .run();
+  // Handle alt text and filename save
+  const handleAltSave = async (newAlt: string, newFileName?: string) => {
+    const currentFileName = ImageStorageService.extractFileNameFromUrl(imageElement.src);
+    const hasFileNameChanged = newFileName && currentFileName && newFileName !== currentFileName;
+
+    try {
+      let finalUrl = imageElement.src;
+
+      // If filename changed, rename the file
+      if (hasFileNameChanged) {
+        const renameResult = await ImageStorageService.renameImage(imageElement.src, newFileName, {
+          folder: 'articles'
+        });
+
+        if (renameResult.error || !renameResult.data) {
+          throw new Error(renameResult.error?.message || 'Lỗi khi đổi tên file');
+        }
+
+        finalUrl = renameResult.data.url;
+
+        // Preload ảnh mới để đảm bảo hiển thị ngay lập tức
+        await new Promise((resolve, reject) => {
+          const img = document.createElement('img');
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = finalUrl;
+        });
+      }
+
+      // Update image attributes in editor
+      const imagePos = getImagePosition();
+      if (imagePos !== -1) {
+        editor.chain()
+          .focus()
+          .setNodeSelection(imagePos)
+          .updateAttributes('image', {
+            src: finalUrl,
+            alt: newAlt
+          })
+          .run();
+      }
+
+      // Đóng overlay sau khi hoàn thành
+      setOverlayState(prev => ({ ...prev, showAltEdit: false }));
+      setTimeout(() => onClose(), 100);
+
+    } catch (error: any) {
+      console.error('Save error:', error);
+      throw error; // Re-throw để popup có thể handle
     }
-    setOverlayState(prev => ({ ...prev, showAltEdit: false }));
-    // FIXED: Đóng overlay sau khi hoàn thành
-    setTimeout(() => onClose(), 100);
   };
 
   // Handle replace
@@ -275,6 +312,8 @@ export default function ImageHoverOverlay({
         </motion.div>
       </div>
 
+
+
       {/* Modals */}
       <AnimatePresence>
         {overlayState.showCropper && (
@@ -299,6 +338,7 @@ export default function ImageHoverOverlay({
             }}
             isModal={true} // Sử dụng modal mode cho TipTap
             imageElement={imageElement}
+            enableFileNameEdit={true} // Enable filename editing for TipTap images
           />
         )}
 

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, Edit3 } from 'lucide-react';
+import { X, Check, Edit3, Loader2 } from 'lucide-react';
+import { ImageStorageService } from '../../../backend/storage/image-storage';
 
 interface ImageAltEditPopupProps {
   currentAlt: string;
-  onSave: (newAlt: string) => void;
+  onSave: (newAlt: string, newFileName?: string) => Promise<void>;
   onCancel: () => void;
   position?: { x: number; y: number }; // Optional - nếu không có thì dùng modal mode
   imageElement?: HTMLImageElement;
   isModal?: boolean; // Explicit modal mode flag
+  enableFileNameEdit?: boolean; // Enable filename editing for TipTap images
 }
 
 export default function ImageAltEditPopup({
@@ -16,16 +18,36 @@ export default function ImageAltEditPopup({
   onCancel,
   position,
   imageElement,
-  isModal = false
+  isModal = false,
+  enableFileNameEdit = false
 }: ImageAltEditPopupProps) {
   const [altText, setAltText] = useState(currentAlt);
+  const [fileName, setFileName] = useState('');
   const [isValid, setIsValid] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Validation
   const MIN_LENGTH = 5;
   const MAX_LENGTH = 125;
+
+  // Extract filename from imageElement when enableFileNameEdit is true
+  useEffect(() => {
+    if (enableFileNameEdit && imageElement?.src) {
+      const extractedFileName = ImageStorageService.extractFileNameFromUrl(imageElement.src);
+      if (extractedFileName) {
+        // Tách tên file và extension
+        const lastDotIndex = extractedFileName.lastIndexOf('.');
+        const nameWithoutExtension = lastDotIndex > 0
+          ? extractedFileName.substring(0, lastDotIndex)
+          : extractedFileName;
+        setFileName(nameWithoutExtension);
+      } else {
+        setFileName('');
+      }
+    }
+  }, [enableFileNameEdit, imageElement]);
 
   useEffect(() => {
     const trimmed = altText.trim();
@@ -70,13 +92,30 @@ export default function ImageAltEditPopup({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isValid, altText, onCancel]);
 
-  const handleSave = () => {
-    if (isValid && altText.trim()) {
+  const handleSave = async () => {
+    if (isValid && altText.trim() && !isSaving) {
       try {
-        onSave(altText.trim());
+        setIsSaving(true);
+        if (enableFileNameEdit) {
+          // Ghép tên file với extension gốc
+          let finalFileName = fileName.trim();
+          if (finalFileName && imageElement?.src) {
+            const originalFileName = ImageStorageService.extractFileNameFromUrl(imageElement.src);
+            if (originalFileName) {
+              const lastDotIndex = originalFileName.lastIndexOf('.');
+              const extension = lastDotIndex > 0 ? originalFileName.substring(lastDotIndex) : '.jpg';
+              finalFileName = finalFileName + extension;
+            }
+          }
+          await onSave(altText.trim(), finalFileName);
+        } else {
+          await onSave(altText.trim());
+        }
       } catch (error) {
         console.error('Error saving alt text:', error);
         // Could add toast notification here
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -92,7 +131,7 @@ export default function ImageAltEditPopup({
   // Calculate optimal position
   const getPopupStyle = () => {
     const popupWidth = 320;
-    const popupHeight = 180;
+    const popupHeight = enableFileNameEdit ? 260 : 180; // Tăng height khi có filename field
     const margin = 16;
 
     let x = position.x;
@@ -132,7 +171,7 @@ export default function ImageAltEditPopup({
             <Edit3 className="w-4 h-4 text-white" />
           </div>
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Edit Alt Text
+            {enableFileNameEdit ? 'Chỉnh sửa ảnh' : 'Edit Alt Text'}
           </h3>
         </div>
 
@@ -152,8 +191,30 @@ export default function ImageAltEditPopup({
         </div>
       )}
 
-      {/* Input Field */}
+      {/* Filename Field - Only show when enableFileNameEdit is true */}
+      {enableFileNameEdit && (
+        <div className="mb-3">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tên file (không bao gồm đuôi)
+          </label>
+          <input
+            type="text"
+            value={fileName}
+            onChange={(e) => setFileName(e.target.value)}
+            placeholder="Ví dụ: anh-bai-viet-2024"
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Đuôi file (.jpg, .png) sẽ được giữ nguyên
+          </p>
+        </div>
+      )}
+
+      {/* Alt Text Field */}
       <div className="mb-3">
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Alt text
+        </label>
         <textarea
           ref={inputRef}
           value={altText}
@@ -180,17 +241,27 @@ export default function ImageAltEditPopup({
       <div className="flex gap-2">
         <button
           onClick={onCancel}
-          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+          disabled={isSaving}
+          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           onClick={handleSave}
-          disabled={!isValid}
-          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-1"
+          disabled={!isValid || isSaving}
+          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-all flex items-center justify-center gap-2"
         >
-          <Check className="w-4 h-4" />
-          Save
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <Check className="w-4 h-4" />
+              <span>Save</span>
+            </>
+          )}
         </button>
       </div>
     </div>
