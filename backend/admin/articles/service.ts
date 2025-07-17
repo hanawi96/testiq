@@ -155,6 +155,9 @@ export class ArticlesService {
         ].filter(Boolean));
       }
 
+      // Explicitly invalidate edit cache for this article
+      ArticleQueries.clearCachePattern(`article:edit:${articleId}`);
+
       return result;
     }, ERROR_MESSAGES.ARTICLE_UPDATE_FAILED, true);
   }
@@ -237,6 +240,15 @@ export class ArticlesService {
     const result = await BulkOperationsUtils.addSampleViewData();
     if (result.success) invalidateCache();
     return result;
+  }
+
+  // Cache management methods
+  static clearCache(): void {
+    ArticleQueries.clearCache();
+  }
+
+  static clearCachePattern(pattern: string): void {
+    ArticleQueries.clearCachePattern(pattern);
   }
 
   static async analyzeArticleLinks(articleId: string): Promise<{ data: LinkAnalysis | null; error: any }> {

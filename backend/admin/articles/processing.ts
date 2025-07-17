@@ -187,8 +187,8 @@ export class ProcessingUtils {
       twitter_card_type: articleData.twitter_card_type || 'summary_large_image',
 
       // Media fields
-      cover_image: articleData.cover_image || null,
-      cover_image_alt: articleData.cover_image_alt || null,
+      cover_image: articleData.cover_image?.trim() || null,
+      cover_image_alt: articleData.cover_image_alt?.trim() || null,
       gallery_images: articleData.gallery_images || null,
 
       // Schema fields
@@ -241,6 +241,14 @@ export class ProcessingUtils {
     // Process content data if content changed
     if (updateData.content) {
       Object.assign(processedUpdateData, this.processContentData(updateData.content));
+    }
+
+    // Handle media fields - convert empty strings to null
+    if ('cover_image' in updateData) {
+      processedUpdateData.cover_image = updateData.cover_image?.trim() || null;
+    }
+    if ('cover_image_alt' in updateData) {
+      processedUpdateData.cover_image_alt = updateData.cover_image_alt?.trim() || null;
     }
 
     // Set published_at when publishing

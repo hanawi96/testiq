@@ -10,6 +10,7 @@ import AuthorSelector from '../create/components/AuthorSelector';
 import CategorySelector from '../create/components/CategorySelector';
 import DateTimePicker from '../create/components/DateTimePicker';
 import { BlogService } from '../../../../services/blog-service';
+import { cleanupRemovedImages } from '../../../../utils/image-cleanup';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -71,56 +72,32 @@ const ExcerptSkeleton: React.FC = () => (
 );
 
 const SEOSkeleton: React.FC = () => (
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {/* Left side - SEO Score & Analysis */}
-    <div className="space-y-4">
-      {/* SEO Score */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-        <div className="text-center">
-          <FieldSkeleton className="h-8 w-16 mx-auto mb-2" />
-          <FieldSkeleton className="h-2 w-full rounded-full mb-2" />
-          <FieldSkeleton className="h-4 w-20 mx-auto" />
-        </div>
-      </div>
-
-      {/* SEO Checklist */}
-      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-        <FieldSkeleton className="h-4 w-24 mb-3" />
-        <div className="space-y-2">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <FieldSkeleton className="w-2 h-2 rounded-full" />
-              <FieldSkeleton className="h-3 w-20" />
-              <FieldSkeleton className="h-3 w-32 ml-auto" />
-            </div>
-          ))}
-        </div>
-      </div>
+  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    {/* Header Skeleton */}
+    <div className="flex items-center gap-3 mb-4">
+      <FieldSkeleton className="w-8 h-8 rounded-lg" />
+      <FieldSkeleton className="h-6 w-32" />
     </div>
 
-    {/* Right side - SEO Fields */}
+    {/* SEO Toggle Skeleton */}
     <div className="space-y-4">
-      {/* Focus Keyword */}
-      <div>
-        <FieldSkeleton className="h-4 w-20 mb-2" />
-        <FieldSkeleton className="h-10 w-full rounded-lg" />
-        <FieldSkeleton className="h-3 w-56 mt-1" />
-      </div>
-      {/* Meta Title */}
-      <div>
-        <FieldSkeleton className="h-4 w-32 mb-2" />
-        <FieldSkeleton className="h-10 w-full rounded-lg" />
-        <FieldSkeleton className="h-3 w-24 mt-1" />
-      </div>
-      {/* Meta Description */}
-      <div>
-        <FieldSkeleton className="h-4 w-36 mb-2" />
-        <FieldSkeleton className="h-20 w-full rounded-lg" />
-        <FieldSkeleton className="h-3 w-28 mt-1" />
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
+        <div className="flex items-center gap-3">
+          <FieldSkeleton className="w-8 h-8 rounded-lg" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <FieldSkeleton className="h-4 w-32" />
+              <FieldSkeleton className="h-5 w-16 rounded-full" />
+            </div>
+            <FieldSkeleton className="h-3 w-48" />
+          </div>
+        </div>
+        <FieldSkeleton className="h-6 w-11 rounded-full" />
       </div>
     </div>
   </div>
 );
+
 
 const SidebarSkeleton: React.FC = () => (
   <div className="space-y-6">
@@ -327,7 +304,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     focus_keyword: '',
     categories: [] as string[],
     tags: [] as string[],
-    featured_image: '',
+    cover_image: '',
     cover_image_alt: '',
     lang: 'vi',
     article_type: 'article' as 'article' | 'page' | 'post',
@@ -350,6 +327,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false); // Track any save operation
+
+  // Track original content for image cleanup
+  const [originalContent, setOriginalContent] = useState<string>('');
 
 
 
@@ -401,6 +381,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const shouldShowArticleSkeleton = isEditMode && loadingState.isLoadingArticleData;
   const shouldShowCategoriesSkeleton = loadingState.isLoadingCategories;
   const shouldShowAuthorsSkeleton = loadingState.isLoadingAuthors;
+  const shouldShowSEOSkeleton = isEditMode && loadingState.isLoadingArticleData;
 
 
 
@@ -469,9 +450,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
           if (articleResult.data) {
             // Populate form with article data
+            const articleContent = articleResult.data.content || '';
             setFormData({
               title: articleResult.data.title || '',
-              content: articleResult.data.content || '',
+              content: articleContent,
               excerpt: articleResult.data.excerpt || '',
               meta_title: articleResult.data.meta_title || '',
               meta_description: articleResult.data.meta_description || '',
@@ -492,7 +474,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 return [];
               })(),
               tags: articleResult.data.tag_names || articleResult.data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [],
-              featured_image: articleResult.data.cover_image || '',
+              cover_image: articleResult.data.cover_image || '',
               cover_image_alt: articleResult.data.cover_image_alt || '',
               lang: articleResult.data.lang || 'vi',
               article_type: articleResult.data.article_type || 'article',
@@ -504,6 +486,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               updated_date: articleResult.data.updated_at ? new Date(articleResult.data.updated_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
               author_id: articleResult.data.author_id || ''
             });
+
+            // Store original content for image cleanup
+            setOriginalContent(articleContent);
 
             // Mark article data as loaded
             setLoadingState(prev => ({
@@ -660,72 +645,24 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   // IMPROVED: Smart auto-save with debouncing
   useEffect(() => {
-    console.log('🔄 AUTOSAVE: useEffect triggered', {
-      hasUnsavedChanges,
-      isManualSaving,
-      hasTitle: !!formData.title.trim(),
-      title: formData.title.substring(0, 30) + '...',
-      contentLength: formData.content.length,
-      slug: formData.slug
-    });
-
-    if (!hasUnsavedChanges) {
-      console.log('❌ AUTOSAVE: Skipped - no changes', {
-        hasUnsavedChanges
-      });
+    // Skip autosave if no changes
+    if (!hasUnsavedChanges || isManualSaving) {
       return;
     }
 
-    // Skip autosave if manual save is in progress
-    if (isManualSaving) {
-      console.log('❌ AUTOSAVE: Skipped - manual save in progress', {
-        isManualSaving
-      });
+    // Skip autosave if required fields are empty
+    if (!formData.title.trim() || !formData.slug.trim() || formData.content.trim().length < 10) {
       return;
     }
-
-    // Skip autosave if title is empty
-    if (!formData.title.trim()) {
-      console.log('❌ AUTOSAVE: Skipped - no title', {
-        title: formData.title
-      });
-      return;
-    }
-
-    // Skip autosave if slug is empty
-    if (!formData.slug.trim()) {
-      console.log('❌ AUTOSAVE: Skipped - no slug', {
-        slug: formData.slug
-      });
-      return;
-    }
-
-    // Skip autosave if content is too short (less than 10 characters)
-    if (formData.content.trim().length < 10) {
-      console.log('❌ AUTOSAVE: Skipped - content too short', {
-        contentLength: formData.content.trim().length,
-        minRequired: 10
-      });
-      return;
-    }
-
-    console.log('⏰ AUTOSAVE: Setting timeout (2s)...');
 
     // Debounced auto-save: wait 2 seconds after last change, then save
     const autoSaveTimeout = setTimeout(() => {
-      console.log('🚀 AUTOSAVE: Timeout triggered, checking conditions...');
       if (hasUnsavedChanges) {
-        console.log('✅ AUTOSAVE: Conditions met, calling handleSave...');
-        handleSave('autosave'); // Use different action for autosave
-      } else {
-        console.log('❌ AUTOSAVE: Conditions not met at timeout', {
-          hasUnsavedChanges
-        });
+        handleSave('autosave');
       }
-    }, 2000); // 2 seconds debounce
+    }, 2000);
 
     return () => {
-      console.log('🧹 AUTOSAVE: Cleanup - clearing timeout');
       clearTimeout(autoSaveTimeout);
     };
   }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug]);
@@ -829,33 +766,15 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
     // PREVENT RACE CONDITION: Skip if already saving
     if (isSaving) {
-      console.log(`⏸️ SAVE SKIPPED: Already saving (${isAutoSave ? 'AUTOSAVE' : 'MANUAL SAVE'})`);
       return;
     }
-
-    console.log(`💾 SAVE: Starting ${isAutoSave ? 'AUTOSAVE' : 'MANUAL SAVE'}`, {
-      action,
-      isAutoSave,
-      isEditMode,
-      hasUnsavedChanges,
-      formData: {
-        title: formData.title.substring(0, 50) + '...',
-        contentLength: formData.content.length,
-        slug: formData.slug,
-        is_public: formData.is_public,
-        author_id: formData.author_id,
-        author_id_processed: formData.author_id.trim() || null
-      }
-    });
 
     // Set saving state
     setIsSaving(true);
 
     if (isAutoSave) {
-      console.log('🔵 AUTOSAVE: Setting isAutoSaving = true');
       setIsAutoSaving(true);
     } else {
-      console.log('🔄 MANUAL SAVE: Setting isManualSaving = true, isAutoSaving = true');
       setIsManualSaving(true);
       setIsAutoSaving(true); // Sử dụng chung hiển thị autosave
     }
@@ -915,11 +834,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         }
       }
 
-      console.log('💾 SAVE: formData before save:', {
-        featured_image: formData.featured_image,
-        cover_image_alt: formData.cover_image_alt,
-        title: formData.title
-      });
+
 
       const articleData: CreateArticleData = {
         title: finalTitle,
@@ -938,8 +853,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
 
         // Media
-        cover_image: formData.featured_image?.trim() || undefined,
-        cover_image_alt: formData.cover_image_alt?.trim() || undefined,
+        cover_image: formData.cover_image?.trim() || null,
+        cover_image_alt: formData.cover_image_alt?.trim() || null,
 
         // Schema
         schema_type: formData.schema_type,
@@ -1004,32 +919,41 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       }
 
       if (data) {
-        console.log(`✅ SAVE SUCCESS (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
-          isAutoSave,
-          isEditMode,
-          articleId: data.id,
-          title: data.title?.substring(0, 30) + '...',
-          timestamp: new Date().toLocaleTimeString()
-        });
+
+        // Image cleanup for content changes (for manual saves and publish actions)
+        if (isEditMode && originalContent && formData.content !== originalContent) {
+          cleanupRemovedImages(originalContent, formData.content)
+            .then(result => {
+              if (result.totalCleaned > 0) {
+                console.log(`🧹 Image Cleanup: Cleaned up ${result.totalCleaned} unused images`);
+              }
+            })
+            .catch(error => {
+              console.warn('⚠️ Image Cleanup: Error during cleanup:', error);
+            });
+
+          // Update original content for next comparison
+          setOriginalContent(formData.content);
+        }
 
         // Update save state
         setHasUnsavedChanges(false);
         setLastSaved(new Date());
 
-        console.log('📝 SAVE: Updated states', {
-          hasUnsavedChanges: false,
-          lastSaved: new Date().toLocaleTimeString()
-        });
-
         // Show different messages for manual vs auto save
         if (!isAutoSave) {
-          console.log('💬 MANUAL SAVE: Success (using autosave indicator)');
+          // Manual save success - user feedback handled by UI
         } else {
-          console.log('🔇 AUTOSAVE: Silent success (no message)');
+          // Autosave success - silent operation
         }
 
-        // Clear BlogService cache để cập nhật frontend
+        // Clear caches để cập nhật frontend và backend
         BlogService.clearCache();
+
+        // Clear article edit cache to ensure fresh data on reload
+        if (typeof ArticlesService.clearCachePattern === 'function') {
+          ArticlesService.clearCachePattern(`article:edit:${data.id}`);
+        }
 
         // Call onSave callback if provided
         if (onSave) {
@@ -1053,19 +977,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       setSaveStatus('❌ Có lỗi xảy ra khi tạo bài viết');
       setTimeout(() => setSaveStatus(''), 3000);
     } finally {
-      console.log(`🏁 SAVE CLEANUP (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
-        isAutoSave,
-        timestamp: new Date().toLocaleTimeString()
-      });
-
       // Reset saving state to allow future saves
       setIsSaving(false);
 
       if (isAutoSave) {
-        console.log('🔵 AUTOSAVE: Setting isAutoSaving = false');
         setIsAutoSaving(false);
       } else {
-        console.log('🔄 MANUAL SAVE: Setting isManualSaving = false, isAutoSaving = false');
         setIsManualSaving(false);
         setIsAutoSaving(false); // Tắt hiển thị chung
       }
@@ -1828,20 +1745,20 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </div>
               }>
                 <MediaUpload
-                  value={formData.featured_image}
+                  value={formData.cover_image}
                   alt={formData.cover_image_alt || formData.title || 'Ảnh đại diện bài viết'}
+                  isLoading={loadingState.isLoadingArticleData} // Pass loading state
                   onChange={(url: string, alt?: string) => {
-                    console.log('🖼️ MediaUpload onChange:', { url, alt, currentAlt: formData.cover_image_alt });
                     setFormData(prev => ({
                       ...prev,
-                      featured_image: url,
+                      cover_image: url,
                       cover_image_alt: alt !== undefined ? alt : (prev.title || 'Ảnh đại diện bài viết')
                     }));
                   }}
                   onRemove={() => {
                     setFormData(prev => ({
                       ...prev,
-                      featured_image: '',
+                      cover_image: '',
                       cover_image_alt: ''
                     }));
                   }}
@@ -1886,15 +1803,18 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             </DropdownSection>
 
             {/* SEO Index Control Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+            {shouldShowSEOSkeleton ? (
+              <SEOSkeleton />
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tối ưu tìm kiếm</h3>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tối ưu tìm kiếm</h3>
-              </div>
 
               <div className="space-y-4">
                 {/* Index/NoIndex Toggle */}
@@ -1974,6 +1894,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </div>
               </div>
             </div>
+            )}
 
           </div>
         </div>

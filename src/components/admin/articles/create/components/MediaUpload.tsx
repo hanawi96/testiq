@@ -20,6 +20,7 @@ interface MediaUploadProps {
   onRemove: () => void;
   disabled?: boolean;
   className?: string;
+  isLoading?: boolean; // Loading state from parent
 }
 
 interface UploadState {
@@ -38,7 +39,8 @@ export default function MediaUpload({
   onChange,
   onRemove,
   disabled = false,
-  className = ""
+  className = "",
+  isLoading = false
 }: MediaUploadProps) {
   const [state, setState] = useState<UploadState>({
     isUploading: false,
@@ -323,6 +325,9 @@ export default function MediaUpload({
   const hasImage = value || state.previewUrl;
   const displayUrl = state.previewUrl || value;
 
+  // Show skeleton when parent is loading data (edit mode)
+  const shouldShowSkeleton = isLoading && !hasImage;
+
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Upload Area */}
@@ -352,7 +357,22 @@ export default function MediaUpload({
           className="hidden"
         />
 
-        {hasImage ? (
+        {shouldShowSkeleton ? (
+          // Loading Skeleton for Edit Mode
+          <div className="relative">
+            <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-lg animate-pulse">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Skeleton for alt text */}
+            <div className="mt-3 space-y-2">
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+        ) : hasImage ? (
           // Image Preview with Enhanced Loading States
           <div className="relative">
             <img
@@ -439,9 +459,58 @@ export default function MediaUpload({
                 <motion.button
                   whileHover={{ scale: 1.1, y: -2 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    onRemove();
+
+
+
+                    try {
+                      // Clean up storage file if it exists
+                      if (value) {
+                        const filePath = ImageStorageService.extractPathFromUrl(value);
+                        if (filePath) {
+                          // Delete from storage in background (don't wait for it)
+                          ImageStorageService.deleteImage(filePath).catch(error =>
+                            console.warn('Failed to cleanup storage file:', error)
+                          );
+                        }
+                      }
+
+                      // Clean up local preview URL
+                      if (state.previewUrl) {
+                        URL.revokeObjectURL(state.previewUrl);
+                      }
+
+                      // Clear browser cache for the deleted image
+                      if (value && 'caches' in window) {
+                        caches.keys().then(cacheNames => {
+                          cacheNames.forEach(cacheName => {
+                            caches.open(cacheName).then(cache => {
+                              cache.delete(value).catch(() => {
+                                // Ignore cache deletion errors
+                              });
+                            });
+                          });
+                        }).catch(() => {
+                          // Ignore cache API errors
+                        });
+                      }
+
+                      // Update local state
+                      setState(prev => ({
+                        ...prev,
+                        previewUrl: null,
+                        error: null,
+                        success: null
+                      }));
+
+                      // Notify parent component
+                      onRemove();
+                    } catch (error) {
+                      console.error('Error during file removal:', error);
+                      // Still proceed with removal even if cleanup fails
+                      onRemove();
+                    }
                   }}
                   className="p-3 bg-red-500/80 backdrop-blur-md rounded-xl text-white hover:bg-red-600/90 transition-all duration-200 media-upload-button shadow-lg"
                   title="Xóa ảnh"

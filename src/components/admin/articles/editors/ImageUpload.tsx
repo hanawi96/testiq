@@ -12,6 +12,31 @@ interface ImageUploadProps {
 // Simple cache for uploaded images (session-based)
 const uploadCache = new Map<string, string>();
 
+// Utility function to clear cache for a specific URL
+const clearCacheForUrl = (url: string) => {
+  // Clear from upload cache
+  for (const [key, cachedUrl] of uploadCache.entries()) {
+    if (cachedUrl === url) {
+      uploadCache.delete(key);
+    }
+  }
+
+  // Clear browser cache if available
+  if ('caches' in window) {
+    caches.keys().then(cacheNames => {
+      cacheNames.forEach(cacheName => {
+        caches.open(cacheName).then(cache => {
+          cache.delete(url).catch(() => {
+            // Ignore cache deletion errors
+          });
+        });
+      });
+    }).catch(() => {
+      // Ignore cache API errors
+    });
+  }
+};
+
 export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
