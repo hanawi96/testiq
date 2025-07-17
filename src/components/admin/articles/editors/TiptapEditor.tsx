@@ -36,7 +36,7 @@ import {
   Highlighter
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
-import ImageAltEditPopup from '../../ui/ImageAltEditPopup';
+import ImageAltEditPopup from '../../../ui/ImageAltEditPopup';
 
 interface TiptapEditorProps {
   value: string;
