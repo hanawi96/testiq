@@ -937,6 +937,36 @@ export default function TiptapEditor({
           imageElement={imageAltEdit.imageElement}
         />
       )}
+
+      {/* Custom CSS for image hover effects */}
+      <style jsx>{`
+        :global(.tiptap-content img) {
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border-radius: 8px;
+        }
+
+        :global(.tiptap-content img:hover) {
+          transform: scale(1.02);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          border: 2px solid #3b82f6;
+        }
+
+        :global(.tiptap-content img:hover::after) {
+          content: "✏️ Click to edit alt text";
+          position: absolute;
+          top: -30px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          white-space: nowrap;
+          z-index: 1000;
+        }
+      `}</style>
     </div>
   );
 }

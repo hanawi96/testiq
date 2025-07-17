@@ -69,8 +69,13 @@ export default function ImageAltEditPopup({
   }, [isValid, altText, onCancel]);
 
   const handleSave = () => {
-    if (isValid) {
-      onSave(altText.trim());
+    if (isValid && altText.trim()) {
+      try {
+        onSave(altText.trim());
+      } catch (error) {
+        console.error('Error saving alt text:', error);
+        // Could add toast notification here
+      }
     }
   };
 

@@ -20,6 +20,7 @@ export default function AltTextInput({
   const [localValue, setLocalValue] = useState(value);
   const [isValid, setIsValid] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   // Validation rules
   const MIN_LENGTH = 5;
@@ -42,6 +43,10 @@ export default function AltTextInput({
     const newValue = e.target.value;
     setLocalValue(newValue);
     onChange(newValue);
+
+    // Show typing indicator
+    setIsTyping(true);
+    setTimeout(() => setIsTyping(false), 1000);
   };
 
   const getCharacterCount = () => {
