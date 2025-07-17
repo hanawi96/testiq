@@ -841,17 +841,20 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         return;
       }
 
-      if (!formData.slug.trim()) {
-        setSaveStatus('❌ Slug không được để trống');
-        setLoadingState(prev => ({ ...prev, isLoading: false }));
-        setTimeout(() => setSaveStatus(''), 3000);
-        return;
-      }
+      // Skip slug validation for autosave
+      if (!isAutoSave) {
+        if (!formData.slug.trim()) {
+          setSaveStatus('❌ Slug không được để trống');
+          setLoadingState(prev => ({ ...prev, isLoading: false }));
+          setTimeout(() => setSaveStatus(''), 3000);
+          return;
+        }
 
-      if (slugError) {
-        setSaveStatus('❌ ' + slugError);
-        setTimeout(() => setSaveStatus(''), 3000);
-        return;
+        if (slugError) {
+          setSaveStatus('❌ ' + slugError);
+          setTimeout(() => setSaveStatus(''), 3000);
+          return;
+        }
       }
 
       // Prepare article data
