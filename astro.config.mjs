@@ -6,7 +6,7 @@ import node from '@astrojs/node';
 
 export default defineConfig({
   site: 'https://iqtest.yourdomain.com', // Thay đổi domain thực của bạn
-  output: 'hybrid', // Hybrid: static by default, server-side when needed
+  output: 'server', // Server-side rendering for dynamic content
   adapter: node({
     mode: 'standalone'
   }),
