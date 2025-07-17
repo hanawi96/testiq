@@ -124,7 +124,7 @@ const publishedDate = formatDate(article.date);
         <div class="max-w-4xl mx-auto px-4">
           <img
             src={article.image}
-            alt={article.title}
+            alt={article.imageAlt || article.title}
             class="w-full h-64 md:h-96 object-cover rounded-xl shadow-lg"
           />
         </div>

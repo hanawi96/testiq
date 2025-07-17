@@ -13,6 +13,7 @@ export interface BlogPost {
   category: string;
   tags: string[];
   image: string;
+  imageAlt: string;
   featured: boolean;
 }
 
@@ -56,6 +57,7 @@ export class BlogService {
           author_id,
           featured,
           cover_image,
+          cover_image_alt,
           reading_time,
           created_at,
           updated_at,
@@ -197,6 +199,7 @@ export class BlogService {
           category: categories.length > 0 ? categories[0].name : 'Chung',
           tags: tags.map(tag => tag.name),
           image: article.cover_image || '/api/placeholder/400/240',
+          imageAlt: article.cover_image_alt || article.title,
           featured: article.featured || false
         };
       });
