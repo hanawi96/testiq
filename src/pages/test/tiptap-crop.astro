@@ -1,0 +1,98 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="TipTap Crop Test">
+  <main class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold mb-6 text-center">🧪 TipTap Image Hover Overlay Test</h1>
+      
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">📋 Hướng dẫn test:</h2>
+        <ol class="list-decimal list-inside space-y-2 text-gray-700 dark:text-gray-300">
+          <li>Click vào nút <strong>"Image"</strong> trong toolbar để upload ảnh</li>
+          <li>Upload một ảnh và chèn vào editor</li>
+          <li><strong>Hover</strong> lên ảnh trong editor để hiển thị overlay</li>
+          <li>Test các chức năng trong overlay:
+            <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+              <li><strong>Edit Alt Text:</strong> Chỉnh sửa mô tả ảnh</li>
+              <li><strong>Crop:</strong> Cắt ảnh với tool crop</li>
+              <li><strong>Replace:</strong> Thay thế ảnh bằng ảnh khác</li>
+              <li><strong>Delete:</strong> Xóa ảnh khỏi editor</li>
+            </ul>
+          </li>
+          <li>Kiểm tra overlay tự động ẩn khi di chuột ra ngoài</li>
+        </ol>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">✏️ TipTap Editor với Hover Overlay:</h2>
+        <div id="tiptap-container"></div>
+      </div>
+
+      <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
+        <h3 class="font-medium text-blue-900 dark:text-blue-100 mb-2">
+          ✨ Tính năng mới:
+        </h3>
+        <ul class="list-disc list-inside text-blue-800 dark:text-blue-200 space-y-1 text-sm">
+          <li><strong>Hover Overlay:</strong> Hiển thị overlay với 4 chức năng chính khi hover</li>
+          <li><strong>Tái sử dụng 100%:</strong> ImageCropper, ImageAltEditPopup, ImageUpload</li>
+          <li><strong>Smart Positioning:</strong> Overlay tự động định vị theo ảnh</li>
+          <li><strong>Performance:</strong> Chỉ render overlay khi cần thiết</li>
+          <li><strong>UX mượt:</strong> Hover delay 300ms, auto-hide khi leave</li>
+          <li><strong>Tích hợp TipTap:</strong> Sử dụng TipTap API để manipulate images</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import TiptapEditor from '../../components/admin/articles/editors/TiptapEditor';
+  import { createRoot } from 'react-dom/client';
+  import React from 'react';
+
+  // Mount TipTap editor
+  const container = document.getElementById('tiptap-container');
+  if (container) {
+    const root = createRoot(container);
+    
+    function TiptapCropTest() {
+      const [content, setContent] = React.useState(`
+        <h2>🧪 Test TipTap Image Hover Overlay</h2>
+        <p>Click vào nút <strong>Image</strong> trong toolbar để upload ảnh.</p>
+        <p>Sau khi ảnh được chèn vào editor, <strong>hover</strong> lên ảnh để thấy overlay với các chức năng:</p>
+        <ul>
+          <li>✏️ <strong>Edit Alt Text</strong> - Chỉnh sửa mô tả ảnh</li>
+          <li>✂️ <strong>Crop</strong> - Cắt ảnh</li>
+          <li>🔄 <strong>Replace</strong> - Thay thế ảnh</li>
+          <li>🗑️ <strong>Delete</strong> - Xóa ảnh</li>
+        </ul>
+      `);
+
+      return React.createElement(TiptapEditor, {
+        value: content,
+        onChange: setContent,
+        height: '500px',
+        placeholder: 'Test crop functionality...'
+      });
+    }
+
+    root.render(React.createElement(TiptapCropTest));
+  }
+</script>
+
+<style>
+  /* TipTap styles */
+  .tiptap-content {
+    min-height: 500px;
+  }
+  
+  .tiptap-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+</style>
+</Layout>

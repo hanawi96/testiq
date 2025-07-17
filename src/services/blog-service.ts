@@ -21,7 +21,7 @@ export interface BlogPost {
 let articlesCache: BlogPost[] | null = null;
 let categoriesCache: string[] | null = null;
 let cacheTimestamp: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
+const CACHE_DURATION = 30 * 1000; // 30 giây cho real-time updates
 
 export class BlogService {
   /**

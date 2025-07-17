@@ -947,12 +947,23 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           // Autosave success - silent operation
         }
 
-        // Clear caches để cập nhật frontend và backend
+        // Clear caches để cập nhật frontend và backend ngay lập tức
         BlogService.clearCache();
 
         // Clear article edit cache to ensure fresh data on reload
         if (typeof ArticlesService.clearCachePattern === 'function') {
           ArticlesService.clearCachePattern(`article:edit:${data.id}`);
+        }
+
+        // Force clear browser cache for blog pages
+        if ('caches' in window) {
+          caches.keys().then(cacheNames => {
+            cacheNames.forEach(cacheName => {
+              if (cacheName.includes('blog') || cacheName.includes('article')) {
+                caches.delete(cacheName).catch(() => {});
+              }
+            });
+          }).catch(() => {});
         }
 
         // Call onSave callback if provided

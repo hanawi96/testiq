@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// Test content với hình ảnh
+const testContent = `
+<h2>Test Content với Hình Ảnh</h2>
+<p>Đây là đoạn văn bản trước hình ảnh.</p>
+<img src="https://qovhiztkfgjppfiqtake.supabase.co/storage/v1/object/public/images/articles/test-image.jpg" alt="Test image" class="tiptap-image" />
+<p>Đây là đoạn văn bản sau hình ảnh.</p>
+<img src="https://via.placeholder.com/600x400" alt="Placeholder image" />
+<p>Kết thúc test content.</p>
+`;
+---
+
+<BaseLayout title="Content Debug Test">
+  <main class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold mb-6">🔍 Content Debug Test</h1>
+      
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Raw HTML Content:</h2>
+        <pre class="bg-gray-100 dark:bg-gray-700 p-4 rounded text-sm overflow-x-auto">
+{testContent}
+        </pre>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Rendered Content:</h2>
+        
+        <!-- Giống như trong blog [slug].astro -->
+        <div class="prose prose-lg dark:prose-invert max-w-none">
+          <div class="article-content" set:html={testContent}></div>
+        </div>
+      </div>
+
+      <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
+        <h3 class="font-medium text-blue-900 dark:text-blue-100 mb-2">
+          🔍 Debug Info:
+        </h3>
+        <ul class="list-disc list-inside text-blue-800 dark:text-blue-200 space-y-1 text-sm">
+          <li>Kiểm tra xem hình ảnh có hiển thị không</li>
+          <li>Kiểm tra CSS styling cho .article-content img</li>
+          <li>Kiểm tra network requests cho hình ảnh</li>
+          <li>So sánh với TipTap editor styling</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  /* Copy CSS từ blog [slug].astro */
+  .article-content {
+    @apply text-gray-800 dark:text-gray-200 leading-relaxed;
+  }
+  
+  .article-content h1, .article-content h2, .article-content h3, .article-content h4, .article-content h5, .article-content h6 {
+    @apply font-bold text-gray-900 dark:text-gray-100 mt-8 mb-4;
+  }
+  
+  .article-content h1 { @apply text-3xl; }
+  .article-content h2 { @apply text-2xl; }
+  .article-content h3 { @apply text-xl; }
+  .article-content h4 { @apply text-lg; }
+  
+  .article-content p {
+    @apply mb-6 leading-relaxed;
+  }
+  
+  .article-content ul, .article-content ol {
+    @apply mb-6 pl-6;
+  }
+  
+  .article-content li {
+    @apply mb-2;
+  }
+  
+  .article-content blockquote {
+    @apply border-l-4 border-primary-500 pl-6 py-2 my-6 italic text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50;
+  }
+  
+  .article-content code {
+    @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm;
+  }
+  
+  .article-content pre {
+    @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-6;
+  }
+  
+  .article-content img {
+    @apply rounded-lg shadow-md my-6 max-w-full h-auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .article-content a {
+    @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 underline;
+  }
+
+  /* Debug styles */
+  .article-content img {
+    border: 2px solid red !important;
+    background: yellow !important;
+  }
+</style>
+</BaseLayout>

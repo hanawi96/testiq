@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
 import ImageAltEditPopup from '../../../ui/ImageAltEditPopup';
+import ImageHoverOverlay from './ImageHoverOverlay';
 
 interface TiptapEditorProps {
   value: string;
@@ -412,6 +413,15 @@ export default function TiptapEditor({
     position: { x: 0, y: 0 },
     imageElement: null
   });
+
+  // Image hover overlay state
+  const [imageHoverOverlay, setImageHoverOverlay] = useState<{
+    isOpen: boolean;
+    imageElement: HTMLImageElement | null;
+  }>({
+    isOpen: false,
+    imageElement: null
+  });
   const editor = useEditor({
     extensions: [
       // OPTIMIZED: StarterKit with performance-focused configuration
@@ -545,34 +555,43 @@ export default function TiptapEditor({
         detail: { initTime: performance.now() - startTime }
       }));
 
-      // Add image click handler for alt text editing
+      // Add image hover handler for overlay
       const editorElement = editor.view.dom;
-      const handleImageClick = (event: Event) => {
+      let hoverTimeout: NodeJS.Timeout;
+
+      const handleImageHover = (event: Event) => {
         const target = event.target as HTMLElement;
         if (target.tagName === 'IMG') {
-          event.preventDefault();
-          event.stopPropagation();
-
           const img = target as HTMLImageElement;
-          const rect = img.getBoundingClientRect();
 
-          setImageAltEdit({
-            isOpen: true,
-            currentAlt: img.alt || '',
-            position: {
-              x: rect.right + 10, // Position to the right of image
-              y: rect.top
-            },
-            imageElement: img
-          });
+          // Clear any existing timeout
+          clearTimeout(hoverTimeout);
+
+          // Show overlay after short delay
+          hoverTimeout = setTimeout(() => {
+            setImageHoverOverlay({
+              isOpen: true,
+              imageElement: img
+            });
+          }, 300);
         }
       };
 
-      editorElement.addEventListener('click', handleImageClick);
+      const handleImageLeave = (event: Event) => {
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'IMG') {
+          clearTimeout(hoverTimeout);
+        }
+      };
+
+      editorElement.addEventListener('mouseenter', handleImageHover, true);
+      editorElement.addEventListener('mouseleave', handleImageLeave, true);
 
       // Store cleanup function
-      (editor as any)._imageClickCleanup = () => {
-        editorElement.removeEventListener('click', handleImageClick);
+      (editor as any)._imageHoverCleanup = () => {
+        clearTimeout(hoverTimeout);
+        editorElement.removeEventListener('mouseenter', handleImageHover, true);
+        editorElement.removeEventListener('mouseleave', handleImageLeave, true);
       };
 
       console.log(`✅ TiptapEditor initialized in ${(performance.now() - startTime).toFixed(2)}ms`);
@@ -653,11 +672,11 @@ export default function TiptapEditor({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activePopup, closePopup]);
 
-  // Cleanup image click handlers on unmount
+  // Cleanup image hover handlers on unmount
   React.useEffect(() => {
     return () => {
-      if (editor && (editor as any)._imageClickCleanup) {
-        (editor as any)._imageClickCleanup();
+      if (editor && (editor as any)._imageHoverCleanup) {
+        (editor as any)._imageHoverCleanup();
       }
     };
   }, [editor]);
@@ -958,33 +977,33 @@ export default function TiptapEditor({
         />
       )}
 
+      {/* Image Hover Overlay */}
+      {imageHoverOverlay.isOpen && imageHoverOverlay.imageElement && editor && (
+        <ImageHoverOverlay
+          imageElement={imageHoverOverlay.imageElement}
+          editor={editor}
+          onClose={() => setImageHoverOverlay({ isOpen: false, imageElement: null })}
+        />
+      )}
+
       {/* Custom CSS for image hover effects */}
-      <style jsx>{`
-        :global(.tiptap-content img) {
+      <style>{`
+        .tiptap-content img {
           cursor: pointer;
           transition: all 0.2s ease;
           border-radius: 8px;
+          position: relative;
         }
 
-        :global(.tiptap-content img:hover) {
-          transform: scale(1.02);
+        .tiptap-content img:hover {
+          transform: scale(1.01);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           border: 2px solid #3b82f6;
         }
 
-        :global(.tiptap-content img:hover::after) {
-          content: "✏️ Click to edit alt text";
-          position: absolute;
-          top: -30px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          white-space: nowrap;
-          z-index: 1000;
+        .tiptap-content .ProseMirror img.ProseMirror-selectednode {
+          border: 2px solid #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
       `}</style>
     </div>
