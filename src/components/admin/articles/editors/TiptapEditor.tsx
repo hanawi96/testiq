@@ -36,6 +36,7 @@ import {
   Highlighter
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
+import ImageAltEditPopup from '../../ui/ImageAltEditPopup';
 
 interface TiptapEditorProps {
   value: string;
@@ -398,6 +399,19 @@ export default function TiptapEditor({
 }: TiptapEditorProps) {
   // OPTIMIZED: Unified popup management
   const { activePopup, openPopup, closePopup, isPopupOpen } = usePopupManager();
+
+  // Image alt edit popup state
+  const [imageAltEdit, setImageAltEdit] = useState<{
+    isOpen: boolean;
+    currentAlt: string;
+    position: { x: number; y: number };
+    imageElement: HTMLImageElement | null;
+  }>({
+    isOpen: false,
+    currentAlt: '',
+    position: { x: 0, y: 0 },
+    imageElement: null
+  });
   const editor = useEditor({
     extensions: [
       // OPTIMIZED: StarterKit with performance-focused configuration
@@ -513,6 +527,36 @@ export default function TiptapEditor({
         detail: { initTime: performance.now() - startTime }
       }));
 
+      // Add image click handler for alt text editing
+      const editorElement = editor.view.dom;
+      const handleImageClick = (event: Event) => {
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'IMG') {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const img = target as HTMLImageElement;
+          const rect = img.getBoundingClientRect();
+
+          setImageAltEdit({
+            isOpen: true,
+            currentAlt: img.alt || '',
+            position: {
+              x: rect.right + 10, // Position to the right of image
+              y: rect.top
+            },
+            imageElement: img
+          });
+        }
+      };
+
+      editorElement.addEventListener('click', handleImageClick);
+
+      // Store cleanup function
+      (editor as any)._imageClickCleanup = () => {
+        editorElement.removeEventListener('click', handleImageClick);
+      };
+
       console.log(`✅ TiptapEditor initialized in ${(performance.now() - startTime).toFixed(2)}ms`);
     },
 
@@ -591,11 +635,66 @@ export default function TiptapEditor({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activePopup, closePopup]);
 
+  // Cleanup image click handlers on unmount
+  React.useEffect(() => {
+    return () => {
+      if (editor && (editor as any)._imageClickCleanup) {
+        (editor as any)._imageClickCleanup();
+      }
+    };
+  }, [editor]);
+
   // Handle image upload with alt text
   const handleImageUpload = (url: string, alt: string) => {
     if (editor) {
       editor.chain().focus().setImage({ src: url, alt: alt }).run();
     }
+  };
+
+  // Handle image alt text save
+  const handleImageAltSave = (newAlt: string) => {
+    if (editor && imageAltEdit.imageElement) {
+      // Update the image alt attribute in the editor
+      const { imageElement } = imageAltEdit;
+      const src = imageElement.src;
+
+      // Find and update the image node in the editor
+      const { state } = editor;
+      const { doc } = state;
+      let imagePos = -1;
+
+      doc.descendants((node, pos) => {
+        if (node.type.name === 'image' && node.attrs.src === src) {
+          imagePos = pos;
+          return false; // Stop searching
+        }
+      });
+
+      if (imagePos !== -1) {
+        editor.chain()
+          .focus()
+          .setNodeMarkup(imagePos, undefined, { src, alt: newAlt })
+          .run();
+      }
+    }
+
+    // Close popup
+    setImageAltEdit({
+      isOpen: false,
+      currentAlt: '',
+      position: { x: 0, y: 0 },
+      imageElement: null
+    });
+  };
+
+  // Handle image alt edit cancel
+  const handleImageAltCancel = () => {
+    setImageAltEdit({
+      isOpen: false,
+      currentAlt: '',
+      position: { x: 0, y: 0 },
+      imageElement: null
+    });
   };
 
   if (!editor) {
@@ -827,6 +926,17 @@ export default function TiptapEditor({
         isOpen={isPopupOpen('link')}
         onClose={closePopup}
       />
+
+      {/* Image Alt Edit Popup */}
+      {imageAltEdit.isOpen && (
+        <ImageAltEditPopup
+          currentAlt={imageAltEdit.currentAlt}
+          onSave={handleImageAltSave}
+          onCancel={handleImageAltCancel}
+          position={imageAltEdit.position}
+          imageElement={imageAltEdit.imageElement}
+        />
+      )}
     </div>
   );
 }
