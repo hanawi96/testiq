@@ -654,11 +654,11 @@ export default function TiptapEditor({
   // Handle image alt text save
   const handleImageAltSave = (newAlt: string) => {
     if (editor && imageAltEdit.imageElement) {
-      // Update the image alt attribute in the editor
+      // Simple approach: Select the image and update its attributes
       const { imageElement } = imageAltEdit;
       const src = imageElement.src;
 
-      // Find and update the image node in the editor
+      // Find the image node position in the editor
       const { state } = editor;
       const { doc } = state;
       let imagePos = -1;
@@ -671,9 +671,11 @@ export default function TiptapEditor({
       });
 
       if (imagePos !== -1) {
+        // Set selection to the image node and update attributes
         editor.chain()
           .focus()
-          .setNodeMarkup(imagePos, undefined, { src, alt: newAlt })
+          .setNodeSelection(imagePos)
+          .updateAttributes('image', { alt: newAlt })
           .run();
       }
     }
