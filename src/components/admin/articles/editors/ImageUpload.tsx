@@ -158,18 +158,15 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
     }
   };
 
-  // Cleanup function
-  const cleanup = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
-  };
-
-  // Cleanup on unmount
+  // Cleanup only on unmount
   React.useEffect(() => {
-    return cleanup;
-  }, [previewUrl]);
+    return () => {
+      // Only cleanup object URLs, not state
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, []); // ✅ Empty dependency - only run on unmount
 
   // Handle drag and drop
   const handleDrag = (e: React.DragEvent) => {
@@ -211,8 +208,21 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
   const handleInsertImage = () => {
     if (previewUrl && altText.trim().length >= 5) {
       onImageUpload(previewUrl, altText.trim());
+      // Reset state before closing
+      resetState();
       onClose();
     }
+  };
+
+  // Reset all state
+  const resetState = () => {
+    setPreviewUrl(null);
+    setAltText('');
+    setImageUrl('');
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploadProgress(0);
+    setIsUploading(false);
   };
 
   return (
@@ -363,7 +373,10 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
         {/* Action Buttons */}
         <div className="flex gap-3">
           <button
-            onClick={onClose}
+            onClick={() => {
+              resetState();
+              onClose();
+            }}
             className="flex-1 px-4 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
           >
             Hủy
