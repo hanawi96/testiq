@@ -37,7 +37,7 @@ export default function UsersList() {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const aggressivePrefetchDone = useRef<Set<string>>(new Set()); // Track completed aggressive prefetches
 
-  const limit = 5;
+  const limit = 10;
 
   // Detect screen size
   useEffect(() => {
@@ -420,31 +420,88 @@ export default function UsersList() {
     }
   };
 
-  if (isLoading && !usersData) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-          <span className="text-gray-600 dark:text-gray-400 font-medium">Đang tải...</span>
+  // Skeleton components
+  const SkeletonStatsCard = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
         </div>
+        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const SkeletonTableRow = () => (
+    <tr className="animate-pulse">
+      {/* Người dùng */}
+      <td className="px-6 py-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-32"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
+          </div>
+        </div>
+      </td>
+
+      {/* Vai trò */}
+      <td className="px-6 py-4">
+        <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded-full w-20"></div>
+      </td>
+
+      {/* Trạng thái */}
+      <td className="px-6 py-4">
+        <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded-full w-24"></div>
+      </td>
+
+      {/* Quốc gia (hidden lg:table-cell) */}
+      <td className="hidden lg:table-cell px-6 py-4">
+        <div className="flex items-center space-x-2">
+          <div className="w-5 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
+        </div>
+      </td>
+
+      {/* Giới tính (hidden md:table-cell) */}
+      <td className="hidden md:table-cell px-6 py-4">
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
+      </td>
+
+      {/* Số lần test IQ */}
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-8"></div>
+      </td>
+
+      {/* Ngày tham gia */}
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+      </td>
+
+      {/* Đăng nhập cuối */}
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+      </td>
+
+      {/* Hành động */}
+      <td className="px-6 py-4">
+        <div className="flex space-x-2">
+          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý người dùng</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý tài khoản và quyền hạn người dùng</p>
-        </div>
-      </div>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {[
+
+      {/* Stats Cards - Progressive Loading */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {stats ? (
+          [
             {
               title: 'Tổng người dùng',
               value: stats.total.toString(),
@@ -491,9 +548,17 @@ export default function UsersList() {
                 </div>
               </div>
             </motion.div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          // Skeleton stats cards
+          <>
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+          </>
+        )}
+      </div>
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -605,16 +670,8 @@ export default function UsersList() {
           </div>
         </div>
 
-        {usersData?.users.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có người dùng nào</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+        {/* Table Container - Always show */}
+        <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
@@ -648,6 +705,7 @@ export default function UsersList() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {/* Real users */}
                 {usersData?.users.map((user) => (
                   <tr
                     key={user.id}
@@ -805,16 +863,42 @@ export default function UsersList() {
                     </td>
                   </tr>
                 ))}
+
+                {/* Skeleton rows while loading */}
+                {isLoading && (
+                  <>
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                  </>
+                )}
               </tbody>
             </table>
+
+            {/* Empty State */}
+            {!isLoading && usersData?.users.length === 0 && (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có người dùng nào</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
+              </div>
+            )}
           </div>
-        )}
       </div>
 
 
 
       {/* Pagination Info */}
-      {usersData && (
+      {usersData && usersData.users.length > 0 && (
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
             <div>
@@ -830,7 +914,7 @@ export default function UsersList() {
       )}
 
       {/* Pagination - Clean & Simple */}
-      {usersData && usersData.totalPages > 1 && (
+      {usersData && usersData.totalPages > 1 && usersData.users.length > 0 && (
         <div className="flex items-center justify-center px-6 py-4">
           <nav className="flex items-center space-x-1 sm:space-x-2">
             {/* First Page - Hidden on mobile */}

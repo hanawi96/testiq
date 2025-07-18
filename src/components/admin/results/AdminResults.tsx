@@ -143,16 +143,66 @@ export default function AdminResults() {
 
 
 
-  if (isLoading && !resultsData) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-          <span className="text-gray-600 dark:text-gray-400 font-medium">Đang tải...</span>
+  // Skeleton components
+  const SkeletonStatsCard = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
         </div>
+        <div className="text-3xl bg-gray-200 dark:bg-gray-600 rounded w-12 h-12"></div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const SkeletonTableRow = () => (
+    <tr className="animate-pulse hover:bg-gray-50 dark:hover:bg-gray-700">
+      {/* Người dùng (avatar + name/email + country) - ~30% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '30%' }}>
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-10 w-10 mr-3">
+            <div className="h-10 w-10 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-32"></div>
+            <div className="flex items-center space-x-2">
+              <div className="w-5 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+            </div>
+          </div>
+        </div>
+      </td>
+
+      {/* Điểm IQ (score + classification) - ~20% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '20%' }}>
+        <div className="space-y-2">
+          <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
+          <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded-full w-20"></div>
+        </div>
+      </td>
+
+      {/* Độ chính xác - ~15% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '15%' }}>
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
+      </td>
+
+      {/* Thời gian - ~15% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '15%' }}>
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
+      </td>
+
+      {/* Ngày test - ~12% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '12%' }}>
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+      </td>
+
+      {/* Loại - ~8% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '8%' }}>
+        <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded-full w-12"></div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="space-y-6">
@@ -190,10 +240,10 @@ export default function AdminResults() {
         </div>
       )}
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {[
+      {/* Stats Cards - Progressive Loading */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {stats ? (
+          [
             { 
               title: 'Tổng số test', 
               value: stats.totalTests.toLocaleString(), 
@@ -234,9 +284,17 @@ export default function AdminResults() {
                 <div className="text-3xl">{stat.icon}</div>
               </div>
             </motion.div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          // Skeleton stats cards
+          <>
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+          </>
+        )}
+      </div>
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -297,14 +355,13 @@ export default function AdminResults() {
         </div>
       </div>
 
-      {/* Results Table */}
-      {resultsData && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Kết quả test ({resultsData.total.toLocaleString()})
-            </h3>
-          </div>
+      {/* Results Table - Always show container */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Kết quả test {resultsData ? `(${resultsData.total.toLocaleString()})` : ''}
+          </h3>
+        </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -331,7 +388,8 @@ export default function AdminResults() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {resultsData.results.map((result) => (
+                {/* Real results */}
+                {resultsData?.results.map((result) => (
                   <tr key={result.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     {/* User Info */}
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -416,12 +474,49 @@ export default function AdminResults() {
                     </td>
                   </tr>
                 ))}
+
+                {/* Skeleton rows while loading */}
+                {isLoading && (
+                  <>
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                  </>
+                )}
               </tbody>
             </table>
+
+            {/* Empty State */}
+            {!isLoading && resultsData?.results.length === 0 && (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 012-2h2a2 2 0 002 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 00-2 2h-2a2 2 0 00-2 2v6a2 2 0 01-2 2H9z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có kết quả test nào</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
+              </div>
+            )}
           </div>
 
           {/* Pagination */}
-          {resultsData.totalPages > 1 && (
+          {resultsData && resultsData.totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -454,7 +549,6 @@ export default function AdminResults() {
             </div>
           )}
         </div>
-      )}
 
       {/* Score Distribution Chart */}
       {scoreDistribution && (

@@ -566,26 +566,85 @@ export default function AdminCategories() {
 
 
 
-  if (isLoading && !categoriesData) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-          <span className="text-gray-600 dark:text-gray-400 font-medium">Đang tải...</span>
+  // Skeleton components
+  const SkeletonStatsCard = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
         </div>
+        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const SkeletonTableRow = () => (
+    <tr className="animate-pulse">
+      {/* Danh mục (checkbox + name + description + slug) - Cột rộng nhất ~50% */}
+      <td className="px-6 py-4" style={{ width: '50%' }}>
+        <div className="flex items-start space-x-4">
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded mt-1"></div>
+          <div className="flex-1 min-w-0 space-y-2">
+            {/* Name */}
+            <div className="flex items-center space-x-2">
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-48"></div>
+              <div className="w-3 h-3 bg-gray-200 dark:bg-gray-600 rounded"></div>
+            </div>
+            {/* Description */}
+            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-64"></div>
+            {/* Slug */}
+            <div className="flex items-center space-x-2">
+              <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-8"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-40 font-mono"></div>
+              <div className="w-3 h-3 bg-gray-200 dark:bg-gray-600 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </td>
+
+      {/* Trạng thái - ~15% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '15%' }}>
+        <div className="flex items-center space-x-2">
+          <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded-full w-24"></div>
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+        </div>
+      </td>
+
+      {/* Bài viết - ~10% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '10%' }}>
+        <div className="flex items-center">
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-8"></div>
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded ml-2"></div>
+        </div>
+      </td>
+
+      {/* Thứ tự - ~8% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '8%' }}>
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
+      </td>
+
+      {/* Ngày tạo - ~12% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '12%' }}>
+        <div className="space-y-1">
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+        </div>
+      </td>
+
+      {/* Hành động - ~5% */}
+      <td className="px-6 py-4 whitespace-nowrap text-right" style={{ width: '5%' }}>
+        <div className="flex items-center justify-end space-x-2">
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý danh mục</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Quản lý danh mục bài viết trên website</p>
-        </div>
-      </div>
+
 
       {/* Error */}
       {error && (
@@ -626,10 +685,10 @@ export default function AdminCategories() {
         </motion.div>
       )}
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {[
+      {/* Stats Cards - Progressive Loading */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {stats ? (
+          [
             { 
               title: 'Tổng danh mục', 
               value: stats.total.toString(), 
@@ -676,9 +735,17 @@ export default function AdminCategories() {
                 </div>
               </div>
             </motion.div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          // Skeleton stats cards
+          <>
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+          </>
+        )}
+      </div>
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -818,14 +885,13 @@ export default function AdminCategories() {
         )}
       </AnimatePresence>
 
-      {/* Categories Table */}
-      {categoriesData && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Danh sách danh mục ({categoriesData.total.toLocaleString()})
-              </h3>
+      {/* Categories Table - Always show container */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Danh sách danh mục {categoriesData ? `(${categoriesData.total.toLocaleString()})` : ''}
+            </h3>
               <div>
                 <button
                   onClick={() => setShowCreateModal(true)}
@@ -840,16 +906,8 @@ export default function AdminCategories() {
             </div>
           </div>
 
-          {categoriesData.categories.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có danh mục nào</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+          {/* Table Container - Always show */}
+          <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
@@ -857,9 +915,10 @@ export default function AdminCategories() {
                       <div className="flex items-center space-x-3">
                         <input
                           type="checkbox"
-                          checked={selectedCategories.length === categoriesData.categories.length && categoriesData.categories.length > 0}
+                          checked={categoriesData ? selectedCategories.length === categoriesData.categories.length && categoriesData.categories.length > 0 : false}
                           onChange={handleSelectAll}
-                          className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                          disabled={!categoriesData}
+                          className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
                         />
                         <span>Danh mục</span>
                       </div>
@@ -882,7 +941,8 @@ export default function AdminCategories() {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {categoriesData.categories.map((category) => (
+                  {/* Real categories */}
+                  {categoriesData?.categories.map((category) => (
                     <tr
                       key={category.id}
                       className="group hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -1080,13 +1140,39 @@ export default function AdminCategories() {
                       </td>
                     </tr>
                   ))}
+
+                  {/* Skeleton rows while loading */}
+                  {isLoading && (
+                    <>
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                      <SkeletonTableRow />
+                    </>
+                  )}
                 </tbody>
               </table>
+
+              {/* Empty State */}
+              {!isLoading && categoriesData?.categories.length === 0 && (
+                <div className="text-center py-12">
+                  <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có danh mục nào</h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
+                </div>
+              )}
             </div>
-          )}
 
           {/* Pagination */}
-          {categoriesData.totalPages > 1 && (
+          {categoriesData && categoriesData.totalPages > 1 && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -1119,7 +1205,6 @@ export default function AdminCategories() {
             </div>
           )}
         </div>
-      )}
 
       {/* Category Modal */}
       <CategoryModal

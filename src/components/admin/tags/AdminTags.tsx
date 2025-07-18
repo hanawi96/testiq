@@ -161,29 +161,78 @@ export default function AdminTags() {
 
 
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  // Skeleton components
+  const SkeletonStatsCard = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+      <div className="flex items-center">
+        <div className="p-2 bg-gray-200 dark:bg-gray-600 rounded-lg">
+          <div className="w-6 h-6 bg-gray-200 dark:bg-gray-600 rounded"></div>
+        </div>
+        <div className="ml-4 space-y-2">
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+          <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const SkeletonTableRow = () => (
+    <tr className="animate-pulse hover:bg-gray-50 dark:hover:bg-gray-700/30">
+      {/* Checkbox - ~3% */}
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap" style={{ width: '3%' }}>
+        <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+      </td>
+
+      {/* Tag (color + name + slug + SEO + mobile desc) - ~45% */}
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap" style={{ width: '45%' }}>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded-full mr-3 flex-shrink-0"></div>
+          <div className="min-w-0 space-y-1">
+            {/* Name */}
+            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-32"></div>
+            {/* Slug */}
+            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-40"></div>
+            {/* SEO title */}
+            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-36"></div>
+            {/* Mobile description */}
+            <div className="md:hidden h-3 bg-gray-200 dark:bg-gray-600 rounded w-48"></div>
+          </div>
+        </div>
+      </td>
+
+      {/* Mô tả (hidden md:table-cell) - ~22% */}
+      <td className="hidden md:table-cell px-3 sm:px-6 py-4" style={{ width: '22%' }}>
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-56 max-w-xs"></div>
+      </td>
+
+      {/* Sử dụng - ~15% */}
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap" style={{ width: '15%' }}>
+        <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded-full w-24"></div>
+      </td>
+
+      {/* Ngày tạo (hidden lg:table-cell) - ~10% */}
+      <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap" style={{ width: '10%' }}>
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+      </td>
+
+      {/* Thao tác - ~5% */}
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right" style={{ width: '5%' }}>
+        <div className="flex items-center justify-end space-x-1 sm:space-x-2">
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded p-1"></div>
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded p-1"></div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Quản lý Tags
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Quản lý tags cho bài viết
-        </p>
-      </div>
+  
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats Cards - Progressive Loading */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {stats ? (
+          <>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -227,8 +276,16 @@ export default function AdminTags() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+          </>
+        ) : (
+          // Skeleton stats cards
+          <>
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+            <SkeletonStatsCard />
+          </>
+        )}
+      </div>
 
       {/* Error Message */}
       {error && (
@@ -268,14 +325,13 @@ export default function AdminTags() {
         </div>
       </div>
 
-      {/* Tags Table */}
-      {tagsData && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Danh sách tags ({tagsData.total.toLocaleString()})
-              </h3>
+      {/* Tags Table - Always show container */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Danh sách tags {tagsData ? `(${tagsData.total.toLocaleString()})` : ''}
+            </h3>
               <div>
                 <button
                   onClick={() => setShowCreateModal(true)}
@@ -298,9 +354,10 @@ export default function AdminTags() {
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <input
                       type="checkbox"
-                      checked={selectedTags.length === tagsData.tags.length && tagsData.tags.length > 0}
+                      checked={tagsData ? selectedTags.length === tagsData.tags.length && tagsData.tags.length > 0 : false}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-gray-300 dark:border-gray-600"
+                      disabled={!tagsData}
+                      className="rounded border-gray-300 dark:border-gray-600 disabled:opacity-50"
                     />
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -321,7 +378,8 @@ export default function AdminTags() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {tagsData.tags.map((tag) => (
+                {/* Real tags */}
+                {tagsData?.tags.map((tag) => (
                   <tr key={tag.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <input
@@ -408,12 +466,39 @@ export default function AdminTags() {
                     </td>
                   </tr>
                 ))}
+
+                {/* Skeleton rows while loading */}
+                {isLoading && (
+                  <>
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                    <SkeletonTableRow />
+                  </>
+                )}
               </tbody>
             </table>
+
+            {/* Empty State */}
+            {!isLoading && tagsData?.tags.length === 0 && (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có tag nào</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc để xem kết quả khác</p>
+              </div>
+            )}
           </div>
 
           {/* Pagination */}
-          {tagsData.total > limit && (
+          {tagsData && tagsData.total > limit && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -444,7 +529,6 @@ export default function AdminTags() {
             </div>
           )}
         </div>
-      )}
 
       {/* Tag Modal */}
       <TagModal
