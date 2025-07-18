@@ -13,6 +13,20 @@ export interface MediaFile {
     height?: number;
     duration?: number;
   };
+  // Extended metadata for editing
+  title?: string;
+  description?: string;
+  alt_text?: string;
+  tags?: string[];
+  subject?: string;
+  rating?: string;
+  comments?: string;
+  origin?: string;
+  authors?: string;
+  date_taken?: string;
+  program_name?: string;
+  date_acquired?: string;
+  copyright?: string;
 }
 
 export interface MediaListResponse {

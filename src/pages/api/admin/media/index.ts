@@ -130,7 +130,7 @@ export const GET: APIRoute = async ({ request, url }) => {
     const { data: rootFiles, error: rootError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
       .list('', {
-        limit: 1000,
+        limit: 500, // Reduce from 1000 to 500 for faster response
         sortBy: { column: sortBy === 'created_at' ? 'created_at' : 'name', order: sortOrder }
       });
 

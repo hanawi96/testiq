@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MediaAPI } from '../../../services/media-api';
 import { X, Upload, File, Image, Video, FileText, Loader2, Check, AlertCircle } from 'lucide-react';
@@ -24,6 +24,23 @@ export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadMo
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Clear files when modal closes
+  const handleClose = useCallback(() => {
+    setUploadFiles([]); // Clear all files
+    setIsDragActive(false);
+    setIsUploading(false);
+    onClose();
+  }, [onClose]);
+
+  // Clear state when modal is closed from outside (optimistic upload)
+  useEffect(() => {
+    if (!isOpen) {
+      setUploadFiles([]);
+      setIsDragActive(false);
+      setIsUploading(false);
+    }
+  }, [isOpen]);
+
   // Handle file selection
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -34,7 +51,7 @@ export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadMo
       if (!validation.valid) {
         return {
           file,
-          id: Math.random().toString(36).substr(2, 9),
+          id: Math.random().toString(36).substring(2, 11),
           status: 'error' as const,
           progress: 0,
           error: validation.error
@@ -43,7 +60,7 @@ export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadMo
 
       return {
         file,
-        id: Math.random().toString(36).substr(2, 9),
+        id: Math.random().toString(36).substring(2, 11),
         status: 'pending' as const,
         progress: 0
       };
@@ -156,8 +173,7 @@ export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadMo
 
         // Close modal and reset state
         setTimeout(() => {
-          onClose();
-          setUploadFiles([]);
+          handleClose();
         }, 500); // Shorter delay for better UX
       } else {
         console.warn(`⚠️ Only ${successCount}/${totalFiles} files uploaded successfully`);
@@ -195,7 +211,7 @@ export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadMo
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-        onClick={(e) => e.target === e.currentTarget && onClose()}
+        onClick={(e) => e.target === e.currentTarget && handleClose()}
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -210,7 +226,7 @@ export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadMo
                 Upload Media Files
               </h3>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <X className="w-5 h-5" />
@@ -345,7 +361,7 @@ export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadMo
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-end space-x-3">
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   disabled={isUploading}
                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-50"
                 >

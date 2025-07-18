@@ -210,25 +210,6 @@ export default function AdminMedia() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý Media</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Upload, quản lý hình ảnh và file media</p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <span>Upload File</span>
-          </button>
-        </div>
-      </div>
 
       {/* Error */}
       {error && (
@@ -418,6 +399,19 @@ export default function AdminMedia() {
                 </svg>
               </button>
             </div>
+          </div>
+
+          {/* Upload Button */}
+          <div className="flex items-end">
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <span>Upload</span>
+            </button>
           </div>
         </div>
       </div>

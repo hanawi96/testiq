@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload,
@@ -20,7 +20,9 @@ import UploadModal from './UploadModal';
 import MediaEditModal from './MediaEditModal';
 import ImageCropper from '../../ui/ImageCropper';
 import { MediaAPI } from '../../../services/media-api';
+import { useMediaQuery, clearMediaCache } from '../../../hooks/useMediaQuery';
 
+// Local types to avoid import issues
 interface MediaFile {
   id: string;
   name: string;
@@ -34,7 +36,6 @@ interface MediaFile {
     height?: number;
     duration?: number;
   };
-  // Extended metadata for editing
   title?: string;
   description?: string;
   alt_text?: string;
@@ -50,23 +51,12 @@ interface MediaFile {
   copyright?: string;
 }
 
-interface MediaListResponse {
-  files: MediaFile[];
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
-}
-
 type ViewMode = 'grid' | 'list';
 type FileType = 'all' | 'image' | 'video' | 'document';
 type SortBy = 'name' | 'size' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 export default function MediaManager() {
-  const [mediaData, setMediaData] = useState<MediaListResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
@@ -76,7 +66,7 @@ export default function MediaManager() {
   const [editingFile, setEditingFile] = useState<MediaFile | null>(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [croppingFile, setCroppingFile] = useState<MediaFile | null>(null);
-  const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
+
   const [renamingFiles, setRenamingFiles] = useState<Set<string>>(new Set());
   const [croppingFiles, setCroppingFiles] = useState<Set<string>>(new Set());
   const [uploadingFiles, setUploadingFiles] = useState<Map<string, {
@@ -97,49 +87,25 @@ export default function MediaManager() {
 
   const limit = 20;
 
-  // Fetch media data
-  const fetchMedia = useCallback(async (page: number = currentPage) => {
-    setError('');
-    setIsLoading(true);
-    
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        search,
-        type: fileType,
-        sortBy,
-        sortOrder
-      });
-
-      const response = await fetch(`/api/admin/media?${params}`);
-      const result = await response.json();
-      
-      if (!result.success) {
-        setError(result.error || 'Không thể tải danh sách media');
-        return;
-      }
-      
-      setMediaData(result.data);
-      
-    } catch (err) {
-      setError('Có lỗi xảy ra khi tải dữ liệu');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentPage, search, fileType, sortBy, sortOrder]);
-
-  // Initial load and when filters change
-  useEffect(() => {
-    fetchMedia(1);
-    setCurrentPage(1);
-  }, [search, fileType, sortBy, sortOrder]);
+  // Use optimized media query hook
+  const { data: mediaData, isLoading, error, refetch } = useMediaQuery({
+    page: currentPage,
+    limit,
+    search,
+    type: fileType === 'all' ? undefined : fileType,
+    sortBy,
+    sortOrder
+  });
 
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchMedia(page);
   };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, fileType, sortBy, sortOrder]);
 
   // Handle file selection
   const handleSelectFile = (fileId: string) => {
@@ -181,15 +147,16 @@ export default function MediaManager() {
       const result = await response.json();
       
       if (result.success) {
-        await fetchMedia(currentPage);
+        clearMediaCache(); // Clear cache to force refresh
+        await refetch();
         setSelectedFiles([]);
         setShowBulkActions(false);
         alert(result.message);
       } else {
-        setError(result.error || 'Không thể xóa file');
+        alert(result.error || 'Không thể xóa file');
       }
     } catch (err) {
-      setError('Có lỗi xảy ra khi xóa');
+      alert('Có lỗi xảy ra khi xóa');
     } finally {
       setIsUpdating(false);
     }
@@ -233,22 +200,18 @@ export default function MediaManager() {
             return newMap;
           });
 
-          // Update total count
-          if (mediaData) {
-            setMediaData(prev => ({
-              ...prev!,
-              total: Math.max(0, prev!.total - 1)
-            }));
-          }
+          // Clear cache to refresh data
+          clearMediaCache();
         } else {
           // Refresh for existing files
-          await fetchMedia(currentPage);
+          clearMediaCache();
+          await refetch();
         }
       } else {
-        setError(result.error || 'Không thể xóa file');
+        alert(result.error || 'Không thể xóa file');
       }
     } catch (err) {
-      setError('Có lỗi xảy ra khi xóa');
+      alert('Có lỗi xảy ra khi xóa');
     } finally {
       setIsUpdating(false);
     }
@@ -362,26 +325,8 @@ export default function MediaManager() {
         return newMap;
       });
 
-      // Update file in mediaData (for existing files)
-      if (mediaData) {
-        const updatedFiles = mediaData.files.map(f => {
-          if (f.id === croppingFile.id) {
-            return {
-              ...f,
-              url: newUrl, // Use preloaded URL
-              updated_at: now.toISOString()
-            };
-          }
-          return f;
-        });
-
-        setMediaData({
-          ...mediaData,
-          files: updatedFiles
-        });
-
-        console.log('✅ UI updated with preloaded image');
-      }
+      // Clear cache to refresh data
+      clearMediaCache();
 
       // Remove from cropping state - image is now ready
       setCroppingFiles(prev => {
@@ -487,13 +432,8 @@ export default function MediaManager() {
           return newMap;
         });
 
-        // Step 4: Update total count only (file stays in uploadingFiles as permanent display)
-        if (mediaData) {
-          setMediaData(prev => ({
-            ...prev!,
-            total: prev!.total + 1 // Just increment count
-          }));
-        }
+        // Clear cache to refresh data
+        clearMediaCache();
 
         // No removal - loading card becomes permanent file display!
 
@@ -513,10 +453,7 @@ export default function MediaManager() {
         });
 
         // Show error
-        setError(error.message || 'Có lỗi xảy ra khi upload file');
-
-        // Auto-hide error after 5 seconds
-        setTimeout(() => setError(''), 5000);
+        alert(error.message || 'Có lỗi xảy ra khi upload file');
       }
     }
   };
@@ -596,22 +533,8 @@ export default function MediaManager() {
         return newMap;
       });
 
-      // Update file in mediaData (for existing files)
-      if (mediaData) {
-        const updatedFiles = mediaData.files.map(file =>
-          file.id === fileId ? {
-            ...file, // Keep all original data (size, type, etc.)
-            id: updatedFile.id, // New id from API
-            name: updatedFile.name, // New name from API
-            url: finalUrl, // Preloaded URL with cache busting
-            updated_at: new Date().toISOString()
-          } : file
-        );
-        setMediaData({
-          ...mediaData,
-          files: updatedFiles
-        });
-      }
+      // Clear cache to refresh data
+      clearMediaCache();
 
       // Clear loading state
       setRenamingFiles(prev => {
@@ -636,12 +559,7 @@ export default function MediaManager() {
       await new Promise(resolve => setTimeout(resolve, 300));
 
       // Show error
-      setError(error.message || 'Có lỗi xảy ra khi đổi tên file');
-
-      // Auto-hide error after 5 seconds
-      setTimeout(() => {
-        setError('');
-      }, 5000);
+      alert(error.message || 'Có lỗi xảy ra khi đổi tên file');
     }
   };
 
@@ -673,16 +591,20 @@ export default function MediaManager() {
     });
   };
 
-  if (isLoading && !mediaData) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-3">
-          <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
-          <span className="text-gray-600 dark:text-gray-400 font-medium">Đang tải...</span>
+  // Skeleton loading component
+  const SkeletonGrid = () => (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="relative group bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 animate-pulse">
+          <div className="aspect-square bg-gray-200 dark:bg-gray-600"></div>
+          <div className="p-3 space-y-2">
+            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+          </div>
         </div>
-      </div>
-    );
-  }
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -828,43 +750,36 @@ export default function MediaManager() {
         )}
       </AnimatePresence>
 
-      {/* Media Grid/List */}
-      {mediaData && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Media Files ({mediaData.total.toLocaleString()})
-              </h3>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleSelectAll}
-                  className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                >
-                  {selectedFiles.length === mediaData.files.length && mediaData.files.length > 0 ? (
-                    <CheckSquare className="w-4 h-4" />
-                  ) : (
-                    <Square className="w-4 h-4" />
-                  )}
-                  <span>Chọn tất cả</span>
-                </button>
-              </div>
+      {/* Media Grid/List - Always show container */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Media Files {mediaData ? `(${mediaData.total.toLocaleString()})` : ''}
+            </h3>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleSelectAll}
+                disabled={!mediaData}
+                className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
+              >
+                {mediaData && selectedFiles.length === mediaData.files.length && mediaData.files.length > 0 ? (
+                  <CheckSquare className="w-4 h-4" />
+                ) : (
+                  <Square className="w-4 h-4" />
+                )}
+                <span>Chọn tất cả</span>
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Content */}
-          {mediaData.files.length === 0 ? (
-            <div className="text-center py-12">
-              <Upload className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có file nào</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc hoặc upload file mới</p>
-            </div>
-          ) : (
-            <div className="p-6">
-              {viewMode === 'grid' ? (
-                // Grid View
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {/* Content - Progressive Loading */}
+          <div className="p-6">
+            {viewMode === 'grid' ? (
+              // Grid View
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                   {/* Uploading Files */}
                   <AnimatePresence>
                     {Array.from(uploadingFiles.entries()).map(([tempId, uploadData]) => (
@@ -1010,7 +925,7 @@ export default function MediaManager() {
                   </AnimatePresence>
 
                   {/* Existing Files */}
-                  {mediaData.files.map((file) => (
+                  {mediaData?.files?.map((file) => (
                     <motion.div
                       key={file.id}
                       initial={{ opacity: 0, scale: 0.9 }}
@@ -1032,21 +947,14 @@ export default function MediaManager() {
                         {file.type.startsWith('image/') ? (
                           <>
                             <img
-                              src={file.url}
+                              src={`${file.url}?w=200&h=200&fit=cover`}
                               alt={file.name}
                               className="w-full h-full object-cover rounded"
                               loading="lazy"
+                              decoding="async"
                               key={`${file.url}-${file.updated_at}`} // Force re-render when URL or updated_at changes
                             />
-                            {/* Loading Overlay */}
-                            {loadingFiles.has(file.id) && (
-                              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
-                                <div className="flex flex-col items-center space-y-2">
-                                  <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                                  <span className="text-white text-xs font-medium">Đang cập nhật...</span>
-                                </div>
-                              </div>
-                            )}
+
                           </>
                         ) : (
                           <div className="text-4xl">
@@ -1120,6 +1028,30 @@ export default function MediaManager() {
                       </div>
                     </motion.div>
                   ))}
+
+                  {/* Skeleton Loading Items */}
+                  {isLoading && (
+                    <>
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <div key={`skeleton-${i}`} className="relative group bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 animate-pulse">
+                          <div className="aspect-square bg-gray-200 dark:bg-gray-600"></div>
+                          <div className="p-3 space-y-2">
+                            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Empty State */}
+                  {!isLoading && mediaData && mediaData.files.length === 0 && uploadingFiles.size === 0 && (
+                    <div className="col-span-full text-center py-12">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có file nào</h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc hoặc upload file mới</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 // List View
@@ -1260,7 +1192,7 @@ export default function MediaManager() {
                   </AnimatePresence>
 
                   {/* Existing Files */}
-                  {mediaData.files.map((file) => (
+                  {mediaData?.files?.map((file) => (
                     <div
                       key={file.id}
                       className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -1282,12 +1214,7 @@ export default function MediaManager() {
                               loading="lazy"
                               key={`${file.url}-${file.updated_at}`} // Force re-render when URL or updated_at changes
                             />
-                            {/* Loading Overlay for List View */}
-                            {loadingFiles.has(file.id) && (
-                              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              </div>
-                            )}
+
                           </>
                         ) : (
                           <span className="text-xl">
@@ -1357,13 +1284,41 @@ export default function MediaManager() {
                       </div>
                     </div>
                   ))}
+
+                  {/* Skeleton Loading Items for List View */}
+                  {isLoading && (
+                    <>
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={`skeleton-list-${i}`} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg animate-pulse">
+                          <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+                            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+                            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Empty State for List View */}
+                  {!isLoading && mediaData && mediaData.files.length === 0 && uploadingFiles.size === 0 && (
+                    <div className="text-center py-12">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Không có file nào</h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thử điều chỉnh bộ lọc hoặc upload file mới</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
 
           {/* Pagination */}
-          {mediaData.total > limit && (
+          {mediaData && mediaData.total > limit && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -1396,7 +1351,6 @@ export default function MediaManager() {
             </div>
           )}
         </div>
-      )}
 
       {/* Upload Modal */}
       <UploadModal
