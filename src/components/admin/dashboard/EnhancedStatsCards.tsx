@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { AdminService } from '../../../../backend';
 import type { DailyComparisonStats } from '../../../../backend';
 
@@ -84,12 +83,7 @@ export default function EnhancedStatsCards({ className = '' }: Props) {
     bgColor: string;
     iconColor: string;
   }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`${bgColor} rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700`}
-    >
+    <div className={`${bgColor} rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700`}>
       {/* Header with title and icon */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{title}</h3>
@@ -126,36 +120,31 @@ export default function EnhancedStatsCards({ className = '' }: Props) {
           <div className="text-xs text-gray-500 dark:text-gray-400">tổng</div>
         </div>
       </div>
-    </motion.div>
-  );
-
-  // Compact loading skeleton
-  const CompactLoadingSkeleton = () => (
-    <div className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${className}`}>
-      {[1, 2, 3, 4].map(i => (
-        <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
-          {/* Header skeleton */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
-            <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-          </div>
-
-          {/* 3-column grid skeleton */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            {[1, 2, 3].map(j => (
-              <div key={j} className="text-center">
-                <div className="h-5 sm:h-6 bg-gray-200 dark:bg-gray-700 rounded w-8 mx-auto mb-1 animate-pulse"></div>
-                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-10 mx-auto animate-pulse"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 
+  // Simple loading skeleton
   if (isLoading) {
-    return <CompactLoadingSkeleton />;
+    return (
+      <div className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${className}`}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {[1, 2, 3].map(j => (
+                <div key={j} className="text-center">
+                  <div className="h-5 sm:h-6 bg-gray-200 dark:bg-gray-700 rounded w-8 mx-auto mb-1 animate-pulse"></div>
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-10 mx-auto animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (error) {
@@ -221,12 +210,7 @@ export default function EnhancedStatsCards({ className = '' }: Props) {
       />
       
       {/* Average Score Today - Compact Version */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700"
-      >
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
         {/* Header with title and icon */}
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">Điểm TB hôm nay</h3>
@@ -270,7 +254,7 @@ export default function EnhancedStatsCards({ className = '' }: Props) {
             <div className="text-xs text-gray-500 dark:text-gray-400">hiệu suất</div>
           </div>
         </div>
-      </motion.div>
+      </div>
       
       {/* Compact refresh button (spans full width on mobile, hidden on larger screens) */}
       <div className="md:hidden col-span-1 flex justify-center mt-2">

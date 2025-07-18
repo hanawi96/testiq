@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { AdminService } from '../../../../backend';
 import type { WeeklyTestStats } from '../../../../backend';
 import { exportNewUsersToCSV, exportNewUsersToJSON } from '../../../utils/admin/data/export-utils';
@@ -257,34 +256,30 @@ export default function WeeklyTestChart({ className = '' }: Props) {
     URL.revokeObjectURL(url);
   }, [data]);
 
-  // Loading skeleton component
-  const LoadingSkeleton = () => (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-2 sm:space-y-0">
-        <div>
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-56 mb-2 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 animate-pulse"></div>
-        </div>
-        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-      </div>
-      
-      <div className="h-64 lg:h-72 xl:h-80 2xl:h-96 bg-gray-100 dark:bg-gray-700 rounded-lg mb-6 animate-pulse flex items-center justify-center">
-        <div className="text-gray-400 dark:text-gray-500 text-sm">Đang tải biểu đồ...</div>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        {[1, 2].map(i => (
-          <div key={i} className="text-center">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto mb-2 animate-pulse"></div>
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 mx-auto animate-pulse"></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
+
+  // Simple loading skeleton
   if (isLoading) {
-    return <LoadingSkeleton />;
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-2 sm:space-y-0">
+          <div>
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-56 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 animate-pulse"></div>
+          </div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+        </div>
+        <div className="h-64 lg:h-72 xl:h-80 2xl:h-96 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6 animate-pulse"></div>
+        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {[1, 2].map(i => (
+            <div key={i} className="text-center">
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto mb-2 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 mx-auto animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -312,10 +307,7 @@ export default function WeeklyTestChart({ className = '' }: Props) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+    <div
       className={`bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 ${className}`}
       role="region"
       aria-label="Biểu đồ thống kê lượt làm bài test theo tuần"
@@ -429,37 +421,33 @@ export default function WeeklyTestChart({ className = '' }: Props) {
         role="region"
         aria-label="Tóm tắt thống kê tuần"
       >
-        <motion.div 
+        <div
           className="text-center p-2 sm:p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20"
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
           role="group"
           aria-label={`Tổng số test: ${data?.totalTests || 0}`}
         >
-          <div 
+          <div
             className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400"
             aria-label={`${data?.totalTests || 0} lượt test tổng cộng`}
           >
             {data?.totalTests || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Tổng test</div>
-        </motion.div>
-        <motion.div 
+        </div>
+        <div
           className="text-center p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20"
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
           role="group"
           aria-label={`Trung bình mỗi tuần: ${data ? Math.round(data.totalTests / data.weeklyData.length) : 0}`}
         >
-          <div 
+          <div
             className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400"
             aria-label={`${data ? Math.round(data.totalTests / data.weeklyData.length) : 0} test trung bình mỗi tuần`}
           >
             {data ? Math.round(data.totalTests / data.weeklyData.length) : 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">TB/tuần</div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { AdminService } from '../../../../backend';
 import type { WeeklyNewUsersStats } from '../../../../backend';
 
@@ -265,52 +264,33 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
     );
   }, [chartData, maxValue, hoveredBar]);
 
-  // Loading skeleton component
-  const LoadingSkeleton = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}
-    >
-      {/* Header skeleton */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse"></div>
-        </div>
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
-      </div>
-      
-      {/* Chart skeleton */}
-      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4">
-        <div className="h-60 lg:h-72 xl:h-80 2xl:h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-      </div>
-      
-      {/* Stats skeleton */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="text-center p-2 sm:p-3 rounded-lg bg-gray-100 dark:bg-gray-700/50">
-          <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-12 mx-auto mb-2 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16 mx-auto animate-pulse"></div>
-        </div>
-        <div className="text-center p-2 sm:p-3 rounded-lg bg-gray-100 dark:bg-gray-700/50">
-          <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-12 mx-auto mb-2 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16 mx-auto animate-pulse"></div>
-        </div>
-      </div>
-    </motion.div>
-  );
-
+  // Simple loading skeleton
   if (isLoading) {
-    return <LoadingSkeleton />;
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse"></div>
+          </div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+        </div>
+        <div className="h-60 lg:h-72 xl:h-80 2xl:h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="text-center p-2 sm:p-3">
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 mx-auto mb-2 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}
-      >
+      <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}>
         <div className="text-center">
           <div className="text-red-500 dark:text-red-400 mb-2">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -326,17 +306,12 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
             Thử lại
           </button>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}
-    >
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
@@ -386,10 +361,8 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
         role="region"
         aria-label="Tóm tắt thống kê người dùng mới theo tuần"
       >
-        <motion.div
+        <div
           className="text-center p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20"
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
           role="group"
           aria-label={`Tổng số người dùng mới: ${data?.totalNewUsers || 0}`}
         >
@@ -400,11 +373,9 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
             {data?.totalNewUsers || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Tổng mới</div>
-        </motion.div>
-        <motion.div
+        </div>
+        <div
           className="text-center p-2 sm:p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20"
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
           role="group"
           aria-label={`Trung bình mỗi tuần: ${data?.averagePerWeek || 0}`}
         >
@@ -415,11 +386,9 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
             {data?.averagePerWeek || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">TB/tuần</div>
-        </motion.div>
-        <motion.div
+        </div>
+        <div
           className="text-center p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20"
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
           role="group"
           aria-label={`Số người dùng đăng ký: ${data?.weeklyData?.reduce((sum, week) => sum + week.registeredUsers, 0) || 0}`}
         >
@@ -430,11 +399,9 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
             {data?.weeklyData?.reduce((sum, week) => sum + week.registeredUsers, 0) || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Đăng ký</div>
-        </motion.div>
-        <motion.div
+        </div>
+        <div
           className="text-center p-2 sm:p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20"
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
           role="group"
           aria-label={`Số người dùng chưa đăng ký: ${data?.weeklyData?.reduce((sum, week) => sum + week.anonymousUsers, 0) || 0}`}
         >
@@ -445,8 +412,8 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
             {data?.weeklyData?.reduce((sum, week) => sum + week.anonymousUsers, 0) || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Chưa đăng ký</div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
