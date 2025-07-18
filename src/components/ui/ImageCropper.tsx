@@ -85,6 +85,13 @@ export default function ImageCropper({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Reset state when imageUrl changes
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageDimensions({ width: 0, height: 0 });
+    setCropArea({ x: 0, y: 0, width: 100, height: 100 });
+  }, [imageUrl]);
+
   // Performance optimization: Cache display info
   const displayInfoRef = useRef<any>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -196,6 +203,19 @@ export default function ImageCropper({
 
       setImageDimensions({ width, height });
       setImageLoaded(true);
+
+      // Reset crop area to center for new image
+      const centerX = width * 0.25;
+      const centerY = height * 0.25;
+      const cropWidth = width * 0.5;
+      const cropHeight = height * 0.5;
+
+      setCropArea({
+        x: centerX,
+        y: centerY,
+        width: cropWidth,
+        height: cropHeight
+      });
 
       // Auto-suggest optimal ratio if no initial ratio provided
       if (initialAspectRatio === null) {
@@ -581,7 +601,7 @@ export default function ImageCropper({
               maxWidth: '100%',
               maxHeight: '60vh',
               width: 'fit-content',
-              minHeight: '300px'
+              height: 'fit-content' // Auto height based on image
             }}
           >
             <img
@@ -590,11 +610,13 @@ export default function ImageCropper({
               alt="Crop preview"
               onLoad={handleImageLoad}
               crossOrigin="anonymous"
-              className="block max-w-full max-h-full object-contain"
+              className="block max-w-full object-contain"
               style={{
                 maxHeight: '60vh',
+                maxWidth: '100%',
                 width: 'auto',
-                height: 'auto'
+                height: 'auto',
+                display: 'block' // Ensure no extra space
               }}
               draggable={false}
             />

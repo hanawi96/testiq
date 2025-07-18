@@ -1,8 +1,65 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import AdminMedia from '../../components/admin/media/AdminMedia.tsx';
+import MediaManager from '../../components/admin/media/MediaManager';
+
+// Check authentication
+const isAuthenticated = true; // TODO: Implement proper auth check
+
+if (!isAuthenticated) {
+  return Astro.redirect('/admin/login');
+}
 ---
 
-<AdminLayout title="Quản lý Media - Admin">
-  <AdminMedia client:load />
+<AdminLayout title="Quản lý Media">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Quản lý Media
+            </h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Quản lý tất cả file ảnh, video và tài liệu
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="p-6">
+      <MediaManager client:load />
+    </div>
+  </div>
 </AdminLayout>
+
+<style>
+  /* Custom scrollbar for media grid */
+  .media-grid::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .media-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .media-grid::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
+  }
+
+  .media-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.7);
+  }
+
+  /* Dark mode scrollbar */
+  .dark .media-grid::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+  }
+
+  .dark .media-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(75, 85, 99, 0.7);
+  }
+</style>

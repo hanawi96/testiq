@@ -10,7 +10,6 @@ import AuthorSelector from '../create/components/AuthorSelector';
 import CategorySelector from '../create/components/CategorySelector';
 import DateTimePicker from '../create/components/DateTimePicker';
 import { BlogService } from '../../../../services/blog-service';
-import { cleanupRemovedImages } from '../../../../utils/image-cleanup';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -920,18 +919,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
       if (data) {
 
-        // Image cleanup for content changes (for manual saves and publish actions)
+        // Image cleanup removed - handled by media management system
         if (isEditMode && originalContent && formData.content !== originalContent) {
-          cleanupRemovedImages(originalContent, formData.content)
-            .then(result => {
-              if (result.totalCleaned > 0) {
-                console.log(`🧹 Image Cleanup: Cleaned up ${result.totalCleaned} unused images`);
-              }
-            })
-            .catch(error => {
-              console.warn('⚠️ Image Cleanup: Error during cleanup:', error);
-            });
-
           // Update original content for next comparison
           setOriginalContent(formData.content);
         }

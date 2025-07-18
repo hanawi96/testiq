@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MediaService } from '../../../../backend';
+import { MediaAPI } from '../../../services/media-api';
+import { X, Upload, File, Image, Video, FileText, Loader2, Check, AlertCircle } from 'lucide-react';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -8,153 +9,154 @@ interface UploadModalProps {
   onSuccess: () => void;
 }
 
-interface FilePreview {
+interface UploadFile {
   file: File;
   id: string;
-  preview?: string;
-  progress: number;
   status: 'pending' | 'uploading' | 'success' | 'error';
+  progress: number;
   error?: string;
+  url?: string;
 }
 
 export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
-  const [files, setFiles] = useState<FilePreview[]>([]);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
+  const [isDragActive, setIsDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file selection
-  const handleFileSelect = useCallback((selectedFiles: FileList | null) => {
-    if (!selectedFiles) return;
+  const handleFileSelect = useCallback((files: FileList | null) => {
+    if (!files) return;
 
-    const newFiles: FilePreview[] = Array.from(selectedFiles).map((file, index) => {
-      const id = `${Date.now()}-${index}`;
-      const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
-      
+    const newFiles: UploadFile[] = Array.from(files).map(file => {
+      // Validate file
+      const validation = MediaAPI.validateFile(file);
+      if (!validation.valid) {
+        return {
+          file,
+          id: Math.random().toString(36).substr(2, 9),
+          status: 'error' as const,
+          progress: 0,
+          error: validation.error
+        };
+      }
+
       return {
         file,
-        id,
-        preview,
-        progress: 0,
-        status: 'pending'
+        id: Math.random().toString(36).substr(2, 9),
+        status: 'pending' as const,
+        progress: 0
       };
     });
 
-    setFiles(prev => [...prev, ...newFiles]);
+    setUploadFiles(prev => [...prev, ...newFiles]);
   }, []);
 
   // Handle drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(true);
+    setIsDragActive(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
+    setIsDragActive(false);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
+    setIsDragActive(false);
     handleFileSelect(e.dataTransfer.files);
   }, [handleFileSelect]);
 
-  // Handle file input change
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFileSelect(e.target.files);
-  }, [handleFileSelect]);
-
   // Remove file from list
-  const removeFile = useCallback((fileId: string) => {
-    setFiles(prev => {
-      const file = prev.find(f => f.id === fileId);
-      if (file?.preview) {
-        URL.revokeObjectURL(file.preview);
-      }
-      return prev.filter(f => f.id !== fileId);
-    });
-  }, []);
+  const removeFile = (id: string) => {
+    setUploadFiles(prev => prev.filter(f => f.id !== id));
+  };
 
-  // Simulate file upload
-  const uploadFile = async (filePreview: FilePreview): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 30;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(interval);
-          
-          // Update file status
-          setFiles(prev => prev.map(f => 
-            f.id === filePreview.id 
-              ? { ...f, progress: 100, status: 'success' }
-              : f
-          ));
-          
-          resolve();
-        } else {
-          // Update progress
-          setFiles(prev => prev.map(f => 
-            f.id === filePreview.id 
-              ? { ...f, progress: Math.round(progress) }
+  // Clear all files
+  const clearAll = () => {
+    setUploadFiles([]);
+  };
+
+  // Upload single file
+  const uploadFile = async (uploadFile: UploadFile): Promise<void> => {
+    try {
+      setUploadFiles(prev => prev.map(f =>
+        f.id === uploadFile.id
+          ? { ...f, status: 'uploading', progress: 0 }
+          : f
+      ));
+
+      const { data, error } = await MediaAPI.uploadFile(
+        uploadFile.file,
+        'media',
+        (progress) => {
+          setUploadFiles(prev => prev.map(f =>
+            f.id === uploadFile.id
+              ? { ...f, progress }
               : f
           ));
         }
-      }, 200);
-    });
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      setUploadFiles(prev => prev.map(f =>
+        f.id === uploadFile.id
+          ? { ...f, status: 'success', progress: 100, url: data?.url }
+          : f
+      ));
+
+    } catch (error: any) {
+      setUploadFiles(prev => prev.map(f =>
+        f.id === uploadFile.id
+          ? { ...f, status: 'error', error: error.message }
+          : f
+      ));
+      throw error;
+    }
   };
 
-  // Handle upload all files
+  // Upload all files
   const handleUploadAll = async () => {
-    if (files.length === 0) return;
+    const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
+    if (pendingFiles.length === 0) return;
 
     setIsUploading(true);
 
     try {
-      // Update all files to uploading status
-      setFiles(prev => prev.map(f => ({ ...f, status: 'uploading' as const })));
+      let successCount = 0;
+      const totalFiles = pendingFiles.length;
 
-      // Upload files sequentially (in real app, you might want parallel uploads)
-      for (const filePreview of files) {
+      // Upload files sequentially to avoid overwhelming the server
+      for (const file of pendingFiles) {
         try {
-          await uploadFile(filePreview);
-          
-          // Simulate backend upload
-          const fileType = filePreview.file.type.startsWith('image/') ? 'image' :
-                          filePreview.file.type.includes('pdf') ? 'document' :
-                          filePreview.file.type.startsWith('video/') ? 'video' :
-                          filePreview.file.type.startsWith('audio/') ? 'audio' : 'document';
-
-          await MediaService.uploadFile({
-            name: filePreview.file.name,
-            file_type: fileType,
-            mime_type: filePreview.file.type,
-            size: filePreview.file.size,
-            width: fileType === 'image' ? 1200 : undefined,
-            height: fileType === 'image' ? 800 : undefined,
-            alt_text: fileType === 'image' ? `Image: ${filePreview.file.name}` : undefined,
-            description: `Uploaded file: ${filePreview.file.name}`,
-            tags: ['uploaded', 'new']
-          });
-
+          await uploadFile(file);
+          successCount++;
         } catch (error) {
-          setFiles(prev => prev.map(f => 
-            f.id === filePreview.id 
-              ? { ...f, status: 'error', error: 'Upload failed' }
-              : f
-          ));
+          console.error('Upload file error:', error);
+          // Continue with other files
         }
       }
 
-      // Success - close modal and refresh
-      setTimeout(() => {
-        onSuccess();
-        handleClose();
-      }, 1000);
+      // Check if all uploads were successful
+      if (successCount === totalFiles) {
+        console.log('✅ All files uploaded successfully');
 
+        // Call onSuccess to refresh media list
+        onSuccess();
+
+        // Close modal and reset state
+        setTimeout(() => {
+          onClose();
+          setUploadFiles([]);
+        }, 500); // Shorter delay for better UX
+      } else {
+        console.warn(`⚠️ Only ${successCount}/${totalFiles} files uploaded successfully`);
+      }
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -162,34 +164,12 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
     }
   };
 
-  // Handle close
-  const handleClose = () => {
-    if (!isUploading) {
-      // Clean up preview URLs
-      files.forEach(file => {
-        if (file.preview) {
-          URL.revokeObjectURL(file.preview);
-        }
-      });
-      setFiles([]);
-      onClose();
-    }
-  };
-
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-
-  // Get file type icon
-  const getFileTypeIcon = (file: File) => {
-    if (file.type.startsWith('image/')) return '🖼️';
-    if (file.type.includes('pdf')) return '📄';
-    if (file.type.startsWith('video/')) return '🎥';
-    if (file.type.startsWith('audio/')) return '🎵';
-    return '📁';
+  // Get file icon
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) return <Image className="w-8 h-8 text-green-500" />;
+    if (file.type.startsWith('video/')) return <Video className="w-8 h-8 text-blue-500" />;
+    if (file.type.includes('pdf') || file.type.includes('document')) return <FileText className="w-8 h-8 text-red-500" />;
+    return <File className="w-8 h-8 text-gray-500" />;
   };
 
   // Format file size
@@ -205,191 +185,180 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto admin-modal">
-        {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50"
-          onClick={handleBackdropClick}
-        />
-
-        {/* Modal */}
-        <div className="flex min-h-full items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-xl"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Upload Media Files
               </h3>
               <button
-                onClick={handleClose}
-                disabled={isUploading}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-5 h-5" />
               </button>
             </div>
+          </div>
 
-            {/* Content */}
-            <div className="p-6">
-              {/* Drop Zone */}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  isDragOver
-                    ? 'border-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                }`}
+          {/* Content */}
+          <div className="p-6 overflow-y-auto max-h-[60vh]">
+            {/* Drop Zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                isDragActive
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+              }`}
+            >
+              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Kéo thả file vào đây
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                hoặc
+              </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
               >
-                <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <div className="mt-4">
-                  <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Kéo thả file vào đây
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    hoặc{' '}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
-                    >
-                      chọn file từ máy tính
-                    </button>
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                    Hỗ trợ: JPG, PNG, GIF, WebP, PDF, MP4 (tối đa 10MB mỗi file)
-                  </p>
-                </div>
-              </div>
-
-              {/* Hidden File Input */}
+                Chọn file
+              </button>
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*,application/pdf,video/mp4"
-                onChange={handleFileInputChange}
+                accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+                onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">
+                Hỗ trợ: JPG, PNG, GIF, MP4, PDF, DOC, TXT (tối đa 10MB mỗi file)
+              </p>
+            </div>
 
-              {/* File List */}
-              {files.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
-                    File đã chọn ({files.length})
+            {/* File List */}
+            {uploadFiles.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    File đã chọn ({uploadFiles.length})
                   </h4>
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {files.map((filePreview) => (
-                      <div
-                        key={filePreview.id}
-                        className="flex items-center space-x-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                      >
-                        {/* Preview */}
-                        <div className="w-12 h-12 flex items-center justify-center bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                          {filePreview.preview ? (
-                            <img
-                              src={filePreview.preview}
-                              alt={filePreview.file.name}
-                              className="w-full h-full object-cover rounded"
-                            />
-                          ) : (
-                            <span className="text-xl">
-                              {getFileTypeIcon(filePreview.file)}
-                            </span>
-                          )}
+                  <button
+                    onClick={clearAll}
+                    disabled={isUploading}
+                    className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
+                  >
+                    Xóa tất cả
+                  </button>
+                </div>
+
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {uploadFiles.map((uploadFile) => (
+                    <div
+                      key={uploadFile.id}
+                      className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                    >
+                      {getFileIcon(uploadFile.file)}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {uploadFile.file.name}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatFileSize(uploadFile.file.size)}
                         </div>
 
-                        {/* File Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {filePreview.file.name}
+                        {/* Progress Bar */}
+                        {uploadFile.status === 'uploading' && (
+                          <div className="mt-2">
+                            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1">
+                              <div
+                                className="bg-primary-600 h-1 rounded-full transition-all duration-300"
+                                style={{ width: `${uploadFile.progress}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {uploadFile.progress}%
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {formatFileSize(filePreview.file.size)}
+                        )}
+
+                        {/* Error Message */}
+                        {uploadFile.status === 'error' && (
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            {uploadFile.error}
                           </div>
-                          
-                          {/* Progress Bar */}
-                          {filePreview.status === 'uploading' && (
-                            <div className="mt-2">
-                              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                <div 
-                                  className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${filePreview.progress}%` }}
-                                />
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {filePreview.progress}%
-                              </div>
-                            </div>
-                          )}
+                        )}
+                      </div>
 
-                          {/* Status */}
-                          {filePreview.status === 'success' && (
-                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                              ✅ Upload thành công
-                            </div>
-                          )}
-                          {filePreview.status === 'error' && (
-                            <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                              ❌ {filePreview.error || 'Upload thất bại'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Remove Button */}
-                        {filePreview.status !== 'uploading' && (
+                      {/* Status Icon */}
+                      <div className="flex-shrink-0">
+                        {uploadFile.status === 'uploading' && (
+                          <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
+                        )}
+                        {uploadFile.status === 'success' && (
+                          <Check className="w-5 h-5 text-green-600" />
+                        )}
+                        {uploadFile.status === 'error' && (
+                          <AlertCircle className="w-5 h-5 text-red-600" />
+                        )}
+                        {uploadFile.status === 'pending' && (
                           <button
-                            onClick={() => removeFile(filePreview.id)}
-                            className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                            onClick={() => removeFile(uploadFile.id)}
+                            disabled={isUploading}
+                            className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <X className="w-4 h-4" />
                           </button>
                         )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-end space-x-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={handleClose}
-                disabled={isUploading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleUploadAll}
-                disabled={files.length === 0 || isUploading}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 rounded-lg transition-colors flex items-center space-x-2"
-              >
-                {isUploading && (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                )}
-                <span>{isUploading ? 'Đang upload...' : `Upload ${files.length} file`}</span>
-              </button>
+          {/* Footer */}
+          {uploadFiles.length > 0 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={onClose}
+                  disabled={isUploading}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleUploadAll}
+                  disabled={isUploading || uploadFiles.every(f => f.status !== 'pending')}
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+                >
+                  {isUploading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{isUploading ? 'Đang upload...' : 'Upload tất cả'}</span>
+                </button>
+              </div>
             </div>
-          </motion.div>
-        </div>
-      </div>
+          )}
+        </motion.div>
+      </motion.div>
     </AnimatePresence>
   );
 }
