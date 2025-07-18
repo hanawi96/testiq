@@ -22,10 +22,10 @@ interface MediaEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   file: MediaFile | null;
-  onSave: (updatedFile: MediaFile) => void;
+  onOptimisticUpdate: (fileId: string, newName: string) => void;
 }
 
-export default function MediaEditModal({ isOpen, onClose, file, onSave }: MediaEditModalProps) {
+export default function MediaEditModal({ isOpen, onClose, file, onOptimisticUpdate }: MediaEditModalProps) {
   const [formData, setFormData] = useState({
     name: ''
   });
@@ -40,7 +40,7 @@ export default function MediaEditModal({ isOpen, onClose, file, onSave }: MediaE
     const lastDotIndex = fileName.lastIndexOf('.');
     return lastDotIndex > 0 ? fileName.substring(lastDotIndex) : '';
   };
-  const [isLoading, setIsLoading] = useState(false);
+
 
   // Initialize form data when file changes
   useEffect(() => {
@@ -58,44 +58,36 @@ export default function MediaEditModal({ isOpen, onClose, file, onSave }: MediaE
     }));
   };
 
+  // Sanitize filename to remove invalid characters
+  const sanitizeFileName = (fileName: string) => {
+    return fileName
+      .normalize('NFD') // Decompose accented characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace invalid chars with underscore
+      .replace(/_+/g, '_') // Replace multiple underscores with single
+      .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+  };
+
   const handleSave = async () => {
     if (!file) return;
 
-    setIsLoading(true);
-    try {
-      // Combine name with original extension
-      const fullFileName = formData.name + getFileExtension(file.name);
-      const originalFileName = file.name;
-      const hasFileNameChanged = fullFileName !== originalFileName;
+    // Sanitize and combine name with original extension
+    const sanitizedName = sanitizeFileName(formData.name.trim());
+    const fullFileName = sanitizedName + getFileExtension(file.name);
+    const originalFileName = file.name;
+    const hasFileNameChanged = fullFileName !== originalFileName;
 
-      // Only rename if filename actually changed
-      if (hasFileNameChanged) {
-        const renameResult = await MediaAPI.renameFile(file.id, fullFileName);
+    // Close modal immediately
+    onClose();
 
-        if (renameResult.error || !renameResult.data) {
-          throw new Error(renameResult.error?.message || 'Lỗi khi đổi tên file');
-        }
-
-        // Update with renamed file data and close modal
-        await onSave(renameResult.data);
-        onClose();
-      } else {
-        // No changes, just close modal
-        onClose();
-      }
-    } catch (error: any) {
-      console.error('Error saving file:', error);
-      alert(error.message || 'Có lỗi xảy ra khi lưu thông tin');
-    } finally {
-      setIsLoading(false);
+    // Only rename if filename actually changed
+    if (hasFileNameChanged) {
+      // Optimistic update - show new name immediately
+      onOptimisticUpdate(file.id, fullFileName);
     }
   };
 
-  const handleClose = () => {
-    if (!isLoading) {
-      onClose();
-    }
-  };
+
 
   if (!isOpen || !file) return null;
 
@@ -107,7 +99,7 @@ export default function MediaEditModal({ isOpen, onClose, file, onSave }: MediaE
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-        onClick={handleClose}
+        onClick={onClose}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -133,9 +125,8 @@ export default function MediaEditModal({ isOpen, onClose, file, onSave }: MediaE
               </div>
             </div>
             <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -162,29 +153,28 @@ export default function MediaEditModal({ isOpen, onClose, file, onSave }: MediaE
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 Chỉ có thể thay đổi tên file, không thể thay đổi đuôi file
               </p>
+              {formData.name && formData.name !== getFileNameWithoutExtension(file?.name || '') && (
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Tên cuối cùng: <span className="font-mono">{sanitizeFileName(formData.name.trim())}{file ? getFileExtension(file.name) : ''}</span>
+                </p>
+              )}
             </div>
           </div>
 
           {/* Footer */}
           <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
             <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               Hủy
             </button>
             <button
               onClick={handleSave}
-              disabled={isLoading}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
             >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              <span>{isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+              <Save className="w-4 h-4" />
+              <span>Lưu thay đổi</span>
             </button>
           </div>
         </motion.div>

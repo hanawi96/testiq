@@ -534,7 +534,7 @@ export default function ImageCropper({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -588,38 +588,37 @@ export default function ImageCropper({
         </div>
 
         {/* Crop Area */}
-        <div className="p-6 flex-1 overflow-auto">
-          <div className="text-center mb-4">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="px-6 pt-6 pb-4 text-center flex-shrink-0">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Kéo để di chuyển vùng crop • Kéo góc để thay đổi kích thước
             </p>
           </div>
-          <div
-            ref={containerRef}
-            className="relative mx-auto bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700"
-            style={{
-              maxWidth: '100%',
-              maxHeight: '60vh',
-              width: 'fit-content',
-              height: 'fit-content' // Auto height based on image
-            }}
-          >
-            <img
-              ref={imageRef}
-              src={imageUrl}
-              alt="Crop preview"
-              onLoad={handleImageLoad}
-              crossOrigin="anonymous"
-              className="block max-w-full object-contain"
+          <div className="flex-1 px-6 pb-6 flex items-center justify-center min-h-0 overflow-hidden">
+            <div
+              ref={containerRef}
+              className="relative mx-auto bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 max-w-full max-h-full"
               style={{
-                maxHeight: '60vh',
-                maxWidth: '100%',
-                width: 'auto',
-                height: 'auto',
-                display: 'block' // Ensure no extra space
+                width: 'fit-content',
+                height: 'fit-content'
               }}
-              draggable={false}
-            />
+            >
+              <img
+                ref={imageRef}
+                src={imageUrl}
+                alt="Crop preview"
+                onLoad={handleImageLoad}
+                crossOrigin="anonymous"
+                className="block object-contain"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '50vh', // Giới hạn chiều cao cụ thể
+                  width: 'auto',
+                  height: 'auto',
+                  display: 'block'
+                }}
+                draggable={false}
+              />
             
             {imageLoaded && (
               <>
@@ -663,6 +662,7 @@ export default function ImageCropper({
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
 

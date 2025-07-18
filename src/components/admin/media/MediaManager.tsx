@@ -19,6 +19,7 @@ import {
 import UploadModal from './UploadModal';
 import MediaEditModal from './MediaEditModal';
 import ImageCropper from '../../ui/ImageCropper';
+import { MediaAPI } from '../../../services/media-api';
 
 interface MediaFile {
   id: string;
@@ -76,6 +77,8 @@ export default function MediaManager() {
   const [showCropModal, setShowCropModal] = useState(false);
   const [croppingFile, setCroppingFile] = useState<MediaFile | null>(null);
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
+  const [renamingFiles, setRenamingFiles] = useState<Set<string>>(new Set());
+  const [optimisticNames, setOptimisticNames] = useState<Map<string, string>>(new Map());
 
   // Filters
   const [search, setSearch] = useState('');
@@ -272,19 +275,44 @@ export default function MediaManager() {
 
       console.log('✅ File replaced with cropped version:', result.data.name);
 
-      // Simulate minimum loading time for smooth UX (500ms)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Prepare new URL with cache busting
+      const now = new Date();
+      const timestamp = now.getTime();
+      const newUrl = `${croppingFile.url.split('?')[0]}?t=${timestamp}`;
+
+      // Preload the new image to ensure it's ready
+      const preloadImage = new Image();
+      preloadImage.crossOrigin = 'anonymous';
+
+      await new Promise<void>((resolve) => {
+        preloadImage.onload = () => {
+          console.log('✅ New image preloaded successfully');
+          resolve();
+        };
+
+        preloadImage.onerror = () => {
+          console.warn('⚠️ Image preload failed, continuing anyway');
+          resolve(); // Continue even if preload fails
+        };
+
+        // Start preloading
+        preloadImage.src = newUrl;
+
+        // Fallback timeout to prevent infinite loading
+        setTimeout(() => {
+          console.warn('⚠️ Image preload timeout, continuing anyway');
+          resolve();
+        }, 3000);
+      });
 
       // Update UI with new file data and cache busting
       if (mediaData) {
-        const now = new Date();
-        const timestamp = now.getTime();
         const updatedFiles = mediaData.files.map(f => {
           if (f.id === croppingFile.id) {
             return {
               ...f,
-              url: `${f.url.split('?')[0]}?t=${timestamp}`, // Same URL + cache busting
-              updated_at: now.toISOString() // Update timestamp for future cache busting
+              url: newUrl, // Use preloaded URL
+              updated_at: now.toISOString()
             };
           }
           return f;
@@ -295,10 +323,10 @@ export default function MediaManager() {
           files: updatedFiles
         });
 
-        console.log('✅ UI updated with cache busting timestamp:', timestamp);
+        console.log('✅ UI updated with preloaded image');
       }
 
-      // Remove from loading state
+      // Remove from loading state - image is now ready
       setLoadingFiles(prev => {
         const newSet = new Set(prev);
         newSet.delete(croppingFile.id);
@@ -323,13 +351,71 @@ export default function MediaManager() {
     }
   };
 
-  // Handle update file metadata
-  const handleUpdateFile = async (updatedFile: MediaFile) => {
+  // Handle optimistic update for file rename
+  const handleOptimisticUpdate = async (fileId: string, newName: string) => {
+    if (!editingFile) return;
+
     try {
-      // Update local state optimistically
+      // Set optimistic name and start renaming state
+      setOptimisticNames(prev => new Map(prev).set(fileId, newName));
+      setRenamingFiles(prev => new Set(prev).add(fileId));
+
+      // Close modal
+      setShowEditModal(false);
+      setEditingFile(null);
+
+      // Call API in background
+      const renameResult = await MediaAPI.renameFile(fileId, newName);
+
+      if (renameResult.error || !renameResult.data) {
+        throw new Error(renameResult.error?.message || 'Lỗi khi đổi tên file');
+      }
+
+      // Success - preload new image before updating UI
+      const updatedFile = renameResult.data!;
+      let finalUrl = updatedFile.url;
+
+      // Add cache busting for renamed files
+      if (updatedFile.type.startsWith('image/')) {
+        const timestamp = new Date().getTime();
+        finalUrl = `${updatedFile.url.split('?')[0]}?t=${timestamp}`;
+
+        // Preload the new image
+        await new Promise<void>((resolve) => {
+          const preloadImage = new Image();
+          preloadImage.crossOrigin = 'anonymous';
+
+          preloadImage.onload = () => {
+            console.log('✅ Renamed image preloaded successfully');
+            resolve();
+          };
+
+          preloadImage.onerror = () => {
+            console.warn('⚠️ Image preload failed, continuing anyway');
+            resolve();
+          };
+
+          // Start preloading
+          preloadImage.src = finalUrl;
+
+          // Fallback timeout - don't wait too long
+          setTimeout(() => {
+            console.warn('⚠️ Image preload timeout, continuing anyway');
+            resolve();
+          }, 2000);
+        });
+      }
+
+      // Update with real data from API (with preloaded URL)
       if (mediaData) {
         const updatedFiles = mediaData.files.map(file =>
-          file.id === updatedFile.id ? updatedFile : file
+          file.id === fileId ? {
+            ...file, // Keep all original data (size, type, etc.)
+            id: updatedFile.id, // New id from API
+            name: updatedFile.name, // New name from API
+            url: finalUrl, // Preloaded URL with cache busting
+            updated_at: new Date().toISOString()
+          } : file
         );
         setMediaData({
           ...mediaData,
@@ -337,13 +423,48 @@ export default function MediaManager() {
         });
       }
 
-      setShowEditModal(false);
-      setEditingFile(null);
+      // Wait a tiny bit for React to update the DOM, then clear optimistic state
+      await new Promise(resolve => setTimeout(resolve, 50));
 
-    } catch (err) {
-      setError('Có lỗi xảy ra khi cập nhật thông tin file');
+      // Clear optimistic state after UI is updated and image is ready
+      setOptimisticNames(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(fileId);
+        return newMap;
+      });
+      setRenamingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fileId);
+        return newSet;
+      });
+
+      console.log('✅ File rename completed with preloaded image');
+
+    } catch (error: any) {
+      console.error('❌ Error renaming file:', error);
+
+      // Wait a tiny bit before showing error (for better UX)
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       // Revert optimistic update
-      await fetchMedia(currentPage);
+      setOptimisticNames(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(fileId);
+        return newMap;
+      });
+      setRenamingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fileId);
+        return newSet;
+      });
+
+      // Show error
+      setError(error.message || 'Có lỗi xảy ra khi đổi tên file');
+
+      // Auto-hide error after 5 seconds
+      setTimeout(() => {
+        setError('');
+      }, 5000);
     }
   };
 
@@ -593,14 +714,14 @@ export default function MediaManager() {
                               alt={file.name}
                               className="w-full h-full object-cover rounded"
                               loading="lazy"
-                              key={file.url} // Force re-render when URL changes
+                              key={`${file.url}-${file.updated_at}`} // Force re-render when URL or updated_at changes
                             />
                             {/* Loading Overlay */}
                             {loadingFiles.has(file.id) && (
                               <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
                                 <div className="flex flex-col items-center space-y-2">
                                   <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                                  <span className="text-white text-xs font-medium">Đang xử lý...</span>
+                                  <span className="text-white text-xs font-medium">Đang cập nhật...</span>
                                 </div>
                               </div>
                             )}
@@ -614,8 +735,16 @@ export default function MediaManager() {
 
                       {/* File Info */}
                       <div className="p-3 border-t border-gray-200 dark:border-gray-600">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title={file.name}>
-                          {file.name}
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex items-center space-x-2" title={optimisticNames.get(file.id) || file.name}>
+                          <span className="flex-1 truncate">
+                            {optimisticNames.get(file.id) || file.name}
+                          </span>
+                          {renamingFiles.has(file.id) && (
+                            <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-xs">Đang cập nhật...</span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {formatFileSize(file.size)}
@@ -695,7 +824,7 @@ export default function MediaManager() {
                               alt={file.name}
                               className="w-full h-full object-cover rounded"
                               loading="lazy"
-                              key={file.url} // Force re-render when URL changes
+                              key={`${file.url}-${file.updated_at}`} // Force re-render when URL or updated_at changes
                             />
                             {/* Loading Overlay for List View */}
                             {loadingFiles.has(file.id) && (
@@ -712,8 +841,16 @@ export default function MediaManager() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                          {file.name}
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex items-center space-x-2">
+                          <span className="flex-1 truncate">
+                            {optimisticNames.get(file.id) || file.name}
+                          </span>
+                          {renamingFiles.has(file.id) && (
+                            <div className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-xs">Đang cập nhật...</span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           {formatFileSize(file.size)}
@@ -811,7 +948,7 @@ export default function MediaManager() {
           setEditingFile(null);
         }}
         file={editingFile}
-        onSave={handleUpdateFile}
+        onOptimisticUpdate={handleOptimisticUpdate}
       />
 
       {/* Crop Modal */}
