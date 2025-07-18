@@ -6,7 +6,7 @@ import { X, Upload, File, Image, Video, FileText, Loader2, Check, AlertCircle } 
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onUploadStart?: (files: File[]) => void;
 }
 
 interface UploadFile {
@@ -18,7 +18,7 @@ interface UploadFile {
   url?: string;
 }
 
-export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
+export default function UploadModal({ isOpen, onClose, onUploadStart }: UploadModalProps) {
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -120,11 +120,19 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
     }
   };
 
-  // Upload all files
+  // Upload all files with optimistic UI
   const handleUploadAll = async () => {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
     if (pendingFiles.length === 0) return;
 
+    // If onUploadStart is provided, use optimistic approach
+    if (onUploadStart) {
+      const files = pendingFiles.map(f => f.file);
+      onUploadStart(files);
+      return; // Modal will be closed by parent component
+    }
+
+    // Fallback to old approach if no optimistic callback
     setIsUploading(true);
 
     try {
@@ -145,9 +153,6 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
       // Check if all uploads were successful
       if (successCount === totalFiles) {
         console.log('✅ All files uploaded successfully');
-
-        // Call onSuccess to refresh media list
-        onSuccess();
 
         // Close modal and reset state
         setTimeout(() => {

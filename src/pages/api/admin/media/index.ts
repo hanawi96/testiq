@@ -322,7 +322,7 @@ export const POST: APIRoute = async ({ request }) => {
       .getPublicUrl(filePath);
 
     const mediaFile: MediaFile = {
-      id: data.path,
+      id: filePath, // Use filePath instead of data.path to ensure consistency
       name: fileName,
       size: file.size,
       type: file.type,
