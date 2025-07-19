@@ -242,6 +242,19 @@ const DropdownSection: React.FC<{
           darkVia: 'dark:via-blue-950/20',
           darkTo: 'dark:to-indigo-950/30'
         };
+      case 'tối ưu tìm kiếm':
+        return {
+          from: 'from-emerald-50/80',
+          via: 'via-teal-50/60',
+          to: 'to-cyan-50/80',
+          iconFrom: 'from-emerald-500',
+          iconTo: 'to-teal-600',
+          border: 'border-emerald-100/50 dark:border-emerald-900/30',
+          shadow: 'shadow-emerald-500/25',
+          darkFrom: 'dark:from-emerald-950/30',
+          darkVia: 'dark:via-teal-950/20',
+          darkTo: 'dark:to-cyan-950/30'
+        };
       default:
         return {
           from: 'from-gray-50/80',
@@ -416,6 +429,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
   const [slugError, setSlugError] = useState('');
   const [loadError, setLoadError] = useState('');
+  const [showSlugEdit, setShowSlugEdit] = useState(false);
 
   // Dropdown state management for sidebar sections
   const [sidebarDropdowns, setSidebarDropdowns] = useState(() => {
@@ -748,17 +762,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     };
   }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug, formData.schema_type]);
 
-  // Auto-generate slug from title
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
+  // Use the optimized slug generator from utils (supports Vietnamese diacritics)
 
 
 
@@ -824,13 +828,15 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     }
   };
 
-  // Handle manual slug change
+  // Handle manual slug change with smart filtering
   const handleSlugChange = (slug: string) => {
-    setFormData(prev => ({ ...prev, slug }));
+    // Smart filtering: auto-clean the slug as user types
+    const cleanSlug = generateSlug(slug);
+    setFormData(prev => ({ ...prev, slug: cleanSlug }));
 
     // Debounce slug validation
     const timeoutId = setTimeout(() => {
-      validateSlug(slug);
+      validateSlug(cleanSlug);
     }, 500);
 
     return () => clearTimeout(timeoutId);
@@ -1296,90 +1302,135 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           <div className="space-y-6">
 
             {/* Title Section - Static Box */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="space-y-4">
-                {/* Title - Dynamic Content */}
-                <div>
-                  {shouldShowArticleSkeleton ? (
-                    <TitleSkeleton />
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Tiêu đề bài viết
-                        </label>
-                        {formData.title && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {formData.title.length}/100
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        value={formData.title}
-                        onChange={(e) => handleTitleChange(e.target.value)}
-                        placeholder="Nhập tiêu đề hấp dẫn cho bài viết..."
-                        className="w-full px-4 py-3 text-xl font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
-                        maxLength={100}
-                      />
-                    </>
-                  )}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header với màu nền nhẹ nhàng */}
+              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
+                <div className="flex items-center gap-3">
+                  {/* Icon với gradient đẹp */}
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Tiêu đề bài viết</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Tạo tiêu đề hấp dẫn và thu hút</p>
+                  </div>
                 </div>
+              </div>
 
-                {/* URL Slug - Always show static structure */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    URL Slug
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                      <span className="font-mono">yoursite.com/</span>
-                    </div>
-                    <input
-                      type="text"
-                      value={formData.slug}
-                      onChange={(e) => handleSlugChange(e.target.value)}
-                      placeholder="url-slug-seo-friendly"
-                      className={`flex-1 px-3 py-2 font-mono text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border rounded-lg ${
-                        slugError ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-600'
-                      }`}
-                    />
-                    {loadingState.isValidatingSlug && (
-                      <div className="px-3 py-2 text-blue-600">
-                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </div>
-                    )}
-                    {formData.slug && !loadingState.isValidatingSlug && (
-                      <button
-                        onClick={() => {
-                          const newSlug = generateSlug(formData.title);
-                          setFormData(prev => ({ ...prev, slug: newSlug }));
-                          validateSlug(newSlug);
-                        }}
-                        className="px-3 py-2 text-blue-600 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                        title="Tạo lại từ tiêu đề"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </button>
+              {/* Content Area */}
+              <div className="p-6">
+                <div className="space-y-4">
+                  {/* Title - Dynamic Content */}
+                  <div>
+                    {shouldShowArticleSkeleton ? (
+                      <TitleSkeleton />
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Nhập tiêu đề
+                          </label>
+                          {formData.title && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {formData.title.length}/100
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={formData.title}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                          placeholder="Nhập tiêu đề hấp dẫn cho bài viết..."
+                          className="w-full px-4 py-3 text-xl font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
+                          maxLength={100}
+                        />
+                      </>
                     )}
                   </div>
-                  {slugError && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                      {slugError}
-                    </p>
-                  )}
-                  {!slugError && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      URL thân thiện SEO được tự động tạo từ tiêu đề
-                    </p>
-                  )}
+
+                {/* URL Slug - Always visible inline edit */}
+                <div className="mt-2">
+                  <div className="group flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">URL:</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">yoursite.com/</span>
+
+                    {showSlugEdit ? (
+                      /* Inline Edit Mode */
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={formData.slug}
+                          onChange={(e) => handleSlugChange(e.target.value)}
+                          onBlur={() => setShowSlugEdit(false)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setShowSlugEdit(false);
+                            }
+                            if (e.key === 'Escape') {
+                              setShowSlugEdit(false);
+                            }
+                          }}
+                          placeholder="nhap-slug-tai-day"
+                          autoFocus
+                          className={`px-2 py-1 text-sm font-mono bg-white dark:bg-gray-800 border rounded ${
+                            slugError ? 'border-red-500 dark:border-red-400 text-red-600 dark:text-red-400' : 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                          style={{ minWidth: `${Math.max((formData.slug || 'nhap-slug-tai-day').length * 8, 120)}px` }}
+                        />
+                        {loadingState.isValidatingSlug && (
+                          <svg className="w-4 h-4 animate-spin text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        )}
+                        <button
+                          onClick={() => {
+                            const newSlug = generateSlug(formData.title);
+                            setFormData(prev => ({ ...prev, slug: newSlug }));
+                            validateSlug(newSlug);
+                          }}
+                          className="p-1 text-blue-600 hover:text-blue-700 dark:hover:text-blue-400"
+                          title="Tạo lại từ tiêu đề"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      /* Display Mode */
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`text-sm font-mono cursor-pointer hover:underline ${
+                            formData.slug
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-gray-400 dark:text-gray-500 italic'
+                          }`}
+                          onClick={() => setShowSlugEdit(true)}
+                          title="Click để chỉnh sửa"
+                        >
+                          {formData.slug || 'chưa-có-slug'}
+                        </span>
+                        <button
+                          onClick={() => setShowSlugEdit(true)}
+                          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Chỉnh sửa slug"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+
+                    {slugError && (
+                      <span className="text-xs text-red-600 dark:text-red-400 ml-2">
+                        • {slugError}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -1843,7 +1894,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               <div className="p-6">
                 {shouldShowCategoriesSkeleton ? (
                   <div className="space-y-3">
-                    <FieldSkeleton className="h-5 w-24" />
                     <div className="grid grid-cols-2 gap-2">
                       {Array.from({ length: 6 }, (_, i) => (
                         <FieldSkeleton key={i} className="h-8 rounded-lg" />
@@ -1957,20 +2007,17 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               )}
             </DropdownSection>
 
-            {/* SEO Index Control Section */}
-            {shouldShowSEOSkeleton ? (
-              <SEOSkeleton />
-            ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tối ưu tìm kiếm</h3>
-                </div>
-
+            {/* SEO Optimization Section */}
+            <DropdownSection
+              title="Tối ưu tìm kiếm"
+              icon={
+                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              }
+              isOpen={sidebarDropdowns.seo}
+              onToggle={() => toggleSidebarDropdown('seo')}
+            >
               <div className="space-y-4">
                 {/* Index/NoIndex Toggle */}
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
@@ -2048,8 +2095,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   </div>
                 </div>
               </div>
-            </div>
-            )}
+            </DropdownSection>
 
             {/* Schema Type Selector Section - Compact Design */}
             {shouldShowSEOSkeleton ? (
