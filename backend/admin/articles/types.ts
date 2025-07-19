@@ -34,7 +34,7 @@ export type SortField = typeof SORT_FIELDS[number];
 export const SORT_ORDERS = ['asc', 'desc'] as const;
 export type SortOrder = typeof SORT_ORDERS[number];
 
-export const SCHEMA_TYPES = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'TechArticle', 'HowTo', 'Recipe', 'Review', 'FAQ'] as const;
+export const SCHEMA_TYPES = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage'] as const;
 export type SchemaType = typeof SCHEMA_TYPES[number];
 
 // ===== PERFORMANCE-OPTIMIZED SHARED INTERFACES =====

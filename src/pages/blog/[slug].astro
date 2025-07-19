@@ -116,23 +116,9 @@ const authorInfo = getAuthorInfo(article);
 
   <!-- Dynamic JSON-LD Structured Data based on Schema Type -->
   <script slot="head" type="application/ld+json" set:html={JSON.stringify((() => {
-    // Map database schema type to proper Schema.org type
-    const schemaTypeMap = {
-      'FAQ': 'FAQPage',
-      'Article': 'Article',
-      'BlogPosting': 'BlogPosting',
-      'NewsArticle': 'NewsArticle',
-      'HowTo': 'HowTo',
-      'Recipe': 'Recipe',
-      'TechArticle': 'TechArticle',
-      'Review': 'Review'
-    };
-
-    const schemaType = schemaTypeMap[article.schema_type] || article.schema_type || "Article";
-
     const baseSchema = {
       "@context": "https://schema.org",
-      "@type": schemaType,
+      "@type": article.schema_type || "Article",
       "headline": article.title,
       "description": article.excerpt,
       "image": ogImage,
@@ -224,9 +210,10 @@ const authorInfo = getAuthorInfo(article);
           "applicationCategory": "Technology"
         };
 
-      case 'FAQ':
+      case 'FAQPage':
         return {
           ...baseSchema,
+          "@type": "FAQPage",
           "mainEntity": [
             {
               "@type": "Question",

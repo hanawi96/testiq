@@ -1923,7 +1923,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       formData.schema_type === 'HowTo' ? '📋' :
                       formData.schema_type === 'Recipe' ? '👨‍🍳' :
                       formData.schema_type === 'Review' ? '⭐' :
-                      formData.schema_type === 'FAQ' ? '❓' : '📄'
+                      formData.schema_type === 'FAQPage' ? '❓' : '📄'
                     }</span>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {formData.schema_type || 'Article'}
@@ -1994,7 +1994,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                         { type: 'BlogPosting', name: 'Blog Post', icon: '✍️' },
                         { type: 'TechArticle', name: 'Kỹ thuật', icon: '⚙️' },
                         { type: 'Recipe', name: 'Công thức', icon: '👨‍🍳' },
-                        { type: 'FAQ', name: 'FAQ', icon: '❓' }
+                        { type: 'FAQPage', name: 'FAQ', icon: '❓' }
                       ].map((schema) => {
                         const isSelected = formData.schema_type === schema.type;
                         return (
@@ -2050,7 +2050,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                          formData.schema_type === 'Review' ? 'Hiển thị rating stars' :
                          formData.schema_type === 'Recipe' ? 'Thời gian nấu + nutrition' :
                          formData.schema_type === 'NewsArticle' ? 'Xuất hiện Google News' :
-                         formData.schema_type === 'FAQ' ? 'Dropdown Q&A trên Google' :
+                         formData.schema_type === 'FAQPage' ? 'Dropdown Q&A trên Google' :
                          'Tối ưu hiển thị cơ bản'}
                       </div>
                     </div>
