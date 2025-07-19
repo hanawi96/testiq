@@ -97,11 +97,150 @@
   line-height: 1.6;
 }
 
+/* Text Alignment Support for Lists - Style attribute based */
+.tiptap-content .ProseMirror ul[style*="text-align: center"],
+.tiptap-content .ProseMirror ol[style*="text-align: center"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: center;
+}
+
+.tiptap-content .ProseMirror ul[style*="text-align: right"],
+.tiptap-content .ProseMirror ol[style*="text-align: right"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: right;
+}
+
+.tiptap-content .ProseMirror ul[style*="text-align: justify"],
+.tiptap-content .ProseMirror ol[style*="text-align: justify"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: justify;
+}
+
+.tiptap-content .ProseMirror ul[style*="text-align: left"],
+.tiptap-content .ProseMirror ol[style*="text-align: left"] {
+  list-style-position: outside;
+  padding-left: 1.5rem;
+  text-align: left;
+}
+
+/* Text Alignment Support for Lists - Data attribute based (TipTap uses data-text-align) */
+.tiptap-content .ProseMirror ul[data-text-align="center"],
+.tiptap-content .ProseMirror ol[data-text-align="center"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: center;
+}
+
+.tiptap-content .ProseMirror ul[data-text-align="right"],
+.tiptap-content .ProseMirror ol[data-text-align="right"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: right;
+}
+
+.tiptap-content .ProseMirror ul[data-text-align="justify"],
+.tiptap-content .ProseMirror ol[data-text-align="justify"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: justify;
+}
+
+.tiptap-content .ProseMirror ul[data-text-align="left"],
+.tiptap-content .ProseMirror ol[data-text-align="left"] {
+  list-style-position: outside;
+  padding-left: 1.5rem;
+  text-align: left;
+}
+
+/* List alignment when list items have text-align */
+.tiptap-content .ProseMirror li[style*="text-align: center"] {
+  text-align: center;
+}
+
+.tiptap-content .ProseMirror li[style*="text-align: right"] {
+  text-align: right;
+}
+
+.tiptap-content .ProseMirror li[style*="text-align: justify"] {
+  text-align: justify;
+}
+
+.tiptap-content .ProseMirror li[style*="text-align: left"] {
+  text-align: left;
+}
+
+/* When list items have alignment, apply to parent list */
+.tiptap-content .ProseMirror ul:has(li[style*="text-align: center"]),
+.tiptap-content .ProseMirror ol:has(li[style*="text-align: center"]) {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: center;
+}
+
+.tiptap-content .ProseMirror ul:has(li[style*="text-align: right"]),
+.tiptap-content .ProseMirror ol:has(li[style*="text-align: right"]) {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: right;
+}
+
+.tiptap-content .ProseMirror ul:has(li[style*="text-align: justify"]),
+.tiptap-content .ProseMirror ol:has(li[style*="text-align: justify"]) {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: justify;
+}
+
+/* List Items with Text Alignment - Style attribute based */
+.tiptap-content .ProseMirror ul[style*="text-align: center"] li,
+.tiptap-content .ProseMirror ol[style*="text-align: center"] li,
+.tiptap-content .ProseMirror ul[data-text-align="center"] li,
+.tiptap-content .ProseMirror ol[data-text-align="center"] li {
+  text-align: center;
+  padding-left: 0;
+}
+
+.tiptap-content .ProseMirror ul[style*="text-align: right"] li,
+.tiptap-content .ProseMirror ol[style*="text-align: right"] li,
+.tiptap-content .ProseMirror ul[data-text-align="right"] li,
+.tiptap-content .ProseMirror ol[data-text-align="right"] li {
+  text-align: right;
+  padding-left: 0;
+}
+
+.tiptap-content .ProseMirror ul[style*="text-align: justify"] li,
+.tiptap-content .ProseMirror ol[style*="text-align: justify"] li,
+.tiptap-content .ProseMirror ul[data-text-align="justify"] li,
+.tiptap-content .ProseMirror ol[data-text-align="justify"] li {
+  text-align: justify;
+  padding-left: 0;
+}
+
+.tiptap-content .ProseMirror ul[style*="text-align: left"] li,
+.tiptap-content .ProseMirror ol[style*="text-align: left"] li,
+.tiptap-content .ProseMirror ul[data-text-align="left"] li,
+.tiptap-content .ProseMirror ol[data-text-align="left"] li {
+  text-align: left;
+  padding-left: 0;
+}
+
 /* Nested lists */
 .tiptap-content .ProseMirror li ul,
 .tiptap-content .ProseMirror li ol {
   @apply mt-1 mb-1;
   padding-left: 1.5rem;
+}
+
+/* Nested lists with alignment inherit parent alignment */
+.tiptap-content .ProseMirror ul[style*="text-align"] li ul,
+.tiptap-content .ProseMirror ol[style*="text-align"] li ol,
+.tiptap-content .ProseMirror ul[style*="text-align"] li ol,
+.tiptap-content .ProseMirror ol[style*="text-align"] li ul {
+  text-align: inherit;
+  padding-left: 1rem;
 }
 
 /* List item content */

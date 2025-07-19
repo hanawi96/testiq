@@ -5,6 +5,8 @@ export const prerender = false;
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { BlogService } from '../../services/blog-service';
 import ArticleViewScript from '../../components/article/ArticleViewScript.astro';
+import SocialLinks from '../../components/common/SocialLinks.astro';
+import '../../styles/article-page.css';
 
 const { slug } = Astro.params;
 
@@ -87,13 +89,10 @@ const getAuthorInfo = (article: any) => {
     ? article.authorBio
     : `${name} là tác giả chuyên viết về công nghệ và phát triển cá nhân.`;
 
-  const defaultSocial = {
-    website: 'https://iq-test.vercel.app',
-    twitter: 'iqtest',
-    linkedin: 'iq-test'
-  };
+  // Use real social links from database, fallback to empty object
+  const social = article.authorSocialLinks || {};
 
-  return { name, email, bio, social: defaultSocial };
+  return { name, email, bio, social };
 };
 
 const authorInfo = getAuthorInfo(article);
@@ -115,302 +114,324 @@ const authorInfo = getAuthorInfo(article);
     <meta slot="head" property="article:tag" content={tag} />
   ))}
 
-  <!-- JSON-LD Structured Data -->
-  <script slot="head" type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": article.title,
-    "description": article.excerpt,
-    "image": ogImage,
-    "author": {
-      "@type": "Person",
-      "name": authorInfo.name,
-      "email": authorInfo.email,
-      "description": authorInfo.bio,
-      "url": authorInfo.social.website
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "IQ Test",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "/images/logo.png"
+  <!-- Dynamic JSON-LD Structured Data based on Schema Type -->
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify((() => {
+    // Map database schema type to proper Schema.org type
+    const schemaTypeMap = {
+      'FAQ': 'FAQPage',
+      'Article': 'Article',
+      'BlogPosting': 'BlogPosting',
+      'NewsArticle': 'NewsArticle',
+      'HowTo': 'HowTo',
+      'Recipe': 'Recipe',
+      'TechArticle': 'TechArticle',
+      'Review': 'Review'
+    };
+
+    const schemaType = schemaTypeMap[article.schema_type] || article.schema_type || "Article";
+
+    const baseSchema = {
+      "@context": "https://schema.org",
+      "@type": schemaType,
+      "headline": article.title,
+      "description": article.excerpt,
+      "image": ogImage,
+      "author": {
+        "@type": "Person",
+        "name": authorInfo.name,
+        "email": authorInfo.email,
+        "description": authorInfo.bio,
+        "url": authorInfo.social.website
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "IQ Test",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "/images/logo.png"
+        }
+      },
+      "datePublished": publishedDateISO,
+      "dateModified": article.updated_at ? formatDateISO(article.updated_at) : publishedDateISO,
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": canonicalURL.href
       }
-    },
-    "datePublished": publishedDateISO,
-    "dateModified": article.updated_at ? formatDateISO(article.updated_at) : publishedDateISO,
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": canonicalURL.href
+    };
+
+    // Enhance schema based on type
+    switch (article.schema_type) {
+      case 'HowTo':
+        return {
+          ...baseSchema,
+          "totalTime": `PT${readingTime}M`,
+          "estimatedCost": {
+            "@type": "MonetaryAmount",
+            "currency": "VND",
+            "value": "0"
+          },
+          "step": [
+            {
+              "@type": "HowToStep",
+              "name": "Đọc hướng dẫn",
+              "text": article.excerpt,
+              "url": canonicalURL.href
+            }
+          ]
+        };
+
+      case 'Recipe':
+        return {
+          ...baseSchema,
+          "recipeCategory": article.category,
+          "cookTime": `PT${readingTime}M`,
+          "prepTime": "PT5M",
+          "totalTime": `PT${readingTime + 5}M`,
+          "recipeYield": "1 serving",
+          "nutrition": {
+            "@type": "NutritionInformation",
+            "calories": "Varies"
+          }
+        };
+
+      case 'Review':
+        return {
+          ...baseSchema,
+          "itemReviewed": {
+            "@type": "Thing",
+            "name": article.title.replace(/Review|Đánh giá/gi, '').trim()
+          },
+          "reviewRating": {
+            "@type": "Rating",
+            "ratingValue": "4.5",
+            "bestRating": "5"
+          },
+          "reviewBody": article.excerpt
+        };
+
+      case 'NewsArticle':
+        return {
+          ...baseSchema,
+          "datelineLocation": "Vietnam",
+          "articleSection": article.category
+        };
+
+      case 'TechArticle':
+        return {
+          ...baseSchema,
+          "dependencies": "Basic knowledge",
+          "proficiencyLevel": "Beginner to Intermediate",
+          "applicationCategory": "Technology"
+        };
+
+      case 'FAQ':
+        return {
+          ...baseSchema,
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": article.title,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": article.excerpt
+              }
+            }
+          ]
+        };
+
+      default:
+        return baseSchema;
     }
-  })} />
->
+  })()} />
 
   <!-- Progress Bar -->
   <div id="reading-progress" class="fixed top-0 left-0 w-full h-1 bg-gray-200 dark:bg-gray-700 z-50">
-    <div class="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-150 ease-out" style="width: 0%"></div>
+    <div class="h-full bg-gradient-to-r from-blue-500 to-purple-600" style="width: 0%"></div>
   </div>
 
   <article class="min-h-screen bg-white dark:bg-gray-900">
-    <!-- Enhanced Breadcrumb -->
-    <nav class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-            <a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              Trang chủ
+    <!-- European Minimalist Header -->
+    <header class="relative bg-white dark:bg-gray-900">
+      <div class="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-16 md:py-20">
+
+        <!-- Modern Professional Breadcrumb -->
+        <nav class="mb-8" aria-label="Breadcrumb">
+          <div class="flex items-center text-sm">
+            <!-- Beautiful Home Icon with Hover Effect -->
+            <a
+              href="/"
+              class="group flex items-center p-1.5 -ml-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all duration-300"
+              title="Trang chủ"
+            >
+              <!-- Beautiful Home Icon - Simple & Elegant -->
+              <svg class="w-4 h-4 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+              </svg>
+
+              <!-- Optional text label for accessibility -->
+              <span class="sr-only">Trang chủ</span>
             </a>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-            <a href="/blog" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              Blog
+
+            <!-- Compact Separator -->
+            <div class="flex items-center mx-1.5">
+              <svg class="w-3 h-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </div>
+
+            <!-- Category Link with Compact Styling -->
+            <a
+              href={`/blog/category/${encodeURIComponent(article.category)}`}
+              class="px-2 py-1 rounded-md text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-medium transition-all duration-300"
+              title={`Danh mục: ${article.category}`}
+            >
+              {article.category}
             </a>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-            <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-xs">
+
+            <!-- Compact Separator -->
+            <div class="flex items-center mx-1.5">
+              <svg class="w-3 h-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </div>
+
+            <!-- Current Article with Compact Styling -->
+            <span class="text-gray-800 dark:text-gray-200 font-semibold truncate max-w-md lg:max-w-lg xl:max-w-xl">
               {article.title}
             </span>
           </div>
-
-          <!-- Social Share Buttons -->
-          <div class="hidden md:flex items-center space-x-2">
-            <button
-              onclick={`window.open('https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonicalURL.href)}', '_blank', 'width=600,height=400')`}
-              class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              title="Chia sẻ lên Facebook"
-            >
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-            </button>
-            <button
-              onclick={`window.open('https://twitter.com/intent/tweet?url=${encodeURIComponent(canonicalURL.href)}&text=${encodeURIComponent(article.title)}', '_blank', 'width=600,height=400')`}
-              class="p-2 text-gray-400 hover:text-blue-400 dark:hover:text-blue-300 transition-colors"
-              title="Chia sẻ lên Twitter"
-            >
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <header class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-gray-900 dark:to-blue-950 py-16 md:py-24">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Category Badge -->
-        <div class="mb-6">
-          <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-800 dark:text-blue-300">
-            {article.category}
-          </span>
-        </div>
+        </nav>
 
         <!-- Title -->
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+        <h1 class="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 dark:text-white mb-8 leading-tight tracking-wide">
           {article.title}
         </h1>
 
-        <!-- Excerpt -->
-        <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed max-w-3xl">
-          {article.excerpt}
-        </p>
-
-        <!-- Enhanced Article Meta -->
-        <div class="flex flex-wrap items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-          <!-- Author -->
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+        <!-- Meta Information -->
+        <div class="flex flex-wrap items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-12">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-300">
               {article.authorAvatar || article.author.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <div class="font-medium text-gray-900 dark:text-white">{article.author}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Tác giả</div>
-            </div>
+            <span class="font-medium">{article.author}</span>
           </div>
 
-          <!-- Date -->
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
             <time datetime={publishedDateISO}>{publishedDate}</time>
           </div>
 
-          <!-- Reading Time -->
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span>{readingTime} phút đọc</span>
+            <span>{readingTime} min read</span>
           </div>
-
-          <!-- Views (if available) -->
-          {article.views && (
-            <div class="flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              </svg>
-              <span>{article.views.toLocaleString()} lượt xem</span>
-            </div>
-          )}
         </div>
+
+        <!-- Featured Image -->
+        {article.image && article.image !== '/api/placeholder/400/240' && (
+          <div class="relative mb-12">
+            <img
+              src={article.image}
+              alt={article.imageAlt || article.title}
+              class="w-full h-64 md:h-80 lg:h-96 object-cover rounded-lg"
+            />
+          </div>
+        )}
+
+        <!-- Subtle Divider -->
+        <div class="w-16 h-px bg-gray-300 dark:bg-gray-600 mb-8"></div>
+
       </div>
     </header>
 
-    <!-- Featured Image -->
-    {article.image && article.image !== '/api/placeholder/400/240' && (
-      <div class="bg-white dark:bg-gray-800 pb-8">
-        <div class="max-w-4xl mx-auto px-4">
-          <img
-            src={article.image}
-            alt={article.imageAlt || article.title}
-            class="w-full h-64 md:h-96 object-cover rounded-xl shadow-lg"
-          />
-        </div>
-      </div>
-    )}
 
-    <!-- Article Content -->
-    <main class="bg-white dark:bg-gray-900 py-12 md:py-16">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Enhanced Typography -->
-        <div class="prose prose-lg md:prose-xl dark:prose-invert max-w-none prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 dark:prose-strong:text-white prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 dark:prose-blockquote:bg-blue-950/30 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-lg">
-          <div class="article-content" set:html={article.content}></div>
+
+    <!-- Article Content - Premium Typography -->
+    <main class="relative bg-white dark:bg-gray-900">
+      <div class="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12">
+        <!-- Content Container with Refined Styling -->
+        <div class="max-w-4xl mx-auto">
+          <div class="prose prose-lg md:prose-xl dark:prose-invert max-w-none
+                      prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white prose-headings:tracking-tight
+                      prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:font-light
+                      prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline prose-a:font-medium hover:prose-a:underline
+                      prose-strong:text-gray-900 dark:prose-strong:text-white prose-strong:font-semibold
+                      prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-2 prose-code:py-1 prose-code:rounded-md prose-code:font-medium
+                      prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50/50 dark:prose-blockquote:bg-blue-950/20 prose-blockquote:py-6 prose-blockquote:px-8 prose-blockquote:rounded-r-xl prose-blockquote:font-medium prose-blockquote:italic
+                      prose-ul:list-disc prose-ul:space-y-2 prose-ul:pl-6 prose-ol:list-decimal prose-ol:space-y-2 prose-ol:pl-6 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-li:marker:text-gray-500 dark:prose-li:marker:text-gray-400
+                      prose-img:shadow-lg prose-img:rounded-none
+                      prose-hr:border-gray-200 dark:prose-hr:border-gray-700 prose-hr:my-12">
+
+            <div class="article-content" set:html={article.content}></div>
+
+          </div>
         </div>
       </div>
     </main>
 
-    <!-- Author Bio - Compact Version -->
-    <section class="bg-white dark:bg-gray-900 py-8 border-t border-gray-200 dark:border-gray-700">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-start space-x-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
-          <!-- Author Avatar - Letter Based -->
-          <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
-            <span class="text-white font-bold text-xl">
-              {authorInfo.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-
-          <!-- Author Info -->
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                  {authorInfo.name}
-                </h3>
-                <a
-                  href={`mailto:${authorInfo.email}`}
-                  class="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {authorInfo.email}
-                </a>
-                <p class="text-gray-600 dark:text-gray-300 text-sm mt-2 leading-relaxed">
-                  {authorInfo.bio}
-                </p>
-              </div>
-
-              <!-- Social Icons -->
-              <div class="flex items-center space-x-3 flex-shrink-0">
-                {authorInfo.social.website && (
-                  <a
-                    href={authorInfo.social.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    title="Website"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
-                    </svg>
-                  </a>
-                )}
-
-                {authorInfo.social.twitter && (
-                  <a
-                    href={`https://twitter.com/${authorInfo.social.twitter}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-gray-400 hover:text-sky-500 transition-colors"
-                    title="Twitter"
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                    </svg>
-                  </a>
-                )}
-
-                {authorInfo.social.linkedin && (
-                  <a
-                    href={`https://linkedin.com/in/${authorInfo.social.linkedin}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-gray-400 hover:text-blue-700 transition-colors"
-                    title="LinkedIn"
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                    </svg>
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Tags & Social Share -->
-    <section class="bg-gray-50 dark:bg-gray-800 py-12">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <!-- Tags -->
+    <!-- Tags & Social Share - Compact Professional -->
+    <section class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+      <div class="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <!-- Tags Section -->
           {article.tags && article.tags.length > 0 && (
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Thẻ bài viết</h3>
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                Tags:
+              </span>
               <div class="flex flex-wrap gap-2">
                 {article.tags.map((tag: string) => (
-                  <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-800 dark:text-blue-300 hover:from-blue-200 hover:to-indigo-200 dark:hover:from-blue-800/40 dark:hover:to-indigo-800/40 transition-all duration-200">
-                    #{tag}
-                  </span>
+                  <a
+                    href={`/blog/tag/${encodeURIComponent(tag)}`}
+                    class="inline-flex items-center px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300"
+                  >
+                    {tag}
+                  </a>
                 ))}
               </div>
             </div>
           )}
 
-          <!-- Social Share -->
-          <div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Chia sẻ bài viết</h3>
-            <div class="flex items-center space-x-3">
+          <!-- Social Share Section -->
+          <div class="flex items-center gap-4">
+            <span class="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+              Share:
+            </span>
+            <div class="flex items-center gap-2">
               <button
                 onclick={`window.open('https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonicalURL.href)}', '_blank', 'width=600,height=400')`}
-                class="flex items-center justify-center w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors duration-200"
-                title="Chia sẻ lên Facebook"
+                class="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center justify-center"
+                title="Share on Facebook"
               >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
               </button>
               <button
                 onclick={`window.open('https://twitter.com/intent/tweet?url=${encodeURIComponent(canonicalURL.href)}&text=${encodeURIComponent(article.title)}', '_blank', 'width=600,height=400')`}
-                class="flex items-center justify-center w-10 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full transition-colors duration-200"
-                title="Chia sẻ lên Twitter"
+                class="w-8 h-8 bg-sky-500 hover:bg-sky-600 text-white rounded-md flex items-center justify-center"
+                title="Share on Twitter"
               >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
                 </svg>
               </button>
               <button
-                onclick={`navigator.clipboard.writeText('${canonicalURL.href}').then(() => alert('Đã sao chép link!'))`}
-                class="flex items-center justify-center w-10 h-10 bg-gray-600 hover:bg-gray-700 text-white rounded-full transition-colors duration-200"
-                title="Sao chép link"
+                onclick={`navigator.clipboard.writeText('${canonicalURL.href}').then(() => {
+                  const btn = this;
+                  const originalHTML = btn.innerHTML;
+                  btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                  setTimeout(() => btn.innerHTML = originalHTML, 2000);
+                })`}
+                class="w-8 h-8 bg-gray-600 hover:bg-gray-700 text-white rounded-md flex items-center justify-center"
+                title="Copy link"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                 </svg>
               </button>
             </div>
@@ -419,45 +440,119 @@ const authorInfo = getAuthorInfo(article);
       </div>
     </section>
 
-    <!-- Related Articles -->
+    <!-- Author Bio - Elegant & Professional -->
+    <section class="relative bg-gradient-to-br from-slate-50/50 via-white to-blue-50/30 dark:from-slate-900/50 dark:via-gray-900 dark:to-blue-950/30 py-16 border-t border-gray-200/50 dark:border-gray-700/50">
+      <div class="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12">
+        <div class="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl p-8 md:p-10 border border-gray-200/50 dark:border-gray-700/50">
+          <!-- Decorative Element -->
+          <div class="absolute top-0 left-8 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></div>
+
+          <!-- Mobile-Optimized Layout -->
+          <div class="space-y-6">
+            <!-- Avatar & Name Row - Always Horizontal -->
+            <div class="flex items-center gap-4">
+              <!-- Avatar - Enhanced -->
+              <div class="relative flex-shrink-0">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-2xl shadow-blue-500/25">
+                  <span class="text-white font-bold text-lg sm:text-2xl">
+                    {authorInfo.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <!-- Status indicator -->
+                <div class="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full border-2 sm:border-3 border-white dark:border-gray-800 shadow-lg"></div>
+              </div>
+
+              <!-- Author Name & Title -->
+              <div class="flex-1 min-w-0">
+                <h3 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 tracking-tight">
+                  {authorInfo.name}
+                </h3>
+                <p class="text-blue-600 dark:text-blue-400 font-medium text-xs sm:text-sm uppercase tracking-wider">
+                  Tác giả
+                </p>
+              </div>
+            </div>
+
+            <!-- Bio -->
+            <p class="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed font-light">
+              {authorInfo.bio}
+            </p>
+
+            <!-- Social Links & Contact -->
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+              <!-- Social Icons -->
+              <div class="flex items-center gap-2 sm:gap-3">
+                <SocialLinks socialLinks={authorInfo.social} size="md" />
+              </div>
+
+              <!-- Email Contact -->
+              <a
+                href={`mailto:${authorInfo.email}`}
+                class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:scale-105 font-medium text-xs sm:text-sm"
+                title={`Email: ${authorInfo.email}`}
+              >
+                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                Liên hệ
+              </a>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- Related Articles - Compact Professional -->
     {relatedArticles.length > 0 && (
-      <section class="bg-white dark:bg-gray-900 py-12">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-8">Bài viết liên quan</h2>
+      <section class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+        <div class="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
+          <!-- Section Header -->
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-8">
+            Related Articles
+          </h2>
+
+          <!-- Articles Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {relatedArticles.map((relatedArticle) => (
-              <article class="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                {relatedArticle.image && (
-                  <div class="aspect-video overflow-hidden">
-                    <img
-                      src={relatedArticle.image}
-                      alt={relatedArticle.title}
-                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                  </div>
-                )}
-                <div class="p-6">
-                  <div class="mb-3">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                      {relatedArticle.category}
-                    </span>
-                  </div>
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    <a href={`/blog/${relatedArticle.slug}`} class="stretched-link">
+              <article class="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md">
+                <a href={`/blog/${relatedArticle.slug}`} class="block">
+                  {relatedArticle.image && (
+                    <div class="relative h-48 overflow-hidden">
+                      <img
+                        src={relatedArticle.image}
+                        alt={relatedArticle.title}
+                        class="w-full h-full object-cover group-hover:scale-105"
+                      />
+                      <!-- Category badge -->
+                      <div class="absolute top-3 left-3">
+                        <span class="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded">
+                          {relatedArticle.category}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div class="p-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 line-clamp-2">
                       {relatedArticle.title}
-                    </a>
-                  </h3>
-                  <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
-                    {relatedArticle.excerpt}
-                  </p>
-                  <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                    <time datetime={formatDateISO(relatedArticle.date)}>
-                      {formatDate(relatedArticle.date)}
-                    </time>
-                    <span class="mx-2">•</span>
-                    <span>{calculateReadingTime(relatedArticle.content)} phút đọc</span>
+                    </h3>
+
+                    <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+                      {relatedArticle.excerpt}
+                    </p>
+
+                    <!-- Meta info -->
+                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <time datetime={formatDateISO(relatedArticle.date)}>
+                        {formatDate(relatedArticle.date)}
+                      </time>
+                      <span>{calculateReadingTime(relatedArticle.content)} min read</span>
+                    </div>
                   </div>
-                </div>
+                </a>
               </article>
             ))}
           </div>
@@ -466,21 +561,6 @@ const authorInfo = getAuthorInfo(article);
     )}
 
 
-
-    <!-- Back to Blog -->
-    <section class="bg-white dark:bg-gray-800 py-8 border-t border-gray-200 dark:border-gray-700">
-      <div class="max-w-4xl mx-auto px-4">
-        <a
-          href="/blog"
-          class="inline-flex items-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
-        >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-          </svg>
-          Quay lại Blog
-        </a>
-      </div>
-    </section>
   </article>
 
   <!-- ✅ Track article view -->
@@ -529,7 +609,7 @@ const authorInfo = getAuthorInfo(article);
     // Show notification
     function showNotification(message) {
       const notification = document.createElement('div');
-      notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform translate-x-full';
       notification.textContent = message;
       document.body.appendChild(notification);
 
@@ -559,96 +639,8 @@ const authorInfo = getAuthorInfo(article);
         });
       });
 
-      // Enhanced image loading
-      const images = document.querySelectorAll('.article-content img');
-      images.forEach(img => {
-        img.addEventListener('load', function() {
-          this.classList.add('loaded');
-        });
 
-        // Add loading placeholder
-        if (!img.complete) {
-          img.style.backgroundColor = '#f3f4f6';
-          img.style.minHeight = '200px';
-        }
-      });
     });
   </script>
 </BaseLayout>
 
-<style>
-  .article-content {
-    @apply text-gray-800 dark:text-gray-200;
-  }
-  
-  .article-content h1,
-  .article-content h2,
-  .article-content h3,
-  .article-content h4,
-  .article-content h5,
-  .article-content h6 {
-    @apply text-gray-900 dark:text-gray-100 font-bold mb-4 mt-8;
-  }
-  
-  .article-content h1 { @apply text-3xl; }
-  .article-content h2 { @apply text-2xl; }
-  .article-content h3 { @apply text-xl; }
-  .article-content h4 { @apply text-lg; }
-  
-  .article-content p {
-    @apply mb-4 leading-relaxed;
-  }
-  
-  .article-content ul,
-  .article-content ol {
-    @apply mb-4 pl-6;
-  }
-  
-  .article-content li {
-    @apply mb-2;
-  }
-  
-  .article-content blockquote {
-    @apply border-l-4 border-primary-500 pl-4 italic text-gray-600 dark:text-gray-400 my-6;
-  }
-  
-  .article-content code {
-    @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm;
-  }
-  
-  .article-content pre {
-    @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-6;
-  }
-  
-  .article-content img {
-    @apply rounded-lg shadow-lg my-8 w-full transition-all duration-300;
-    opacity: 0;
-  }
-
-  .article-content img.loaded {
-    opacity: 1;
-  }
-
-  .article-content a {
-    @apply text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 no-underline hover:underline transition-colors;
-  }
-
-  /* Line clamp utility */
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Stretched link for cards */
-  .stretched-link::after {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1;
-    content: "";
-  }
-</style>

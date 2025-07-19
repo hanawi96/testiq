@@ -174,7 +174,7 @@ export default function ArticlesTable({
                           <button
                             onClick={(e) => onQuickTitleEdit(e, article.id)}
                             disabled={loading.titleIds.has(article.id)}
-                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa tiêu đề"
                             data-quick-edit-button="title"
                           >
@@ -206,7 +206,7 @@ export default function ArticlesTable({
                             onClick={(e) => onQuickCategoryEdit(e, article.id)}
                             onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                             disabled={loading.categoryIds.has(article.id)}
-                            className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="ml-2 p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa danh mục"
                             data-quick-edit-button="category"
                           >
@@ -250,7 +250,7 @@ export default function ArticlesTable({
                             onClick={(e) => onQuickTagsEdit(e, article.id)}
                             onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                             disabled={loading.tagIds.has(article.id)}
-                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Chỉnh sửa tags"
                             data-quick-edit-button="tags"
                           >
@@ -311,7 +311,7 @@ export default function ArticlesTable({
                             {/* Analyze button for mobile */}
                             <button
                               onClick={() => onLinkAnalysis(article.id, article.title)}
-                              className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                              className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
                               title="Phân tích links"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,7 +345,7 @@ export default function ArticlesTable({
                           onClick={(e) => onQuickCategoryEdit(e, article.id)}
                           onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                           disabled={loading.categoryIds.has(article.id)}
-                          className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Chỉnh sửa danh mục"
                           data-quick-edit-button="category"
                         >
@@ -378,7 +378,7 @@ export default function ArticlesTable({
                           onClick={(e) => onQuickAuthorEdit(e, article.id)}
                           onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
                           disabled={loading.authorIds.has(article.id)}
-                          className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Chỉnh sửa tác giả"
                           data-quick-edit-button="author"
                         >
@@ -398,7 +398,7 @@ export default function ArticlesTable({
                       </span>
                       <button
                         onClick={(e) => onQuickStatusEdit(e, article.id)}
-                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
                         title="Chỉnh sửa trạng thái"
                         data-quick-edit-button="status"
                       >
@@ -464,7 +464,7 @@ export default function ArticlesTable({
                       {/* Analyze button */}
                       <button
                         onClick={() => onLinkAnalysis(article.id, article.title)}
-                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
                         title="Phân tích links"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,7 +494,7 @@ export default function ArticlesTable({
                         href={`/articles/${article.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
                         title="Xem bài viết"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -508,7 +508,7 @@ export default function ArticlesTable({
                         href={`/admin/articles/edit?id=${article.id}`}
                         onClick={() => SmartPreloader.triggerSmartPreload('click')}
                         onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
-                        className="p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                        className="p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
                         title="Chỉnh sửa bài viết"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -520,7 +520,7 @@ export default function ArticlesTable({
                       <button
                         onClick={() => onDeleteArticle(article.id)}
                         disabled={loading.updating}
-                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Xóa bài viết"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

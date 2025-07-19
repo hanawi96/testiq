@@ -1,0 +1,232 @@
+---
+// Static generation for tag pages
+export const prerender = true;
+
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { BlogService } from '../../../services/blog-service';
+
+const POSTS_PER_PAGE = 9;
+
+export async function getStaticPaths() {
+  try {
+    // Lấy tất cả tags
+    const allTags = await BlogService.getAllTags();
+    
+    const paths = [];
+    
+    for (const tag of allTags) {
+      // Lấy articles cho tag này
+      const tagArticles = await BlogService.getArticlesByTag(tag);
+      
+      if (tagArticles.length > 0) {
+        // Tính pagination cho tag này
+        const totalPages = Math.ceil(tagArticles.length / POSTS_PER_PAGE);
+        
+        // Tạo path cho trang đầu tiên
+        paths.push({
+          params: { tag: encodeURIComponent(tag) },
+          props: {
+            tag,
+            articles: tagArticles.slice(0, POSTS_PER_PAGE),
+            currentPage: 1,
+            totalPages,
+            totalArticles: tagArticles.length,
+            allTagArticles: tagArticles
+          }
+        });
+      }
+    }
+    
+    return paths;
+  } catch (error) {
+    console.error('Error generating tag paths:', error);
+    return [];
+  }
+}
+
+const { tag, articles, currentPage, totalPages, totalArticles, allTagArticles } = Astro.props;
+
+// SEO meta data
+const pageTitle = `Bài viết về ${tag} | Blog IQ Test`;
+const pageDescription = `Khám phá ${totalArticles} bài viết về chủ đề ${tag}. Cập nhật kiến thức và thông tin hữu ích về ${tag}.`;
+const canonicalURL = new URL(`/blog/tag/${encodeURIComponent(tag)}`, Astro.site);
+
+// Related tags (tags xuất hiện cùng với tag hiện tại)
+const relatedTags = [...new Set(
+  allTagArticles
+    .flatMap(article => article.tags)
+    .filter(t => t !== tag)
+)].slice(0, 8);
+
+// Category color helper (tái sử dụng từ blog page)
+function getCategoryColor(category: string): string {
+  const colors = {
+    'Công nghệ': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    'Giáo dục': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    'Sức khỏe': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    'Kinh doanh': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+    'Khoa học': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
+  };
+  return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+}
+---
+
+<BaseLayout 
+  title={pageTitle}
+  description={pageDescription}
+  keywords={`${tag}, blog, bài viết, ${relatedTags.join(', ')}`}
+  canonicalURL={canonicalURL.href}
+>
+  <!-- Breadcrumb -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+        <a href="/" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+          Trang chủ
+        </a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+        <a href="/blog" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+          Blog
+        </a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+        <span class="text-gray-900 dark:text-gray-100 font-medium">#{tag}</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Tag Header -->
+  <section class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 py-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="mb-6">
+        <span class="inline-flex items-center px-4 py-2 rounded-full text-lg font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+          #{tag}
+        </span>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        Bài viết về {tag}
+      </h1>
+      <p class="text-xl text-gray-600 dark:text-gray-300 mb-6 max-w-3xl mx-auto">
+        Khám phá {totalArticles} bài viết chất lượng về chủ đề {tag}
+      </p>
+      
+      <!-- Stats -->
+      <div class="flex items-center justify-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+        <div class="flex items-center space-x-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <span>{totalArticles} bài viết</span>
+        </div>
+        <div class="flex items-center space-x-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+          <span>Chủ đề: {tag}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Articles Grid -->
+  <section class="py-16 bg-white dark:bg-gray-900">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {articles.map(post => (
+          <a href={`/blog/${post.slug}`} class="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 flex flex-col transition-all duration-200">
+            <!-- Post Image -->
+            <div class="relative h-48 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-500/10 group-hover:opacity-75 dark:from-blue-500/20 dark:to-purple-600/20"></div>
+              <img
+                src={post.image || 'https://via.placeholder.com/400x240'}
+                alt={post.imageAlt || post.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+              <div class="absolute top-3 left-3">
+                <span class={`px-2 py-1 rounded-lg text-xs font-medium ${getCategoryColor(post.category)}`}>
+                  {post.category}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Post Content -->
+            <div class="p-6 flex-1 flex flex-col">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                {post.title}
+              </h3>
+              <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 flex-1 line-clamp-3">
+                {post.excerpt}
+              </p>
+              
+              <!-- Post Meta -->
+              <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <div class="flex items-center space-x-2">
+                  <span>{post.author}</span>
+                  <span>•</span>
+                  <span>{post.date}</span>
+                </div>
+                <span>{post.readTime}</span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Tags -->
+  {relatedTags.length > 0 && (
+    <section class="py-16 bg-gray-50 dark:bg-gray-800">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">
+          Chủ đề liên quan
+        </h2>
+        
+        <div class="flex flex-wrap justify-center gap-3">
+          {relatedTags.map(relatedTag => (
+            <a 
+              href={`/blog/tag/${encodeURIComponent(relatedTag)}`} 
+              class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-200"
+            >
+              #{relatedTag}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Back to Blog -->
+  <section class="py-8 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <a 
+        href="/blog"
+        class="inline-flex items-center text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Quay lại tất cả bài viết
+      </a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

@@ -1,5 +1,16 @@
 import { supabase } from '../../backend/config/supabase';
 
+export interface SocialLinks {
+  website?: string;
+  facebook?: string;
+  twitter?: string;
+  linkedin?: string;
+  instagram?: string;
+  youtube?: string;
+  github?: string;
+  tiktok?: string;
+}
+
 export interface BlogPost {
   id: string;
   title: string;
@@ -10,6 +21,7 @@ export interface BlogPost {
   authorEmail?: string;
   authorBio?: string;
   authorAvatar: string;
+  authorSocialLinks?: SocialLinks;
   date: string;
   readTime: string;
   category: string;
@@ -97,10 +109,10 @@ export class BlogService {
 
       // Parallel queries cho related data
       const [authorsResult, categoriesResult, tagsResult] = await Promise.all([
-        // Lấy thông tin authors (bao gồm bio)
+        // Lấy thông tin authors (bao gồm bio và social_links)
         authorIds.length > 0 ? supabase
           .from('user_profiles')
-          .select('id, full_name, email, bio, avatar_url')
+          .select('id, full_name, email, bio, avatar_url, social_links')
           .in('id', authorIds) : Promise.resolve({ data: [] }),
 
         // Lấy categories
@@ -182,24 +194,12 @@ export class BlogService {
           return name.substring(0, 2);
         };
 
-        // Format ngày tháng
-        const formatDate = (dateString: string) => {
-          const date = new Date(dateString);
-          return date.toLocaleDateString('vi-VN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          });
-        };
-
         // Format reading time
         const formatReadingTime = (minutes: number) => {
           return minutes ? `${minutes} phút đọc` : '5 phút đọc';
         };
 
         const authorName = author?.full_name || 'Tác giả';
-
-
 
         return {
           id: article.id,
@@ -211,7 +211,8 @@ export class BlogService {
           authorEmail: author?.email,
           authorBio: author?.bio,
           authorAvatar: getAuthorAvatar(authorName),
-          date: formatDate(article.published_at || article.created_at),
+          authorSocialLinks: author?.social_links || {},
+          date: article.published_at || article.created_at,
           readTime: formatReadingTime(article.reading_time),
           category: categories.length > 0 ? categories[0].name : 'Chung',
           tags: tags.map(tag => tag.name),
@@ -291,6 +292,27 @@ export class BlogService {
   }
 
   /**
+   * Lấy bài viết theo tag
+   */
+  static async getArticlesByTag(tagName: string): Promise<BlogPost[]> {
+    const allArticles = await this.getPublishedArticles();
+    return allArticles.filter(article =>
+      article.tags.some(tag =>
+        tag.toLowerCase() === tagName.toLowerCase()
+      )
+    );
+  }
+
+  /**
+   * Lấy tất cả tags từ articles
+   */
+  static async getAllTags(): Promise<string[]> {
+    const allArticles = await this.getPublishedArticles();
+    const allTags = allArticles.flatMap(article => article.tags);
+    return [...new Set(allTags)].sort();
+  }
+
+  /**
    * Lấy tất cả data cần thiết cho blog trong 1 lần gọi
    */
   static async getBlogData(): Promise<{
@@ -303,8 +325,6 @@ export class BlogService {
     const featuredArticles = allArticles.filter(article => article.featured);
     const regularArticles = allArticles.filter(article => !article.featured);
     const categories = [...new Set(allArticles.map(post => post.category))].sort();
-
-
 
     return {
       allArticles,

@@ -407,6 +407,26 @@ export default function TiptapEditor({
   // State cho image hover overlay - ĐƠN GIẢN
   const [hoveredImage, setHoveredImage] = useState<HTMLImageElement | null>(null);
 
+  // State để force re-render khi selection thay đổi (cho toolbar active states)
+  const [selectionUpdate, setSelectionUpdate] = useState(0);
+
+  // Helper function để check text alignment active state
+  const isAlignmentActive = (alignment: string) => {
+    if (!editor) return false;
+
+    // Check if current node has the alignment
+    const paragraphAlign = editor.getAttributes('paragraph').textAlign;
+    const headingAlign = editor.getAttributes('heading').textAlign;
+    const listItemAlign = editor.getAttributes('listItem').textAlign;
+
+    const currentAlignment = paragraphAlign || headingAlign || listItemAlign;
+
+    // If no alignment is set, default is 'left'
+    if (!currentAlignment && alignment === 'left') return true;
+
+    return currentAlignment === alignment;
+  };
+
   // Image alt edit popup state
   const [imageAltEdit, setImageAltEdit] = useState<{
     isOpen: boolean;
@@ -523,9 +543,9 @@ export default function TiptapEditor({
         },
       }),
 
-      // OPTIMIZED: Text alignment (limited to essential types)
+      // OPTIMIZED: Text alignment (support for all content types)
       TextAlign.configure({
-        types: ['heading', 'paragraph'], // Keep as is - essential types only
+        types: ['heading', 'paragraph', 'listItem'], // Added listItem for list alignment support
         alignments: ['left', 'center', 'right', 'justify'], // Explicit alignment options
         defaultAlignment: 'left',
       }),
@@ -602,6 +622,13 @@ export default function TiptapEditor({
       onChange(html);
     },
 
+    onSelectionUpdate: ({ editor }) => {
+      // Force re-render when selection changes to update toolbar button states
+      // This ensures toolbar buttons show correct active states
+      setHoveredImage(null); // Reset any image hover state
+      setSelectionUpdate(prev => prev + 1); // Trigger re-render
+    },
+
     onDestroy: ({ editor }) => {
       // Cleanup event listeners
       if ((editor as any)._imageHoverCleanup) {
@@ -626,7 +653,7 @@ export default function TiptapEditor({
 
     // OPTIMIZED: Performance settings
     immediatelyRender: false, // Prevent unnecessary initial render
-    shouldRerenderOnTransaction: false, // Reduce re-renders
+    shouldRerenderOnTransaction: true, // Enable re-renders for toolbar state updates
   });
 
   // OPTIMIZED: Update editor content with performance checks
@@ -684,6 +711,26 @@ export default function TiptapEditor({
       if (editor && (editor as any)._imageHoverCleanup) {
         (editor as any)._imageHoverCleanup();
       }
+    };
+  }, [editor]);
+
+  // Force re-render when editor is ready and on selection changes
+  React.useEffect(() => {
+    if (!editor) return;
+
+    const updateHandler = () => {
+      setSelectionUpdate(prev => prev + 1);
+    };
+
+    // Listen to transaction events for real-time toolbar updates
+    editor.on('transaction', updateHandler);
+    editor.on('selectionUpdate', updateHandler);
+    editor.on('focus', updateHandler);
+
+    return () => {
+      editor.off('transaction', updateHandler);
+      editor.off('selectionUpdate', updateHandler);
+      editor.off('focus', updateHandler);
     };
   }, [editor]);
 
@@ -909,28 +956,28 @@ export default function TiptapEditor({
           {/* Text Alignment */}
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign('left').run()}
-            isActive={editor.isActive({ textAlign: 'left' })}
+            isActive={isAlignmentActive('left')}
             title="Align Left"
           >
             <AlignLeft size={16} />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign('center').run()}
-            isActive={editor.isActive({ textAlign: 'center' })}
+            isActive={isAlignmentActive('center')}
             title="Align Center"
           >
             <AlignCenter size={16} />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign('right').run()}
-            isActive={editor.isActive({ textAlign: 'right' })}
+            isActive={isAlignmentActive('right')}
             title="Align Right"
           >
             <AlignRight size={16} />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-            isActive={editor.isActive({ textAlign: 'justify' })}
+            isActive={isAlignmentActive('justify')}
             title="Justify"
           >
             <AlignJustify size={16} />

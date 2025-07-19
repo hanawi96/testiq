@@ -1,6 +1,17 @@
 import { supabase } from '@/backend/config/supabase';
 import type { UserProfile } from '@/backend';
 
+export interface SocialLinks {
+  website?: string;
+  facebook?: string;
+  twitter?: string;
+  linkedin?: string;
+  instagram?: string;
+  youtube?: string;
+  github?: string;
+  tiktok?: string;
+}
+
 export interface AdminProfileData {
   id: string;
   email: string;
@@ -10,6 +21,7 @@ export interface AdminProfileData {
   updated_at?: string;
   avatar_url?: string;
   bio?: string;
+  social_links?: SocialLinks;
 }
 
 /**
@@ -66,7 +78,8 @@ export class AdminProfileService {
         created_at: profile.created_at || '',
         updated_at: profile.updated_at,
         avatar_url: profile.avatar_url,
-        bio: profile.bio || ''
+        bio: profile.bio || '',
+        social_links: profile.social_links || {}
       };
 
       return { data: adminProfile, error: null };
@@ -112,6 +125,10 @@ export class AdminProfileService {
         updateData.bio = updates.bio;
       }
 
+      if (updates.social_links !== undefined) {
+        updateData.social_links = updates.social_links;
+      }
+
       // Update profile in database
       const { data, error } = await supabase
         .from('user_profiles')
@@ -141,7 +158,8 @@ export class AdminProfileService {
         created_at: data.created_at || '',
         updated_at: data.updated_at,
         avatar_url: data.avatar_url,
-        bio: data.bio || ''
+        bio: data.bio || '',
+        social_links: data.social_links || {}
       };
 
       return { success: true, data: updatedProfile, error: null };

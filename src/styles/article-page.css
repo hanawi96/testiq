@@ -1,0 +1,362 @@
+/* Article Page Styles - Clean & Organized */
+
+/* Premium Typography & Refined Styling */
+.article-content {
+  @apply text-gray-700 dark:text-gray-300;
+  line-height: 1.8;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Restore proper spacing for text elements */
+.article-content h1,
+.article-content h2,
+.article-content h3,
+.article-content h4,
+.article-content h5,
+.article-content h6 {
+  @apply text-gray-900 dark:text-white font-bold;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  scroll-margin-top: 2rem;
+}
+
+.article-content h1 {
+  @apply text-4xl;
+  background: linear-gradient(135deg, #1f2937 0%, #4f46e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.article-content h2 {
+  @apply text-3xl;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.article-content h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 3rem;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 2px;
+}
+
+.article-content h3 {
+  @apply text-2xl;
+}
+
+.article-content h4 {
+  @apply text-xl;
+}
+
+.article-content h5 {
+  @apply text-lg;
+}
+
+.article-content h6 {
+  @apply text-base;
+}
+
+/* Paragraph spacing */
+.article-content p {
+  margin-bottom: 1.5rem;
+  line-height: 1.8;
+}
+
+.article-content p:first-of-type {
+  @apply text-lg font-light text-gray-600 dark:text-gray-400 mb-8;
+}
+
+/* Enhanced Lists */
+.article-content ul,
+.article-content ol {
+  @apply mb-6 pl-8 text-gray-700 dark:text-gray-300;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.article-content ul {
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.article-content ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+}
+
+.article-content li {
+  @apply mb-2 text-gray-700 dark:text-gray-300;
+  line-height: 1.7;
+  display: list-item;
+}
+
+.article-content ul li::marker {
+  color: #3b82f6;
+  font-size: 1.2em;
+}
+
+.article-content ol li::marker {
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 1em;
+}
+
+/* Nested lists */
+.article-content ul ul,
+.article-content ol ol,
+.article-content ul ol,
+.article-content ol ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1.5rem;
+}
+
+.article-content ul ul {
+  list-style-type: circle;
+}
+
+.article-content ul ul ul {
+  list-style-type: square;
+}
+
+/* Text Alignment Support for Lists in Article Output */
+.article-content ul[style*="text-align: center"],
+.article-content ol[style*="text-align: center"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: center;
+}
+
+.article-content ul[style*="text-align: right"],
+.article-content ol[style*="text-align: right"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: right;
+}
+
+.article-content ul[style*="text-align: justify"],
+.article-content ol[style*="text-align: justify"] {
+  list-style-position: inside;
+  padding-left: 0;
+  text-align: justify;
+}
+
+.article-content ul[style*="text-align: left"],
+.article-content ol[style*="text-align: left"] {
+  list-style-position: outside;
+  padding-left: 2rem;
+  text-align: left;
+}
+
+/* List Items with Text Alignment in Article Output */
+.article-content ul[style*="text-align: center"] li,
+.article-content ol[style*="text-align: center"] li {
+  text-align: center;
+  padding-left: 0;
+}
+
+.article-content ul[style*="text-align: right"] li,
+.article-content ol[style*="text-align: right"] li {
+  text-align: right;
+  padding-left: 0;
+}
+
+.article-content ul[style*="text-align: justify"] li,
+.article-content ol[style*="text-align: justify"] li {
+  text-align: justify;
+  padding-left: 0;
+}
+
+.article-content ul[style*="text-align: left"] li,
+.article-content ol[style*="text-align: left"] li {
+  text-align: left;
+  padding-left: 0;
+}
+
+/* Individual list item alignment */
+.article-content li[style*="text-align: center"] {
+  text-align: center;
+}
+
+.article-content li[style*="text-align: right"] {
+  text-align: right;
+}
+
+.article-content li[style*="text-align: justify"] {
+  text-align: justify;
+}
+
+.article-content li[style*="text-align: left"] {
+  text-align: left;
+}
+
+/* Premium Blockquotes */
+.article-content blockquote {
+  @apply my-8 p-8 rounded-r-2xl italic text-lg text-blue-800 dark:text-blue-200;
+  border-left: 5px solid #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  position: relative;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.article-content blockquote::before {
+  content: '"';
+  position: absolute;
+  top: -0.5rem;
+  left: 1rem;
+  font-size: 4rem;
+  color: #3b82f6;
+  opacity: 0.3;
+  font-family: Georgia, serif;
+}
+
+/* Enhanced Code Styling */
+.article-content code {
+  @apply px-3 py-1 rounded-lg text-sm font-medium border;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #be185d;
+  border-color: #e5e7eb;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+.article-content pre {
+  @apply my-8 p-8 rounded-2xl overflow-x-auto border;
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  color: #f9fafb;
+  border-color: #374151;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+  position: relative;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.article-content pre::before {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 12px;
+  height: 12px;
+  background: #ef4444;
+  border-radius: 50%;
+  box-shadow: 20px 0 0 #f59e0b, 40px 0 0 #10b981;
+}
+
+.article-content pre code {
+  @apply p-0 border-0;
+  background: none;
+  color: inherit;
+  font-size: 0.875rem;
+}
+
+/* Enhanced Images - Simple & Reliable */
+.article-content img,
+.article-content p img,
+.prose img,
+.prose p img {
+  border-radius: 10px !important;
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+}
+
+/* Links */
+.article-content a {
+  @apply text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.article-content a:hover {
+  border-bottom-color: currentColor;
+}
+
+/* Horizontal Rules */
+.article-content hr {
+  @apply border-gray-200 dark:border-gray-700 my-12;
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+}
+
+/* Figure elements */
+.article-content figure {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Definition lists */
+.article-content dl,
+.article-content dd {
+  margin-bottom: 1rem;
+}
+
+/* Tables */
+.article-content table {
+  @apply w-full border-collapse border border-gray-200 dark:border-gray-700 my-8;
+}
+
+.article-content th,
+.article-content td {
+  @apply border border-gray-200 dark:border-gray-700 px-4 py-2;
+}
+
+.article-content th {
+  @apply bg-gray-50 dark:bg-gray-800 font-semibold;
+}
+
+/* Strong and emphasis */
+.article-content strong {
+  @apply font-semibold text-gray-900 dark:text-white;
+}
+
+.article-content em {
+  @apply italic;
+}
+
+
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Print styles */
+@media print {
+  .article-content {
+    color: black !important;
+  }
+  
+  .article-content h1,
+  .article-content h2,
+  .article-content h3,
+  .article-content h4,
+  .article-content h5,
+  .article-content h6 {
+    color: black !important;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+  }
+  
+  .article-content blockquote {
+    background: #f5f5f5 !important;
+    color: black !important;
+  }
+  
+  .article-content pre {
+    background: #f5f5f5 !important;
+    color: black !important;
+  }
+}

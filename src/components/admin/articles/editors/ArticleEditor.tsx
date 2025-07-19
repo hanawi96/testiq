@@ -10,6 +10,7 @@ import AuthorSelector from '../create/components/AuthorSelector';
 import CategorySelector from '../create/components/CategorySelector';
 import DateTimePicker from '../create/components/DateTimePicker';
 import { BlogService } from '../../../../services/blog-service';
+import SchemaPreview from '../SchemaPreview';
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -664,7 +665,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => {
       clearTimeout(autoSaveTimeout);
     };
-  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug]);
+  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug, formData.schema_type]);
 
   // Auto-generate slug from title
   const generateSlug = (title: string) => {
@@ -850,13 +851,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         meta_description: formData.meta_description.trim(),
         focus_keyword: formData.focus_keyword.trim(),
         robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
+        schema_type: formData.schema_type,
 
         // Media
         cover_image: formData.cover_image?.trim() || null,
         cover_image_alt: formData.cover_image_alt?.trim() || null,
-
-        // Schema
-        schema_type: formData.schema_type,
 
         // Author - handled by authorId parameter
 
@@ -1894,6 +1893,178 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                 </div>
               </div>
             </div>
+            )}
+
+            {/* Schema Type Selector Section - Compact Design */}
+            {shouldShowSEOSkeleton ? (
+              <SEOSkeleton />
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Schema Type</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Tối ưu hiển thị Google</p>
+                    </div>
+                  </div>
+
+                  {/* Current Selection Display */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{
+                      formData.schema_type === 'Article' ? '📄' :
+                      formData.schema_type === 'NewsArticle' ? '📰' :
+                      formData.schema_type === 'BlogPosting' ? '✍️' :
+                      formData.schema_type === 'TechArticle' ? '⚙️' :
+                      formData.schema_type === 'HowTo' ? '📋' :
+                      formData.schema_type === 'Recipe' ? '👨‍🍳' :
+                      formData.schema_type === 'Review' ? '⭐' :
+                      formData.schema_type === 'FAQ' ? '❓' : '📄'
+                    }</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {formData.schema_type || 'Article'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Compact Schema Type Selector */}
+                <div className="space-y-3">
+                  {/* Primary Options - Most Common */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { type: 'Article', name: 'Bài viết', icon: '📄', recommended: true },
+                      { type: 'HowTo', name: 'Hướng dẫn', icon: '📋' },
+                      { type: 'Review', name: 'Đánh giá', icon: '⭐' },
+                      { type: 'NewsArticle', name: 'Tin tức', icon: '📰' }
+                    ].map((schema) => {
+                      const isSelected = formData.schema_type === schema.type;
+                      return (
+                        <button
+                          key={schema.type}
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, schema_type: schema.type }));
+                            setHasUnsavedChanges(true); // Trigger autosave
+                          }}
+                          disabled={loadingState.isLoading}
+                          className={`
+                            relative p-3 rounded-lg border transition-all duration-200 text-center group
+                            ${isSelected
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                              : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-600'
+                            }
+                            ${loadingState.isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
+                          `}
+                        >
+                          {schema.recommended && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full"></div>
+                          )}
+
+                          <div className="text-lg mb-1">{schema.icon}</div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100">{schema.name}</div>
+
+                          {isSelected && (
+                            <div className="absolute -top-1 -left-1">
+                              <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Secondary Options - Expandable */}
+                  <details className="group">
+                    <summary className="flex items-center justify-center gap-2 p-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <span>Thêm loại khác</span>
+                      <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { type: 'BlogPosting', name: 'Blog Post', icon: '✍️' },
+                        { type: 'TechArticle', name: 'Kỹ thuật', icon: '⚙️' },
+                        { type: 'Recipe', name: 'Công thức', icon: '👨‍🍳' },
+                        { type: 'FAQ', name: 'FAQ', icon: '❓' }
+                      ].map((schema) => {
+                        const isSelected = formData.schema_type === schema.type;
+                        return (
+                          <button
+                            key={schema.type}
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, schema_type: schema.type }));
+                              setHasUnsavedChanges(true); // Trigger autosave
+                            }}
+                            disabled={loadingState.isLoading}
+                            className={`
+                              relative p-3 rounded-lg border transition-all duration-200 text-center group
+                              ${isSelected
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                                : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-600'
+                              }
+                              ${loadingState.isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
+                            `}
+                          >
+                            <div className="text-lg mb-1">{schema.icon}</div>
+                            <div className="text-xs font-medium text-gray-900 dark:text-gray-100">{schema.name}</div>
+
+                            {isSelected && (
+                              <div className="absolute -top-1 -left-1">
+                                <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </details>
+                </div>
+
+                {/* Compact Schema Info */}
+                <div className="mt-4 flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                        Schema: {formData.schema_type || 'Article'}
+                      </div>
+                      <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                        {formData.schema_type === 'HowTo' ? 'Rich snippets với từng bước' :
+                         formData.schema_type === 'Review' ? 'Hiển thị rating stars' :
+                         formData.schema_type === 'Recipe' ? 'Thời gian nấu + nutrition' :
+                         formData.schema_type === 'NewsArticle' ? 'Xuất hiện Google News' :
+                         formData.schema_type === 'FAQ' ? 'Dropdown Q&A trên Google' :
+                         'Tối ưu hiển thị cơ bản'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Benefits */}
+                  <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <span>+CTR</span>
+                  </div>
+                </div>
+              </div>
             )}
 
           </div>
