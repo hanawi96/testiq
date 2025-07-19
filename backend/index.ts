@@ -12,6 +12,7 @@ export { TagsService } from './admin/tags-service';
 export { MediaService } from './admin/media-service';
 export { UserProfilesService } from './admin/user-profiles-service';
 export { ImageStorageService } from './storage/image-storage';
+export { SettingsService } from './admin/settings-service';
 
 // Configuration
 export { supabase, supabaseAdmin, supabaseConfig, TABLES } from './config/supabase';
@@ -30,6 +31,7 @@ export type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse
 export type { Tag, TagStats, TagsFilters, TagsListResponse } from './admin/tags-service';
 export type { MediaFile, MediaFolder, MediaStats, MediaFilters, MediaListResponse } from './admin/media-service';
 export type { UserProfile, AuthorOption } from './admin/user-profiles-service';
+export type { SiteSettings, SettingsUpdateData } from './admin/settings-service';
 export type { AdminStats, AdminAction, WeeklyNewUsersStats, TestTimeRange } from './types';
 export * from './types';
 

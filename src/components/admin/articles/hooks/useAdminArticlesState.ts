@@ -1,4 +1,4 @@
-import { useReducer } from 'react';
+import { useReducer, useEffect } from 'react';
 import type { ArticleStats, ArticlesFilters, ArticlesListResponse } from '../../../../../backend';
 
 // ===== OPTIMIZED STATE MANAGEMENT =====
@@ -85,6 +85,7 @@ const initialState: AdminArticlesState = {
       search: '',
       sort_by: 'created_at',
       sort_order: 'desc'
+      // URL parameters will be applied after mount
     },
     selectedArticles: [],
     showBulkActions: false
@@ -167,6 +168,46 @@ function adminArticlesReducer(state: AdminArticlesState, action: AdminArticlesAc
 
 export function useAdminArticlesState() {
   const [state, dispatch] = useReducer(adminArticlesReducer, initialState);
+
+  // Apply URL parameters after mount to avoid SSR hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlFilters: Partial<ArticlesFilters> = {};
+
+      // Get category from URL
+      const category = urlParams.get('category');
+      if (category) {
+        urlFilters.category = category;
+      }
+
+      // Get other filters if needed
+      const status = urlParams.get('status');
+      if (status && ['published', 'draft', 'archived'].includes(status)) {
+        urlFilters.status = status as any;
+      }
+
+      const search = urlParams.get('search');
+      if (search) {
+        urlFilters.search = search;
+      }
+
+      const author = urlParams.get('author');
+      if (author) {
+        urlFilters.author = author;
+      }
+
+      // Apply URL filters if any exist
+      if (Object.keys(urlFilters).length > 0) {
+        dispatch({
+          type: 'SET_UI',
+          payload: {
+            filters: { ...state.ui.filters, ...urlFilters }
+          }
+        });
+      }
+    }
+  }, []); // Run once after mount
 
   // Helper functions for cleaner code
   const closeAllEditors = () => dispatch({ type: 'RESET_MODALS' });

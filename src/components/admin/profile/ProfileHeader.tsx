@@ -8,6 +8,7 @@ interface AdminProfileData {
   created_at: string;
   updated_at?: string;
   avatar_url?: string;
+  bio?: string;
 }
 
 interface ProfileHeaderProps {
@@ -98,6 +99,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile }) => {
                 {getRoleDisplay(profile.role)}
               </span>
             </div>
+
+            {/* Bio */}
+            {profile.bio && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  {profile.bio}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

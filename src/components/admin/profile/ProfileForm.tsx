@@ -8,6 +8,7 @@ interface AdminProfileData {
   created_at: string;
   updated_at?: string;
   avatar_url?: string;
+  bio?: string;
 }
 
 interface ProfileFormProps {
@@ -22,11 +23,13 @@ interface ProfileFormProps {
 interface FormData {
   full_name: string;
   email: string;
+  bio: string;
 }
 
 interface FormErrors {
   full_name?: string;
   email?: string;
+  bio?: string;
 }
 
 const ProfileForm: React.FC<ProfileFormProps> = ({
@@ -39,7 +42,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<FormData>({
     full_name: profile.full_name || '',
-    email: profile.email || ''
+    email: profile.email || '',
+    bio: profile.bio || ''
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -50,7 +54,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     if (!hasChanges) {
       setFormData({
         full_name: profile.full_name || '',
-        email: profile.email || ''
+        email: profile.email || '',
+        bio: profile.bio || ''
       });
       setErrors({});
       setTouched({});
@@ -82,13 +87,19 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         }
         return undefined;
 
+      case 'bio':
+        if (value.trim().length > 500) {
+          return 'Bio không được vượt quá 500 ký tự';
+        }
+        return undefined;
+
       default:
         return undefined;
     }
   };
 
   // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
     // Update form data
@@ -106,8 +117,13 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     const changes: Partial<AdminProfileData> = {};
     Object.keys(newFormData).forEach(key => {
       const currentValue = newFormData[key as keyof FormData];
-      const originalValue = profile[key as keyof AdminProfileData] || '';
-      if (currentValue !== originalValue) {
+      const originalValue = profile[key as keyof AdminProfileData];
+
+      // Normalize values for comparison (treat undefined/null as empty string)
+      const normalizedCurrent = currentValue || '';
+      const normalizedOriginal = originalValue || '';
+
+      if (normalizedCurrent !== normalizedOriginal) {
         changes[key as keyof AdminProfileData] = currentValue as any;
       }
     });
@@ -160,8 +176,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   };
 
   // Check if form is valid
-  const isFormValid = Object.keys(errors).length === 0 && 
-                     formData.full_name.trim() && 
+  const isFormValid = !errors.full_name && !errors.email && !errors.bio &&
+                     formData.full_name.trim() &&
                      formData.email.trim();
 
   return (
@@ -230,6 +246,38 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               {errors.email}
             </p>
           )}
+        </div>
+
+        {/* Bio Field */}
+        <div>
+          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Giới thiệu bản thân
+          </label>
+          <textarea
+            id="bio"
+            name="bio"
+            value={formData.bio}
+            onChange={handleInputChange}
+            rows={4}
+            className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 resize-vertical ${
+              errors.bio && touched.bio
+                ? 'border-red-500 dark:border-red-500'
+                : 'border-gray-300 dark:border-gray-600'
+            }`}
+            placeholder="Viết một vài dòng giới thiệu về bản thân..."
+            disabled={isLoading}
+            maxLength={500}
+          />
+          <div className="flex justify-between items-center mt-1">
+            {errors.bio && touched.bio && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {errors.bio}
+              </p>
+            )}
+            <p className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+              {formData.bio.length}/500 ký tự
+            </p>
+          </div>
         </div>
 
         {/* Role Field (Read-only) */}

@@ -9,6 +9,7 @@ export interface AdminProfileData {
   created_at: string;
   updated_at?: string;
   avatar_url?: string;
+  bio?: string;
 }
 
 /**
@@ -64,7 +65,8 @@ export class AdminProfileService {
         role: profile.role || 'user',
         created_at: profile.created_at || '',
         updated_at: profile.updated_at,
-        avatar_url: profile.avatar_url
+        avatar_url: profile.avatar_url,
+        bio: profile.bio || ''
       };
 
       return { data: adminProfile, error: null };
@@ -106,6 +108,10 @@ export class AdminProfileService {
         updateData.avatar_url = updates.avatar_url;
       }
 
+      if (updates.bio !== undefined) {
+        updateData.bio = updates.bio;
+      }
+
       // Update profile in database
       const { data, error } = await supabase
         .from('user_profiles')
@@ -134,7 +140,8 @@ export class AdminProfileService {
         role: data.role || 'user',
         created_at: data.created_at || '',
         updated_at: data.updated_at,
-        avatar_url: data.avatar_url
+        avatar_url: data.avatar_url,
+        bio: data.bio || ''
       };
 
       return { success: true, data: updatedProfile, error: null };

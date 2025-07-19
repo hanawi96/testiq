@@ -430,3 +430,18 @@ create index IF not exists idx_tags_usage_count on public.tags using btree (usag
 UPDATE articles SET like_count = FLOOR(RANDOM() * 50) + 5 WHERE like_count IS NULL OR like_count = 0;
 UPDATE articles SET view_count = FLOOR(RANDOM() * 1000) + 100 WHERE view_count IS NULL OR view_count = 0;
 UPDATE articles SET word_count = FLOOR(RANDOM() * 2000) + 500 WHERE word_count IS NULL OR word_count = 0;
+
+
+-- system_settings
+create table public.system_settings (
+  id uuid not null default gen_random_uuid (),
+  key text not null,
+  value jsonb not null,
+  description text null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint system_settings_pkey primary key (id),
+  constraint system_settings_key_unique unique (key)
+) TABLESPACE pg_default;
+
+create index IF not exists idx_system_settings_key on public.system_settings using btree (key) TABLESPACE pg_default;

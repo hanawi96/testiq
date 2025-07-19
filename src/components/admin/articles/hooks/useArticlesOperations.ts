@@ -106,13 +106,49 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
 
   // Handle filter change
   const handleFilterChange = useCallback((newFilters: Partial<ArticlesFilters>) => {
+    const updatedFilters = { ...filters, ...newFilters };
+
     dispatch({
       type: 'SET_UI',
       payload: {
-        filters: { ...filters, ...newFilters },
+        filters: updatedFilters,
         currentPage: 1
       }
     });
+
+    // Update URL to maintain state
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+
+      // Update or remove category parameter
+      if (updatedFilters.category) {
+        url.searchParams.set('category', updatedFilters.category);
+      } else {
+        url.searchParams.delete('category');
+      }
+
+      // Update or remove other filters
+      if (updatedFilters.search) {
+        url.searchParams.set('search', updatedFilters.search);
+      } else {
+        url.searchParams.delete('search');
+      }
+
+      if (updatedFilters.status && updatedFilters.status !== 'all') {
+        url.searchParams.set('status', updatedFilters.status);
+      } else {
+        url.searchParams.delete('status');
+      }
+
+      if (updatedFilters.author) {
+        url.searchParams.set('author', updatedFilters.author);
+      } else {
+        url.searchParams.delete('author');
+      }
+
+      // Update URL without page reload
+      window.history.replaceState({}, '', url.toString());
+    }
   }, [dispatch, filters]);
 
   // Handle limit change

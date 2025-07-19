@@ -234,6 +234,9 @@ export interface ArticlesFilters {
   readonly search?: string;
   readonly status?: ArticleStatus | 'all';
   readonly author?: UserId;
+  readonly category?: string; // Category slug for filtering
+  readonly article_ids?: readonly ArticleId[]; // Internal use after resolving category
+  readonly target_category_name?: string; // Internal use for validation
   readonly tag?: TagId;
   readonly date_from?: string; // ISO date string
   readonly date_to?: string; // ISO date string

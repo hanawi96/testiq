@@ -81,4 +81,5 @@ export const TABLES = {
   ARTICLE_TAGS: 'article_tags',
   COUNTRIES: 'countries',
   ANONYMOUS_PLAYERS: 'anonymous_players',
+  SYSTEM_SETTINGS: 'system_settings',
 } as const;

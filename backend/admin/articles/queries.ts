@@ -249,6 +249,10 @@ export class ArticleQueries {
     if (filters.author) {
       query = query.eq('author_id', filters.author);
     }
+    if (filters.article_ids && filters.article_ids.length > 0) {
+      // Filter by specific article IDs (from category resolution)
+      query = query.in('id', filters.article_ids);
+    }
     if (filters.date_from) {
       query = query.gte('created_at', filters.date_from);
     }
@@ -279,13 +283,45 @@ export class ArticleQueries {
       const cached = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
       if (cached) return { data: cached.data, error: null, count: cached.count || 0 };
 
+      // Resolve category slug to article IDs if needed (simple approach)
+      let resolvedFilters = { ...filters };
+      if (filters.category) {
+        const { data: category } = await supabase
+          .from('categories')
+          .select('id, name')
+          .eq('slug', filters.category)
+          .single();
+
+        if (category) {
+          // Get article IDs from both primary category and junction table
+          const [primaryResult, junctionResult] = await Promise.all([
+            supabase.from('articles').select('id').eq('category_id', category.id),
+            supabase.from('article_categories').select('article_id').eq('category_id', category.id)
+          ]);
+
+          const primaryIds = primaryResult.data?.map(a => a.id) || [];
+          const junctionIds = junctionResult.data?.map(a => a.article_id) || [];
+          const allIds = [...new Set([...primaryIds, ...junctionIds])];
+
+          if (allIds.length === 0) {
+            return { data: [], error: null, count: 0 };
+          }
+
+          resolvedFilters.article_ids = allIds;
+          resolvedFilters.target_category_name = category.name; // For validation
+          delete resolvedFilters.category;
+        } else {
+          return { data: [], error: null, count: 0 };
+        }
+      }
+
       // Execute main query with count
       const offset = (page - 1) * limit;
       let query = supabase
         .from('articles')
         .select(getOptimizedFields('admin'), { count: 'exact' });
 
-      query = this.applyFilters(query, filters);
+      query = this.applyFilters(query, resolvedFilters);
       query = query.range(offset, offset + limit - 1);
 
       const { data: articles, error, count } = await query;
@@ -314,6 +350,18 @@ export class ArticleQueries {
       }
 
       const enrichedArticles = enrichArticles(articles, authorsResult.data || [], relationshipsResult.data || []);
+
+      // Validate category filter if applied
+      if (resolvedFilters.target_category_name) {
+        const targetCategoryName = resolvedFilters.target_category_name;
+        const validArticles = enrichedArticles.filter(article => {
+          return article.category === targetCategoryName ||
+                 (article.category_names || []).includes(targetCategoryName);
+        });
+
+        console.log(`✅ ArticleQueries: ${validArticles.length} articles in ${Date.now() - startTime}ms`);
+        return cacheAndReturn(cacheKey, validArticles, validArticles.length);
+      }
 
       console.log(`✅ ArticleQueries: ${enrichedArticles.length} articles in ${Date.now() - startTime}ms`);
       return cacheAndReturn(cacheKey, enrichedArticles, totalCount);
