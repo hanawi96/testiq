@@ -6,6 +6,7 @@ import WeeklyNewUsersChart from './WeeklyNewUsersChart';
 import WeeklyTestChart from './WeeklyTestChart';
 import DailyTestChart from './DailyTestChart';
 import EnhancedStatsCards from './EnhancedStatsCards';
+import ArticleViewsChart from './ArticleViewsChart';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -98,6 +99,9 @@ export default function AdminDashboard() {
 
       {/* Enhanced Stats Cards with Daily Comparison */}
       <EnhancedStatsCards />
+
+      {/* Article Views Analytics */}
+      <ArticleViewsChart className="mb-6 lg:mb-8 2xl:mb-10" />
 
       {/* New Users Charts Grid - Daily and Weekly */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 2xl:gap-10">

@@ -1,0 +1,47 @@
+---
+// Astro component để inject view tracking script
+interface Props {
+  articleId: string;
+  delay?: number;
+}
+
+const { articleId, delay = 500 } = Astro.props;
+---
+
+<script define:vars={{ articleId, delay }}>
+  // Track article view immediately when page loads
+  (function() {
+    let hasTracked = false;
+    
+    function trackView() {
+      if (hasTracked) return;
+      
+      fetch('/api/track-view', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ articleId: articleId }),
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          hasTracked = true;
+        }
+      })
+      .catch(error => {
+        console.error('Error tracking view:', error);
+      });
+    }
+    
+    // Track after specified delay
+    setTimeout(trackView, delay);
+    
+    // Fallback: track on page visibility change (if user switches tabs and comes back)
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden && !hasTracked) {
+        trackView();
+      }
+    });
+  })();
+</script>

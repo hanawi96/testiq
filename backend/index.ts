@@ -36,14 +36,14 @@ export type { AdminStats, AdminAction, WeeklyNewUsersStats, TestTimeRange } from
 export * from './types';
 
 // Export leaderboard services
-export { 
-  getLeaderboard, 
+export {
+  getLeaderboard,
   getScalableLeaderboard,
   getMaterializedLeaderboard,
   getMaterializedUserRanking,
   refreshMaterializedCache,
   getMaterializedCacheStatus,
-  getRecentTopPerformers, 
+  getRecentTopPerformers,
   getQuickStats,
   getUserLocalRanking,
   clearLeaderboardCache,
@@ -53,6 +53,9 @@ export {
   getScalableCacheStats
 } from './utils/leaderboard-service';
 export type { LeaderboardEntry, LeaderboardStats } from './utils/leaderboard-service';
+
+// Export view tracking service
+export { ViewTrackingService } from './utils/view-tracking-service';
 
 // Export dashboard stats service - PRODUCTION READY
 export { 

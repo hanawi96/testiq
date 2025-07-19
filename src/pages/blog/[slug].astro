@@ -4,6 +4,7 @@ export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { BlogService } from '../../services/blog-service';
+import ArticleViewScript from '../../components/article/ArticleViewScript.astro';
 
 const { slug } = Astro.params;
 
@@ -160,6 +161,9 @@ const publishedDate = formatDate(article.date);
       </div>
     </section>
   </article>
+
+  <!-- ✅ Track article view -->
+  <ArticleViewScript articleId={article.id} delay={500} />
 </BaseLayout>
 
 <style>

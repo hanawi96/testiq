@@ -445,3 +445,87 @@ create table public.system_settings (
 ) TABLESPACE pg_default;
 
 create index IF not exists idx_system_settings_key on public.system_settings using btree (key) TABLESPACE pg_default;
+
+
+
+
+
+-- Tạo bảng article_views_daily để tracking lượt xem theo ngày
+CREATE TABLE article_views_daily (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  date DATE NOT NULL,
+  article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  view_count INTEGER NOT NULL DEFAULT 0,
+  unique_views INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  -- Composite unique constraint để tránh duplicate
+  CONSTRAINT unique_article_date UNIQUE (date, article_id)
+);
+
+-- Tạo indexes để tối ưu performance
+CREATE INDEX idx_article_views_daily_date ON article_views_daily(date);
+CREATE INDEX idx_article_views_daily_article_id ON article_views_daily(article_id);
+CREATE INDEX idx_article_views_daily_date_article ON article_views_daily(date, article_id);
+
+-- Tạo function để auto-update updated_at
+CREATE OR REPLACE FUNCTION update_article_views_daily_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Tạo trigger để auto-update updated_at
+CREATE TRIGGER trigger_update_article_views_daily_updated_at
+  BEFORE UPDATE ON article_views_daily
+  FOR EACH ROW
+  EXECUTE FUNCTION update_article_views_daily_updated_at();
+
+-- Tạo RLS (Row Level Security) policies
+ALTER TABLE article_views_daily ENABLE ROW LEVEL SECURITY;
+
+-- Policy cho admin có thể đọc tất cả
+CREATE POLICY "Admin can view all article views" ON article_views_daily
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles 
+      WHERE user_profiles.id = auth.uid() 
+      AND user_profiles.role IN ('admin', 'editor')
+    )
+  );
+
+-- Policy cho admin có thể insert/update
+CREATE POLICY "Admin can manage article views" ON article_views_daily
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles 
+      WHERE user_profiles.id = auth.uid() 
+      AND user_profiles.role IN ('admin', 'editor')
+    )
+  );
+
+-- Tạo function để increment view count
+CREATE OR REPLACE FUNCTION increment_article_view(
+  p_article_id UUID,
+  p_date DATE DEFAULT CURRENT_DATE
+)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO article_views_daily (date, article_id, view_count, unique_views)
+  VALUES (p_date, p_article_id, 1, 1)
+  ON CONFLICT (date, article_id)
+  DO UPDATE SET 
+    view_count = article_views_daily.view_count + 1,
+    updated_at = NOW();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Comment để document bảng
+COMMENT ON TABLE article_views_daily IS 'Bảng tracking lượt xem bài viết theo ngày';
+COMMENT ON COLUMN article_views_daily.date IS 'Ngày tracking (YYYY-MM-DD)';
+COMMENT ON COLUMN article_views_daily.article_id IS 'ID bài viết được xem';
+COMMENT ON COLUMN article_views_daily.view_count IS 'Tổng số lượt xem trong ngày';
+COMMENT ON COLUMN article_views_daily.unique_views IS 'Số lượt xem unique (distinct users)';
