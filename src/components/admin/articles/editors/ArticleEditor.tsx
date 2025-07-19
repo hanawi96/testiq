@@ -190,7 +190,7 @@ const SidebarSkeleton: React.FC = () => (
 // LAZY LOAD heavy components
 const TiptapEditor = lazy(() => import('./TiptapEditor'));
 
-// Dropdown Section Component to prevent FOUC
+// Enhanced Dropdown Section Component with beautiful headers
 const DropdownSection: React.FC<{
   title: string;
   icon: React.ReactNode;
@@ -198,44 +198,125 @@ const DropdownSection: React.FC<{
   onToggle: () => void;
   children: React.ReactNode;
   className?: string;
-}> = ({ title, icon, isOpen, onToggle, children, className = '' }) => (
-  <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 dropdown-section ${className}`}>
-    <button
-      onClick={onToggle}
-      className="flex items-center justify-between w-full mb-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg p-2 -m-2 transition-colors duration-200"
-    >
-      <div className="flex items-center gap-2">
-        {icon}
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+}> = ({ title, icon, isOpen, onToggle, children, className = '' }) => {
+
+  // Get gradient colors based on title
+  const getGradientColors = () => {
+    switch (title.toLowerCase()) {
+      case 'tags':
+        return {
+          from: 'from-green-50/80',
+          via: 'via-emerald-50/60',
+          to: 'to-teal-50/80',
+          iconFrom: 'from-green-500',
+          iconTo: 'to-emerald-600',
+          border: 'border-green-100/50 dark:border-green-900/30',
+          shadow: 'shadow-green-500/25',
+          darkFrom: 'dark:from-green-950/30',
+          darkVia: 'dark:via-emerald-950/20',
+          darkTo: 'dark:to-teal-950/30'
+        };
+      case 'ảnh đại diện':
+        return {
+          from: 'from-pink-50/80',
+          via: 'via-rose-50/60',
+          to: 'to-red-50/80',
+          iconFrom: 'from-pink-500',
+          iconTo: 'to-rose-600',
+          border: 'border-pink-100/50 dark:border-pink-900/30',
+          shadow: 'shadow-pink-500/25',
+          darkFrom: 'dark:from-pink-950/30',
+          darkVia: 'dark:via-rose-950/20',
+          darkTo: 'dark:to-red-950/30'
+        };
+      case 'tác giả':
+        return {
+          from: 'from-cyan-50/80',
+          via: 'via-blue-50/60',
+          to: 'to-indigo-50/80',
+          iconFrom: 'from-cyan-500',
+          iconTo: 'to-blue-600',
+          border: 'border-cyan-100/50 dark:border-cyan-900/30',
+          shadow: 'shadow-cyan-500/25',
+          darkFrom: 'dark:from-cyan-950/30',
+          darkVia: 'dark:via-blue-950/20',
+          darkTo: 'dark:to-indigo-950/30'
+        };
+      default:
+        return {
+          from: 'from-gray-50/80',
+          via: 'via-slate-50/60',
+          to: 'to-gray-50/80',
+          iconFrom: 'from-gray-500',
+          iconTo: 'to-slate-600',
+          border: 'border-gray-100/50 dark:border-gray-900/30',
+          shadow: 'shadow-gray-500/25',
+          darkFrom: 'dark:from-gray-950/30',
+          darkVia: 'dark:via-slate-950/20',
+          darkTo: 'dark:to-gray-950/30'
+        };
+    }
+  };
+
+  const colors = getGradientColors();
+
+  return (
+    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden dropdown-section ${className}`}>
+      {/* Header với màu nền nhẹ nhàng */}
+      <div className={`bg-gradient-to-r ${colors.from} ${colors.via} ${colors.to} ${colors.darkFrom} ${colors.darkVia} ${colors.darkTo} px-6 py-4 border-b ${colors.border}`}>
+        <button
+          onClick={onToggle}
+          className="flex items-center justify-between w-full text-left hover:bg-white/30 dark:hover:bg-gray-800/30 rounded-lg p-2 -m-2 transition-colors duration-200"
+        >
+          <div className="flex items-center gap-3">
+            {/* Icon với gradient đẹp */}
+            <div className={`w-8 h-8 bg-gradient-to-br ${colors.iconFrom} ${colors.iconTo} rounded-lg flex items-center justify-center shadow-lg ${colors.shadow}`}>
+              <div className="w-4 h-4 text-white [&>svg]:w-4 [&>svg]:h-4 [&>svg]:text-white [&>svg]:stroke-white">
+                {icon}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                {title === 'Tags' ? 'Từ khóa và nhãn phân loại' :
+                 title === 'Ảnh đại diện' ? 'Hình ảnh hiển thị chính' :
+                 title === 'Tác giả' ? 'Người viết và quản lý nội dung' :
+                 'Cài đặt và tùy chọn'}
+              </p>
+            </div>
+          </div>
+          <svg
+            className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform duration-300 ease-in-out ${
+              isOpen ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       </div>
-      <svg
-        className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ease-in-out ${
-          isOpen ? 'rotate-180' : ''
+
+      {/* Content Area */}
+      <div
+        className={`dropdown-content transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-[2000px] opacity-100 open overflow-visible' : 'max-h-0 opacity-0 closed overflow-hidden'
         }`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
+        style={{
+          transitionProperty: 'max-height, opacity',
+          transitionDuration: '300ms',
+          transitionTimingFunction: 'ease-in-out',
+          overflow: isOpen ? 'visible' : 'hidden'
+        }}
       >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
-    <div
-      className={`dropdown-content transition-all duration-300 ease-in-out ${
-        isOpen ? 'max-h-[2000px] opacity-100 open overflow-visible' : 'max-h-0 opacity-0 closed overflow-hidden'
-      }`}
-      style={{
-        transitionProperty: 'max-height, opacity',
-        transitionDuration: '300ms',
-        transitionTimingFunction: 'ease-in-out',
-        overflow: isOpen ? 'visible' : 'hidden'
-      }}
-    >
-      <div style={{ display: isOpen ? 'block' : 'none' }}>
-        {children}
+        <div className="p-6" style={{ display: isOpen ? 'block' : 'none' }}>
+          {children}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 
 
@@ -1304,28 +1385,44 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             </div>
 
             {/* Content Editor Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Nội dung bài viết</h2>
-                </div>
-                {/* Dynamic Stats - Only show when data loaded */}
-                {!shouldShowArticleSkeleton && formData.content && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded">
-                      {formData.content.split(' ').filter(word => word.length > 0).length} từ
-                    </span>
-                    <span className="bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">
-                      ~{Math.ceil(formData.content.split(' ').filter(word => word.length > 0).length / 200)} phút đọc
-                    </span>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header với màu nền nhẹ nhàng */}
+              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Icon với gradient đẹp */}
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nội dung bài viết</h2>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Soạn thảo nội dung chính của bài viết</p>
+                    </div>
                   </div>
-                )}
+                  {/* Dynamic Stats - Only show when data loaded */}
+                  {!shouldShowArticleSkeleton && formData.content && (
+                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded-md">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>{formData.content.split(' ').filter(word => word.length > 0).length} từ</span>
+                      </div>
+                      <div className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded-md">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>~{Math.ceil(formData.content.split(' ').filter(word => word.length > 0).length / 200)} phút đọc</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
+              {/* Content Editor Area */}
+              <div className="p-6">
                 <div className="article-content-editor">
                   {/* PROGRESSIVE LOADING: Show skeleton for editor when loading article data */}
                   {shouldShowArticleSkeleton ? (
@@ -1347,45 +1444,73 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             </div>
 
             {/* Excerpt Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tóm tắt bài viết</h2>
-                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                  {formData.excerpt.length}/200
-                </span>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header với màu nền nhẹ nhàng */}
+              <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/60 to-yellow-50/80 dark:from-orange-950/30 dark:via-amber-950/20 dark:to-yellow-950/30 px-6 py-4 border-b border-orange-100/50 dark:border-orange-900/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Icon với gradient đẹp */}
+                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/25">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tóm tắt bài viết</h2>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Mô tả ngắn gọn hiển thị trong danh sách</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded-md">
+                      {formData.excerpt.length}/200
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* PROGRESSIVE LOADING: Show skeleton for excerpt when loading article data */}
-              {shouldShowArticleSkeleton ? (
-                <ExcerptSkeleton />
-              ) : (
-                <div className="space-y-3">
-                  <textarea
-                    value={formData.excerpt}
-                    onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                    placeholder="Viết tóm tắt ngắn gọn và hấp dẫn để thu hút độc giả..."
-                    rows={4}
-                    maxLength={200}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Tóm tắt tốt sẽ hiển thị trong kết quả tìm kiếm và mạng xã hội
-                  </p>
-                </div>
-              )}
+              {/* Content Area */}
+              <div className="p-6">
+                {/* PROGRESSIVE LOADING: Show skeleton for excerpt when loading article data */}
+                {shouldShowArticleSkeleton ? (
+                  <ExcerptSkeleton />
+                ) : (
+                  <div className="space-y-3">
+                    <textarea
+                      value={formData.excerpt}
+                      onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
+                      placeholder="Viết tóm tắt ngắn gọn và hấp dẫn để thu hút độc giả..."
+                      rows={4}
+                      maxLength={200}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Tóm tắt tốt sẽ hiển thị trong kết quả tìm kiếm và mạng xã hội
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* SEO Settings Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SEO & Tối ưu hóa</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header với màu nền nhẹ nhàng */}
+              <div className="bg-gradient-to-r from-amber-50/80 via-yellow-50/60 to-orange-50/80 dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-orange-950/30 px-6 py-4 border-b border-amber-100/50 dark:border-amber-900/30">
+                <div className="flex items-center gap-3">
+                  {/* Icon với gradient đẹp */}
+                  <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/25">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">SEO & Tối ưu hóa</h2>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Cải thiện khả năng tìm kiếm và hiển thị</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Content Area */}
+              <div className="p-6">
 
               {/* PROGRESSIVE LOADING: Show skeleton for SEO when loading article data */}
               {shouldShowArticleSkeleton ? (
@@ -1574,8 +1699,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     </div>
                   </div>
                 </div>
+                </div>
+                )}
               </div>
-              )}
             </div>
 
           </div>
@@ -1584,34 +1710,45 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           <div className="article-sidebar-sticky space-y-6">
 
             {/* Publish Box */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Xuất bản</h3>
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header với màu nền nhẹ nhàng */}
+              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Icon với gradient đẹp */}
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Xuất bản</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Quản lý trạng thái và thời gian xuất bản</p>
+                    </div>
+                  </div>
 
-                {/* Preview Button - Only show when published and has slug */}
-                {formData.status === 'published' && formData.slug && (
-                  <button
-                    onClick={() => {
-                      const previewUrl = `/blog/${formData.slug}`;
-                      window.open(previewUrl, '_blank');
-                    }}
-                    className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-300 rounded-lg flex items-center gap-1.5"
-                    title="Xem bài viết đã xuất bản"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    Xem thử
-                  </button>
-                )}
+                  {/* Preview Button - Only show when published and has slug */}
+                  {formData.status === 'published' && formData.slug && (
+                    <button
+                      onClick={() => {
+                        const previewUrl = `/blog/${formData.slug}`;
+                        window.open(previewUrl, '_blank');
+                      }}
+                      className="px-3 py-1.5 text-sm bg-white/60 dark:bg-gray-800/60 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg flex items-center gap-1.5 transition-colors"
+                      title="Xem bài viết đã xuất bản"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      Xem thử
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-4">
+              {/* Content Area */}
+              <div className="p-6">
+                <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chế độ công khai</span>
@@ -1680,28 +1817,47 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   disabled={loadingState.isLoading}
                 />
 
-
+                </div>
               </div>
             </div>
 
             {/* Categories Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              {shouldShowCategoriesSkeleton ? (
-                <div className="space-y-3">
-                  <FieldSkeleton className="h-5 w-24" />
-                  <div className="grid grid-cols-2 gap-2">
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <FieldSkeleton key={i} className="h-8 rounded-lg" />
-                    ))}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header với màu nền nhẹ nhàng */}
+              <div className="bg-gradient-to-r from-purple-50/80 via-indigo-50/60 to-blue-50/80 dark:from-purple-950/30 dark:via-indigo-950/20 dark:to-blue-950/30 px-6 py-4 border-b border-purple-100/50 dark:border-purple-900/30">
+                <div className="flex items-center gap-3">
+                  {/* Icon với gradient đẹp */}
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/25">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Danh mục</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Phân loại nội dung bài viết</p>
                   </div>
                 </div>
-              ) : (
-                <CategorySelector
-                  value={formData.categories}
-                  onChange={(categories) => setFormData(prev => ({ ...prev, categories }))}
-                  disabled={loadingState.isLoading}
-                />
-              )}
+              </div>
+
+              {/* Content Area */}
+              <div className="p-6">
+                {shouldShowCategoriesSkeleton ? (
+                  <div className="space-y-3">
+                    <FieldSkeleton className="h-5 w-24" />
+                    <div className="grid grid-cols-2 gap-2">
+                      {Array.from({ length: 6 }, (_, i) => (
+                        <FieldSkeleton key={i} className="h-8 rounded-lg" />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <CategorySelector
+                    value={formData.categories}
+                    onChange={(categories) => setFormData(prev => ({ ...prev, categories }))}
+                    disabled={loadingState.isLoading}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Tags Section */}
@@ -1899,37 +2055,44 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
             {shouldShowSEOSkeleton ? (
               <SEOSkeleton />
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {/* Header với màu nền nhẹ nhàng */}
+                <div className="bg-gradient-to-r from-rose-50/80 via-pink-50/60 to-purple-50/80 dark:from-rose-950/30 dark:via-pink-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-rose-100/50 dark:border-rose-900/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* Icon với gradient đẹp */}
+                      <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg flex items-center justify-center shadow-lg shadow-rose-500/25">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Schema Type</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Tối ưu hiển thị trên Google Search</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Schema Type</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Tối ưu hiển thị Google</p>
-                    </div>
-                  </div>
 
-                  {/* Current Selection Display */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{
-                      formData.schema_type === 'Article' ? '📄' :
-                      formData.schema_type === 'NewsArticle' ? '📰' :
-                      formData.schema_type === 'BlogPosting' ? '✍️' :
-                      formData.schema_type === 'TechArticle' ? '⚙️' :
-                      formData.schema_type === 'HowTo' ? '📋' :
-                      formData.schema_type === 'Recipe' ? '👨‍🍳' :
-                      formData.schema_type === 'Review' ? '⭐' :
-                      formData.schema_type === 'FAQPage' ? '❓' : '📄'
-                    }</span>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {formData.schema_type || 'Article'}
-                    </span>
+                    {/* Current Selection Display */}
+                    <div className="flex items-center gap-2 bg-white/60 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg">
+                      <span className="text-lg">
+                        {formData.schema_type === 'Article' ? '📄' :
+                         formData.schema_type === 'NewsArticle' ? '📰' :
+                         formData.schema_type === 'BlogPosting' ? '✍️' :
+                         formData.schema_type === 'TechArticle' ? '⚙️' :
+                         formData.schema_type === 'HowTo' ? '📋' :
+                         formData.schema_type === 'Recipe' ? '👨‍🍳' :
+                         formData.schema_type === 'Review' ? '⭐' :
+                         formData.schema_type === 'FAQPage' ? '❓' : '📄'}
+                      </span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {formData.schema_type || 'Article'}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Content Area */}
+                <div className="p-6">
 
                 {/* Compact Schema Type Selector */}
                 <div className="space-y-3">
@@ -2062,6 +2225,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                     <span>+CTR</span>
+                  </div>
                   </div>
                 </div>
               </div>
