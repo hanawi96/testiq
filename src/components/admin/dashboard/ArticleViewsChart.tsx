@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArticlesService } from '../../../../backend';
 import { ViewTrackingService } from '../../../../backend/utils/view-tracking-service';
 
@@ -30,6 +31,7 @@ interface ArticleViewsChartProps {
 }
 
 type TimeRange = 7 | 14 | 30 | 60 | 90;
+type TopArticlesTimeRange = 1 | 7 | 14 | 30;
 
 const TIME_RANGE_OPTIONS = [
   { value: 7, label: '7 ngày' },
@@ -37,6 +39,13 @@ const TIME_RANGE_OPTIONS = [
   { value: 30, label: '30 ngày' },
   { value: 60, label: '60 ngày' },
   { value: 90, label: '90 ngày' }
+] as const;
+
+const TOP_ARTICLES_TIME_RANGE_OPTIONS = [
+  { value: 1, label: '1 ngày' },
+  { value: 7, label: '7 ngày' },
+  { value: 14, label: '14 ngày' },
+  { value: 30, label: '30 ngày' }
 ] as const;
 
 // Smart aggregation configuration
@@ -124,15 +133,79 @@ function aggregateViewsData(
 
 export default function ArticleViewsChart({ className = '' }: ArticleViewsChartProps) {
   const [data, setData] = useState<ViewsAnalytics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [topArticlesData, setTopArticlesData] = useState<TopArticle[] | null>(null);
+  const [isChartLoading, setIsChartLoading] = useState(true);
+  const [isTopArticlesLoading, setIsTopArticlesLoading] = useState(true);
+  const [chartError, setChartError] = useState<string | null>(null);
+  const [topArticlesError, setTopArticlesError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>(7);
+  const [topArticlesTimeRange, setTopArticlesTimeRange] = useState<TopArticlesTimeRange>(1);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isTopArticlesDropdownOpen, setIsTopArticlesDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const topArticlesDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+      if (topArticlesDropdownRef.current && !topArticlesDropdownRef.current.contains(event.target as Node)) {
+        setIsTopArticlesDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Helper functions for dropdowns
+  const getTimeRangeLabel = (range: TimeRange) => {
+    const option = TIME_RANGE_OPTIONS.find(opt => opt.value === range);
+    return option?.label || '7 ngày';
+  };
+
+  const getTopArticlesTimeRangeLabel = (range: TopArticlesTimeRange) => {
+    const option = TOP_ARTICLES_TIME_RANGE_OPTIONS.find(opt => opt.value === range);
+    return option?.label || '1 ngày';
+  };
+
+  // Fetch top articles data separately
+  const fetchTopArticles = useCallback(async (days: TopArticlesTimeRange) => {
+    try {
+      setIsTopArticlesLoading(true);
+      setTopArticlesError(null);
+
+      // Get top articles data from ViewTrackingService
+      const { data: analyticsData, error: analyticsError } = await ViewTrackingService.getArticleViewsAnalytics(days);
+
+      if (analyticsError || !analyticsData) {
+        throw new Error('Không thể tải dữ liệu top bài viết');
+      }
+
+      // Process top articles
+      const topArticles: TopArticle[] = analyticsData.topArticles.map(article => ({
+        title: article.title.length > 30 ? article.title.substring(0, 30) + '...' : article.title,
+        views: article.views,
+        slug: article.slug
+      }));
+
+      setTopArticlesData(topArticles);
+
+    } catch (err) {
+      console.error('Error fetching top articles:', err);
+      setTopArticlesError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
+    } finally {
+      setIsTopArticlesLoading(false);
+    }
+  }, []);
 
   // Fetch analytics data
   const fetchAnalytics = useCallback(async (days: TimeRange) => {
     try {
-      setIsLoading(true);
-      setError(null);
+      setIsChartLoading(true);
+      setChartError(null);
 
       // Get real analytics data from ViewTrackingService
       const { data: analyticsData, error: analyticsError } = await ViewTrackingService.getArticleViewsAnalytics(days);
@@ -173,9 +246,9 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
 
     } catch (err) {
       console.error('Error fetching article analytics:', err);
-      setError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
+      setChartError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
     } finally {
-      setIsLoading(false);
+      setIsChartLoading(false);
     }
   }, []);
 
@@ -183,8 +256,16 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
     fetchAnalytics(timeRange);
   }, [timeRange, fetchAnalytics]);
 
+  useEffect(() => {
+    fetchTopArticles(topArticlesTimeRange);
+  }, [topArticlesTimeRange, fetchTopArticles]);
+
   const handleTimeRangeChange = (newTimeRange: TimeRange) => {
     setTimeRange(newTimeRange);
+  };
+
+  const handleTopArticlesTimeRangeChange = (newTimeRange: TopArticlesTimeRange) => {
+    setTopArticlesTimeRange(newTimeRange);
   };
 
   // Simplified chart dimensions - use fixed viewBox like DailyTestChart
@@ -481,9 +562,9 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
 
   // Bar Chart for Top Articles
   const TopArticlesChart = useCallback(() => {
-    if (!data?.topArticles.length) return null;
+    if (!topArticlesData?.length) return null;
 
-    const articles = data.topArticles;
+    const articles = topArticlesData;
     const maxViews = Math.max(...articles.map(a => a.views)) || 1;
 
     return (
@@ -514,97 +595,13 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
         })}
       </div>
     );
-  }, [data]);
+  }, [topArticlesData]);
 
-  if (isLoading) {
-    return (
-      <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
-        </div>
-
-        {/* Loading Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Chart Loading */}
-          <div className="lg:col-span-2 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4 animate-pulse"></div>
-            <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-          </div>
-
-          {/* Top Articles Loading */}
-          <div className="lg:col-span-1 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4 animate-pulse"></div>
-            <div className="space-y-3">
-              {[1,2,3,4,5].map(i => (
-                <div key={i} className="space-y-2">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
-        <div className="text-center py-8">
-          <svg className="w-12 h-12 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-red-600 dark:text-red-400 mb-2">Không thể tải dữ liệu</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">{error}</p>
-          <button
-            onClick={fetchAnalytics}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Thử lại
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Remove global loading state - use individual loading states for each section
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          📈 Lượt xem bài viết
-        </h2>
-
-        <div className="flex items-center space-x-3">
-          {/* Time Range Filter */}
-          <select
-            value={timeRange}
-            onChange={(e) => handleTimeRangeChange(Number(e.target.value) as TimeRange)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            {TIME_RANGE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          {/* Refresh Button */}
-          <button
-            onClick={() => fetchAnalytics(timeRange)}
-            disabled={isLoading}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
-            title="Làm mới"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      {/* Header removed - no longer needed */}
 
       {/* Main Content Grid - Dynamic Layout Based on Time Range */}
       <div className={`grid grid-cols-1 gap-6 ${
@@ -619,29 +616,180 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
             : 'lg:col-span-2'  // Takes 2/3 width for 7 days
         }`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              📈 Xu hướng {timeRange} ngày gần nhất
-              {timeRange > 14 && (
-                <span className="text-sm text-gray-500 ml-2 font-normal">
-                  ({getAggregationConfig(timeRange).groupSize} ngày/điểm)
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                📈 Xu hướng lượt xem
+                {timeRange > 14 && (
+                  <span className="text-sm text-gray-500 ml-2 font-normal">
+                    ({getAggregationConfig(timeRange).groupSize} ngày/điểm)
+                  </span>
+                )}
+              </h3>
+              {data && (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Tổng: {data.dailyViews.reduce((sum, day) => sum + day.views, 0).toLocaleString()} views
                 </span>
               )}
-            </h3>
-            {data && (
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Tổng: {data.dailyViews.reduce((sum, day) => sum + day.views, 0).toLocaleString()} views
-              </span>
-            )}
+            </div>
+
+            {/* Chart Time Range Filter & Refresh */}
+            <div className="flex items-center space-x-2">
+              {/* Time Range Filter */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  disabled={isChartLoading}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
+                  title="Chọn khoảng thời gian"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">{getTimeRangeLabel(timeRange)}</span>
+                  <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                    >
+                      {TIME_RANGE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            handleTimeRangeChange(option.value);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/30 first:rounded-t-lg last:rounded-b-lg ${
+                            timeRange === option.value
+                              ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={() => fetchAnalytics(timeRange)}
+                disabled={isChartLoading}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
+                title="Làm mới"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <LineChart />
+
+          {isChartLoading ? (
+            <div className="h-60 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          ) : chartError ? (
+            <div className="text-center py-8">
+              <svg className="w-12 h-12 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-red-600 dark:text-red-400 mb-2">Không thể tải biểu đồ</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">{chartError}</p>
+              <button
+                onClick={() => fetchAnalytics(timeRange)}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : (
+            <LineChart />
+          )}
         </div>
 
         {/* Top Articles Box - Takes 1/3 width */}
         <div className="lg:col-span-1 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            🏆 Top 5 bài viết ({timeRange} ngày)
-          </h3>
-          <TopArticlesChart />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              🏆 Top 5 bài viết
+            </h3>
+
+            {/* Top Articles Time Range Filter */}
+            <div className="relative" ref={topArticlesDropdownRef}>
+              <button
+                onClick={() => setIsTopArticlesDropdownOpen(!isTopArticlesDropdownOpen)}
+                disabled={isTopArticlesLoading}
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50"
+                title="Chọn khoảng thời gian"
+              >
+                <span>{getTopArticlesTimeRangeLabel(topArticlesTimeRange)}</span>
+                <svg className={`w-3 h-3 transition-transform ${isTopArticlesDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              <AnimatePresence>
+                {isTopArticlesDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                  >
+                    {TOP_ARTICLES_TIME_RANGE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          handleTopArticlesTimeRangeChange(option.value);
+                          setIsTopArticlesDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700/30 first:rounded-t-lg last:rounded-b-lg ${
+                          topArticlesTimeRange === option.value
+                            ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {isTopArticlesLoading ? (
+            <div className="space-y-3">
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"></div>
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          ) : topArticlesError ? (
+            <div className="text-center py-8">
+              <p className="text-red-600 dark:text-red-400 text-sm">{topArticlesError}</p>
+              <button
+                onClick={() => fetchTopArticles(topArticlesTimeRange)}
+                className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : (
+            <TopArticlesChart />
+          )}
         </div>
       </div>
     </div>

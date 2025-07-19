@@ -7,6 +7,8 @@ export interface BlogPost {
   excerpt: string;
   content: string;
   author: string;
+  authorEmail?: string;
+  authorBio?: string;
   authorAvatar: string;
   date: string;
   readTime: string;
@@ -95,10 +97,10 @@ export class BlogService {
 
       // Parallel queries cho related data
       const [authorsResult, categoriesResult, tagsResult] = await Promise.all([
-        // Lấy thông tin authors
+        // Lấy thông tin authors (bao gồm bio)
         authorIds.length > 0 ? supabase
           .from('user_profiles')
-          .select('id, full_name, email, avatar_url')
+          .select('id, full_name, email, bio, avatar_url')
           .in('id', authorIds) : Promise.resolve({ data: [] }),
 
         // Lấy categories
@@ -142,6 +144,7 @@ export class BlogService {
       // Tạo lookup maps
       const authorsMap = new Map();
       authorsResult.data?.forEach(author => {
+
         authorsMap.set(author.id, author);
       });
 
@@ -196,6 +199,8 @@ export class BlogService {
 
         const authorName = author?.full_name || 'Tác giả';
 
+
+
         return {
           id: article.id,
           title: article.title,
@@ -203,6 +208,8 @@ export class BlogService {
           excerpt: article.excerpt || 'Nội dung thú vị đang chờ bạn khám phá...',
           content: article.content,
           author: authorName,
+          authorEmail: author?.email,
+          authorBio: author?.bio,
           authorAvatar: getAuthorAvatar(authorName),
           date: formatDate(article.published_at || article.created_at),
           readTime: formatReadingTime(article.reading_time),
