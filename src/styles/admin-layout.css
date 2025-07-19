@@ -243,3 +243,68 @@
 .dark .admin-scrollable::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* Chart container optimizations for wider displays */
+.admin-chart-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-chart-wide {
+  min-width: 100%;
+}
+
+/* Enhanced chart responsiveness for longer time periods */
+@media (min-width: 1200px) {
+  .admin-chart-extended {
+    min-width: 1000px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .admin-chart-extended {
+    min-width: 1200px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .admin-chart-extended {
+    min-width: 1400px;
+  }
+}
+
+/* Smooth scrolling for chart containers */
+.admin-chart-container {
+  scroll-behavior: smooth;
+}
+
+.admin-chart-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-chart-container::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.admin-chart-container::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+
+.admin-chart-container::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* Dark mode chart scrollbar */
+.dark .admin-chart-container::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.dark .admin-chart-container::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+
+.dark .admin-chart-container::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}

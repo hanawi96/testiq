@@ -80,7 +80,7 @@ export class ViewTrackingService {
   /**
    * Get article views analytics - Simplified
    */
-  static async getArticleViewsAnalytics(): Promise<{
+  static async getArticleViewsAnalytics(days: number = 7): Promise<{
     data: {
       totalViews: number;
       dailyViews: DailyViewsData[];
@@ -95,12 +95,12 @@ export class ViewTrackingService {
     error: any;
   }> {
     try {
-      // Calculate date 7 days ago
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      // Calculate start date based on days parameter
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       // Parallel fetch for better performance
       const [dailyResult, allArticlesResult, topArticlesResult] = await Promise.all([
-        this.getDailyViews(7),
+        this.getDailyViews(days),
         supabase
           .from('articles')
           .select('view_count')
@@ -114,7 +114,7 @@ export class ViewTrackingService {
             view_count
           `)
           .eq('articles.status', 'published')
-          .gte('date', sevenDaysAgo)
+          .gte('date', startDate)
       ]);
 
       if (dailyResult.error) return { data: null, error: dailyResult.error };
@@ -154,11 +154,12 @@ export class ViewTrackingService {
       // Calculate total views from ALL articles, not just top 5
       const totalViews = allArticles.reduce((sum, article) => sum + (article.view_count || 0), 0);
 
-      // Simple growth calculation
+      // Dynamic growth calculation based on period
       let growthRate = 0;
-      if (dailyViews.length >= 6) {
-        const firstHalf = dailyViews.slice(0, 3).reduce((sum, day) => sum + day.views, 0);
-        const lastHalf = dailyViews.slice(-3).reduce((sum, day) => sum + day.views, 0);
+      if (dailyViews.length >= 4) {
+        const halfPeriod = Math.floor(dailyViews.length / 2);
+        const firstHalf = dailyViews.slice(0, halfPeriod).reduce((sum, day) => sum + day.views, 0);
+        const lastHalf = dailyViews.slice(-halfPeriod).reduce((sum, day) => sum + day.views, 0);
         growthRate = firstHalf > 0 ? Math.round(((lastHalf - firstHalf) / firstHalf) * 100) : 0;
       }
 
