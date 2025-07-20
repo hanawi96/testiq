@@ -114,9 +114,9 @@ export class ArticlesService {
     );
   }
 
-  static async getArticleForEdit(articleId: string): Promise<{ data: Article | null; error: any }> {
+  static async getArticleForEdit(articleId: string, userId?: string): Promise<{ data: Article | null; error: any }> {
     return serviceWrapper<Article>(
-      () => ArticleQueries.getArticleForEditOptimized(articleId),
+      () => ArticleQueries.getArticleForEditOptimized(articleId, userId),
       ERROR_MESSAGES.ARTICLE_NOT_FOUND
     );
   }
@@ -200,7 +200,8 @@ export class ArticlesService {
   static async updateArticle(
     articleId: string,
     updateData: Partial<CreateArticleData>,
-    authorId?: string | null
+    authorId?: string | null,
+    userId?: string
   ): Promise<{ data: Article | null; error: any }> {
     return serviceWrapper(async () => {
       const { categories, tags, ...articleUpdateData } = updateData;
@@ -223,6 +224,12 @@ export class ArticlesService {
           categories !== undefined ? RelationshipsUtils.updateCategories(articleId, [...categories]) : undefined,
           tags !== undefined ? RelationshipsUtils.updateTags(articleId, [...tags]) : undefined,
         ].filter(Boolean));
+      }
+
+      // Xóa draft sau khi save thành công
+      if (userId) {
+        await ArticleQueries.deleteDraft(articleId, userId);
+        console.log(`🗑️ Deleted draft for article ${articleId}`);
       }
 
       // Full cache invalidation for manual saves

@@ -140,7 +140,7 @@ export default function AuthorSelector({
   };
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative z-10 ${className}`}>
       {/* Modern Compact Author Selector */}
       <button
         type="button"
@@ -199,7 +199,14 @@ export default function AuthorSelector({
 
       {/* Modern Author Selection Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl shadow-black/5 dark:shadow-black/20 z-50 overflow-hidden backdrop-blur-sm">
+        <div
+          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl shadow-black/5 dark:shadow-black/20 z-[9999] overflow-hidden backdrop-blur-sm"
+          style={{
+            position: 'absolute',
+            zIndex: 9999,
+            minWidth: '100%'
+          }}
+        >
           {/* Search Input */}
           <div className="p-3 border-b border-gray-100 dark:border-gray-700">
             <div className="relative">

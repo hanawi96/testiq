@@ -392,35 +392,46 @@ export class ArticleQueries {
   }
 
   /**
-   * PERFORMANCE OPTIMIZED: Get article for editing với single query approach
+   * Get article for editing - ưu tiên draft trước
    */
-  static async getArticleForEditOptimized(articleId: string): Promise<{ data: Article | null; error: any }> {
+  static async getArticleForEditOptimized(articleId: string, userId?: string): Promise<{ data: Article | null; error: any }> {
     try {
-      const startTime = Date.now();
-      const cacheKey = `article:edit:${articleId}`;
+      let article: any = null;
 
-      // Check cache first
-      const cached = queryCache.get<{ data: Article | null; error: any }>(cacheKey);
-      if (cached) return cached;
+      // 1. Kiểm tra draft trước (nếu có userId)
+      if (userId) {
+        const { data: draftData } = await supabase
+          .from('article_drafts')
+          .select('*')
+          .eq('article_id', articleId)
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .single();
 
-      // Get article
-      const { data: article, error } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('id', articleId)
-        .single();
+        if (draftData) {
+          article = draftData;
+          console.log(`📝 Loading draft for article ${articleId}`);
+        }
+      }
 
-      if (error || !article) return { data: null, error: error || new Error('Article not found') };
+      // 2. Nếu không có draft, load từ articles
+      if (!article) {
+        const { data: articleData, error } = await supabase
+          .from('articles')
+          .select('*')
+          .eq('id', articleId)
+          .single();
+
+        if (error || !articleData) return { data: null, error: error || new Error('Article not found') };
+        article = articleData;
+        console.log(`📄 Loading published for article ${articleId}`);
+      }
 
       // Reuse shared function for relationships
       const [authorsResult, relationshipsResult] = await fetchRelationships([article]);
       const enrichedArticles = enrichArticles([article], authorsResult.data || [], relationshipsResult.data || []);
 
-      const result = { data: enrichedArticles[0] || null, error: null };
-      queryCache.set(cacheKey, result, 1 * 60 * 1000); // 1 minute cache
-
-      console.log(`✅ ArticleQueries: Article for edit in ${Date.now() - startTime}ms`);
-      return result;
+      return { data: enrichedArticles[0] || null, error: null };
 
     } catch (err) {
       console.error('ArticleQueries: Error getting article for edit:', err);
@@ -925,6 +936,24 @@ export class ArticleQueries {
       return { data, error };
     } catch (error) {
       return { data: null, error };
+    }
+  }
+
+  /**
+   * Xóa draft sau khi save & publish
+   */
+  static async deleteDraft(articleId: string, userId: string) {
+    try {
+      await supabase
+        .from('article_drafts')
+        .delete()
+        .eq('article_id', articleId)
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      console.log(`✅ Deleted draft for article ${articleId}`);
+    } catch (err) {
+      console.error('Error deleting draft:', err);
     }
   }
 }

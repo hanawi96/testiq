@@ -24,14 +24,14 @@
 /* Sidebar sticky positioning */
 .article-sidebar-sticky {
   position: sticky;
-  top: 6rem; /* 24 * 0.25rem = 6rem */
+  top: 0; /* No offset - perfect alignment */
   /* No transitions for instant dark mode switching */
 }
 
 /* Tablet sidebar adjustments */
 @media (min-width: 768px) and (max-width: 1023px) {
   .article-sidebar-sticky {
-    top: 5rem;
+    top: 0;
   }
 }
 
@@ -45,7 +45,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  align-items: stretch; /* Đồng bộ chiều cao các cột */
+  align-items: start; /* Align to top for better sidebar positioning */
   transition: all 0.3s ease-in-out; /* Smooth resize transitions */
 }
 
@@ -352,6 +352,55 @@
   max-height: 0;
   opacity: 0;
   overflow: hidden;
+}
+
+/* Fix for AuthorSelector dropdown visibility */
+.article-editor .relative {
+  position: relative;
+  z-index: auto;
+}
+
+/* Ensure dropdowns can appear above other elements */
+.article-editor [class*="z-[9999]"] {
+  z-index: 9999 !important;
+}
+
+/* Sidebar sections should allow overflow when dropdowns are open */
+.article-editor-sidebar .overflow-visible {
+  overflow: visible !important;
+}
+
+/* Ensure sidebar container allows dropdowns to overflow */
+.article-sidebar-sticky {
+  overflow: visible;
+  z-index: 1;
+  max-height: calc(100vh - 2rem); /* Prevent sidebar from being too tall */
+}
+
+/* Author selector dropdown specific fixes */
+.article-editor .relative [class*="absolute"][class*="z-[9999]"] {
+  position: absolute !important;
+  z-index: 9999 !important;
+}
+
+/* Ensure all parent containers allow overflow for dropdowns */
+.article-editor .space-y-6 {
+  overflow: visible;
+}
+
+.article-editor .space-y-6 > div {
+  overflow: visible;
+}
+
+/* AuthorSelector dropdown enhancements */
+.article-editor [class*="z-[9999]"] {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark .article-editor [class*="z-[9999]"] {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Prevent flash during page load */

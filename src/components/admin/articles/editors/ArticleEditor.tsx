@@ -1,435 +1,90 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition } from 'react';
-import { ArticlesService, AuthService } from '../../../../../backend';
+// ===== TEMPORARY SIMPLIFIED IMPORTS FOR DEBUGGING =====
+import React, { useState, useEffect, Suspense, startTransition } from 'react';
+import { ArticlesService } from '../../../../../backend';
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
+
+// Layout components
+import { ArticleEditorLayout, MainContent, Sidebar } from './layouts';
+
+// Sections
+import { TitleSection, ContentEditorSection, ExcerptSection, SEOSection, SchemaTypeSection } from './components/sections';
+
+// Sidebar components
+import { PublishBox } from './components/sidebar/PublishBox';
+import { CategoriesSection } from './components/sidebar/CategoriesSection';
+
+// Hooks
+import { useArticleData } from './hooks/useArticleData';
+import { useFormHandlers, type FormData } from './hooks/useFormHandlers';
+import { useSeoAnalysis, getSeoScoreColor, getSeoScoreGradient, getSeoScoreBadge, getSeoCheckColor } from './hooks/useSeoAnalysis';
+import { useSaveHandlers } from './hooks/useSaveHandlers';
+import { useLoadingHelpers } from './components/LoadingStates';
+
+// Utils and constants
+import { FALLBACK_AUTHORS, type ArticleEditorProps } from './articleEditorUtils';
+import { DEFAULT_FORM_DATA, DEFAULT_SIDEBAR_DROPDOWNS } from './constants/articleEditorConstants';
+import { getArticleId, getSidebarDropdownState, saveDropdownState, formatDate, hasFormChanges, validateFormData, cleanFormData, extractImagesFromContent, calculateSaveProgress } from './utils/articleEditorHelpers';
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
+
+// Other components
 import LoadingSpinner from '../../common/LoadingSpinner';
 import MediaUpload from '../create/components/MediaUpload';
 import TagsInput from '../create/components/TagsInput';
 import AuthorSelector from '../create/components/AuthorSelector';
 import CategorySelector from '../create/components/CategorySelector';
 import DateTimePicker from '../create/components/DateTimePicker';
-import { BlogService } from '../../../../services/blog-service';
 import SchemaPreview from '../SchemaPreview';
+import { BlogService } from '../../../../services/blog-service';
+import { DropdownSection } from './components/DropdownSection';
+import { EditorSkeleton, ExcerptSkeleton, SidebarSkeleton, CategoriesSkeleton, TagsSkeleton, AuthorsSkeleton } from './components/SkeletonComponents';
+import { lazy } from 'react';
 
+// Styles
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
-// PRELOADERS - Intelligent data loading
-import { getInstantCategoriesData, preloadCategoriesData, isCategoriesDataReady } from '../../../../utils/admin/preloaders/categories-preloader';
-import { getInstantAuthorsData, preloadAuthorsData, isAuthorsDataReady } from '../../../../utils/admin/preloaders/authors-preloader';
-
-// PROGRESSIVE LOADING: Skeleton components cho dữ liệu động
-const FieldSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`} />
-);
-
-const TitleSkeleton: React.FC = () => (
-  <div className="space-y-2">
-    <FieldSkeleton className="h-4 w-24" />
-    <FieldSkeleton className="h-12 w-full rounded-lg" />
-  </div>
-);
-
-const EditorSkeleton: React.FC = () => (
-  <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900" style={{ height: '1000px' }}>
-    {/* Toolbar Skeleton - khớp với TipTap toolbar */}
-    <div className="border-b border-gray-300 dark:border-gray-600 p-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        {Array.from({ length: 15 }, (_, i) => (
-          <FieldSkeleton key={i} className="w-8 h-8 rounded" />
-        ))}
-      </div>
-    </div>
-
-    {/* Content Area Skeleton - chiều cao cố định với scroll */}
-    <div className="p-4 space-y-4 overflow-y-auto overflow-x-hidden" style={{ height: 'calc(1000px - 60px)' }}>
-      {/* Simulate content lines */}
-      {Array.from({ length: 20 }, (_, i) => (
-        <FieldSkeleton
-          key={i}
-          className={`h-4 ${
-            i === 0 ? 'w-3/4' :
-            i === 4 ? 'w-1/2' :
-            i === 8 ? 'w-2/3' :
-            i === 12 ? 'w-1/3' :
-            i === 16 ? 'w-5/6' :
-            'w-full'
-          }`}
-        />
-      ))}
-
-      {/* Add some spacing at bottom */}
-      <div className="h-32"></div>
-    </div>
-  </div>
-);
-
-const ExcerptSkeleton: React.FC = () => (
-  <div className="space-y-3">
-    <FieldSkeleton className="h-24 w-full rounded-lg" />
-    <FieldSkeleton className="h-3 w-48" />
-  </div>
-);
-
-const SEOSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-    {/* Header Skeleton */}
-    <div className="flex items-center gap-3 mb-4">
-      <FieldSkeleton className="w-8 h-8 rounded-lg" />
-      <FieldSkeleton className="h-6 w-32" />
-    </div>
-
-    {/* SEO Toggle Skeleton */}
-    <div className="space-y-4">
-      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
-        <div className="flex items-center gap-3">
-          <FieldSkeleton className="w-8 h-8 rounded-lg" />
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <FieldSkeleton className="h-4 w-32" />
-              <FieldSkeleton className="h-5 w-16 rounded-full" />
-            </div>
-            <FieldSkeleton className="h-3 w-48" />
-          </div>
-        </div>
-        <FieldSkeleton className="h-6 w-11 rounded-full" />
-      </div>
-    </div>
-  </div>
-);
-
-
-const SidebarSkeleton: React.FC = () => (
-  <div className="space-y-6">
-    {/* Publish Box Skeleton */}
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <FieldSkeleton className="w-5 h-5" />
-          <FieldSkeleton className="h-5 w-16" />
-        </div>
-        <FieldSkeleton className="h-8 w-20 rounded-lg" />
-      </div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <FieldSkeleton className="h-4 w-24 mb-1" />
-            <FieldSkeleton className="h-3 w-32" />
-          </div>
-          <FieldSkeleton className="w-12 h-6 rounded-full" />
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <FieldSkeleton className="h-4 w-20 mb-1" />
-            <FieldSkeleton className="h-3 w-28" />
-          </div>
-          <FieldSkeleton className="w-12 h-6 rounded-full" />
-        </div>
-        <div className="flex gap-2">
-          <FieldSkeleton className="h-10 flex-1 rounded-lg" />
-          <FieldSkeleton className="h-10 flex-1 rounded-lg" />
-        </div>
-      </div>
-    </div>
-
-    {/* Categories Skeleton */}
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FieldSkeleton className="w-5 h-5" />
-        <FieldSkeleton className="h-5 w-20" />
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
-            <FieldSkeleton className="w-4 h-4" />
-            <FieldSkeleton className="h-4 w-24" />
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* Tags Skeleton */}
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FieldSkeleton className="w-5 h-5" />
-        <FieldSkeleton className="h-5 w-12" />
-      </div>
-      <FieldSkeleton className="h-10 w-full rounded-lg mb-2" />
-      <FieldSkeleton className="h-3 w-40" />
-      <div className="flex flex-wrap gap-2 mt-3">
-        {Array.from({ length: 3 }, (_, i) => (
-          <FieldSkeleton key={i} className="h-6 w-16 rounded" />
-        ))}
-      </div>
-    </div>
-
-    {/* Author Skeleton */}
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FieldSkeleton className="w-5 h-5" />
-        <FieldSkeleton className="h-5 w-16" />
-      </div>
-      <FieldSkeleton className="h-10 w-full rounded-lg" />
-    </div>
-
-    {/* Featured Image Skeleton */}
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FieldSkeleton className="w-5 h-5" />
-        <FieldSkeleton className="h-5 w-24" />
-      </div>
-      <FieldSkeleton className="h-32 w-full rounded-lg mb-3" />
-      <FieldSkeleton className="h-10 w-full rounded-lg mb-2" />
-      <FieldSkeleton className="h-3 w-48" />
-    </div>
-  </div>
-);
-
-
-
-// LAZY LOAD heavy components
+// Lazy load TiptapEditor
 const TiptapEditor = lazy(() => import('./TiptapEditor'));
 
-// Enhanced Dropdown Section Component with beautiful headers
-const DropdownSection: React.FC<{
-  title: string;
-  icon: React.ReactNode;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-  className?: string;
-}> = ({ title, icon, isOpen, onToggle, children, className = '' }) => {
-
-  // Get gradient colors based on title
-  const getGradientColors = () => {
-    switch (title.toLowerCase()) {
-      case 'tags':
-        return {
-          from: 'from-blue-50/80',
-          via: 'via-indigo-50/60',
-          to: 'to-purple-50/80',
-          iconFrom: 'from-blue-500',
-          iconTo: 'to-indigo-600',
-          border: 'border-blue-100/50 dark:border-blue-900/30',
-          shadow: 'shadow-blue-500/25',
-          darkFrom: 'dark:from-blue-950/30',
-          darkVia: 'dark:via-indigo-950/20',
-          darkTo: 'dark:to-purple-950/30'
-        };
-      case 'ảnh đại diện':
-        return {
-          from: 'from-blue-50/80',
-          via: 'via-indigo-50/60',
-          to: 'to-purple-50/80',
-          iconFrom: 'from-blue-500',
-          iconTo: 'to-indigo-600',
-          border: 'border-blue-100/50 dark:border-blue-900/30',
-          shadow: 'shadow-blue-500/25',
-          darkFrom: 'dark:from-blue-950/30',
-          darkVia: 'dark:via-indigo-950/20',
-          darkTo: 'dark:to-purple-950/30'
-        };
-      case 'tác giả':
-        return {
-          from: 'from-blue-50/80',
-          via: 'via-indigo-50/60',
-          to: 'to-purple-50/80',
-          iconFrom: 'from-blue-500',
-          iconTo: 'to-indigo-600',
-          border: 'border-blue-100/50 dark:border-blue-900/30',
-          shadow: 'shadow-blue-500/25',
-          darkFrom: 'dark:from-blue-950/30',
-          darkVia: 'dark:via-indigo-950/20',
-          darkTo: 'dark:to-purple-950/30'
-        };
-      case 'tối ưu tìm kiếm':
-        return {
-          from: 'from-blue-50/80',
-          via: 'via-indigo-50/60',
-          to: 'to-purple-50/80',
-          iconFrom: 'from-blue-500',
-          iconTo: 'to-indigo-600',
-          border: 'border-blue-100/50 dark:border-blue-900/30',
-          shadow: 'shadow-blue-500/25',
-          darkFrom: 'dark:from-blue-950/30',
-          darkVia: 'dark:via-indigo-950/20',
-          darkTo: 'dark:to-purple-950/30'
-        };
-      default:
-        return {
-          from: 'from-gray-50/80',
-          via: 'via-slate-50/60',
-          to: 'to-gray-50/80',
-          iconFrom: 'from-gray-500',
-          iconTo: 'to-slate-600',
-          border: 'border-gray-100/50 dark:border-gray-900/30',
-          shadow: 'shadow-gray-500/25',
-          darkFrom: 'dark:from-gray-950/30',
-          darkVia: 'dark:via-slate-950/20',
-          darkTo: 'dark:to-gray-950/30'
-        };
-    }
-  };
-
-  const colors = getGradientColors();
-
-  return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 dropdown-section ${className}`} style={{ overflow: 'visible' }}>
-      {/* Header với màu nền nhẹ nhàng */}
-      <div className={`bg-gradient-to-r ${colors.from} ${colors.via} ${colors.to} ${colors.darkFrom} ${colors.darkVia} ${colors.darkTo} px-6 py-4 border-b ${colors.border}`}>
-        <button
-          onClick={onToggle}
-          className="flex items-center justify-between w-full text-left hover:bg-white/30 dark:hover:bg-gray-800/30 rounded-lg p-2 -m-2 transition-colors duration-200"
-        >
-          <div className="flex items-center gap-3">
-            {/* Icon với gradient đẹp */}
-            <div className={`w-8 h-8 bg-gradient-to-br ${colors.iconFrom} ${colors.iconTo} rounded-lg flex items-center justify-center shadow-lg ${colors.shadow}`}>
-              <div className="w-4 h-4 text-white [&>svg]:w-4 [&>svg]:h-4 [&>svg]:text-white [&>svg]:stroke-white">
-                {icon}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                {title === 'Tags' ? 'Từ khóa và nhãn phân loại' :
-                 title === 'Ảnh đại diện' ? 'Hình ảnh hiển thị chính' :
-                 title === 'Tác giả' ? 'Người viết và quản lý nội dung' :
-                 'Cài đặt và tùy chọn'}
-              </p>
-            </div>
-          </div>
-          <svg
-            className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform duration-300 ease-in-out ${
-              isOpen ? 'rotate-180' : ''
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Content Area */}
-      <div
-        className={`dropdown-content transition-all duration-300 ease-in-out ${
-          isOpen ? 'max-h-[2000px] opacity-100 open' : 'max-h-0 opacity-0 closed'
-        }`}
-        style={{
-          transitionProperty: 'max-height, opacity',
-          transitionDuration: '300ms',
-          transitionTimingFunction: 'ease-in-out',
-          overflow: isOpen ? 'visible' : 'hidden'
-        }}
-      >
-        <div
-          className="p-6"
-          style={{
-            display: isOpen ? 'block' : 'none',
-            overflow: 'visible' // Cho phép dropdown hiển thị bên ngoài
-          }}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 
 
 
-interface ArticleEditorProps {
-  articleId?: string; // Nếu có = edit mode, không có = create mode
-  onSave?: (article: Article) => void;
-  onCancel?: () => void;
-}
 
-// Fallback authors for when database is not available
-const FALLBACK_AUTHORS = [
-  {
-    id: '1',
-    name: 'Nguyễn Minh Tuấn',
-    email: 'tuan@iqtest.com',
-    role: 'Editor'
-  },
-  {
-    id: '2',
-    name: 'Trần Thị Hương',
-    email: 'huong@iqtest.com',
-    role: 'Content Writer'
-  },
-  {
-    id: '3',
-    name: 'Lê Văn Đức',
-    email: 'duc@iqtest.com',
-    role: 'Senior Writer'
-  },
-  {
-    id: '4',
-    name: 'Phạm Thị Lan',
-    email: 'lan@iqtest.com',
-    role: 'Research Writer'
-  }
-];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps) {
 
   // FIXED: Get article ID immediately (synchronous) để tránh flash
-  const getArticleId = () => {
-    if (articleId) return articleId;
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('id');
-    }
-    return null;
-  };
-
-  const currentArticleId = getArticleId();
+  const currentArticleId = getArticleId(articleId);
   const isEditMode = !!currentArticleId;
 
 
 
-  const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    excerpt: '',
-    meta_title: '',
-    meta_description: '',
-    slug: '',
-    status: 'draft' as 'draft' | 'published' | 'archived' | 'scheduled',
-    focus_keyword: '',
-    categories: [] as string[],
-    tags: [] as string[],
-    cover_image: '',
-    cover_image_alt: '',
-    lang: 'vi',
-    article_type: 'article' as 'article' | 'page' | 'post',
-    is_public: false, // Default to draft for both create and edit mode
-    is_featured: false,
-    schema_type: 'Article',
-    robots_noindex: false,
-    published_date: '', // Read-only, auto-set by system
-    scheduled_at: '', // Hẹn ngày giờ đăng bài
-    author_id: ''
-  });
+  const [formData, setFormData] = useState<FormData>(DEFAULT_FORM_DATA);
 
 
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
-  const [isManualSaving, setIsManualSaving] = useState(false);
-  const [saveProgress, setSaveProgress] = useState(0);
   const [validationError, setValidationError] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [authors, setAuthors] = useState<AuthorOption[]>([]);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false); // Track any save operation
 
-  // Track original content for image cleanup
+  // Track original content for image cleanup (moved to useArticleData hook)
   const [originalContent, setOriginalContent] = useState<string>('');
 
 
@@ -440,290 +95,47 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Dropdown state management for sidebar sections
-  const [sidebarDropdowns, setSidebarDropdowns] = useState(() => {
-    // Use pre-loaded states to prevent FOUC
-    if (typeof window !== 'undefined' && (window as any).__ARTICLE_EDITOR_DROPDOWN_STATES__) {
-      return (window as any).__ARTICLE_EDITOR_DROPDOWN_STATES__;
-    }
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      return {
-        categories: localStorage.getItem('article-editor-dropdown-categories') !== 'false',
-        tags: localStorage.getItem('article-editor-dropdown-tags') !== 'false',
-        author: localStorage.getItem('article-editor-dropdown-author') !== 'false',
-        featuredImage: localStorage.getItem('article-editor-dropdown-featuredImage') !== 'false',
-        seo: localStorage.getItem('article-editor-dropdown-seo') !== 'false',
-        seoIndex: localStorage.getItem('article-editor-dropdown-seoIndex') !== 'false'
-      };
-    }
-    return {
-      categories: true,
-      tags: true,
-      author: true,
-      featuredImage: true,
-      seo: true,
-      seoIndex: true
-    };
-  });
-
-  // PROGRESSIVE LOADING: UI tĩnh hiển thị ngay, data động load sau
-  const initialLoadingState = {
-    isLoading: false, // UI tĩnh hiển thị ngay
-    isDataLoaded: !isEditMode, // false for edit mode, true for create mode
-    isValidatingSlug: false,
-    isEditorReady: false,
-    // Separate loading states for different sections
-    isLoadingArticleData: isEditMode,
-    isLoadingCategories: !isEditMode, // Create mode: categories load instantly
-    isLoadingAuthors: !isEditMode, // Create mode: authors load instantly
-    isLoadingTags: isEditMode // Edit mode: tags need to load, Create mode: no tags to load
-  };
-
-  const [loadingState, setLoadingState] = useState(initialLoadingState);
-
-  // Progressive loading: Show static UI immediately, skeleton for dynamic data
-  const shouldShowArticleSkeleton = isEditMode && loadingState.isLoadingArticleData;
-  const shouldShowCategoriesSkeleton = loadingState.isLoadingCategories;
-  const shouldShowAuthorsSkeleton = loadingState.isLoadingAuthors;
-  const shouldShowTagsSkeleton = loadingState.isLoadingTags;
-  const shouldShowSEOSkeleton = isEditMode && loadingState.isLoadingArticleData;
-
-
-
-  // Professional autosave progress animation
-  useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
-
-    if (isAutoSaving) {
-      setSaveProgress(0);
-
-      // Smooth progress animation from 0 to 90% over 1.5s
-      progressInterval = setInterval(() => {
-        setSaveProgress(prev => {
-          if (prev >= 90) return 90; // Stop at 90%, complete on success
-          return prev + 2; // Increment by 2% every 30ms
-        });
-      }, 30);
-    } else {
-      // Complete progress and fade out
-      setSaveProgress(100);
-      setTimeout(() => setSaveProgress(0), 500);
-    }
-
-    return () => {
-      if (progressInterval) clearInterval(progressInterval);
-    };
-  }, [isAutoSaving]);
-
-
-
-  // OPTIMIZED: Single useEffect for all data loading (avoid double execution)
-  useEffect(() => {
-    // FIXED: Dispatch event to hide static skeleton
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('article-editor-mounted'));
-      console.log('🔄 React component mounted, dispatching event');
-    }
-
-    const loadAllData = async () => {
-      setLoadError('');
-
-      console.log('🔄 ARTICLE EDITOR: Starting data load', {
-        currentArticleId,
-        mode: currentArticleId ? 'EDIT' : 'CREATE'
-      });
-
-      // Load current user first
-      try {
-        const { user } = await AuthService.getCurrentUser();
-        if (user?.id) {
-          setCurrentUserId(user.id);
-        }
-      } catch (error) {
-        console.error('Failed to get current user:', error);
-      }
-
-      // Start preloading immediately (non-blocking)
-      preloadCategoriesData();
-      preloadAuthorsData();
-
-      try {
-        if (currentArticleId) {
-          // EDIT MODE: Load article + preloaded data
-          const [articleResult, categoriesData, authorsData] = await Promise.all([
-            ArticlesService.getArticleForEdit(currentArticleId),
-            // Use preloaded data if available, otherwise fetch
-            isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
-            isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
-          ]);
-
-          // Handle article data
-          if (articleResult.error) {
-            setLoadError('Không thể tải bài viết');
-            return;
-          }
-
-          if (articleResult.data) {
-            // Populate form with article data
-            const articleContent = articleResult.data.content || '';
-            setFormData({
-              title: articleResult.data.title || '',
-              content: articleContent,
-              excerpt: articleResult.data.excerpt || '',
-              meta_title: articleResult.data.meta_title || '',
-              meta_description: articleResult.data.meta_description || '',
-              slug: articleResult.data.slug || '',
-              status: articleResult.data.status || 'draft',
-              focus_keyword: articleResult.data.focus_keyword || '',
-              categories: (() => {
-                // Convert single category_id to array, or use category_ids if available
-                if (articleResult.data.category_ids && articleResult.data.category_ids.length > 0) {
-                  return articleResult.data.category_ids;
-                }
-                if (articleResult.data.category_id) {
-                  return [articleResult.data.category_id];
-                }
-                if (articleResult.data.categories) {
-                  return articleResult.data.categories.map((cat: any) => typeof cat === 'string' ? cat : cat.id);
-                }
-                return [];
-              })(),
-              tags: articleResult.data.tag_names || articleResult.data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [],
-              cover_image: articleResult.data.cover_image || '',
-              cover_image_alt: articleResult.data.cover_image_alt || '',
-              lang: articleResult.data.lang || 'vi',
-              article_type: articleResult.data.article_type || 'article',
-              is_public: articleResult.data.status === 'published',
-              is_featured: articleResult.data.featured === true,
-              schema_type: articleResult.data.schema_type || 'Article',
-              robots_noindex: articleResult.data.robots_directive?.includes('noindex') || false,
-              published_date: articleResult.data.published_at || '', // Read-only display
-              scheduled_at: (articleResult.data as any).scheduled_at ? new Date((articleResult.data as any).scheduled_at).toISOString().slice(0, 16) : '',
-              author_id: articleResult.data.author_id || ''
-            });
-
-            // Store original content for image cleanup
-            setOriginalContent(articleContent);
-
-            // Mark article data as loaded
-            setLoadingState(prev => ({
-              ...prev,
-              isDataLoaded: true,
-              isLoadingArticleData: false
-            }));
-
-            // Add a small delay for tags loading to ensure user sees the skeleton
-            setTimeout(() => {
-              setLoadingState(prev => ({
-                ...prev,
-                isLoadingTags: false // Tags loaded with article data
-              }));
-            }, 800); // 800ms delay to show tags skeleton
-
-
-          }
-
-          // Handle preloaded categories data
-          if (categoriesData && categoriesData.length > 0) {
-            setCategories(categoriesData);
-          } else {
-            console.warn('No categories data available');
-          }
-
-          // Handle preloaded authors data
-          if (authorsData && authorsData.length > 0) {
-            setAuthors(authorsData);
-            // Set first author as default if no author selected
-            if (!articleResult.data?.author_id) {
-              setFormData(prev => ({ ...prev, author_id: authorsData[0].id }));
-            }
-          } else {
-            console.warn('No authors data available');
-            // Fallback to demo authors if preloader fails
-            const fallbackAuthors = FALLBACK_AUTHORS.map(author => ({
-              id: author.id,
-              full_name: author.name,
-              email: author.email,
-              role: author.role.toLowerCase(),
-              role_badge_color: 'text-blue-800 bg-blue-100 border-blue-200',
-              role_display_name: author.role
-            }));
-            setAuthors(fallbackAuthors);
-            if (!articleResult.data?.author_id) {
-              setFormData(prev => ({ ...prev, author_id: fallbackAuthors[0].id }));
-            }
-          }
-
-          // Reset unsaved changes after loading article data
-          setHasUnsavedChanges(false);
-          setInitialFormData(formData);
-
-        } else {
-          // CREATE MODE: Load only preloaded data (no article to fetch)
-          console.log('🆕 CREATE MODE: Loading categories and authors for new article');
-
-          const [categoriesData, authorsData] = await Promise.all([
-            isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
-            isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
-          ]);
-
-          // FIXED: Batch all state updates in startTransition to avoid hydration conflicts
-          startTransition(() => {
-            // Prepare data
-            const finalCategories = categoriesData && categoriesData.length > 0 ? categoriesData : [];
-            let finalAuthors = authorsData && authorsData.length > 0 ? authorsData : [];
-            let defaultAuthorId = formData.author_id;
-
-            // Handle authors fallback
-            if (finalAuthors.length === 0) {
-              console.warn('CREATE MODE: No authors data available, using fallback');
-              finalAuthors = FALLBACK_AUTHORS.map(author => ({
-                id: author.id,
-                full_name: author.name,
-                email: author.email,
-                role: author.role.toLowerCase(),
-                role_badge_color: 'text-blue-800 bg-blue-100 border-blue-200',
-                role_display_name: author.role
-              }));
-            }
-
-            // Set default author if none selected
-            if (!defaultAuthorId && finalAuthors.length > 0) {
-              defaultAuthorId = finalAuthors[0].id;
-            }
-
-            // BATCH UPDATE: All state changes in one go
-            setCategories(finalCategories);
-            setAuthors(finalAuthors);
-            if (defaultAuthorId !== formData.author_id) {
-              setFormData(prev => ({ ...prev, author_id: defaultAuthorId }));
-            }
-            setLoadingState(prev => ({
-              ...prev,
-              isDataLoaded: true,
-              isLoadingCategories: false,
-              isLoadingAuthors: false,
-              isLoadingTags: false // Create mode: no tags to load
-            }));
-
-            console.log(`✅ CREATE MODE: Loaded ${finalCategories.length} categories, ${finalAuthors.length} authors`);
-          });
-        }
-
-        } catch (err) {
-          setLoadError('Có lỗi xảy ra khi tải dữ liệu');
-          setLoadingState(prev => ({ ...prev, isLoading: false, isDataLoaded: false }));
-          console.error('Error loading data:', err);
-        }
-      };
-
-      loadAllData();
-  }, []); // FIXED: Chỉ chạy 1 lần khi mount, không cần dependency
-
-
+  const [sidebarDropdowns, setSidebarDropdowns] = useState(() =>
+    getSidebarDropdownState(DEFAULT_SIDEBAR_DROPDOWNS)
+  );
 
   // Track unsaved changes - only when user actually makes changes
   const [initialFormData, setInitialFormData] = useState<any>(null);
+
+
+
+  // ===== PROGRESS ANIMATION MOVED =====
+  // Progress animation logic đã được tích hợp vào useSaveHandlers hook
+
+
+
+  // OPTIMIZED: Data loading logic đã được tách thành hook riêng
+  const { categories, authors, loadingState, loadingActions } = useArticleData({
+    currentArticleId,
+    isEditMode,
+    setFormData,
+    setOriginalContent,
+    setCurrentUserId,
+    setLoadError,
+    setHasUnsavedChanges,
+    setInitialFormData,
+    formData
+  });
+
+  // Loading helpers
+  const {
+    shouldShowArticleSkeleton,
+    shouldShowCategoriesSkeleton,
+    shouldShowAuthorsSkeleton,
+    shouldShowTagsSkeleton,
+    shouldShowSEOSkeleton,
+    isAnyLoading,
+    isFormDisabled
+  } = useLoadingHelpers(loadingState, isEditMode);
+
+
+
+
 
   useEffect(() => {
     // Set initial form data on first load
@@ -741,7 +153,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       formData.is_public !== initialFormData.is_public ||
       formData.is_featured !== initialFormData.is_featured ||
       formData.author_id !== initialFormData.author_id ||
-      formData.category_id !== initialFormData.category_id ||
+      JSON.stringify(formData.categories) !== JSON.stringify(initialFormData.categories) ||
       JSON.stringify(formData.tags) !== JSON.stringify(initialFormData.tags)
     );
 
@@ -754,14 +166,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       // Ctrl/Cmd + S to save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        handleSave('save'); // Manual save
+        handleManualSave(); // Manual save
       }
       // Ctrl/Cmd + Shift + P to publish
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
         e.preventDefault();
         // Set public and then save
         setFormData(prev => ({ ...prev, is_public: true }));
-        setTimeout(() => handleSave('save'), 100);
+        setTimeout(() => handleManualSave(), 100);
       }
     };
 
@@ -769,29 +181,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // IMPROVED: Smart auto-save with debouncing
-  useEffect(() => {
-    // Skip autosave if no changes
-    if (!hasUnsavedChanges || isManualSaving) {
-      return;
-    }
-
-    // Skip autosave if required fields are empty
-    if (!formData.title.trim() || !formData.slug.trim() || formData.content.trim().length < 10) {
-      return;
-    }
-
-    // Debounced auto-save: wait 2 seconds after last change, then save
-    const autoSaveTimeout = setTimeout(() => {
-      if (hasUnsavedChanges) {
-        handleSave('autosave');
-      }
-    }, 2000);
-
-    return () => {
-      clearTimeout(autoSaveTimeout);
-    };
-  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.slug, formData.content]);
+  // ===== AUTOSAVE LOGIC MOVED =====
+  // Autosave logic sẽ được di chuyển xuống sau khi save handlers được định nghĩa
 
   // Use the optimized slug generator from utils (supports Vietnamese diacritics)
 
@@ -839,7 +230,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       return;
     }
 
-    setLoadingState(prev => ({ ...prev, isValidatingSlug: true }));
+    loadingActions.setValidatingSlug(true);
     setSlugError('');
 
     try {
@@ -855,9 +246,59 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     } catch (err) {
       setSlugError('Có lỗi khi kiểm tra slug');
     } finally {
-      setLoadingState(prev => ({ ...prev, isValidatingSlug: false }));
+      loadingActions.setValidatingSlug(false);
     }
   };
+
+  // Form handlers
+  const formHandlers = useFormHandlers({
+    formData,
+    setFormData,
+    setHasUnsavedChanges,
+    setSlugError,
+    validateSlug,
+    isEditMode,
+    currentArticleId
+  });
+
+  // SEO Analysis
+  const seoAnalysis = useSeoAnalysis({ formData });
+
+  // Save Handlers
+  const { saveStates, handleAutoSave, handleManualSave } = useSaveHandlers({
+    formData,
+    isEditMode,
+    currentArticleId,
+    currentUserId,
+    setLastSaved,
+    setHasUnsavedChanges,
+    setValidationError,
+    onSave
+  });
+
+  // IMPROVED: Smart auto-save with debouncing
+  useEffect(() => {
+    // Skip autosave if no changes
+    if (!hasUnsavedChanges || saveStates.isManualSaving) {
+      return;
+    }
+
+    // Skip autosave if required fields are empty
+    if (!formData.title.trim() || !formData.slug.trim() || formData.content.trim().length < 10) {
+      return;
+    }
+
+    // Debounced auto-save: wait 2 seconds after last change, then save
+    const autoSaveTimeout = setTimeout(() => {
+      if (hasUnsavedChanges) {
+        handleAutoSave();
+      }
+    }, 2000);
+
+    return () => {
+      clearTimeout(autoSaveTimeout);
+    };
+  }, [hasUnsavedChanges, saveStates.isManualSaving, formData.title, formData.slug, formData.content, handleAutoSave]);
 
   // Handle manual slug change with smart filtering
   const handleSlugChange = (slug: string) => {
@@ -879,395 +320,28 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
-  const handleSave = async (action: 'save' | 'autosave') => {
-    const isAutoSave = action === 'autosave';
-
-    // PREVENT RACE CONDITION: Skip if already saving
-    if (isSaving) {
-      return;
-    }
-
-    // Set saving state
-    setIsSaving(true);
-
-    if (isAutoSave) {
-      setIsAutoSaving(true);
-    } else {
-      setIsManualSaving(true);
-      setIsAutoSaving(true); // Sử dụng chung hiển thị autosave
-    }
+  // ===== SAVE HANDLERS MOVED =====
+  // Save handlers logic đã được tách ra hook riêng: hooks/useSaveHandlers.ts
 
 
 
-    try {
-      // Clear previous validation errors
-      setValidationError('');
-
-      // 🎯 ĐƠN GIẢN HÓA: Logic chỉ cần cho manual save
-
-      // Validate title for manual save
-
-      // Validate required fields for manual save
-      if (!isAutoSave && !formData.title.trim()) {
-        setValidationError('❌ Tiêu đề không được để trống');
-        setIsManualSaving(false);
-        setIsAutoSaving(false);
-        setTimeout(() => setValidationError(''), 5000);
-        return;
-      }
-
-      if (!formData.content.trim()) {
-        setValidationError('❌ Nội dung không được để trống');
-        if (!isAutoSave) setIsManualSaving(false);
-        setIsAutoSaving(false);
-        setTimeout(() => setValidationError(''), 5000);
-        return;
-      }
-
-      // Skip slug validation for autosave
-      if (!isAutoSave) {
-        if (!formData.slug.trim()) {
-          setValidationError('❌ Slug không được để trống');
-          setIsManualSaving(false);
-          setIsAutoSaving(false);
-          setTimeout(() => setValidationError(''), 5000);
-          return;
-        }
-
-        if (slugError) {
-          setValidationError('❌ ' + slugError);
-          setIsManualSaving(false);
-          setIsAutoSaving(false);
-          setTimeout(() => setValidationError(''), 5000);
-          return;
-        }
-      }
-
-
-
-      // 🎯 Prepare articleData cho cả autosave và manual save
-      let articleData: any = null;
-
-      if (isAutoSave && !isEditMode) {
-        // 💾 AUTOSAVE cho bài viết MỚI: Luôn tạo với status = 'draft'
-        articleData = {
-          title: formData.title.trim(),
-          content: formData.content.trim(),
-          excerpt: formData.excerpt.trim(),
-          slug: formData.slug.trim(),
-          status: 'draft', // 🔒 LUÔN DRAFT cho autosave bài mới
-          featured: false, // Default values cho autosave
-          lang: formData.lang,
-          article_type: formData.article_type,
-
-          // SEO fields - basic only
-          meta_title: formData.meta_title.trim(),
-          meta_description: formData.meta_description.trim(),
-          focus_keyword: formData.focus_keyword.trim(),
-          robots_directive: 'index,follow', // Default
-          schema_type: formData.schema_type,
-
-          // Media
-          cover_image: formData.cover_image?.trim() || null,
-          cover_image_alt: formData.cover_image_alt?.trim() || null,
-
-          // No categories/tags for autosave new article
-          categories: [],
-          tags: [],
-
-          // No publishing dates for draft
-          published_at: undefined,
-          scheduled_at: undefined,
-        };
-
-
-
-      } else if (!isAutoSave) {
-        // 🚀 MANUAL SAVE: Áp dụng đầy đủ logic publish
-        let status = formData.is_public ? 'published' : 'draft';
-
-        // Kiểm tra scheduled publishing
-        if (formData.scheduled_at) {
-          const scheduledDate = new Date(formData.scheduled_at);
-          const now = new Date();
-
-          if (scheduledDate > now) {
-            status = 'scheduled';
-          }
-        }
-
-        articleData = {
-          title: formData.title.trim(),
-          content: formData.content.trim(),
-          excerpt: formData.excerpt.trim(),
-          slug: formData.slug.trim(),
-          status,
-          featured: formData.is_featured,
-          lang: formData.lang,
-          article_type: formData.article_type,
-
-          // SEO fields
-          meta_title: formData.meta_title.trim(),
-          meta_description: formData.meta_description.trim(),
-          focus_keyword: formData.focus_keyword.trim(),
-          robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
-          schema_type: formData.schema_type,
-
-          // Media
-          cover_image: formData.cover_image?.trim() || null,
-          cover_image_alt: formData.cover_image_alt?.trim() || null,
-
-          // Category - convert categories array to primary category_id
-          category_id: formData.categories.length > 0 ? formData.categories[0] : undefined,
-
-          // Relations - for junction tables
-          categories: formData.categories,
-          tags: formData.tags,
-
-          // Publishing
-          published_at: status === 'published' ? new Date().toISOString() : undefined,
-          scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : undefined,
-        };
-
-        console.log('🚀 MANUAL SAVE: Full logic, status:', status);
-      }
-
-
-
-      let data: any, error: any;
-
-      if (isEditMode && currentArticleId) {
-        if (isAutoSave) {
-          // 💾 AUTOSAVE cho bài viết ĐÃ CÓ: Chỉ lưu content fields
-          if (!currentUserId) {
-            throw new Error('User ID required for autosave');
-          }
-          const result = await ArticlesService.autosaveContent(currentArticleId, {
-            // Core content
-            title: formData.title.trim(),
-            content: formData.content.trim(),
-            excerpt: formData.excerpt.trim(),
-            slug: formData.slug.trim(),
-
-            // SEO fields
-            meta_title: formData.meta_title.trim(),
-            meta_description: formData.meta_description.trim(),
-            focus_keyword: formData.focus_keyword.trim(),
-
-            // Media
-            cover_image: formData.cover_image?.trim() || null,
-            cover_image_alt: formData.cover_image_alt?.trim() || null,
-
-            // Settings
-            lang: formData.lang,
-            article_type: formData.article_type,
-            status: 'draft', // Autosave luôn giữ draft
-            featured: formData.is_featured,
-            category_id: formData.categories.length > 0 ? formData.categories[0] : null,
-            schema_type: formData.schema_type,
-            robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
-
-            // Publishing
-            scheduled_at: formData.scheduled_at || null
-          }, currentUserId);
-          data = result.data;
-          error = result.error;
-        } else {
-          // 🚀 MANUAL SAVE cho bài viết ĐÃ CÓ: Full update
-          const result = await ArticlesService.updateArticle(
-            currentArticleId,
-            articleData,
-            formData.author_id.trim() || null
-          );
-          data = result.data;
-          error = result.error;
-        }
-      } else {
-        // 📝 Bài viết MỚI (cả autosave và manual save)
-        const result = await ArticlesService.createArticle(
-          articleData,
-          formData.author_id.trim() || null,
-          isAutoSave // Pass autosave flag for validation
-        );
-        data = result.data;
-        error = result.error;
-
-        // 🔄 Sau khi tạo thành công với autosave, redirect to edit mode
-        if (!error && data && isAutoSave) {
-
-          // Redirect to edit page
-          setTimeout(() => {
-            window.location.href = `/admin/articles/edit?id=${data.id}`;
-          }, 100);
-        }
-      }
-
-      if (error) {
-        setValidationError('❌ ' + (error.message || 'Có lỗi xảy ra khi lưu'));
-        if (!isAutoSave) {
-          setIsManualSaving(false);
-        }
-        setIsAutoSaving(false); // Tắt hiển thị chung khi có lỗi
-        setTimeout(() => setValidationError(''), 5000);
-        return;
-      }
-
-      if (data) {
-
-        // Image cleanup removed - handled by media management system
-        if (isEditMode && originalContent && formData.content !== originalContent) {
-          // Update original content for next comparison
-          setOriginalContent(formData.content);
-        }
-
-        // Update save state
-        setHasUnsavedChanges(false);
-        setLastSaved(new Date());
-
-        // Clear caches để cập nhật frontend và backend ngay lập tức
-        BlogService.clearCache();
-
-        // Clear article edit cache to ensure fresh data on reload
-        if (typeof ArticlesService.clearCachePattern === 'function') {
-          ArticlesService.clearCachePattern(`article:edit:${data.id}`);
-        }
-
-        // Force clear browser cache for blog pages
-        if ('caches' in window) {
-          caches.keys().then(cacheNames => {
-            cacheNames.forEach(cacheName => {
-              if (cacheName.includes('blog') || cacheName.includes('article')) {
-                caches.delete(cacheName).catch(() => {});
-              }
-            });
-          }).catch(() => {});
-        }
-
-        // Call onSave callback if provided
-        if (onSave) {
-          onSave(data);
-        }
-
-
-
-        // Redirect logic
-        if (!isEditMode) {
-          // Redirect to edit page after successful creation
-          setTimeout(() => {
-            window.location.href = `/admin/articles/edit?id=${data.id}`;
-          }, 1500);
-        }
-        // For edit mode, no action needed - lastSaved indicator will show
-      }
-
-    } catch (error) {
-      setValidationError('❌ Có lỗi xảy ra khi lưu bài viết');
-      setTimeout(() => setValidationError(''), 5000);
-    } finally {
-      // Reset saving state to allow future saves
-      setIsSaving(false);
-
-      if (isAutoSave) {
-        setIsAutoSaving(false);
-      } else {
-        setIsManualSaving(false);
-        setIsAutoSaving(false); // Tắt hiển thị chung
-      }
-    }
-  };
 
 
 
   // Toggle sidebar dropdown sections
   const toggleSidebarDropdown = (section: keyof typeof sidebarDropdowns) => {
-    setSidebarDropdowns(prev => {
+    setSidebarDropdowns((prev: any) => {
       const newState = { ...prev, [section]: !prev[section] };
       // Persist to localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem(`article-editor-dropdown-${section}`, newState[section].toString());
+        localStorage.setItem(`article-editor-dropdown-${String(section)}`, newState[section].toString());
       }
       return newState;
     });
   };
 
-  // OPTIMIZED: SEO analysis với debouncing để tránh re-calculate liên tục
-  const [debouncedFormData, setDebouncedFormData] = useState(formData);
-
-  // Debounce formData changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedFormData(formData);
-    }, 500); // 500ms debounce
-
-    return () => clearTimeout(timer);
-  }, [formData.title, formData.content, formData.meta_description, formData.slug, formData.focus_keyword]);
-
-  // SEO calculations chỉ chạy khi debouncedFormData thay đổi
-  const seoAnalysis = useMemo(() => {
-    const wordCount = debouncedFormData.content.split(' ').filter(word => word.length > 0).length;
-    const readingTime = Math.ceil(wordCount / 200);
-
-    // SEO Score calculation
-    let score = 0;
-    const checks = [];
-
-    // Title check
-    const titleLength = debouncedFormData.title.length;
-    if (titleLength >= 10 && titleLength <= 60) {
-      score += 20;
-      checks.push({ name: 'Tiêu đề', status: 'good', message: 'Độ dài tối ưu (10-60 ký tự)' });
-    } else {
-      checks.push({ name: 'Tiêu đề', status: 'bad', message: 'Nên từ 10-60 ký tự' });
-    }
-
-    // Content check
-    if (wordCount >= 300) {
-      score += 25;
-      checks.push({ name: 'Nội dung', status: 'good', message: `${wordCount} từ - Đủ dài` });
-    } else {
-      checks.push({ name: 'Nội dung', status: 'warning', message: `${wordCount} từ - Nên có ít nhất 300 từ` });
-    }
-
-    // Meta description check
-    const metaLength = debouncedFormData.meta_description.length;
-    if (metaLength >= 120 && metaLength <= 160) {
-      score += 20;
-      checks.push({ name: 'Meta description', status: 'good', message: 'Độ dài tối ưu (120-160 ký tự)' });
-    } else if (metaLength > 0) {
-      checks.push({ name: 'Meta description', status: 'warning', message: `${metaLength} ký tự - Nên từ 120-160` });
-    } else {
-      checks.push({ name: 'Meta description', status: 'bad', message: 'Chưa có meta description' });
-    }
-
-    // Slug check
-    if (debouncedFormData.slug.length > 0) {
-      score += 15;
-      checks.push({ name: 'URL slug', status: 'good', message: 'Có URL slug' });
-    } else {
-      checks.push({ name: 'URL slug', status: 'bad', message: 'Cần có URL slug' });
-    }
-
-    // Focus keyword check
-    if (debouncedFormData.focus_keyword) {
-      const keyword = debouncedFormData.focus_keyword.toLowerCase();
-      const titleHasKeyword = debouncedFormData.title.toLowerCase().includes(keyword);
-      const contentHasKeyword = debouncedFormData.content.toLowerCase().includes(keyword);
-
-      if (titleHasKeyword && contentHasKeyword) {
-        score += 20;
-        checks.push({ name: 'Từ khóa', status: 'good', message: 'Xuất hiện trong title và content' });
-      } else if (titleHasKeyword || contentHasKeyword) {
-        score += 10;
-        checks.push({ name: 'Từ khóa', status: 'warning', message: 'Cần xuất hiện trong cả title và content' });
-      } else {
-        checks.push({ name: 'Từ khóa', status: 'bad', message: 'Từ khóa không xuất hiện' });
-      }
-    } else {
-      checks.push({ name: 'Từ khóa', status: 'bad', message: 'Chưa có từ khóa chính' });
-    }
-    
-    return { wordCount, readingTime, score, checks };
-  }, [formData]);
+  // ===== SEO ANALYSIS MOVED =====
+  // SEO analysis logic đã được tách ra hook riêng: hooks/useSeoAnalysis.ts
 
   // Loading state removed - show content immediately
 
@@ -1300,798 +374,78 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   }
 
   return (
-    <div className="article-editor">
-      {/* Main Content - Responsive 2 Column Layout */}
-      <div className="w-full">
-        <div className="article-editor-main">
+    <ArticleEditorLayout>
+      <MainContent>
 
-          {/* Left Column - Main Content */}
-          <div className="space-y-6">
+            {/* Title Section - Tách thành component riêng */}
+            <TitleSection
+              formData={formData}
+              shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+              showSlugEdit={showSlugEdit}
+              setShowSlugEdit={setShowSlugEdit}
+              slugError={slugError}
+              loadingState={loadingState}
+              handleTitleChange={handleTitleChange}
+              handleSlugChange={handleSlugChange}
+              validateSlug={validateSlug}
+              setFormData={setFormData}
+            />
 
-            {/* Title Section - Static Box */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Header với màu nền nhẹ nhàng */}
-              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
-                <div className="flex items-center gap-3">
-                  {/* Icon với gradient đẹp */}
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 16h4M6 3v18l4-4h8a2 2 0 002-2V5a2 2 0 00-2-2H6z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Tiêu đề bài viết</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Tạo tiêu đề hấp dẫn và thu hút</p>
-                  </div>
-                </div>
-              </div>
+            {/* Content Editor Section - Tách thành component riêng */}
+            <ContentEditorSection
+              formData={formData}
+              shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+              setFormData={setFormData}
+              TiptapEditor={TiptapEditor}
+            />
 
-              {/* Content Area */}
-              <div className="p-6">
-                <div className="space-y-4">
-                  {/* Title - Dynamic Content */}
-                  <div>
-                    {shouldShowArticleSkeleton ? (
-                      <TitleSkeleton />
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Nhập tiêu đề
-                          </label>
-                          {formData.title && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {formData.title.length}/100
-                            </span>
-                          )}
-                        </div>
-                        <input
-                          type="text"
-                          value={formData.title}
-                          onChange={(e) => handleTitleChange(e.target.value)}
-                          placeholder="Nhập tiêu đề hấp dẫn cho bài viết..."
-                          className="w-full px-4 py-3 text-xl font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
-                          maxLength={100}
-                        />
-                      </>
-                    )}
-                  </div>
+            {/* Excerpt Section - Tách thành component riêng */}
+            <ExcerptSection
+              formData={formData}
+              shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+              setFormData={setFormData}
+            />
 
-                {/* URL Slug - Always visible inline edit */}
-                <div className="mt-2">
-                  {shouldShowArticleSkeleton ? (
-                    /* Slug Skeleton */
-                    <div className="flex items-center gap-2">
-                      <FieldSkeleton className="h-4 w-8" />
-                      <FieldSkeleton className="h-4 w-24" />
-                      <FieldSkeleton className="h-4 w-32" />
-                    </div>
-                  ) : (
-                    <div className="group flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">URL:</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">yoursite.com/</span>
+            {/* SEO Settings Section - Tách thành component riêng */}
+            <SEOSection
+              formData={formData}
+              shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+              seoAnalysis={seoAnalysis}
+              setFormData={setFormData}
+              getSeoScoreColor={getSeoScoreColor}
+              getSeoScoreGradient={getSeoScoreGradient}
+              getSeoScoreBadge={getSeoScoreBadge}
+              getSeoCheckColor={getSeoCheckColor}
+            />
 
-                      {showSlugEdit ? (
-                      /* Inline Edit Mode */
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="text"
-                          value={formData.slug}
-                          onChange={(e) => handleSlugChange(e.target.value)}
-                          onBlur={() => setShowSlugEdit(false)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              setShowSlugEdit(false);
-                            }
-                            if (e.key === 'Escape') {
-                              setShowSlugEdit(false);
-                            }
-                          }}
-                          placeholder="nhap-slug-tai-day"
-                          autoFocus
-                          className={`px-2 py-1 text-sm font-mono bg-white dark:bg-gray-800 border rounded ${
-                            slugError ? 'border-red-500 dark:border-red-400 text-red-600 dark:text-red-400' : 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-                          style={{ minWidth: `${Math.max((formData.slug || 'nhap-slug-tai-day').length * 8, 120)}px` }}
-                        />
-                        {loadingState.isValidatingSlug && (
-                          <svg className="w-4 h-4 animate-spin text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        )}
-                        <button
-                          onMouseDown={(e) => {
-                            e.preventDefault(); // Ngăn input bị blur
-                            if (!formData.title.trim()) {
-                              alert('Vui lòng nhập tiêu đề trước');
-                              return;
-                            }
-                            const newSlug = generateSlug(formData.title);
-                            setFormData(prev => ({ ...prev, slug: newSlug }));
-                            if (newSlug) {
-                              validateSlug(newSlug);
-                            }
-                          }}
-                          className="p-1 text-blue-600 hover:text-blue-700 dark:hover:text-blue-400"
-                          title="Tạo lại từ tiêu đề"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      /* Display Mode */
-                      <div className="flex items-center gap-1">
-                        <span
-                          className={`text-sm font-mono cursor-pointer hover:underline ${
-                            formData.slug
-                              ? 'text-blue-600 dark:text-blue-400'
-                              : 'text-gray-400 dark:text-gray-500 italic'
-                          }`}
-                          onClick={() => setShowSlugEdit(true)}
-                          title="Click để chỉnh sửa"
-                        >
-                          {formData.slug || 'chưa-có-slug'}
-                        </span>
-                        <button
-                          onClick={() => setShowSlugEdit(true)}
-                          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Chỉnh sửa slug"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
 
-                      {slugError && (
-                        <span className="text-xs text-red-600 dark:text-red-400 ml-2">
-                          • {slugError}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Content Editor Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Header với màu nền nhẹ nhàng */}
-              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* Icon với gradient đẹp */}
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nội dung bài viết</h2>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Soạn thảo nội dung chính của bài viết</p>
-                    </div>
-                  </div>
-                  {/* Dynamic Stats - Only show when data loaded */}
-                  {!shouldShowArticleSkeleton && formData.content && (
-                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded-md">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span>{formData.content.split(' ').filter(word => word.length > 0).length} từ</span>
-                      </div>
-                      <div className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded-md">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>~{Math.ceil(formData.content.split(' ').filter(word => word.length > 0).length / 200)} phút đọc</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+      </MainContent>
 
-              {/* Content Editor Area */}
-              <div className="p-6">
-                <div className="article-content-editor">
-                  {/* PROGRESSIVE LOADING: Show skeleton for editor when loading article data */}
-                  {shouldShowArticleSkeleton ? (
-                    <EditorSkeleton />
-                  ) : (
-                    <Suspense fallback={<EditorSkeleton />}>
-                      <TiptapEditor
-                        value={formData.content}
-                        onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                        placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                        height="1000px"
-                        flexHeight={false}
-                        className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                      />
-                    </Suspense>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Excerpt Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Header với màu nền nhẹ nhàng */}
-              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* Icon với gradient đẹp */}
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tóm tắt bài viết</h2>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Mô tả ngắn gọn hiển thị trong danh sách</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded-md">
-                      {formData.excerpt.length}/200
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="p-6">
-                {/* PROGRESSIVE LOADING: Show skeleton for excerpt when loading article data */}
-                {shouldShowArticleSkeleton ? (
-                  <ExcerptSkeleton />
-                ) : (
-                  <div className="space-y-3">
-                    <textarea
-                      value={formData.excerpt}
-                      onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                      placeholder="Viết tóm tắt ngắn gọn và hấp dẫn để thu hút độc giả..."
-                      rows={4}
-                      maxLength={200}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Tóm tắt tốt sẽ hiển thị trong kết quả tìm kiếm và mạng xã hội
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* SEO Settings Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Header với màu nền nhẹ nhàng */}
-              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
-                <div className="flex items-center gap-3">
-                  {/* Icon với gradient đẹp */}
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">SEO & Tối ưu hóa</h2>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Cải thiện khả năng tìm kiếm và hiển thị</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="p-6">
-
-              {/* PROGRESSIVE LOADING: Show skeleton for SEO when loading article data */}
-              {shouldShowArticleSkeleton ? (
-                <SEOSkeleton />
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left side - SEO Score & Analysis */}
-                <div className="space-y-6">
-                  {/* SEO Score Card */}
-                  <div className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Điểm SEO</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Đánh giá tổng thể</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`text-3xl font-bold ${
-                            seoAnalysis.score >= 80 ? 'text-green-600 dark:text-green-400' :
-                            seoAnalysis.score >= 60 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
-                          }`}>
-                            {seoAnalysis.score}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">/100</div>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
-                        <div
-                          className={`h-full rounded-full ${
-                            seoAnalysis.score >= 80 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                            seoAnalysis.score >= 60 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-red-500 to-pink-500'
-                          }`}
-                          style={{ width: `${seoAnalysis.score}%` }}
-                        ></div>
-                      </div>
-
-                      {/* Status Badge */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Trạng thái tối ưu</span>
-                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          seoAnalysis.score >= 80 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                          seoAnalysis.score >= 60 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                        }`}>
-                          {seoAnalysis.score >= 80 ? '🎯 Xuất sắc' :
-                           seoAnalysis.score >= 60 ? '⚡ Tốt' : '🔧 Cần cải thiện'}
-                        </div>
-                      </div>
-                  </div>
-
-                  {/* SEO Checklist */}
-                  <div className="bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-800 dark:to-gray-800/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Checklist SEO</h4>
-                    </div>
-                    <div className="space-y-3">
-                      {seoAnalysis.checks.map((check, index) => (
-                        <div key={index} className="flex items-center gap-3 p-3 rounded-xl">
-                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                            check.status === 'good' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                            check.status === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-red-500 to-pink-500'
-                          }`}></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{check.name}</span>
-                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                check.status === 'good' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                                check.status === 'warning' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                              }`}>
-                                {check.message}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right side - SEO Fields */}
-                <div className="space-y-6">
-                  {/* Focus Keyword */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
-                      Từ khóa chính
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.focus_keyword}
-                      onChange={(e) => setFormData(prev => ({ ...prev, focus_keyword: e.target.value }))}
-                      placeholder="Nhập từ khóa chính cho bài viết..."
-                      className="w-full px-4 py-3.5 border rounded-xl
-                        bg-white dark:bg-gray-800/50 backdrop-blur-sm
-                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
-                        focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
-                        border-gray-200 dark:border-gray-700"
-                    />
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Từ khóa chính giúp tối ưu hóa nội dung cho search engine
-                    </div>
-                  </div>
-
-                  {/* Meta Title */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-                      Meta Title
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        formData.meta_title.length >= 50 && formData.meta_title.length <= 60
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : formData.meta_title.length > 60
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {formData.meta_title.length}/60
-                      </span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={formData.meta_title}
-                        onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                        placeholder="Tiêu đề hiển thị trên Google..."
-                        maxLength={60}
-                        className="w-full px-4 py-3.5 pr-12 border rounded-xl
-                          bg-white dark:bg-gray-800/50 backdrop-blur-sm
-                          text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
-                          focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500
-                          border-gray-200 dark:border-gray-700"
-                      />
-                      <button
-                        onClick={() => {
-                          if (!formData.title.trim()) {
-                            alert('Vui lòng nhập tiêu đề bài viết trước');
-                            return;
-                          }
-                          const autoMetaTitle = formData.title.length <= 60
-                            ? formData.title
-                            : formData.title.substring(0, 60);
-                          setFormData(prev => ({ ...prev, meta_title: autoMetaTitle }));
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded transition-all duration-200"
-                        title="Tạo meta title từ tiêu đề bài viết"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Tiêu đề hiển thị trên kết quả tìm kiếm Google
-                    </div>
-                  </div>
-
-                  {/* Meta Description */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500"></div>
-                      Meta Description
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        formData.meta_description.length >= 120 && formData.meta_description.length <= 160
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : formData.meta_description.length > 160
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {formData.meta_description.length}/160
-                      </span>
-                    </label>
-                    <textarea
-                      value={formData.meta_description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                      placeholder="Mô tả ngắn gọn hiển thị trên Google..."
-                      maxLength={160}
-                      rows={4}
-                      className="w-full px-4 py-3.5 border rounded-xl resize-none
-                        bg-white dark:bg-gray-800/50 backdrop-blur-sm
-                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
-                        focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500
-                        border-gray-200 dark:border-gray-700"
-                    />
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Mô tả ngắn gọn hiển thị trên kết quả tìm kiếm Google
-                    </div>
-                  </div>
-                </div>
-                </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right Column - Sidebar Settings - Static Structure */}
-          <div className="article-sidebar-sticky space-y-6">
+      <Sidebar>
 
             {/* Publish Box */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" style={{ overflow: 'visible' }}>
-              {/* Header với màu nền nhẹ nhàng */}
-              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* Icon với gradient đẹp */}
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Xuất bản</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Quản lý trạng thái và thời gian xuất bản</p>
-                    </div>
-                  </div>
-
-                  {/* Preview Button - Only show when published and has slug */}
-                  {formData.status === 'published' && formData.slug && (
-                    <button
-                      onClick={() => {
-                        const previewUrl = `/blog/${formData.slug}`;
-                        window.open(previewUrl, '_blank');
-                      }}
-                      className="px-3 py-1.5 text-sm bg-white/60 dark:bg-gray-800/60 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg flex items-center gap-1.5 transition-colors"
-                      title="Xem bài viết đã xuất bản"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      Xem thử
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="p-6">
-                {shouldShowArticleSkeleton ? (
-                  /* Publish Box Skeleton */
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <FieldSkeleton className="h-4 w-24 mb-1" />
-                        <FieldSkeleton className="h-3 w-32" />
-                      </div>
-                      <FieldSkeleton className="w-12 h-6 rounded-full" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <FieldSkeleton className="h-4 w-20 mb-1" />
-                        <FieldSkeleton className="h-3 w-28" />
-                      </div>
-                      <FieldSkeleton className="w-12 h-6 rounded-full" />
-                    </div>
-                    <FieldSkeleton className="h-10 w-full rounded-lg" />
-                    <FieldSkeleton className="h-10 w-full rounded-lg" />
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <FieldSkeleton className="h-12 w-full rounded-lg" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Trạng thái xuất bản</span>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formData.scheduled_at && new Date(formData.scheduled_at) > new Date()
-                          ? 'Đã lên lịch'
-                          : formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                        formData.is_public ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                          formData.is_public ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bài nổi bật</span>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                        formData.is_featured ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-600'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                          formData.is_featured ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Hiển thị thông tin ngày xuất bản (read-only) */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Thông tin xuất bản
-                    </label>
-
-                    {formData.status === 'published' && formData.published_date ? (
-                      <div className="text-sm text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg border border-green-200 dark:border-green-800">
-                        Đã xuất bản: {new Date(formData.published_date).toLocaleString('vi-VN')}
-                      </div>
-                    ) : formData.scheduled_at && new Date(formData.scheduled_at) > new Date() ? (
-                      <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
-                        ⏰ Sẽ xuất bản: {new Date(formData.scheduled_at).toLocaleString('vi-VN')}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
-                        📝 Chưa xuất bản
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <DateTimePicker
-                          label="Hẹn ngày giờ đăng bài"
-                          value={formData.scheduled_at}
-                          onChange={(value) => {
-                            // Validation: chỉ cho phép chọn ngày trong tương lai
-                            if (value) {
-                              const selectedDate = new Date(value);
-                              const now = new Date();
-
-                              if (selectedDate <= now) {
-                                alert('⚠️ Vui lòng chọn thời gian trong tương lai để hẹn lịch đăng bài');
-                                return;
-                              }
-                            }
-
-                            setFormData(prev => ({ ...prev, scheduled_at: value }));
-                          }}
-                          disabled={loadingState.isLoading}
-                        />
-                      </div>
-
-                      {/* Clear scheduled date button */}
-                      {formData.scheduled_at && (
-                        <button
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, scheduled_at: '' }));
-                          }}
-                          className="mt-6 p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all duration-200"
-                          title="Hủy lịch hẹn"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Helper text và status cho scheduled publishing */}
-                    <div className="space-y-1">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        💡 Tự động xuất bản vào thời gian đã chọn
-                      </div>
-
-                      {formData.scheduled_at && (
-                        <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
-                          📅 Đã lên lịch: {new Date(formData.scheduled_at).toLocaleString('vi-VN')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                {/* Save Status & Actions - Di chuyển từ header */}
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <PublishBox
+              formData={formData}
+              setFormData={setFormData}
+              saveStates={saveStates}
+              lastSaved={lastSaved}
+              hasUnsavedChanges={hasUnsavedChanges}
+              validationError={validationError}
+              handleManualSave={handleManualSave}
+              loadingState={loadingState}
+              shouldShowSkeleton={shouldShowArticleSkeleton}
+            />
 
 
-                  {/* Save Status Indicators */}
-                  <div className="space-y-3 mb-4">
-                    {validationError && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg border border-red-200 dark:border-red-800/30">
-                        <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-sm font-medium text-red-700 dark:text-red-300">
-                          {validationError}
-                        </span>
-                      </div>
-                    )}
-
-                    {isAutoSaving && (
-                      <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
-                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                          {isManualSaving ? 'Đang lưu...' : 'Đang tự động lưu...'}
-                        </span>
-                        <div className="w-20 h-1 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-75 ease-out rounded-full"
-                            style={{ width: `${saveProgress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-
-                    {lastSaved && !hasUnsavedChanges && !isAutoSaving && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-100 dark:border-green-800/30">
-                        <div className="relative">
-                          <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <div className="absolute inset-0 w-4 h-4 rounded-full opacity-20 animate-ping bg-green-400"></div>
-                        </div>
-                        <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                          Đã lưu {lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Save Button */}
-                  <button
-                    onClick={() => handleSave('save')}
-                    disabled={isAutoSaving}
-                    className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 font-medium ${
-                      isAutoSaving
-                        ? 'bg-blue-500 text-white cursor-not-allowed opacity-75'
-                        : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
-                    }`}
-                    title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
-                  </button>
-                  </div>
-
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Categories Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Header với màu nền nhẹ nhàng */}
-              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
-                <div className="flex items-center gap-3">
-                  {/* Icon với gradient đẹp */}
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Danh mục</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Phân loại nội dung bài viết</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="p-6">
-                {shouldShowCategoriesSkeleton ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      {Array.from({ length: 6 }, (_, i) => (
-                        <FieldSkeleton key={i} className="h-8 rounded-lg" />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <CategorySelector
-                    value={formData.categories}
-                    onChange={(categories) => setFormData(prev => ({ ...prev, categories }))}
-                    disabled={loadingState.isLoading}
-                  />
-                )}
-              </div>
-            </div>
+            <CategoriesSection
+              formData={formData}
+              setFormData={setFormData}
+              loadingState={loadingState}
+              shouldShowSkeleton={shouldShowCategoriesSkeleton}
+            />
 
             {/* Tags Section */}
             <DropdownSection
@@ -2105,17 +459,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               onToggle={() => toggleSidebarDropdown('tags')}
             >
               {shouldShowTagsSkeleton ? (
-                <div className="space-y-3">
-                  {/* Tag Input Skeleton */}
-                  <FieldSkeleton className="h-10 w-full rounded-lg" />
-                  <FieldSkeleton className="h-3 w-40" />
-                  {/* Existing Tags Skeleton */}
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {Array.from({ length: 3 }, (_, i) => (
-                      <FieldSkeleton key={i} className="h-6 w-16 rounded" />
-                    ))}
-                  </div>
-                </div>
+                <TagsSkeleton />
               ) : (
                 <TagsInput
                   value={formData.tags}
@@ -2184,9 +528,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
               {/* Author Selection - Progressive Loading */}
               {shouldShowAuthorsSkeleton ? (
-                <div className="space-y-3">
-                  <FieldSkeleton className="h-10 w-full rounded-lg" />
-                </div>
+                <AuthorsSkeleton />
               ) : (
                 <AuthorSelector
                   value={formData.author_id}
@@ -2287,197 +629,16 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               </div>
             </DropdownSection>
 
-            {/* Schema Type Selector Section - Compact Design */}
-            {shouldShowSEOSkeleton ? (
-              <SEOSkeleton />
-            ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                {/* Header với màu nền nhẹ nhàng */}
-                <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {/* Icon với gradient đẹp */}
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Schema Type</h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Tối ưu hiển thị trên Google Search</p>
-                      </div>
-                    </div>
+            {/* Schema Type Selector Section - Tách thành component riêng */}
+            <SchemaTypeSection
+              formData={formData}
+              shouldShowSEOSkeleton={shouldShowSEOSkeleton}
+              loadingState={loadingState}
+              setFormData={setFormData}
+              setHasUnsavedChanges={setHasUnsavedChanges}
+            />
 
-                    {/* Current Selection Display */}
-                    <div className="flex items-center gap-2 bg-white/60 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg">
-                      <span className="text-lg">
-                        {formData.schema_type === 'Article' ? '📄' :
-                         formData.schema_type === 'NewsArticle' ? '📰' :
-                         formData.schema_type === 'BlogPosting' ? '✍️' :
-                         formData.schema_type === 'TechArticle' ? '⚙️' :
-                         formData.schema_type === 'HowTo' ? '📋' :
-                         formData.schema_type === 'Recipe' ? '👨‍🍳' :
-                         formData.schema_type === 'Review' ? '⭐' :
-                         formData.schema_type === 'FAQPage' ? '❓' : '📄'}
-                      </span>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {formData.schema_type || 'Article'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Content Area */}
-                <div className="p-6">
-
-                {/* Compact Schema Type Selector */}
-                <div className="space-y-3">
-                  {/* Primary Options - Most Common */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {[
-                      { type: 'Article', name: 'Bài viết', icon: '📄', recommended: true },
-                      { type: 'HowTo', name: 'Hướng dẫn', icon: '📋' },
-                      { type: 'Review', name: 'Đánh giá', icon: '⭐' },
-                      { type: 'NewsArticle', name: 'Tin tức', icon: '📰' }
-                    ].map((schema) => {
-                      const isSelected = formData.schema_type === schema.type;
-                      return (
-                        <button
-                          key={schema.type}
-                          onClick={() => {
-                            // Batch state updates to prevent multiple re-renders
-                            startTransition(() => {
-                              setFormData(prev => ({ ...prev, schema_type: schema.type }));
-                              setHasUnsavedChanges(true);
-                            });
-                          }}
-                          disabled={loadingState.isLoading}
-                          className={`
-                            relative p-3 rounded-lg border transition-all duration-200 text-center group
-                            ${isSelected
-                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
-                              : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-600'
-                            }
-                            ${loadingState.isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
-                          `}
-                        >
-                          {schema.recommended && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full"></div>
-                          )}
-
-                          <div className="text-lg mb-1">{schema.icon}</div>
-                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100">{schema.name}</div>
-
-                          {isSelected && (
-                            <div className="absolute -top-1 -left-1">
-                              <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
-                                <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Secondary Options - Expandable */}
-                  <details className="group">
-                    <summary className="flex items-center justify-center gap-2 p-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <span>Thêm loại khác</span>
-                      <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </summary>
-
-                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[
-                        { type: 'BlogPosting', name: 'Blog Post', icon: '✍️' },
-                        { type: 'TechArticle', name: 'Kỹ thuật', icon: '⚙️' },
-                        { type: 'Recipe', name: 'Công thức', icon: '👨‍🍳' },
-                        { type: 'FAQPage', name: 'FAQ', icon: '❓' }
-                      ].map((schema) => {
-                        const isSelected = formData.schema_type === schema.type;
-                        return (
-                          <button
-                            key={schema.type}
-                            onClick={() => {
-                              // Batch state updates to prevent multiple re-renders
-                              startTransition(() => {
-                                setFormData(prev => ({ ...prev, schema_type: schema.type }));
-                                setHasUnsavedChanges(true);
-                              });
-                            }}
-                            disabled={loadingState.isLoading}
-                            className={`
-                              relative p-3 rounded-lg border transition-all duration-200 text-center group
-                              ${isSelected
-                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
-                                : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-600'
-                              }
-                              ${loadingState.isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
-                            `}
-                          >
-                            <div className="text-lg mb-1">{schema.icon}</div>
-                            <div className="text-xs font-medium text-gray-900 dark:text-gray-100">{schema.name}</div>
-
-                            {isSelected && (
-                              <div className="absolute -top-1 -left-1">
-                                <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
-                                  <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </details>
-                </div>
-
-                {/* Compact Schema Info */}
-                <div className="mt-4 flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
-                        Schema: {formData.schema_type || 'Article'}
-                      </div>
-                      <div className="text-xs text-emerald-600 dark:text-emerald-400">
-                        {formData.schema_type === 'HowTo' ? 'Rich snippets với từng bước' :
-                         formData.schema_type === 'Review' ? 'Hiển thị rating stars' :
-                         formData.schema_type === 'Recipe' ? 'Thời gian nấu + nutrition' :
-                         formData.schema_type === 'NewsArticle' ? 'Xuất hiện Google News' :
-                         formData.schema_type === 'FAQPage' ? 'Dropdown Q&A trên Google' :
-                         'Tối ưu hiển thị cơ bản'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Benefits */}
-                  <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    <span>+CTR</span>
-                  </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
-      </div>
-
-
-    </div>
+      </Sidebar>
+    </ArticleEditorLayout>
   );
 }
