@@ -5,6 +5,7 @@
 
 
 import { ArticleQueries } from './queries';
+import { supabase, supabaseAdmin } from '../../config/supabase';
 import type {
   Article,
   ArticleStats,
@@ -174,6 +175,7 @@ export class ArticlesService {
       status?: string;
       featured?: boolean;
       category_id?: string;
+      author_id?: string; // FIXED: Thêm author_id
       schema_type?: string;
       robots_directive?: string;
 
@@ -183,12 +185,55 @@ export class ArticlesService {
       // Links
       internal_links?: any;
       external_links?: any;
+
+      // Tags - NEW
+      tags?: string[];
     },
     userId: string
   ): Promise<{ data: any | null; error: any }> {
     return serviceWrapper(async () => {
-      // Lưu vào article_drafts với userId
+      // Step 1: Lưu content vào article_drafts
       const result = await ArticleQueries.upsertDraft(articleId, userId, contentData);
+
+      // Step 2: Lưu tags nếu có - SỬ DỤNG LOGIC HIỆN CÓ
+      if (contentData.tags && result.data) {
+        try {
+          console.log(`🔍 DEBUG: Autosave tags for draft ${result.data.id}:`, contentData.tags);
+
+          // Sử dụng processTagsToIds từ RelationshipsUtils
+          const tagIds = await RelationshipsUtils.processTagsToIds(contentData.tags);
+          console.log(`🔍 DEBUG: Processed tag IDs:`, tagIds);
+
+          // Lưu vào article_draft_tags
+          if (tagIds.length > 0) {
+            // Xóa old relationships
+            await supabaseAdmin
+              .from('article_draft_tags')
+              .delete()
+              .eq('article_draft_id', result.data.id);
+
+            // Thêm new relationships
+            const relationships = tagIds.map((tagId, index) => ({
+              article_draft_id: result.data.id,
+              tag_id: tagId,
+              sort_order: index + 1
+            }));
+
+            const { error: insertError } = await supabaseAdmin
+              .from('article_draft_tags')
+              .insert(relationships);
+
+            if (insertError) {
+              console.error('❌ Error inserting draft tags:', insertError);
+            } else {
+              console.log(`🏷️ Saved ${tagIds.length} tags for draft ${result.data.id}`, relationships);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error saving draft tags:', error);
+          // Don't fail the whole autosave if tags fail
+        }
+      }
 
       return result;
     }, 'Autosave failed', true);
@@ -226,8 +271,35 @@ export class ArticlesService {
         ].filter(Boolean));
       }
 
-      // Xóa draft sau khi save thành công
+      // Publish draft tags và xóa draft sau khi save thành công
       if (userId) {
+        try {
+          // Get draft ID trước khi xóa
+          const { data: draftData } = await supabase
+            .from('article_drafts')
+            .select('id')
+            .eq('article_id', articleId)
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .single();
+
+          if (draftData) {
+            // Xóa draft tags sau khi publish - ĐƠN GIẢN
+            try {
+              await supabaseAdmin
+                .from('article_draft_tags')
+                .delete()
+                .eq('article_draft_id', draftData.id);
+
+              console.log(`🗑️ Cleaned up draft tags for article ${articleId}`);
+            } catch (error) {
+              console.error('❌ Error cleaning up draft tags:', error);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error publishing draft tags:', error);
+        }
+
         await ArticleQueries.deleteDraft(articleId, userId);
         console.log(`🗑️ Deleted draft for article ${articleId}`);
       }

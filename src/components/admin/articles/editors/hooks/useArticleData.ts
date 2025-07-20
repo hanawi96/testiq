@@ -93,6 +93,13 @@ export const useArticleData = ({
           }
 
           if (articleResult.data) {
+            // DEBUG: Log article data để kiểm tra tags
+            console.log(`🔍 DEBUG: Article data received:`, {
+              tag_names: articleResult.data.tag_names,
+              tags: articleResult.data.tags,
+              title: articleResult.data.title
+            });
+
             // Populate form with article data
             const articleContent = articleResult.data.content || '';
             const formData = {
@@ -117,8 +124,12 @@ export const useArticleData = ({
                 }
                 return [];
               })(),
-              tags: articleResult.data.tag_names ? [...articleResult.data.tag_names] : 
-                    articleResult.data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [],
+              tags: (() => {
+                const tags = articleResult.data.tag_names ? [...articleResult.data.tag_names] :
+                            articleResult.data.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name) || [];
+                console.log(`🔍 DEBUG: Processed tags for FormData:`, tags);
+                return tags;
+              })(),
               cover_image: articleResult.data.cover_image || '',
               cover_image_alt: articleResult.data.cover_image_alt || '',
               lang: articleResult.data.lang || 'vi',
@@ -133,6 +144,7 @@ export const useArticleData = ({
             };
 
             setFormData(formData);
+            console.log(`🔍 DEBUG: FormData set with tags:`, formData.tags);
 
             // Store original content for image cleanup
             setOriginalContent(articleContent);

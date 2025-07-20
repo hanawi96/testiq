@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`article-editor-sidebar ${className}`}>
+    <div className={`article-editor-sidebar space-y-6 ${className}`}>
       {children}
     </div>
   );

@@ -38,6 +38,7 @@ import SchemaPreview from '../SchemaPreview';
 import { BlogService } from '../../../../services/blog-service';
 import { DropdownSection } from './components/DropdownSection';
 import { EditorSkeleton, ExcerptSkeleton, SidebarSkeleton, CategoriesSkeleton, TagsSkeleton, AuthorsSkeleton } from './components/SkeletonComponents';
+import AutosaveIndicator from './components/AutosaveIndicator';
 import { lazy } from 'react';
 
 // Styles
@@ -298,7 +299,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => {
       clearTimeout(autoSaveTimeout);
     };
-  }, [hasUnsavedChanges, saveStates.isManualSaving, formData.title, formData.slug, formData.content, handleAutoSave]);
+  }, [hasUnsavedChanges, saveStates.isManualSaving, formData.title, formData.slug, formData.content, formData.tags, handleAutoSave]);
 
   // Handle manual slug change with smart filtering
   const handleSlugChange = (slug: string) => {
@@ -376,6 +377,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   return (
     <ArticleEditorLayout>
       <MainContent>
+            {/* Autosave Indicator */}
+            <div className="flex justify-end mb-4">
+              <AutosaveIndicator
+                isAutoSaving={saveStates.isAutoSaving}
+                lastSaved={lastSaved}
+                hasUnsavedChanges={hasUnsavedChanges}
+              />
+            </div>
 
             {/* Title Section - Tách thành component riêng */}
             <TitleSection
@@ -418,7 +427,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               getSeoCheckColor={getSeoCheckColor}
             />
 
-
+n 
 
       </MainContent>
 
@@ -436,8 +445,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               loadingState={loadingState}
               shouldShowSkeleton={shouldShowArticleSkeleton}
             />
-
-
 
             {/* Categories Section */}
             <CategoriesSection

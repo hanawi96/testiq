@@ -122,7 +122,10 @@ export const useSaveHandlers = ({
         robots_directive: cleanedData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
 
         // Publishing
-        scheduled_at: cleanedData.scheduled_at || undefined
+        scheduled_at: cleanedData.scheduled_at || undefined,
+
+        // Tags - NEW: Include tags trong autosave
+        tags: cleanedData.tags || []
       };
 
       let data: any = null;
@@ -136,6 +139,7 @@ export const useSaveHandlers = ({
           // 💾 AUTOSAVE cho bài viết ĐÃ CÓ: Chỉ lưu vào drafts
           const result = await ArticlesService.autosaveContent(currentArticleId, {
             ...articleData,
+            author_id: cleanedData.author_id.trim() || null, // FIXED: Truyền author_id vào autosave
             status: 'draft' // Autosave luôn giữ draft
           }, currentUserId);
           data = result.data;

@@ -166,7 +166,7 @@ export class RelationshipsUtils {
   /**
    * EXTRACTED: Process tag names to IDs (reusable utility)
    */
-  private static async processTagsToIds(tags: string[]): Promise<string[]> {
+  static async processTagsToIds(tags: string[]): Promise<string[]> {
     if (!tags || tags.length === 0) return [];
 
     const cleanTags = tags.map(tag => tag.trim()).filter(Boolean);

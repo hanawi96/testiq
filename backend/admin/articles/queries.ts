@@ -411,6 +411,48 @@ export class ArticleQueries {
         if (draftData) {
           article = draftData;
           console.log(`📝 Loading draft for article ${articleId}`);
+
+          // Load draft tags - ĐƠN GIẢN
+          try {
+            console.log(`🔍 DEBUG: Loading draft tags for draft ID: ${draftData.id}`);
+
+            // First, check if any records exist
+            const { data: rawData, error: rawError } = await supabaseAdmin
+              .from('article_draft_tags')
+              .select('*')
+              .eq('article_draft_id', draftData.id);
+
+            console.log(`🔍 DEBUG: Raw draft tags data:`, { rawData, rawError });
+
+            if (rawData && rawData.length > 0) {
+              // Get tag IDs first
+              const tagIds = rawData.map(item => item.tag_id);
+              console.log(`🔍 DEBUG: Tag IDs from draft:`, tagIds);
+
+              // Then get tag names separately
+              const { data: tagsData, error: tagsError } = await supabaseAdmin
+                .from('tags')
+                .select('name')
+                .in('id', tagIds);
+
+              console.log(`🔍 DEBUG: Tags data:`, { tagsData, tagsError });
+
+              article.tag_names = tagsData?.map(tag => tag.name) || [];
+            } else {
+              article.tag_names = [];
+            }
+
+            console.log(`🔍 DEBUG: Final tag_names:`, article.tag_names);
+
+            if (article.tag_names.length > 0) {
+              console.log(`🏷️ Loaded ${article.tag_names.length} draft tags:`, article.tag_names);
+            } else {
+              console.log(`⚠️ No draft tags found for draft ${draftData.id}`);
+            }
+          } catch (error) {
+            console.error('❌ Error loading draft tags:', error);
+            article.tag_names = [];
+          }
         }
       }
 
@@ -429,7 +471,17 @@ export class ArticleQueries {
 
       // Reuse shared function for relationships
       const [authorsResult, relationshipsResult] = await fetchRelationships([article]);
+
+      // PRESERVE DRAFT TAGS: Lưu draft tags trước khi enrich
+      const draftTagNames = article.tag_names || [];
+
       const enrichedArticles = enrichArticles([article], authorsResult.data || [], relationshipsResult.data || []);
+
+      // RESTORE DRAFT TAGS: Khôi phục draft tags nếu có
+      if (draftTagNames.length > 0) {
+        enrichedArticles[0].tag_names = draftTagNames;
+        console.log(`🔄 Restored draft tags:`, draftTagNames);
+      }
 
       return { data: enrichedArticles[0] || null, error: null };
 
@@ -854,6 +906,7 @@ export class ArticleQueries {
       status?: string;
       featured?: boolean;
       category_id?: string;
+      author_id?: string; // FIXED: Thêm author_id
       schema_type?: string;
       robots_directive?: string;
 
@@ -914,6 +967,7 @@ export class ArticleQueries {
           status: contentData.status || 'draft',
           featured: contentData.featured || false,
           category_id: contentData.category_id || null,
+          author_id: contentData.author_id || null, // FIXED: Lưu author_id vào draft
           schema_type: contentData.schema_type || 'Article',
           robots_directive: contentData.robots_directive || 'index,follow',
 
