@@ -274,7 +274,7 @@ const DropdownSection: React.FC<{
   const colors = getGradientColors();
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden dropdown-section ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 dropdown-section ${className}`} style={{ overflow: 'visible' }}>
       {/* Header với màu nền nhẹ nhàng */}
       <div className={`bg-gradient-to-r ${colors.from} ${colors.via} ${colors.to} ${colors.darkFrom} ${colors.darkVia} ${colors.darkTo} px-6 py-4 border-b ${colors.border}`}>
         <button
@@ -314,7 +314,7 @@ const DropdownSection: React.FC<{
       {/* Content Area */}
       <div
         className={`dropdown-content transition-all duration-300 ease-in-out ${
-          isOpen ? 'max-h-[2000px] opacity-100 open overflow-visible' : 'max-h-0 opacity-0 closed overflow-hidden'
+          isOpen ? 'max-h-[2000px] opacity-100 open' : 'max-h-0 opacity-0 closed'
         }`}
         style={{
           transitionProperty: 'max-height, opacity',
@@ -323,7 +323,13 @@ const DropdownSection: React.FC<{
           overflow: isOpen ? 'visible' : 'hidden'
         }}
       >
-        <div className="p-6" style={{ display: isOpen ? 'block' : 'none' }}>
+        <div
+          className="p-6"
+          style={{
+            display: isOpen ? 'block' : 'none',
+            overflow: 'visible' // Cho phép dropdown hiển thị bên ngoài
+          }}
+        >
           {children}
         </div>
       </div>
@@ -467,7 +473,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     // Separate loading states for different sections
     isLoadingArticleData: isEditMode,
     isLoadingCategories: !isEditMode, // Create mode: categories load instantly
-    isLoadingAuthors: !isEditMode // Create mode: authors load instantly
+    isLoadingAuthors: !isEditMode, // Create mode: authors load instantly
+    isLoadingTags: isEditMode // Edit mode: tags need to load, Create mode: no tags to load
   };
 
   const [loadingState, setLoadingState] = useState(initialLoadingState);
@@ -476,6 +483,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const shouldShowArticleSkeleton = isEditMode && loadingState.isLoadingArticleData;
   const shouldShowCategoriesSkeleton = loadingState.isLoadingCategories;
   const shouldShowAuthorsSkeleton = loadingState.isLoadingAuthors;
+  const shouldShowTagsSkeleton = loadingState.isLoadingTags;
   const shouldShowSEOSkeleton = isEditMode && loadingState.isLoadingArticleData;
 
 
@@ -592,6 +600,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               isLoadingArticleData: false
             }));
 
+            // Add a small delay for tags loading to ensure user sees the skeleton
+            setTimeout(() => {
+              setLoadingState(prev => ({
+                ...prev,
+                isLoadingTags: false // Tags loaded with article data
+              }));
+            }, 800); // 800ms delay to show tags skeleton
+
 
           }
 
@@ -674,7 +690,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               ...prev,
               isDataLoaded: true,
               isLoadingCategories: false,
-              isLoadingAuthors: false
+              isLoadingAuthors: false,
+              isLoadingTags: false // Create mode: no tags to load
             }));
 
             console.log(`✅ CREATE MODE: Loaded ${finalCategories.length} categories, ${finalAuthors.length} authors`);
@@ -760,7 +777,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => {
       clearTimeout(autoSaveTimeout);
     };
-  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug, formData.schema_type]);
+  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug]);
 
   // Use the optimized slug generator from utils (supports Vietnamese diacritics)
 
@@ -1183,7 +1200,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   // Show error state for edit mode
   if (isEditMode && loadError) {
     return (
-      <div className="article-editor bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+      <div className="article-editor flex items-center justify-center min-h-96">
         <div className="max-w-md mx-auto text-center">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1206,96 +1223,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   }
 
   return (
-    <div className="article-editor bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Sticky Header */}
-      <div className="article-editor-header bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 shadow-sm">
-        <div className="w-full p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  {isEditMode ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
-                </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {isEditMode ? 'Cập nhật và quản lý nội dung' : 'Viết và xuất bản nội dung chất lượng'}
-                  {!isEditMode && ' • Tự động lưu khi có tiêu đề và slug'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Save Status & Indicators */}
-              <div className="flex items-center gap-2">
-                {validationError && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg border border-red-200 dark:border-red-800/30 transition-all duration-300 ease-out">
-                    <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-xs font-medium text-red-700 dark:text-red-300 whitespace-nowrap">
-                      {validationError}
-                    </span>
-                  </div>
-                )}
-                {isAutoSaving && (
-                  <div className="flex items-center gap-3 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30 transition-all duration-300 ease-out">
-                    {/* Text */}
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">
-                      {isManualSaving ? 'Đang lưu...' : 'Đang tự động lưu...'}
-                    </span>
-
-                    {/* Progress Bar */}
-                    <div className="w-20 h-1 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-75 ease-out rounded-full"
-                        style={{ width: `${saveProgress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                {lastSaved && !hasUnsavedChanges && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-100 dark:border-green-800/30 transition-all duration-300">
-                    {/* Success checkmark with animation */}
-                    <div className="relative">
-                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {/* Subtle pulse effect */}
-                      <div className="absolute inset-0 w-4 h-4 bg-green-400 rounded-full opacity-20 animate-ping"></div>
-                    </div>
-
-                    <span className="text-xs font-medium text-green-700 dark:text-green-300 whitespace-nowrap">
-                      Đã lưu {lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => handleSave('save')}
-                disabled={isAutoSaving}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 font-medium ${
-                  isAutoSaving
-                    ? 'bg-blue-500 text-white cursor-not-allowed opacity-75'
-                    : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
-                }`}
-                title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="article-editor">
       {/* Main Content - Responsive 2 Column Layout */}
-      <div className="w-full py-4">
+      <div className="w-full">
         <div className="article-editor-main">
 
           {/* Left Column - Main Content */}
@@ -1352,11 +1282,19 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
                 {/* URL Slug - Always visible inline edit */}
                 <div className="mt-2">
-                  <div className="group flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">URL:</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">yoursite.com/</span>
+                  {shouldShowArticleSkeleton ? (
+                    /* Slug Skeleton */
+                    <div className="flex items-center gap-2">
+                      <FieldSkeleton className="h-4 w-8" />
+                      <FieldSkeleton className="h-4 w-24" />
+                      <FieldSkeleton className="h-4 w-32" />
+                    </div>
+                  ) : (
+                    <div className="group flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">URL:</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">yoursite.com/</span>
 
-                    {showSlugEdit ? (
+                      {showSlugEdit ? (
                       /* Inline Edit Mode */
                       <div className="flex items-center gap-1">
                         <input
@@ -1385,10 +1323,17 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                           </svg>
                         )}
                         <button
-                          onClick={() => {
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Ngăn input bị blur
+                            if (!formData.title.trim()) {
+                              alert('Vui lòng nhập tiêu đề trước');
+                              return;
+                            }
                             const newSlug = generateSlug(formData.title);
                             setFormData(prev => ({ ...prev, slug: newSlug }));
-                            validateSlug(newSlug);
+                            if (newSlug) {
+                              validateSlug(newSlug);
+                            }
                           }}
                           className="p-1 text-blue-600 hover:text-blue-700 dark:hover:text-blue-400"
                           title="Tạo lại từ tiêu đề"
@@ -1424,12 +1369,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       </div>
                     )}
 
-                    {slugError && (
-                      <span className="text-xs text-red-600 dark:text-red-400 ml-2">
-                        • {slugError}
-                      </span>
-                    )}
-                  </div>
+                      {slugError && (
+                        <span className="text-xs text-red-600 dark:text-red-400 ml-2">
+                          • {slugError}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 </div>
               </div>
@@ -1695,18 +1641,38 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                         {formData.meta_title.length}/60
                       </span>
                     </label>
-                    <input
-                      type="text"
-                      value={formData.meta_title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                      placeholder="Tiêu đề hiển thị trên Google..."
-                      maxLength={60}
-                      className="w-full px-4 py-3.5 border rounded-xl
-                        bg-white dark:bg-gray-800/50 backdrop-blur-sm
-                        text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
-                        focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500
-                        border-gray-200 dark:border-gray-700"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.meta_title}
+                        onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
+                        placeholder="Tiêu đề hiển thị trên Google..."
+                        maxLength={60}
+                        className="w-full px-4 py-3.5 pr-12 border rounded-xl
+                          bg-white dark:bg-gray-800/50 backdrop-blur-sm
+                          text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
+                          focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500
+                          border-gray-200 dark:border-gray-700"
+                      />
+                      <button
+                        onClick={() => {
+                          if (!formData.title.trim()) {
+                            alert('Vui lòng nhập tiêu đề bài viết trước');
+                            return;
+                          }
+                          const autoMetaTitle = formData.title.length <= 60
+                            ? formData.title
+                            : formData.title.substring(0, 60);
+                          setFormData(prev => ({ ...prev, meta_title: autoMetaTitle }));
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded transition-all duration-200"
+                        title="Tạo meta title từ tiêu đề bài viết"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      </button>
+                    </div>
                     <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1761,7 +1727,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
           <div className="article-sidebar-sticky space-y-6">
 
             {/* Publish Box */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" style={{ overflow: 'visible' }}>
               {/* Header với màu nền nhẹ nhàng */}
               <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
                 <div className="flex items-center justify-between">
@@ -1799,15 +1765,38 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
               {/* Content Area */}
               <div className="p-6">
-                <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chế độ công khai</span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {loadingState.isDataLoaded ? (formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư') : 'Đang tải...'}
-                    </p>
+                {shouldShowArticleSkeleton ? (
+                  /* Publish Box Skeleton */
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <FieldSkeleton className="h-4 w-24 mb-1" />
+                        <FieldSkeleton className="h-3 w-32" />
+                      </div>
+                      <FieldSkeleton className="w-12 h-6 rounded-full" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <FieldSkeleton className="h-4 w-20 mb-1" />
+                        <FieldSkeleton className="h-3 w-28" />
+                      </div>
+                      <FieldSkeleton className="w-12 h-6 rounded-full" />
+                    </div>
+                    <FieldSkeleton className="h-10 w-full rounded-lg" />
+                    <FieldSkeleton className="h-10 w-full rounded-lg" />
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <FieldSkeleton className="h-12 w-full rounded-lg" />
+                    </div>
                   </div>
-                  {loadingState.isDataLoaded ? (
+                ) : (
+                  <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chế độ công khai</span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
+                      </p>
+                    </div>
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
@@ -1820,21 +1809,15 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                         }`}
                       />
                     </button>
-                  ) : (
-                    <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-gray-600">
-                      <div className="inline-block h-4 w-4 rounded-full bg-gray-300 dark:bg-gray-500 translate-x-1"></div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bài nổi bật</span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {loadingState.isDataLoaded ? (formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường') : 'Đang tải...'}
-                    </p>
                   </div>
-                  {loadingState.isDataLoaded ? (
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bài nổi bật</span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formData.is_featured ? 'Được đánh dấu nổi bật' : 'Bài viết thường'}
+                      </p>
+                    </div>
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, is_featured: !prev.is_featured }))}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
@@ -1847,28 +1830,86 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                         }`}
                       />
                     </button>
-                  ) : (
-                    <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-gray-600">
-                      <div className="inline-block h-4 w-4 rounded-full bg-gray-300 dark:bg-gray-500 translate-x-1"></div>
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                <DateTimePicker
-                  label="Ngày xuất bản"
-                  value={formData.published_date}
-                  onChange={(value) => setFormData(prev => ({ ...prev, published_date: value }))}
-                  disabled={loadingState.isLoading}
-                />
+                  <DateTimePicker
+                    label="Ngày xuất bản"
+                    value={formData.published_date}
+                    onChange={(value) => setFormData(prev => ({ ...prev, published_date: value }))}
+                    disabled={loadingState.isLoading}
+                  />
 
-                <DateTimePicker
-                  label="Ngày cập nhật"
-                  value={formData.updated_date}
-                  onChange={(value) => setFormData(prev => ({ ...prev, updated_date: value }))}
-                  disabled={loadingState.isLoading}
-                />
+                  <DateTimePicker
+                    label="Ngày cập nhật"
+                    value={formData.updated_date}
+                    onChange={(value) => setFormData(prev => ({ ...prev, updated_date: value }))}
+                    disabled={loadingState.isLoading}
+                  />
 
-                </div>
+                {/* Save Status & Actions - Di chuyển từ header */}
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  {/* Save Status Indicators */}
+                  <div className="space-y-3 mb-4">
+                    {validationError && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg border border-red-200 dark:border-red-800/30">
+                        <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                          {validationError}
+                        </span>
+                      </div>
+                    )}
+
+                    {isAutoSaving && (
+                      <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                          {isManualSaving ? 'Đang lưu...' : 'Đang tự động lưu...'}
+                        </span>
+                        <div className="w-20 h-1 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-75 ease-out rounded-full"
+                            style={{ width: `${saveProgress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {lastSaved && !hasUnsavedChanges && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-100 dark:border-green-800/30">
+                        <div className="relative">
+                          <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <div className="absolute inset-0 w-4 h-4 bg-green-400 rounded-full opacity-20 animate-ping"></div>
+                        </div>
+                        <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                          Đã lưu {lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={() => handleSave('save')}
+                    disabled={isAutoSaving}
+                    className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 font-medium ${
+                      isAutoSaving
+                        ? 'bg-blue-500 text-white cursor-not-allowed opacity-75'
+                        : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
+                    }`}
+                    title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
+                  </button>
+                  </div>
+
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1921,14 +1962,27 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               isOpen={sidebarDropdowns.tags}
               onToggle={() => toggleSidebarDropdown('tags')}
             >
-
-              <TagsInput
-                value={formData.tags}
-                onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
-                placeholder="Thêm tags cho bài viết..."
-                maxTags={20}
-                disabled={loadingState.isLoading}
-              />
+              {shouldShowTagsSkeleton ? (
+                <div className="space-y-3">
+                  {/* Tag Input Skeleton */}
+                  <FieldSkeleton className="h-10 w-full rounded-lg" />
+                  <FieldSkeleton className="h-3 w-40" />
+                  {/* Existing Tags Skeleton */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {Array.from({ length: 3 }, (_, i) => (
+                      <FieldSkeleton key={i} className="h-6 w-16 rounded" />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <TagsInput
+                  value={formData.tags}
+                  onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                  placeholder="Thêm tags cho bài viết..."
+                  maxTags={20}
+                  disabled={loadingState.isLoading}
+                />
+              )}
             </DropdownSection>
 
             {/* Featured Image Section */}
@@ -1989,21 +2043,15 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               {/* Author Selection - Progressive Loading */}
               {shouldShowAuthorsSkeleton ? (
                 <div className="space-y-3">
-                  <FieldSkeleton className="h-5 w-24" />
                   <FieldSkeleton className="h-10 w-full rounded-lg" />
                 </div>
               ) : (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Chọn tác giả
-                  </label>
-                  <AuthorSelector
-                    value={formData.author_id}
-                    authors={authors}
-                    onChange={(authorId) => setFormData(prev => ({ ...prev, author_id: authorId }))}
-                    disabled={loadingState.isLoading}
-                  />
-                </div>
+                <AuthorSelector
+                  value={formData.author_id}
+                  authors={authors}
+                  onChange={(authorId) => setFormData(prev => ({ ...prev, author_id: authorId }))}
+                  disabled={loadingState.isLoading}
+                />
               )}
             </DropdownSection>
 
@@ -2155,8 +2203,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                         <button
                           key={schema.type}
                           onClick={() => {
-                            setFormData(prev => ({ ...prev, schema_type: schema.type }));
-                            setHasUnsavedChanges(true); // Trigger autosave
+                            // Batch state updates to prevent multiple re-renders
+                            startTransition(() => {
+                              setFormData(prev => ({ ...prev, schema_type: schema.type }));
+                              setHasUnsavedChanges(true);
+                            });
                           }}
                           disabled={loadingState.isLoading}
                           className={`
@@ -2210,8 +2261,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                           <button
                             key={schema.type}
                             onClick={() => {
-                              setFormData(prev => ({ ...prev, schema_type: schema.type }));
-                              setHasUnsavedChanges(true); // Trigger autosave
+                              // Batch state updates to prevent multiple re-renders
+                              startTransition(() => {
+                                setFormData(prev => ({ ...prev, schema_type: schema.type }));
+                                setHasUnsavedChanges(true);
+                              });
                             }}
                             disabled={loadingState.isLoading}
                             className={`

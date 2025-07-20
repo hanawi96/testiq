@@ -491,7 +491,7 @@ export default function ArticlesTable({
                     <div className="flex items-center justify-end space-x-2">
                       {/* View Article */}
                       <a
-                        href={`/articles/${article.slug}`}
+                        href={`/blog/${article.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"

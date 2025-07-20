@@ -118,7 +118,7 @@ export default function DateTimePicker({
 
       {/* Custom Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-80 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden backdrop-blur-sm bg-white/95 dark:bg-gray-800/95">
+        <div className="absolute z-[9999] mt-2 w-80 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden backdrop-blur-sm bg-white/95 dark:bg-gray-800/95">
           {/* Header */}
           <div className="p-5 bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-purple-50/40 dark:from-gray-700/80 dark:via-gray-600/60 dark:to-gray-500/40 border-b border-gray-100/50 dark:border-gray-600/50">
             <div className="flex items-center justify-between">

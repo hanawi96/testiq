@@ -138,10 +138,17 @@ export class ArticlesService {
 
   static async updateArticle(
     articleId: string,
-    updateData: Partial<CreateArticleData>
+    updateData: Partial<CreateArticleData>,
+    authorId?: string | null
   ): Promise<{ data: Article | null; error: any }> {
     return serviceWrapper(async () => {
       const { categories, tags, ...articleUpdateData } = updateData;
+
+      // Add author_id to update data if provided
+      if (authorId !== undefined) {
+        articleUpdateData.author_id = authorId;
+      }
+
       const processedUpdateData = await ProcessingUtils.processUpdateData(articleUpdateData, articleId);
       const result = await ArticleQueries.updateArticle(articleId, processedUpdateData);
 
