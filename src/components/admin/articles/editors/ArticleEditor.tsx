@@ -38,7 +38,6 @@ import SchemaPreview from '../SchemaPreview';
 import { BlogService } from '../../../../services/blog-service';
 import { DropdownSection } from './components/DropdownSection';
 import { EditorSkeleton, ExcerptSkeleton, SidebarSkeleton, CategoriesSkeleton, TagsSkeleton, AuthorsSkeleton } from './components/SkeletonComponents';
-import AutosaveIndicator from './components/AutosaveIndicator';
 import { lazy } from 'react';
 
 // Styles
@@ -377,15 +376,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   return (
     <ArticleEditorLayout>
       <MainContent>
-            {/* Autosave Indicator */}
-            <div className="flex justify-end mb-4">
-              <AutosaveIndicator
-                isAutoSaving={saveStates.isAutoSaving}
-                lastSaved={lastSaved}
-                hasUnsavedChanges={hasUnsavedChanges}
-              />
-            </div>
-
             {/* Title Section - Tách thành component riêng */}
             <TitleSection
               formData={formData}
