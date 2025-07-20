@@ -125,7 +125,9 @@ export const useSaveHandlers = ({
         scheduled_at: cleanedData.scheduled_at || undefined,
 
         // Tags - NEW: Include tags trong autosave
-        tags: cleanedData.tags || []
+        tags: cleanedData.tags || [],
+        // Categories - NEW: Include multiple categories trong autosave
+        categories: cleanedData.categories || []
       };
 
       let data: any = null;

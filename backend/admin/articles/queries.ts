@@ -190,9 +190,9 @@ async function fetchRelationships(articles: any[]) {
 
   return Promise.all([
     authorIds.length > 0
-      ? supabase.from('user_profiles').select('id, full_name, role').in('id', authorIds)
+      ? supabaseAdmin.from('user_profiles').select('id, full_name, role').in('id', authorIds)
       : Promise.resolve({ data: [] }),
-    supabase
+    supabaseAdmin
       .from('articles')
       .select('id, article_categories(categories(id, name)), article_tags(tags(id, name))')
       .in('id', articleIds)
@@ -400,7 +400,7 @@ export class ArticleQueries {
 
       // 1. Kiểm tra draft trước (nếu có userId)
       if (userId) {
-        const { data: draftData } = await supabase
+        const { data: draftData } = await supabaseAdmin
           .from('article_drafts')
           .select('*')
           .eq('article_id', articleId)
@@ -411,6 +411,53 @@ export class ArticleQueries {
         if (draftData) {
           article = draftData;
           console.log(`📝 Loading draft for article ${articleId}`);
+
+          // Load draft categories - MULTIPLE CATEGORIES SUPPORT
+          try {
+            console.log(`🔍 DEBUG: Loading draft categories for draft ID: ${draftData.id}`);
+
+            // Get category relationships from draft
+            const { data: rawCategoryData, error: categoryError } = await supabaseAdmin
+              .from('article_draft_categories')
+              .select('category_id, sort_order')
+              .eq('article_draft_id', draftData.id)
+              .order('sort_order');
+
+            console.log(`🔍 DEBUG: Raw draft categories data:`, { rawCategoryData, categoryError });
+
+            if (rawCategoryData && rawCategoryData.length > 0) {
+              // Get category IDs first
+              const categoryIds = rawCategoryData.map(item => item.category_id);
+              console.log(`🔍 DEBUG: Category IDs from draft:`, categoryIds);
+
+              // Then get category names separately
+              const { data: categoriesData, error: categoriesError } = await supabaseAdmin
+                .from('categories')
+                .select('id, name')
+                .in('id', categoryIds);
+
+              console.log(`🔍 DEBUG: Categories data:`, { categoriesData, categoriesError });
+
+              article.category_names = categoriesData?.map(cat => cat.name) || [];
+              article.category_ids = categoriesData?.map(cat => cat.id) || [];
+            } else {
+              article.category_names = [];
+              article.category_ids = [];
+            }
+
+            console.log(`🔍 DEBUG: Final category_names:`, article.category_names);
+            console.log(`🔍 DEBUG: Final category_ids:`, article.category_ids);
+
+            if (article.category_names && article.category_names.length > 0) {
+              console.log(`📁 Loaded ${article.category_names.length} draft categories:`, article.category_names);
+            } else {
+              console.log(`⚠️ No draft categories found for draft ${draftData.id}`);
+            }
+          } catch (error) {
+            console.error('❌ Error loading draft categories:', error);
+            article.category_names = [];
+            article.category_ids = [];
+          }
 
           // Load draft tags - ĐƠN GIẢN
           try {
@@ -458,7 +505,7 @@ export class ArticleQueries {
 
       // 2. Nếu không có draft, load từ articles
       if (!article) {
-        const { data: articleData, error } = await supabase
+        const { data: articleData, error } = await supabaseAdmin
           .from('articles')
           .select('*')
           .eq('id', articleId)
@@ -472,16 +519,38 @@ export class ArticleQueries {
       // Reuse shared function for relationships
       const [authorsResult, relationshipsResult] = await fetchRelationships([article]);
 
-      // PRESERVE DRAFT TAGS: Lưu draft tags trước khi enrich
+      // PRESERVE DRAFT DATA: Lưu draft tags và categories trước khi enrich
       const draftTagNames = article.tag_names || [];
+      const draftCategoryIds = article.category_ids || [];
+      const draftCategoryNames = article.category_names || [];
+
+      console.log(`🔍 DEBUG: Preserving draft data:`, {
+        draftTagNames,
+        draftCategoryIds,
+        draftCategoryNames
+      });
 
       const enrichedArticles = enrichArticles([article], authorsResult.data || [], relationshipsResult.data || []);
 
-      // RESTORE DRAFT TAGS: Khôi phục draft tags nếu có
+      // RESTORE DRAFT DATA: Khôi phục draft tags và categories nếu có
       if (draftTagNames.length > 0) {
         enrichedArticles[0].tag_names = draftTagNames;
         console.log(`🔄 Restored draft tags:`, draftTagNames);
       }
+
+      if (draftCategoryIds.length > 0) {
+        enrichedArticles[0].category_ids = draftCategoryIds;
+        enrichedArticles[0].category_names = draftCategoryNames;
+        console.log(`🔄 Restored draft categories:`, { ids: draftCategoryIds, names: draftCategoryNames });
+      } else {
+        console.log(`⚠️ No draft categories to restore`);
+      }
+
+      console.log(`🔍 DEBUG: Final article data:`, {
+        category_ids: enrichedArticles[0]?.category_ids,
+        category_names: enrichedArticles[0]?.category_names,
+        tag_names: enrichedArticles[0]?.tag_names
+      });
 
       return { data: enrichedArticles[0] || null, error: null };
 

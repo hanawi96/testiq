@@ -188,6 +188,8 @@ export class ArticlesService {
 
       // Tags - NEW
       tags?: string[];
+      // Categories - NEW
+      categories?: string[];
     },
     userId: string
   ): Promise<{ data: any | null; error: any }> {
@@ -195,7 +197,42 @@ export class ArticlesService {
       // Step 1: Lưu content vào article_drafts
       const result = await ArticleQueries.upsertDraft(articleId, userId, contentData);
 
-      // Step 2: Lưu tags nếu có - SỬ DỤNG LOGIC HIỆN CÓ
+      // Step 2: Lưu categories nếu có - MULTIPLE CATEGORIES SUPPORT
+      if (contentData.categories && result.data) {
+        try {
+          console.log(`🔍 DEBUG: Autosave categories for draft ${result.data.id}:`, contentData.categories);
+
+          // Xóa old category relationships
+          await supabaseAdmin
+            .from('article_draft_categories')
+            .delete()
+            .eq('article_draft_id', result.data.id);
+
+          // Thêm new category relationships
+          if (contentData.categories.length > 0) {
+            const relationships = contentData.categories.map((categoryId, index) => ({
+              article_draft_id: result.data.id,
+              category_id: categoryId,
+              sort_order: index + 1
+            }));
+
+            const { error: insertError } = await supabaseAdmin
+              .from('article_draft_categories')
+              .insert(relationships);
+
+            if (insertError) {
+              console.error('❌ Error inserting draft categories:', insertError);
+            } else {
+              console.log(`📁 Saved ${contentData.categories.length} categories for draft ${result.data.id}`, relationships);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error saving draft categories:', error);
+          // Don't fail the whole autosave if categories fail
+        }
+      }
+
+      // Step 3: Lưu tags nếu có - SỬ DỤNG LOGIC HIỆN CÓ
       if (contentData.tags && result.data) {
         try {
           console.log(`🔍 DEBUG: Autosave tags for draft ${result.data.id}:`, contentData.tags);
@@ -284,16 +321,22 @@ export class ArticlesService {
             .single();
 
           if (draftData) {
-            // Xóa draft tags sau khi publish - ĐƠN GIẢN
+            // Xóa draft categories và tags sau khi publish
             try {
-              await supabaseAdmin
-                .from('article_draft_tags')
-                .delete()
-                .eq('article_draft_id', draftData.id);
+              await Promise.all([
+                supabaseAdmin
+                  .from('article_draft_categories')
+                  .delete()
+                  .eq('article_draft_id', draftData.id),
+                supabaseAdmin
+                  .from('article_draft_tags')
+                  .delete()
+                  .eq('article_draft_id', draftData.id)
+              ]);
 
-              console.log(`🗑️ Cleaned up draft tags for article ${articleId}`);
+              console.log(`🗑️ Cleaned up draft categories and tags for article ${articleId}`);
             } catch (error) {
-              console.error('❌ Error cleaning up draft tags:', error);
+              console.error('❌ Error cleaning up draft relationships:', error);
             }
           }
         } catch (error) {

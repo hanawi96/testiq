@@ -113,15 +113,26 @@ export const useArticleData = ({
               focus_keyword: articleResult.data.focus_keyword || '',
               categories: (() => {
                 // Convert single category_id to array, or use category_ids if available
+                console.log(`🔍 DEBUG: Processing categories for FormData:`, {
+                  category_ids: articleResult.data.category_ids,
+                  category_id: articleResult.data.category_id,
+                  categories: articleResult.data.categories
+                });
+
                 if (articleResult.data.category_ids && articleResult.data.category_ids.length > 0) {
+                  console.log(`🔍 DEBUG: Using category_ids:`, articleResult.data.category_ids);
                   return [...articleResult.data.category_ids];
                 }
                 if (articleResult.data.category_id) {
+                  console.log(`🔍 DEBUG: Using single category_id:`, articleResult.data.category_id);
                   return [articleResult.data.category_id];
                 }
                 if (articleResult.data.categories) {
-                  return articleResult.data.categories.map((cat: any) => typeof cat === 'string' ? cat : cat.id);
+                  const categoryIds = articleResult.data.categories.map((cat: any) => typeof cat === 'string' ? cat : cat.id);
+                  console.log(`🔍 DEBUG: Using categories array:`, categoryIds);
+                  return categoryIds;
                 }
+                console.log(`🔍 DEBUG: No categories found, returning empty array`);
                 return [];
               })(),
               tags: (() => {
@@ -144,6 +155,7 @@ export const useArticleData = ({
             };
 
             setFormData(formData);
+            console.log(`🔍 DEBUG: FormData set with categories:`, formData.categories);
             console.log(`🔍 DEBUG: FormData set with tags:`, formData.tags);
 
             // Store original content for image cleanup
