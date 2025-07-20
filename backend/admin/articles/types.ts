@@ -22,7 +22,7 @@ export type TagId = string;
 // OPTIMIZED: Remove unused utility functions to reduce bundle size
 
 // Optimized union types với const assertions
-export const ARTICLE_STATUSES = ['published', 'draft', 'archived'] as const;
+export const ARTICLE_STATUSES = ['published', 'draft', 'archived', 'scheduled'] as const;
 export type ArticleStatus = typeof ARTICLE_STATUSES[number];
 
 export const ARTICLE_TYPES = ['article', 'page', 'post'] as const;

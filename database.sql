@@ -296,7 +296,6 @@ create table public.articles (
   id uuid not null default gen_random_uuid (),
   title text not null,
   slug text not null,
-  slug_history text[] null default array[]::text[],
   content text not null,
   excerpt text null,
   lang text null default 'vi'::text,
@@ -305,7 +304,6 @@ create table public.articles (
   featured boolean null default false,
   author_id uuid null,
   category_id uuid null,
-  parent_id uuid null,
   meta_title text null,
   meta_description text null,
   focus_keyword text null,
@@ -315,58 +313,27 @@ create table public.articles (
   og_description text null,
   og_image text null,
   og_type text null default 'article'::text,
-  twitter_title text null,
-  twitter_description text null,
-  twitter_image text null,
-  twitter_card_type text null default 'summary_large_image'::text,
   cover_image text null,
   cover_image_alt text null,
-  gallery_images jsonb null,
   schema_type public.schema_type null default 'Article'::schema_type,
-  author_schema jsonb null,
-  organization_schema jsonb null,
-  faq_schema jsonb null,
-  howto_schema jsonb null,
-  breadcrumb_schema jsonb null,
   word_count integer null default 0,
-  character_count integer null default 0,
   reading_time integer null default 0,
-  paragraph_count integer null default 0,
-  heading_count jsonb null,
-  content_score integer null default 0,
-  readability_score numeric(5, 2) null,
-  keyword_density numeric(5, 2) null,
   robots_directive text null default 'index,follow'::text,
-  sitemap_include boolean null default true,
-  sitemap_priority numeric(2, 1) null default 0.8,
-  sitemap_changefreq public.sitemap_changefreq null default 'weekly'::sitemap_changefreq,
   internal_links jsonb null,
   external_links jsonb null,
-  related_articles uuid[] null,
   view_count integer null default 0,
-  unique_views integer null default 0,
-  like_count integer null default 0,
-  bounce_rate numeric(5, 2) null,
-  avg_time_on_page integer null,
-  social_shares jsonb null,
-  backlinks_count integer null default 0,
-  search_index tsvector null,
-  indexed_at timestamp with time zone null,
-  last_crawled_at timestamp with time zone null,
   published_at timestamp with time zone null,
   scheduled_at timestamp with time zone null,
-  expires_at timestamp with time zone null,
   version integer null default 1,
-  revision_notes text null,
   last_modified_by uuid null,
   created_at timestamp with time zone null default now(),
   updated_at timestamp with time zone null default now(),
+  like_count integer null default 0,
   constraint articles_pkey primary key (id),
   constraint articles_slug_key unique (slug),
   constraint articles_author_id_fkey foreign KEY (author_id) references auth.users (id) on delete set null,
   constraint articles_category_id_fkey foreign KEY (category_id) references categories (id) on delete set null,
-  constraint articles_last_modified_by_fkey foreign KEY (last_modified_by) references auth.users (id),
-  constraint articles_parent_id_fkey foreign KEY (parent_id) references articles (id) on delete set null
+  constraint articles_last_modified_by_fkey foreign KEY (last_modified_by) references auth.users (id)
 ) TABLESPACE pg_default;
 
 create index IF not exists idx_articles_slug on public.articles using btree (slug) TABLESPACE pg_default;
@@ -381,8 +348,6 @@ create index IF not exists idx_articles_category_id on public.articles using btr
 
 create index IF not exists idx_articles_featured on public.articles using btree (featured) TABLESPACE pg_default;
 
-create index IF not exists idx_articles_search on public.articles using gin (search_index) TABLESPACE pg_default;
-
 create index IF not exists idx_articles_keywords on public.articles using gin (keywords) TABLESPACE pg_default;
 
 create index IF not exists idx_articles_fulltext on public.articles using gin (
@@ -394,10 +359,107 @@ create index IF not exists idx_articles_fulltext on public.articles using gin (
   )
 ) TABLESPACE pg_default;
 
+create index IF not exists idx_articles_status_created_at_optimized on public.articles using btree (status, created_at desc) TABLESPACE pg_default
+where
+  (
+    status = any (
+      array[
+        'published'::article_status,
+        'draft'::article_status,
+        'archived'::article_status
+      ]
+    )
+  );
+
+create index IF not exists idx_articles_author_status_optimized on public.articles using btree (author_id, status, created_at desc) TABLESPACE pg_default
+where
+  (author_id is not null);
+
+create index IF not exists idx_articles_view_count_optimized on public.articles using btree (view_count desc, status) TABLESPACE pg_default
+where
+  (view_count > 0);
+
+create index IF not exists idx_articles_featured_status_optimized on public.articles using btree (featured, status, created_at desc) TABLESPACE pg_default
+where
+  (
+    (featured = true)
+    and (status = 'published'::article_status)
+  );
+
+create index IF not exists idx_articles_search_status_optimized on public.articles using btree (status, created_at desc) TABLESPACE pg_default
+where
+  (status = 'published'::article_status);
+
 create trigger trigger_update_article_metrics BEFORE INSERT
 or
 update on articles for EACH row
 execute FUNCTION update_article_metrics ();
+
+
+-- article_drafts
+create table public.article_drafts (
+  id uuid not null default gen_random_uuid (),
+  article_id uuid null,
+  user_id uuid not null,
+  title text not null,
+  slug text null,
+  content text not null,
+  excerpt text null,
+  lang text null default 'vi'::text,
+  article_type public.article_type null default 'article'::article_type,
+  status public.article_status null default 'draft'::article_status,
+  featured boolean null default false,
+  category_id uuid null,
+  meta_title text null,
+  meta_description text null,
+  focus_keyword text null,
+  keywords text[] null,
+  canonical_url text null,
+  og_title text null,
+  og_description text null,
+  og_image text null,
+  og_type text null default 'article'::text,
+  cover_image text null,
+  cover_image_alt text null,
+  schema_type public.schema_type null default 'Article'::schema_type,
+  robots_directive text null default 'index,follow'::text,
+  word_count integer null default 0,
+  reading_time integer null default 0,
+  internal_links jsonb null,
+  external_links jsonb null,
+  scheduled_at timestamp with time zone null,
+  version integer null default 1,
+  is_active boolean not null default true,
+  auto_saved boolean not null default false,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint article_drafts_pkey primary key (id),
+  constraint article_drafts_article_id_fkey foreign KEY (article_id) references articles (id) on delete CASCADE,
+  constraint article_drafts_category_id_fkey foreign KEY (category_id) references categories (id) on delete set null,
+  constraint article_drafts_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE,
+  constraint valid_metrics check (
+    (
+      (word_count >= 0)
+      and (reading_time >= 0)
+    )
+  )
+) TABLESPACE pg_default;
+
+create unique INDEX IF not exists idx_unique_active_draft on public.article_drafts using btree (article_id, user_id, is_active) TABLESPACE pg_default
+where
+  (is_active = true);
+
+create index IF not exists idx_article_drafts_user_active on public.article_drafts using btree (user_id, is_active) TABLESPACE pg_default
+where
+  (is_active = true);
+
+create index IF not exists idx_article_drafts_article_user on public.article_drafts using btree (article_id, user_id) TABLESPACE pg_default;
+
+create index IF not exists idx_article_drafts_updated_at on public.article_drafts using btree (updated_at desc) TABLESPACE pg_default;
+
+create trigger trigger_update_article_drafts_updated_at BEFORE
+update on article_drafts for EACH row
+execute FUNCTION update_updated_at_column ();
 
 
 
@@ -461,6 +523,78 @@ create index IF not exists idx_tags_usage_count on public.tags using btree (usag
 UPDATE articles SET like_count = FLOOR(RANDOM() * 50) + 5 WHERE like_count IS NULL OR like_count = 0;
 UPDATE articles SET view_count = FLOOR(RANDOM() * 1000) + 100 WHERE view_count IS NULL OR view_count = 0;
 UPDATE articles SET word_count = FLOOR(RANDOM() * 2000) + 500 WHERE word_count IS NULL OR word_count = 0;
+
+-- ===== CLEANUP: Remove unused columns from articles table =====
+-- These columns are not used in the current codebase and can be safely removed
+
+-- 1. Remove duplicate social media fields (keep og_* fields, remove twitter_* duplicates)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS twitter_title;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS twitter_description;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS twitter_image;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS twitter_card_type;
+
+-- 2. Remove unused schema markup fields (can be generated dynamically)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS author_schema;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS organization_schema;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS faq_schema;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS howto_schema;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS breadcrumb_schema;
+
+-- 3. Remove unused analytics fields (should be calculated from external services)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS bounce_rate;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS avg_time_on_page;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS backlinks_count;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS last_crawled_at;
+
+-- 4. Remove unused content analysis fields (can be calculated on-the-fly)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS character_count;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS paragraph_count;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS heading_count;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS content_score;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS readability_score;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS keyword_density;
+
+-- 5. Remove rarely used SEO fields (can use defaults)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS sitemap_include;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS sitemap_priority;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS sitemap_changefreq;
+
+-- 6. Remove unused media fields
+ALTER TABLE public.articles DROP COLUMN IF EXISTS gallery_images;
+
+-- 7. Remove unused publishing fields
+ALTER TABLE public.articles DROP COLUMN IF EXISTS expires_at;
+
+-- 8. Remove unused versioning fields (will be handled by separate version table)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS revision_notes;
+
+-- 9. Remove unused search fields (handled by separate indexing)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS search_index;
+ALTER TABLE public.articles DROP COLUMN IF EXISTS indexed_at;
+
+-- 10. Remove unused social sharing field (can be calculated from external APIs)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS social_shares;
+
+-- 11. Remove slug history (not used in current implementation)
+ALTER TABLE public.articles DROP COLUMN IF EXISTS slug_history;
+
+-- 12. Remove unused analytics fields
+ALTER TABLE public.articles DROP COLUMN IF EXISTS unique_views;
+
+-- ===== RESULT: Optimized articles table with only essential columns =====
+-- Remaining columns:
+-- Core: id, title, slug, content, excerpt, lang, article_type, status, featured
+-- Relations: author_id, category_id, parent_id
+-- SEO: meta_title, meta_description, focus_keyword, keywords, canonical_url
+-- Social: og_title, og_description, og_image, og_type
+-- Media: cover_image, cover_image_alt
+-- Schema: schema_type
+-- Analytics: view_count, like_count, word_count, reading_time
+-- Links: internal_links, external_links, related_articles
+-- Publishing: published_at, scheduled_at
+-- Versioning: version, last_modified_by
+-- SEO Settings: robots_directive
+-- Timestamps: created_at, updated_at
 
 
 -- system_settings
@@ -560,3 +694,7 @@ COMMENT ON COLUMN article_views_daily.date IS 'Ngày tracking (YYYY-MM-DD)';
 COMMENT ON COLUMN article_views_daily.article_id IS 'ID bài viết được xem';
 COMMENT ON COLUMN article_views_daily.view_count IS 'Tổng số lượt xem trong ngày';
 COMMENT ON COLUMN article_views_daily.unique_views IS 'Số lượt xem unique (distinct users)';
+
+
+
+

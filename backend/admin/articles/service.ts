@@ -3,6 +3,7 @@
  * Đảm bảo: Logic cũ, UI giữ nguyên, tối ưu code, best practice, cực dễ maintain.
  */
 
+
 import { ArticleQueries } from './queries';
 import type {
   Article,
@@ -21,6 +22,8 @@ import { BulkOperationsUtils } from './bulk-operations';
 // ===== REFACTORED UTILITIES =====
 
 const nowISO = () => new Date().toISOString();
+
+
 
 /**
  * REUSABLE: Create paginated response structure
@@ -124,7 +127,7 @@ export class ArticlesService {
 
   static async createArticle(
     articleData: CreateArticleData,
-    authorId: string,
+    authorId: string | null,
     isAutosave: boolean = false
   ): Promise<{ data: Article | null; error: any }> {
     return serviceWrapper(async () => {
@@ -136,6 +139,64 @@ export class ArticlesService {
     }, ERROR_MESSAGES.ARTICLE_CREATE_FAILED, true);
   }
 
+  /**
+   * 💾 AUTOSAVE: Lưu đầy đủ dữ liệu vào bảng article_drafts
+   */
+  static async autosaveContent(
+    articleId: string,
+    contentData: {
+      // Core content
+      title?: string;
+      content?: string;
+      excerpt?: string;
+      slug?: string;
+
+      // SEO fields
+      meta_title?: string;
+      meta_description?: string;
+      focus_keyword?: string;
+      keywords?: string[];
+      canonical_url?: string;
+
+      // OpenGraph
+      og_title?: string;
+      og_description?: string;
+      og_image?: string;
+      og_type?: string;
+
+      // Media
+      cover_image?: string;
+      cover_image_alt?: string;
+
+      // Settings
+      lang?: string;
+      article_type?: string;
+      status?: string;
+      featured?: boolean;
+      category_id?: string;
+      schema_type?: string;
+      robots_directive?: string;
+
+      // Publishing
+      scheduled_at?: string;
+
+      // Links
+      internal_links?: any;
+      external_links?: any;
+    },
+    userId: string
+  ): Promise<{ data: any | null; error: any }> {
+    return serviceWrapper(async () => {
+      // Lưu vào article_drafts với userId
+      const result = await ArticleQueries.upsertDraft(articleId, userId, contentData);
+
+      return result;
+    }, 'Autosave failed', true);
+  }
+
+  /**
+   * 🚀 MANUAL SAVE: Full update với status, relationships, etc.
+   */
   static async updateArticle(
     articleId: string,
     updateData: Partial<CreateArticleData>,
@@ -148,6 +209,8 @@ export class ArticlesService {
       if (authorId !== undefined) {
         articleUpdateData.author_id = authorId;
       }
+
+      console.log('🚀 MANUAL SAVE: Full update with status:', articleUpdateData.status);
 
       const processedUpdateData = await ProcessingUtils.processUpdateData(articleUpdateData, articleId);
       const result = await ArticleQueries.updateArticle(articleId, processedUpdateData);
@@ -162,8 +225,9 @@ export class ArticlesService {
         ].filter(Boolean));
       }
 
-      // Explicitly invalidate edit cache for this article
+      // Full cache invalidation for manual saves
       ArticleQueries.clearCachePattern(`article:edit:${articleId}`);
+      invalidateCache(); // Clear all caches
 
       return result;
     }, ERROR_MESSAGES.ARTICLE_UPDATE_FAILED, true);
@@ -171,7 +235,7 @@ export class ArticlesService {
 
   static async updateStatus(
     articleId: string,
-    status: 'published' | 'draft' | 'archived'
+    status: 'published' | 'draft' | 'archived' | 'scheduled'
   ): Promise<{ data: Article | null; error: any }> {
     const updateData: any = { status, updated_at: nowISO() };
     if (status === 'published') updateData.published_at = nowISO();
@@ -187,7 +251,7 @@ export class ArticlesService {
 
   static async bulkUpdateStatus(
     articleIds: string[],
-    status: 'published' | 'draft' | 'archived'
+    status: 'published' | 'draft' | 'archived' | 'scheduled'
   ): Promise<{ data: number; error: any }> {
     const result = await BulkOperationsUtils.bulkUpdateStatus(articleIds, status);
     if (!result.error) invalidateCache();

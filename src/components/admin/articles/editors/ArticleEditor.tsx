@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition } from 'react';
-import { ArticlesService } from '../../../../../backend';
+import { ArticlesService, AuthService } from '../../../../../backend';
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
@@ -11,6 +11,7 @@ import CategorySelector from '../create/components/CategorySelector';
 import DateTimePicker from '../create/components/DateTimePicker';
 import { BlogService } from '../../../../services/blog-service';
 import SchemaPreview from '../SchemaPreview';
+
 import '../../../../styles/article-editor.css';
 import '../../../../styles/tiptap-editor.css';
 
@@ -400,7 +401,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     meta_title: '',
     meta_description: '',
     slug: '',
-    status: 'draft' as 'draft' | 'published' | 'archived',
+    status: 'draft' as 'draft' | 'published' | 'archived' | 'scheduled',
     focus_keyword: '',
     categories: [] as string[],
     tags: [] as string[],
@@ -412,8 +413,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     is_featured: false,
     schema_type: 'Article',
     robots_noindex: false,
-    published_date: new Date().toISOString().slice(0, 16),
-    updated_date: new Date().toISOString().slice(0, 16),
+    published_date: '', // Read-only, auto-set by system
+    scheduled_at: '', // Hẹn ngày giờ đăng bài
     author_id: ''
   });
 
@@ -436,6 +437,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const [slugError, setSlugError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [showSlugEdit, setShowSlugEdit] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Dropdown state management for sidebar sections
   const [sidebarDropdowns, setSidebarDropdowns] = useState(() => {
@@ -531,6 +533,16 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         mode: currentArticleId ? 'EDIT' : 'CREATE'
       });
 
+      // Load current user first
+      try {
+        const { user } = await AuthService.getCurrentUser();
+        if (user?.id) {
+          setCurrentUserId(user.id);
+        }
+      } catch (error) {
+        console.error('Failed to get current user:', error);
+      }
+
       // Start preloading immediately (non-blocking)
       preloadCategoriesData();
       preloadAuthorsData();
@@ -585,8 +597,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               is_featured: articleResult.data.featured === true,
               schema_type: articleResult.data.schema_type || 'Article',
               robots_noindex: articleResult.data.robots_directive?.includes('noindex') || false,
-              published_date: articleResult.data.published_at ? new Date(articleResult.data.published_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-              updated_date: articleResult.data.updated_at ? new Date(articleResult.data.updated_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+              published_date: articleResult.data.published_at || '', // Read-only display
+              scheduled_at: (articleResult.data as any).scheduled_at ? new Date((articleResult.data as any).scheduled_at).toISOString().slice(0, 16) : '',
               author_id: articleResult.data.author_id || ''
             });
 
@@ -742,12 +754,14 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       // Ctrl/Cmd + S to save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        handleSave('draft');
+        handleSave('save'); // Manual save
       }
       // Ctrl/Cmd + Shift + P to publish
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
         e.preventDefault();
-        handleSave('published');
+        // Set public and then save
+        setFormData(prev => ({ ...prev, is_public: true }));
+        setTimeout(() => handleSave('save'), 100);
       }
     };
 
@@ -777,7 +791,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => {
       clearTimeout(autoSaveTimeout);
     };
-  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.content, formData.slug]);
+  }, [hasUnsavedChanges, isManualSaving, formData.title, formData.slug, formData.content]);
 
   // Use the optimized slug generator from utils (supports Vietnamese diacritics)
 
@@ -889,21 +903,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       // Clear previous validation errors
       setValidationError('');
 
-      // Prepare article data
-      const status = formData.is_public ? 'published' : 'draft';
-      console.log('📊 STATUS LOGIC:', {
-        is_public: formData.is_public,
-        calculated_status: status,
-        isEditMode,
-        isAutoSave
-      });
+      // 🎯 ĐƠN GIẢN HÓA: Logic chỉ cần cho manual save
 
-      // Store original title for validation
-      const originalTitle = formData.title.trim();
-      const finalTitle = originalTitle;
+      // Validate title for manual save
 
-      // Validate required fields AFTER auto-title generation (skip for autosave)
-      if (!isAutoSave && !originalTitle) {
+      // Validate required fields for manual save
+      if (!isAutoSave && !formData.title.trim()) {
         setValidationError('❌ Tiêu đề không được để trống');
         setIsManualSaving(false);
         setIsAutoSaving(false);
@@ -940,77 +945,164 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
-      const articleData: CreateArticleData = {
-        title: finalTitle,
-        content: formData.content.trim(),
-        excerpt: formData.excerpt.trim(),
-        slug: formData.slug.trim(),
-        status,
-        featured: formData.is_featured,
-        lang: formData.lang,
-        article_type: formData.article_type,
+      // 🎯 Prepare articleData cho cả autosave và manual save
+      let articleData: any = null;
 
-        // SEO fields
-        meta_title: formData.meta_title.trim(),
-        meta_description: formData.meta_description.trim(),
-        focus_keyword: formData.focus_keyword.trim(),
-        robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
-        schema_type: formData.schema_type,
+      if (isAutoSave && !isEditMode) {
+        // 💾 AUTOSAVE cho bài viết MỚI: Luôn tạo với status = 'draft'
+        articleData = {
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+          excerpt: formData.excerpt.trim(),
+          slug: formData.slug.trim(),
+          status: 'draft', // 🔒 LUÔN DRAFT cho autosave bài mới
+          featured: false, // Default values cho autosave
+          lang: formData.lang,
+          article_type: formData.article_type,
 
-        // Media
-        cover_image: formData.cover_image?.trim() || null,
-        cover_image_alt: formData.cover_image_alt?.trim() || null,
+          // SEO fields - basic only
+          meta_title: formData.meta_title.trim(),
+          meta_description: formData.meta_description.trim(),
+          focus_keyword: formData.focus_keyword.trim(),
+          robots_directive: 'index,follow', // Default
+          schema_type: formData.schema_type,
 
-        // Author - handled by authorId parameter
+          // Media
+          cover_image: formData.cover_image?.trim() || null,
+          cover_image_alt: formData.cover_image_alt?.trim() || null,
 
-        // Category - convert categories array to primary category_id
-        category_id: formData.categories.length > 0 ? formData.categories[0] : undefined,
+          // No categories/tags for autosave new article
+          categories: [],
+          tags: [],
 
-        // Relations - for junction tables
-        categories: formData.categories,
-        tags: formData.tags,
-
-        // Publishing
-        published_at: status === 'published' ? formData.published_date : undefined,
-
-        // Updated timestamp - allow user override
-        updated_at: formData.updated_date ? new Date(formData.updated_date).toISOString() : undefined,
-      };
+          // No publishing dates for draft
+          published_at: undefined,
+          scheduled_at: undefined,
+        };
 
 
 
-      let data, error;
+      } else if (!isAutoSave) {
+        // 🚀 MANUAL SAVE: Áp dụng đầy đủ logic publish
+        let status = formData.is_public ? 'published' : 'draft';
+
+        // Kiểm tra scheduled publishing
+        if (formData.scheduled_at) {
+          const scheduledDate = new Date(formData.scheduled_at);
+          const now = new Date();
+
+          if (scheduledDate > now) {
+            status = 'scheduled';
+          }
+        }
+
+        articleData = {
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+          excerpt: formData.excerpt.trim(),
+          slug: formData.slug.trim(),
+          status,
+          featured: formData.is_featured,
+          lang: formData.lang,
+          article_type: formData.article_type,
+
+          // SEO fields
+          meta_title: formData.meta_title.trim(),
+          meta_description: formData.meta_description.trim(),
+          focus_keyword: formData.focus_keyword.trim(),
+          robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
+          schema_type: formData.schema_type,
+
+          // Media
+          cover_image: formData.cover_image?.trim() || null,
+          cover_image_alt: formData.cover_image_alt?.trim() || null,
+
+          // Category - convert categories array to primary category_id
+          category_id: formData.categories.length > 0 ? formData.categories[0] : undefined,
+
+          // Relations - for junction tables
+          categories: formData.categories,
+          tags: formData.tags,
+
+          // Publishing
+          published_at: status === 'published' ? new Date().toISOString() : undefined,
+          scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : undefined,
+        };
+
+        console.log('🚀 MANUAL SAVE: Full logic, status:', status);
+      }
+
+
+
+      let data: any, error: any;
 
       if (isEditMode && currentArticleId) {
-        // Update existing article
-        const result = await ArticlesService.updateArticle(
-          currentArticleId,
-          articleData,
-          formData.author_id.trim() || null // Convert empty string to null for UUID
-        );
-        data = result.data;
-        error = result.error;
+        if (isAutoSave) {
+          // 💾 AUTOSAVE cho bài viết ĐÃ CÓ: Chỉ lưu content fields
+          if (!currentUserId) {
+            throw new Error('User ID required for autosave');
+          }
+          const result = await ArticlesService.autosaveContent(currentArticleId, {
+            // Core content
+            title: formData.title.trim(),
+            content: formData.content.trim(),
+            excerpt: formData.excerpt.trim(),
+            slug: formData.slug.trim(),
+
+            // SEO fields
+            meta_title: formData.meta_title.trim(),
+            meta_description: formData.meta_description.trim(),
+            focus_keyword: formData.focus_keyword.trim(),
+
+            // Media
+            cover_image: formData.cover_image?.trim() || null,
+            cover_image_alt: formData.cover_image_alt?.trim() || null,
+
+            // Settings
+            lang: formData.lang,
+            article_type: formData.article_type,
+            status: 'draft', // Autosave luôn giữ draft
+            featured: formData.is_featured,
+            category_id: formData.categories.length > 0 ? formData.categories[0] : null,
+            schema_type: formData.schema_type,
+            robots_directive: formData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
+
+            // Publishing
+            scheduled_at: formData.scheduled_at || null
+          }, currentUserId);
+          data = result.data;
+          error = result.error;
+        } else {
+          // 🚀 MANUAL SAVE cho bài viết ĐÃ CÓ: Full update
+          const result = await ArticlesService.updateArticle(
+            currentArticleId,
+            articleData,
+            formData.author_id.trim() || null
+          );
+          data = result.data;
+          error = result.error;
+        }
       } else {
-        // Create new article
+        // 📝 Bài viết MỚI (cả autosave và manual save)
         const result = await ArticlesService.createArticle(
           articleData,
-          formData.author_id.trim() || null, // Convert empty string to null for UUID
+          formData.author_id.trim() || null,
           isAutoSave // Pass autosave flag for validation
         );
         data = result.data;
         error = result.error;
+
+        // 🔄 Sau khi tạo thành công với autosave, redirect to edit mode
+        if (!error && data && isAutoSave) {
+
+          // Redirect to edit page
+          setTimeout(() => {
+            window.location.href = `/admin/articles/edit?id=${data.id}`;
+          }, 100);
+        }
       }
 
       if (error) {
-        console.error(`❌ SAVE ERROR (${isAutoSave ? 'AUTOSAVE' : 'MANUAL'}):`, {
-          isEditMode,
-          isAutoSave,
-          error: error.message || error,
-          formData: {
-            title: formData.title.substring(0, 30),
-            contentLength: formData.content.length
-          }
-        });
         setValidationError('❌ ' + (error.message || 'Có lỗi xảy ra khi lưu'));
         if (!isAutoSave) {
           setIsManualSaving(false);
@@ -1031,13 +1123,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         // Update save state
         setHasUnsavedChanges(false);
         setLastSaved(new Date());
-
-        // Show different messages for manual vs auto save
-        if (!isAutoSave) {
-          // Manual save success - user feedback handled by UI
-        } else {
-          // Autosave success - silent operation
-        }
 
         // Clear caches để cập nhật frontend và backend ngay lập tức
         BlogService.clearCache();
@@ -1076,9 +1161,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       }
 
     } catch (error) {
-      console.error('Save error:', error);
-      setSaveStatus('❌ Có lỗi xảy ra khi tạo bài viết');
-      setTimeout(() => setSaveStatus(''), 3000);
+      setValidationError('❌ Có lỗi xảy ra khi lưu bài viết');
+      setTimeout(() => setValidationError(''), 5000);
     } finally {
       // Reset saving state to allow future saves
       setIsSaving(false);
@@ -1092,14 +1176,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     }
   };
 
-  const handleCategoryToggle = (categoryId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      categories: prev.categories.includes(categoryId)
-        ? prev.categories.filter(id => id !== categoryId)
-        : [...prev.categories, categoryId]
-    }));
-  };
+
 
   // Toggle sidebar dropdown sections
   const toggleSidebarDropdown = (section: keyof typeof sidebarDropdowns) => {
@@ -1792,9 +1869,11 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                   <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chế độ công khai</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Trạng thái xuất bản</span>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
+                        {formData.scheduled_at && new Date(formData.scheduled_at) > new Date()
+                          ? 'Đã lên lịch'
+                          : formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
                       </p>
                     </div>
                     <button
@@ -1832,22 +1911,85 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                     </button>
                   </div>
 
-                  <DateTimePicker
-                    label="Ngày xuất bản"
-                    value={formData.published_date}
-                    onChange={(value) => setFormData(prev => ({ ...prev, published_date: value }))}
-                    disabled={loadingState.isLoading}
-                  />
+                  {/* Hiển thị thông tin ngày xuất bản (read-only) */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Thông tin xuất bản
+                    </label>
 
-                  <DateTimePicker
-                    label="Ngày cập nhật"
-                    value={formData.updated_date}
-                    onChange={(value) => setFormData(prev => ({ ...prev, updated_date: value }))}
-                    disabled={loadingState.isLoading}
-                  />
+                    {formData.status === 'published' && formData.published_date ? (
+                      <div className="text-sm text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg border border-green-200 dark:border-green-800">
+                        Đã xuất bản: {new Date(formData.published_date).toLocaleString('vi-VN')}
+                      </div>
+                    ) : formData.scheduled_at && new Date(formData.scheduled_at) > new Date() ? (
+                      <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
+                        ⏰ Sẽ xuất bản: {new Date(formData.scheduled_at).toLocaleString('vi-VN')}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                        📝 Chưa xuất bản
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <DateTimePicker
+                          label="Hẹn ngày giờ đăng bài"
+                          value={formData.scheduled_at}
+                          onChange={(value) => {
+                            // Validation: chỉ cho phép chọn ngày trong tương lai
+                            if (value) {
+                              const selectedDate = new Date(value);
+                              const now = new Date();
+
+                              if (selectedDate <= now) {
+                                alert('⚠️ Vui lòng chọn thời gian trong tương lai để hẹn lịch đăng bài');
+                                return;
+                              }
+                            }
+
+                            setFormData(prev => ({ ...prev, scheduled_at: value }));
+                          }}
+                          disabled={loadingState.isLoading}
+                        />
+                      </div>
+
+                      {/* Clear scheduled date button */}
+                      {formData.scheduled_at && (
+                        <button
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, scheduled_at: '' }));
+                          }}
+                          className="mt-6 p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all duration-200"
+                          title="Hủy lịch hẹn"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Helper text và status cho scheduled publishing */}
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        💡 Tự động xuất bản vào thời gian đã chọn
+                      </div>
+
+                      {formData.scheduled_at && (
+                        <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
+                          📅 Đã lên lịch: {new Date(formData.scheduled_at).toLocaleString('vi-VN')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
                 {/* Save Status & Actions - Di chuyển từ header */}
                 <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+
+
                   {/* Save Status Indicators */}
                   <div className="space-y-3 mb-4">
                     {validationError && (
@@ -1875,13 +2017,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
                       </div>
                     )}
 
-                    {lastSaved && !hasUnsavedChanges && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-100 dark:border-green-800/30">
+                    {lastSaved && !hasUnsavedChanges && !isAutoSaving && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-100 dark:border-green-800/30">
                         <div className="relative">
                           <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          <div className="absolute inset-0 w-4 h-4 bg-green-400 rounded-full opacity-20 animate-ping"></div>
+                          <div className="absolute inset-0 w-4 h-4 rounded-full opacity-20 animate-ping bg-green-400"></div>
                         </div>
                         <span className="text-sm font-medium text-green-700 dark:text-green-300">
                           Đã lưu {lastSaved.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}

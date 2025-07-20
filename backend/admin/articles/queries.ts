@@ -14,7 +14,7 @@
  * ✅ Zero additional optimization needed
  */
 
-import { supabase } from '../../config/supabase';
+import { supabase, supabaseAdmin } from '../../config/supabase';
 import type { ArticlesFilters, RelatedData, Article, ArticleStatus, ArticleStats, ArticlesListResponse } from './types';
 
 
@@ -806,6 +806,125 @@ export class ArticleQueries {
       console.log('✅ ArticleQueries: Cache warmed up successfully');
     } catch (err) {
       console.error('❌ ArticleQueries: Error warming up cache:', err);
+    }
+  }
+
+  // ===== AUTOSAVE DRAFT =====
+  static async upsertDraft(
+    articleId: string,
+    userId: string,
+    contentData: {
+      // Core content
+      title?: string;
+      content?: string;
+      excerpt?: string;
+      slug?: string;
+
+      // SEO fields
+      meta_title?: string;
+      meta_description?: string;
+      focus_keyword?: string;
+      keywords?: string[];
+      canonical_url?: string;
+
+      // OpenGraph
+      og_title?: string;
+      og_description?: string;
+      og_image?: string;
+      og_type?: string;
+
+      // Media
+      cover_image?: string;
+      cover_image_alt?: string;
+
+      // Settings
+      lang?: string;
+      article_type?: string;
+      status?: string;
+      featured?: boolean;
+      category_id?: string;
+      schema_type?: string;
+      robots_directive?: string;
+
+      // Publishing
+      scheduled_at?: string;
+
+      // Links
+      internal_links?: any;
+      external_links?: any;
+    }
+  ): Promise<{ data: any | null; error: any }> {
+    try {
+      // 🔧 SIMPLE FIX: Delete existing active draft + Insert new one
+      // Đảm bảo chỉ có 1 draft active cho mỗi (article_id, user_id)
+
+      // 1. Xóa draft active hiện tại (nếu có)
+      await supabaseAdmin
+        .from('article_drafts')
+        .delete()
+        .eq('article_id', articleId)
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      // 2. Tạo draft mới với ĐẦY ĐỦ dữ liệu
+      const { data, error } = await supabaseAdmin
+        .from('article_drafts')
+        .insert({
+          // Identity
+          article_id: articleId,
+          user_id: userId,
+
+          // Core content
+          title: contentData.title || '',
+          content: contentData.content || '',
+          excerpt: contentData.excerpt || '',
+          slug: contentData.slug || null,
+
+          // SEO fields
+          meta_title: contentData.meta_title || '',
+          meta_description: contentData.meta_description || '',
+          focus_keyword: contentData.focus_keyword || '',
+          keywords: contentData.keywords || null,
+          canonical_url: contentData.canonical_url || null,
+
+          // OpenGraph
+          og_title: contentData.og_title || null,
+          og_description: contentData.og_description || null,
+          og_image: contentData.og_image || null,
+          og_type: contentData.og_type || 'article',
+
+          // Media
+          cover_image: contentData.cover_image || null,
+          cover_image_alt: contentData.cover_image_alt || null,
+
+          // Settings
+          lang: contentData.lang || 'vi',
+          article_type: contentData.article_type || 'article',
+          status: contentData.status || 'draft',
+          featured: contentData.featured || false,
+          category_id: contentData.category_id || null,
+          schema_type: contentData.schema_type || 'Article',
+          robots_directive: contentData.robots_directive || 'index,follow',
+
+          // Publishing
+          scheduled_at: contentData.scheduled_at ? new Date(contentData.scheduled_at).toISOString() : null,
+
+          // Links
+          internal_links: contentData.internal_links || null,
+          external_links: contentData.external_links || null,
+
+          // Draft management
+          auto_saved: true,
+          is_active: true,
+          version: 1,
+          updated_at: new Date().toISOString()
+        })
+        .select('id, updated_at')
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
     }
   }
 }
