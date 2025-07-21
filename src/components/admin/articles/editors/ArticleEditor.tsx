@@ -23,7 +23,7 @@ import { useLoadingHelpers } from './components/LoadingStates';
 // Utils and constants
 import { FALLBACK_AUTHORS, type ArticleEditorProps } from './articleEditorUtils';
 import { DEFAULT_FORM_DATA, DEFAULT_SIDEBAR_DROPDOWNS } from './constants/articleEditorConstants';
-import { getArticleId, getSidebarDropdownState, saveDropdownState, formatDate, hasFormChanges, validateFormData, cleanFormData, extractImagesFromContent, calculateSaveProgress } from './utils/articleEditorHelpers';
+import { getArticleId, getDraftId, isDraftMode, getSidebarDropdownState, saveDropdownState, formatDate, hasFormChanges, validateFormData, cleanFormData, extractImagesFromContent, calculateSaveProgress } from './utils/articleEditorHelpers';
 import { generateSlug } from '../../../../utils/slug-generator';
 import { processBulkTags, createTagFeedbackMessage, lowercaseNormalizeTag } from '../../../../utils/tag-processing';
 
@@ -71,14 +71,13 @@ const TiptapEditor = lazy(() => import('./TiptapEditor'));
 
 export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps) {
 
-  // FIXED: Get article ID immediately (synchronous) để tránh flash
+  // FIXED: Get article ID or draft ID immediately (synchronous) để tránh flash
   const currentArticleId = getArticleId(articleId);
+  const currentDraftId = getDraftId();
   const isEditMode = !!currentArticleId;
-
-
+  const isDraftEditMode = !!currentDraftId;
 
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM_DATA);
-
 
   const [validationError, setValidationError] = useState('');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -112,7 +111,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   // OPTIMIZED: Data loading logic đã được tách thành hook riêng
   const { categories, authors, loadingState, loadingActions } = useArticleData({
     currentArticleId,
+    currentDraftId,
     isEditMode,
+    isDraftEditMode,
     setFormData,
     setOriginalContent,
     setCurrentUserId,
@@ -188,14 +189,10 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
 
+  // Auto-update title, slug, meta_title for better UX
   const handleTitleChange = (title: string) => {
-    // Clear validation error when user starts typing title
-    if (validationError.includes('Tiêu đề')) {
-      setValidationError('');
-    }
-
     setFormData(prev => {
-      const updates: any = {
+      const updates: Partial<typeof prev> = {
         title,
         meta_title: title.length <= 60 ? title : title.substring(0, 60)
       };
@@ -210,9 +207,12 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
         const newSlug = generateSlug(title);
         updates.slug = newSlug;
 
-        // Validate the new slug
-        if (newSlug) {
-          setTimeout(() => validateSlug(newSlug), 100);
+        // Validate the new slug - chỉ khi có sự thay đổi thực sự
+        if (newSlug && newSlug !== prev.slug) {
+          // Sử dụng requestAnimationFrame để tránh vòng lặp vô hạn
+          requestAnimationFrame(() => {
+            validateSlug(newSlug);
+          });
         }
       }
 
@@ -267,8 +267,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   // Save Handlers
   const { saveStates, handleAutoSave, handleManualSave } = useSaveHandlers({
     formData,
-    isEditMode,
-    currentArticleId,
+    isEditMode: isEditMode || isDraftEditMode, // Treat draft edit as edit mode
+    currentArticleId: currentArticleId || currentDraftId, // Use draft ID if no article ID
     currentUserId,
     setLastSaved,
     setHasUnsavedChanges,

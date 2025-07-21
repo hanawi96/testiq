@@ -5,6 +5,7 @@ import ArticlesFiltersComponent from './components/ArticlesFilters';
 import ArticlesBulkActions from './components/ArticlesBulkActions';
 import ArticlesTable from './components/ArticlesTable';
 import QuickEditorsContainer from './components/QuickEditorsContainer';
+import { ToastContainer, useToast } from '../common/Toast';
 
 import { useAdminArticlesState } from './hooks/useAdminArticlesState';
 import { useQuickEditHandlers } from './hooks/useQuickEditHandlers';
@@ -38,6 +39,10 @@ export default function AdminArticles() {
     setLoading
   } = useAdminArticlesState();
 
+  // Toast system
+  const toast = useToast();
+  const { toasts, removeToast } = toast;
+
   // Quick Edit Handlers
   const {
     handleQuickTagsEdit,
@@ -56,6 +61,7 @@ export default function AdminArticles() {
     handleSelectArticle,
     handleSelectAll,
     handleBulkStatusUpdate,
+    handleBulkDelete,
     handleDeleteArticle
   } = useArticlesOperations({
     currentPage,
@@ -64,7 +70,8 @@ export default function AdminArticles() {
     selectedArticles,
     articlesData,
     dispatch,
-    setLoading
+    setLoading,
+    toast
   });
 
   // Optimistic Update Handlers
@@ -83,32 +90,21 @@ export default function AdminArticles() {
     fetchStats
   });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // Loading state removed - show content immediately
 
   return (
     <div className="space-y-6">
+      {/* Global Loading Indicator */}
+      {loading.updating && (
+        <div className="fixed inset-0 bg-black/20 dark:bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-72">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-700 dark:text-gray-300">Đang xử lý...</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -134,8 +130,6 @@ export default function AdminArticles() {
         loading={loading.stats}
       />
 
-
-
       {/* Filters */}
       <ArticlesFiltersComponent
         filters={filters}
@@ -154,6 +148,7 @@ export default function AdminArticles() {
         showBulkActions={showBulkActions}
         loading={loading.updating}
         onBulkStatusUpdate={handleBulkStatusUpdate}
+        onBulkDelete={handleBulkDelete}
         onClearSelection={() => dispatch({ type: 'CLEAR_SELECTION' })}
       />
 
@@ -180,10 +175,6 @@ export default function AdminArticles() {
         searchTerm={filters.search || ''}
       />
 
-
-
-
-
       {/* Quick Editors Container */}
       <QuickEditorsContainer
         quickTagsEditor={quickTagsEditor}
@@ -200,6 +191,9 @@ export default function AdminArticles() {
         handleStatusUpdateOptimistic={handleStatusUpdateOptimistic}
         setModal={setModal}
       />
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 }

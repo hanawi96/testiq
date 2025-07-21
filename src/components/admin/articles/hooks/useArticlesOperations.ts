@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { ArticlesService } from '../../../../../backend';
 import type { ArticlesFilters, ArticlesListResponse } from '../../../../../backend';
 import { SmartPreloader } from '../../../../utils/admin/preloaders/preload-manager';
+import type { UseToastResult } from '../../common/Toast';
 
 interface ArticlesOperationsConfig {
   // State
@@ -14,6 +15,9 @@ interface ArticlesOperationsConfig {
   // Actions
   dispatch: (action: any) => void;
   setLoading: (payload: any) => void;
+  
+  // Toast
+  toast: UseToastResult;
 }
 
 export function useArticlesOperations(config: ArticlesOperationsConfig) {
@@ -24,8 +28,12 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
     selectedArticles,
     articlesData,
     dispatch,
-    setLoading
+    setLoading,
+    toast
   } = config;
+  
+  // Destructure toast methods
+  const { showSuccess, showError, showInfo } = toast;
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -194,16 +202,49 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
         await fetchArticles(currentPage);
         await fetchStats();
         dispatch({ type: 'CLEAR_SELECTION' });
-        alert(`Đã cập nhật ${updatedCount} bài viết`);
+        showSuccess(`Cập nhật thành công`, `Đã cập nhật ${updatedCount} bài viết thành trạng thái ${status}`);
       } else {
         dispatch({ type: 'SET_ERROR', payload: 'Không thể cập nhật trạng thái bài viết' });
+        showError('Lỗi cập nhật', 'Không thể cập nhật trạng thái bài viết');
       }
     } catch (err) {
       dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi cập nhật' });
+      showError('Lỗi hệ thống', 'Có lỗi xảy ra khi cập nhật');
     } finally {
       setLoading({ updating: false });
     }
-  }, [selectedArticles, setLoading, fetchArticles, currentPage, fetchStats, dispatch]);
+  }, [selectedArticles, setLoading, fetchArticles, currentPage, fetchStats, dispatch, showSuccess, showError]);
+
+  // Handle bulk delete
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedArticles.length === 0) return;
+    
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedArticles.length} bài viết đã chọn? Hành động này không thể khôi phục.`)) {
+      return;
+    }
+    
+    setLoading({ updating: true });
+    try {
+      const { data: deletedCount, error } = await ArticlesService.bulkDeleteArticles(selectedArticles);
+      if (!error) {
+        await fetchArticles(currentPage);
+        await fetchStats();
+        dispatch({ type: 'CLEAR_SELECTION' });
+        showSuccess(
+          `Xóa bài viết thành công`, 
+          `Đã xóa ${deletedCount} bài viết`
+        );
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: 'Không thể xóa các bài viết đã chọn' });
+        showError('Lỗi xóa bài viết', 'Không thể xóa các bài viết đã chọn');
+      }
+    } catch (err) {
+      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi xóa bài viết' });
+      showError('Lỗi hệ thống', 'Có lỗi xảy ra khi xóa bài viết');
+    } finally {
+      setLoading({ updating: false });
+    }
+  }, [selectedArticles, setLoading, fetchArticles, currentPage, fetchStats, dispatch, showSuccess, showError]);
 
   // Handle delete article
   const handleDeleteArticle = useCallback(async (articleId: string) => {
@@ -215,15 +256,18 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
       if (!error) {
         await fetchArticles(currentPage);
         await fetchStats();
+        showSuccess('Xóa bài viết thành công', 'Bài viết đã được xóa thành công');
       } else {
         dispatch({ type: 'SET_ERROR', payload: 'Không thể xóa bài viết' });
+        showError('Lỗi xóa bài viết', 'Không thể xóa bài viết');
       }
     } catch (err) {
       dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi xóa' });
+      showError('Lỗi hệ thống', 'Có lỗi xảy ra khi xóa bài viết');
     } finally {
       setLoading({ updating: false });
     }
-  }, [setLoading, fetchArticles, currentPage, fetchStats, dispatch]);
+  }, [setLoading, fetchArticles, currentPage, fetchStats, dispatch, showSuccess, showError]);
 
   return {
     // Data fetching
@@ -237,6 +281,7 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
     handleSelectArticle,
     handleSelectAll,
     handleBulkStatusUpdate,
+    handleBulkDelete,
     handleDeleteArticle
   };
 }

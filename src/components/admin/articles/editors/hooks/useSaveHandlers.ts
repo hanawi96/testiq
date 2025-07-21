@@ -96,6 +96,10 @@ export const useSaveHandlers = ({
 
       // Step 2: Prepare article data
       updateSaveProgress(2);
+      // Chuyển readonly arrays thành mutable arrays để tránh lỗi TypeScript
+      const tags = [...(cleanedData.tags || [])];
+      const categories = [...(cleanedData.categories || [])];
+      
       const articleData: Partial<CreateArticleData> = {
         // Core content
         title: cleanedData.title.trim(),
@@ -117,7 +121,7 @@ export const useSaveHandlers = ({
         article_type: cleanedData.article_type,
         status: cleanedData.status,
         featured: cleanedData.is_featured,
-        category_id: cleanedData.categories.length > 0 ? cleanedData.categories[0] : undefined,
+        category_id: categories.length > 0 ? categories[0] : undefined,
         schema_type: cleanedData.schema_type,
         robots_directive: cleanedData.robots_noindex ? 'noindex,nofollow' : 'index,follow',
 
@@ -125,9 +129,9 @@ export const useSaveHandlers = ({
         scheduled_at: cleanedData.scheduled_at || undefined,
 
         // Tags - NEW: Include tags trong autosave
-        tags: cleanedData.tags || [],
+        tags,
         // Categories - NEW: Include multiple categories trong autosave
-        categories: cleanedData.categories || []
+        categories
       };
 
       let data: any = null;
@@ -136,34 +140,47 @@ export const useSaveHandlers = ({
       // Step 3: Execute save operation
       updateSaveProgress(3);
 
-      if (isEditMode && currentArticleId) {
-        if (isAutoSave) {
-          // 💾 AUTOSAVE: Lưu content vào drafts, không ảnh hưởng status
-          const result = await ArticlesService.autosaveContent(currentArticleId, {
-            ...articleData,
-            author_id: cleanedData.author_id.trim() || null,
-          }, currentUserId);
+      // UNIFIED AUTOSAVE FLOW: Sử dụng autosaveContent cho cả tạo mới và chỉnh sửa
+      if (isAutoSave) {
+        try {
+          // 💾 AUTOSAVE: Sử dụng cùng một flow cho cả tạo mới và chỉnh sửa
+          const result = await ArticlesService.autosaveContent(
+            currentArticleId, // null khi tạo mới, articleId khi chỉnh sửa
+            {
+              ...articleData,
+              author_id: cleanedData.author_id.trim() || null,
+              // Đảm bảo keywords là mutable nếu có
+              keywords: cleanedData.keywords ? [...cleanedData.keywords] : undefined
+            } as any, // Type cast để tránh lỗi TypeScript
+            currentUserId || ''
+          );
           data = result.data;
           error = result.error;
-        } else {
-          // 🚀 MANUAL SAVE cho bài viết ĐÃ CÓ: Full update
+        } catch (err: any) {
+          error = err;
+          console.error('Error during autosave:', err);
+        }
+      } else {
+        // 🚀 MANUAL SAVE: Giữ nguyên logic cũ
+        if (isEditMode && currentArticleId) {
+          // Update bài viết đã có
           const result = await ArticlesService.updateArticle(
             currentArticleId,
-            articleData,
+            articleData as any, // Type cast để tránh lỗi
             cleanedData.author_id.trim() || null,
             currentUserId || undefined
           );
           data = result.data;
           error = result.error;
+        } else {
+          // Tạo bài viết mới trực tiếp
+          const result = await ArticlesService.createArticle(
+            articleData as any, // Type cast để tránh lỗi
+            cleanedData.author_id.trim() || null
+          );
+          data = result.data;
+          error = result.error;
         }
-      } else {
-        // 📝 Bài viết MỚI (cả autosave và manual save)
-        const result = await ArticlesService.createArticle(
-          articleData,
-          cleanedData.author_id.trim() || null
-        );
-        data = result.data;
-        error = result.error;
       }
 
       // Step 4: Handle result
@@ -209,11 +226,22 @@ export const useSaveHandlers = ({
         }
 
         // Redirect logic for new articles
-        if (!isEditMode && !isAutoSave) {
-          // Redirect to edit page after successful creation
-          setTimeout(() => {
-            window.location.href = `/admin/articles/edit?id=${data.id}`;
-          }, 1500);
+        if (!isEditMode) {
+          if (isAutoSave) {
+            // 🚀 AUTOSAVE: Chuyển sang edit mode với article ID (vì giờ đã tạo article thật)
+            const newUrl = `/admin/articles/edit?id=${data.id}`;
+            window.history.replaceState(
+              { articleId: data.id, mode: 'edit' },
+              `Edit Article - ${data.title || 'Untitled'}`,
+              newUrl
+            );
+            console.log(`🔄 Autosave: Switched to edit mode for article ${data.id}`);
+          } else {
+            // 🚀 MANUAL SAVE: Redirect to edit article
+            setTimeout(() => {
+              window.location.href = `/admin/articles/edit?id=${data.id}`;
+            }, 1500);
+          }
         }
 
         return { success: true, data };

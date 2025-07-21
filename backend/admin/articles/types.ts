@@ -132,7 +132,6 @@ export interface BaseArticle extends SEOFields, OpenGraphFields, TwitterFields, 
   readonly featured?: boolean;
   readonly author_id?: UserId;
   readonly category_id?: CategoryId;
-  readonly parent_id?: ArticleId;
 }
 
 // Optimized content analysis với specific number types
@@ -279,7 +278,6 @@ export interface CreateArticleData extends
   readonly featured?: boolean;
   readonly author_id?: UserId;
   readonly category_id?: CategoryId;
-  readonly parent_id?: ArticleId;
 
   // Relations với type safety
   readonly categories?: readonly CategoryId[];

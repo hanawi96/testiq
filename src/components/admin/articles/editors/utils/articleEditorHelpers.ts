@@ -16,6 +16,24 @@ export const getArticleId = (articleId?: string | null): string | null => {
 };
 
 /**
+ * Get draft ID from URL params
+ */
+export const getDraftId = (): string | null => {
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('draft_id');
+  }
+  return null;
+};
+
+/**
+ * Check if current mode is editing a draft
+ */
+export const isDraftMode = (): boolean => {
+  return !!getDraftId();
+};
+
+/**
  * Get sidebar dropdown state from localStorage or window cache
  */
 export const getSidebarDropdownState = (defaultState: Record<string, boolean>) => {

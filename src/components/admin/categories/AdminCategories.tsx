@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CategoriesService } from '../../../../backend';
 import type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from '../../../../backend';
 import CategoryModal from './CategoryModal';
+import CategoryCreationLoader from './CategoryCreationLoader';
 import QuickStatusEditor from './QuickStatusEditor';
 import QuickCategoryNameEditor from './QuickCategoryNameEditor';
 
@@ -15,13 +16,17 @@ export default function AdminCategories() {
   const [filters, setFilters] = useState<CategoriesFilters>({
     status: 'all',
     search: '',
-    sort_by: 'display_order',
-    sort_order: 'asc'
+    sort_by: 'created_at',
+    sort_order: 'desc'
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isCategoryCreated, setIsCategoryCreated] = useState(false);
+  const [categoryLoadingMode, setCategoryLoadingMode] = useState<'create' | 'edit' | 'delete' | null>(null);
+  const [deletingCategoryName, setDeletingCategoryName] = useState<string>('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [tempSlug, setTempSlug] = useState('');
@@ -29,7 +34,7 @@ export default function AdminCategories() {
   const [pendingSlugUpdates, setPendingSlugUpdates] = useState<Set<string>>(new Set());
   const [targetStatuses, setTargetStatuses] = useState<Record<string, 'active' | 'inactive'>>({});
   const [pendingStatusUpdates, setPendingStatusUpdates] = useState<Set<string>>(new Set());
-  const [bulkActionLoading, setBulkActionLoading] = useState<'activate' | 'deactivate' | null>(null);
+  const [bulkActionLoading, setBulkActionLoading] = useState<'activate' | 'deactivate' | 'delete' | null>(null);
 
   // Quick name editor state
   const [quickNameEditor, setQuickNameEditor] = useState<{
@@ -134,6 +139,59 @@ export default function AdminCategories() {
   };
 
 
+
+  // Handle bulk delete with optimistic UI
+  const handleBulkDelete = async () => {
+    if (selectedCategories.length === 0) return;
+
+    // Confirm deletion
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedCategories.length} danh mục đã chọn?`)) return;
+
+    // 1. OPTIMISTIC UPDATE: Set loading state
+    setBulkActionLoading('delete');
+    setIsUpdating(true);
+
+    try {
+      // 2. BACKGROUND API CALL
+      const { data: deletedCount, error } = await CategoriesService.bulkDeleteCategories(selectedCategories);
+
+      if (!error) {
+        // 3. SUCCESS: Update local data immediately
+        if (categoriesData) {
+          const updatedCategories = categoriesData.categories.filter(cat =>
+            !selectedCategories.includes(cat.id)
+          );
+          setCategoriesData({
+            ...categoriesData,
+            categories: updatedCategories,
+            total: categoriesData.total - deletedCount
+          });
+        }
+
+        // Clear selections and hide bulk actions
+        setSelectedCategories([]);
+        setShowBulkActions(false);
+        setError('');
+
+        // Update stats and background sync
+        fetchStats();
+        setTimeout(() => fetchCategories(), 100);
+
+      } else {
+        // 4. ERROR: Show error message
+        setError(error.message || 'Không thể xóa danh mục');
+        fetchCategories(); // Refresh to ensure consistency
+      }
+    } catch (err: any) {
+      // 5. ERROR: Show error message
+      setError(err?.message || 'Có lỗi xảy ra khi xóa danh mục');
+      fetchCategories(); // Refresh to ensure consistency
+    } finally {
+      // 6. CLEANUP
+      setBulkActionLoading(null);
+      setIsUpdating(false);
+    }
+  };
 
   // Handle bulk status update with optimistic UI
   const handleBulkStatusUpdate = async (status: 'active' | 'inactive') => {
@@ -297,17 +355,34 @@ export default function AdminCategories() {
 
     if (!confirm(`Bạn có chắc chắn muốn xóa danh mục "${category.name}"?`)) return;
     
+    // Start loading animation
+    handleCategoryActionStart('delete', category.name);
+    
     setIsUpdating(true);
     try {
       const { error } = await CategoriesService.deleteCategory(categoryId);
       if (!error) {
+        // Refresh data to get latest state
         await fetchCategories(currentPage);
         await fetchStats();
+        
+        // Signal that data has been loaded
+        setIsCategoryCreated(true);
+        
+        // If already in success state, schedule hiding the loader
+        setTimeout(() => {
+          setIsCreatingCategory(false);
+          setCategoryLoadingMode(null);
+        }, 1000);
       } else {
         setError('Không thể xóa danh mục');
+        setIsCreatingCategory(false);
+        setCategoryLoadingMode(null);
       }
     } catch (err) {
       setError('Có lỗi xảy ra khi xóa');
+      setIsCreatingCategory(false);
+      setCategoryLoadingMode(null);
     } finally {
       setIsUpdating(false);
     }
@@ -564,6 +639,28 @@ export default function AdminCategories() {
     return pendingStatusUpdates.has(categoryId);
   };
 
+  // Handle category creation modal
+  const handleOpenCreateModal = () => {
+    setShowCreateModal(true);
+  };
+  
+  const handleCategoryActionStart = (mode: 'create' | 'edit' | 'delete', categoryName: string = '') => {
+    setIsCreatingCategory(true);
+    setIsCategoryCreated(false);
+    setCategoryLoadingMode(mode);
+    if (mode === 'delete' && categoryName) {
+      setDeletingCategoryName(categoryName);
+    }
+  };
+  
+  const handleCategoryCreationComplete = () => {
+    if (isCategoryCreated) {
+      setTimeout(() => {
+        setIsCreatingCategory(false);
+        setCategoryLoadingMode(null);
+      }, 1000); // Hide loader shortly after data is loaded
+    }
+  };
 
 
   // Skeleton components
@@ -645,6 +742,18 @@ export default function AdminCategories() {
   return (
     <div className="space-y-6">
 
+      {/* Category Action Loading Indicator */}
+      <AnimatePresence>
+        {isCreatingCategory && (
+          <CategoryCreationLoader
+            isVisible={true}
+            mode={categoryLoadingMode || 'create'}
+            message={categoryLoadingMode === 'delete' && deletingCategoryName ? 
+              `Đang xóa danh mục "${deletingCategoryName}"...` : undefined}
+            onAnimationComplete={handleCategoryCreationComplete}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Error */}
       {error && (
@@ -824,7 +933,7 @@ export default function AdminCategories() {
                   )}
                   <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
                     {bulkActionLoading
-                      ? `Đang ${bulkActionLoading === 'activate' ? 'kích hoạt' : 'vô hiệu hóa'} ${selectedCategories.length} danh mục...`
+                      ? `Đang ${bulkActionLoading === 'activate' ? 'kích hoạt' : bulkActionLoading === 'deactivate' ? 'vô hiệu hóa' : 'xóa'} ${selectedCategories.length} danh mục...`
                       : `Đã chọn ${selectedCategories.length} danh mục`
                     }
                   </span>
@@ -879,6 +988,27 @@ export default function AdminCategories() {
                     </>
                   )}
                 </button>
+
+                {/* Bulk Delete Button */}
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={isUpdating || bulkActionLoading !== null}
+                  className="flex items-center space-x-2 px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white text-sm rounded-md"
+                >
+                  {bulkActionLoading === 'delete' ? (
+                    <>
+                      <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Đang xóa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span>Xóa</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </motion.div>
@@ -894,7 +1024,7 @@ export default function AdminCategories() {
             </h3>
               <div>
                 <button
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => handleOpenCreateModal()}
                   className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
                   title="Thêm danh mục mới"
                 >
@@ -935,8 +1065,8 @@ export default function AdminCategories() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Ngày tạo
                     </th>
-                    <th className="relative px-6 py-3">
-                      <span className="sr-only">Hành động</span>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Hành động
                     </th>
                   </tr>
                 </thead>
@@ -1210,6 +1340,13 @@ export default function AdminCategories() {
       <CategoryModal
         isOpen={showCreateModal || !!editingCategory}
         onClose={() => {
+          if (showCreateModal && !editingCategory) {
+            // Starting category creation
+            handleCategoryActionStart('create');
+          } else if (editingCategory) {
+            // Starting category edit
+            handleCategoryActionStart('edit');
+          }
           setShowCreateModal(false);
           setEditingCategory(null);
         }}
@@ -1217,6 +1354,17 @@ export default function AdminCategories() {
           // Refresh data to get latest state
           await fetchCategories(currentPage);
           await fetchStats();
+          
+          // Signal that data has been loaded
+          setIsCategoryCreated(true);
+          
+          // If already in success state, schedule hiding the loader
+          if (isCreatingCategory) {
+            setTimeout(() => {
+              setIsCreatingCategory(false);
+              setCategoryLoadingMode(null);
+            }, 1000);
+          }
         }}
         onOptimisticUpdate={(updatedCategory) => {
           // Immediately update local state for better UX

@@ -677,6 +677,69 @@ export class CategoriesService {
   }
 
   /**
+   * Bulk delete categories
+   */
+  static async bulkDeleteCategories(categoryIds: string[]): Promise<{ data: number; error: any }> {
+    try {
+      console.log('CategoriesService: Bulk deleting categories from database:', categoryIds);
+
+      if (!categoryIds || categoryIds.length === 0) {
+        return { data: 0, error: null };
+      }
+
+      // Check if any categories have articles or child categories
+      const { data: categoriesWithArticles, error: checkError } = await supabase
+        .from('categories')
+        .select(`
+          id,
+          name,
+          (select count(*) from articles where category_id = categories.id) as article_count,
+          (select count(*) from categories as child where child.parent_id = categories.id) as child_count
+        `)
+        .in('id', categoryIds);
+
+      if (checkError) {
+        console.error('CategoriesService: Error checking categories for deletion:', checkError);
+        return { data: 0, error: checkError };
+      }
+
+      // Find categories that cannot be deleted
+      const blockedCategories = categoriesWithArticles?.filter(cat =>
+        (cat.article_count && cat.article_count > 0) ||
+        (cat.child_count && cat.child_count > 0)
+      ) || [];
+
+      if (blockedCategories.length > 0) {
+        const blockedNames = blockedCategories.map(cat =>
+          `"${cat.name}" (${cat.article_count || 0} bài viết, ${cat.child_count || 0} danh mục con)`
+        ).join(', ');
+        return {
+          data: 0,
+          error: new Error(`Không thể xóa các danh mục: ${blockedNames}`)
+        };
+      }
+
+      // Delete categories that can be deleted
+      const { error: deleteError } = await supabase
+        .from('categories')
+        .delete()
+        .in('id', categoryIds);
+
+      if (deleteError) {
+        console.error('CategoriesService: Error in bulk delete:', deleteError);
+        return { data: 0, error: deleteError };
+      }
+
+      console.log('CategoriesService: Bulk delete completed:', categoryIds.length, 'categories deleted');
+      return { data: categoryIds.length, error: null };
+
+    } catch (err: any) {
+      console.error('CategoriesService: Unexpected error in bulk delete:', err);
+      return { data: 0, error: err };
+    }
+  }
+
+  /**
    * Bulk update categories status
    */
   static async bulkUpdateStatus(

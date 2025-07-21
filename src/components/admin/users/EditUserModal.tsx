@@ -12,8 +12,6 @@ interface EditUserModalProps {
   user: UserWithProfile | null;
 }
 
-
-
 interface EditUserForm {
   fullName: string;
   age: number | '';
@@ -95,8 +93,8 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
         fullName: user.full_name || '',
         age: user.age || '',
         gender: (user.gender as 'male' | 'female' | 'other') || '',
-        country: resolveUserCountry(user.country_name),
-        role: user.role
+        country: resolveUserCountry(user.country_name || null),
+        role: (user.role as 'user' | 'admin' | 'editor' | 'author' | 'reviewer')
       });
       setErrors({});
     }
@@ -209,175 +207,121 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
     }
   };
 
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-
-  if (!user) return null;
+  if (!user || !isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 admin-modal">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75"
-            onClick={handleBackdropClick}
-          />
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+        {/* Background overlay */}
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+          onClick={handleClose}
+          aria-hidden="true"
+        ></div>
 
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.15 }}
-            className="w-full max-w-md bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-200 dark:border-gray-700 relative z-10 max-h-[90vh] flex flex-col overflow-visible"
-            onClick={(e) => e.stopPropagation()}
+        {/* Modal panel */}
+        <div className="inline-block w-full max-w-md p-6 my-8 text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 relative">
+          {/* Close button */}
+          <button
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onClick={handleClose}
+            disabled={isLoading}
           >
-            {/* Header - Fixed */}
-            <div className="flex items-center justify-between p-6 pb-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Chỉnh sửa thông tin người dùng
-              </h3>
-              <button
-                onClick={handleClose}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          {/* Title */}
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Chỉnh sửa thông tin người dùng
+          </h3>
+          
+          {/* User email info */}
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Email</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">{user.email}</div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name */}
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Tên <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="fullName"
+                name="fullName"
+                value={form.fullName}
+                onChange={handleInputChange}
                 disabled={isLoading}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 ${
+                  errors.fullName ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                }`}
+                placeholder="Nhập tên đầy đủ"
+              />
+              {errors.fullName && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fullName}</p>
+              )}
             </div>
 
-            {/* Content - No overflow clipping */}
-            <div className="flex-1 p-6 pt-6 overflow-visible">
-              {/* Scrollable inner content */}
-              <div className="max-h-[60vh] overflow-y-auto pr-2">
-
-            {/* User Info */}
-            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Email</div>
-              <div className="font-medium text-gray-900 dark:text-gray-100">{user.email}</div>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit}>
-              {/* Full Name */}
-              <div className="mb-4">
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tên <span className="text-red-500">*</span>
+            {/* Age and Gender Row */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Age */}
+              <div>
+                <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Tuổi
                 </label>
                 <input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={form.fullName}
+                  type="number"
+                  id="age"
+                  name="age"
+                  value={form.age}
                   onChange={handleInputChange}
                   disabled={isLoading}
+                  min="1"
+                  max="120"
                   className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 ${
-                    errors.fullName ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                    errors.age ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Nhập tên đầy đủ"
+                  placeholder="Tuổi"
                 />
-                {errors.fullName && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fullName}</p>
+                {errors.age && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.age}</p>
                 )}
               </div>
 
-              {/* Age and Gender Row */}
-              <div className="mb-4 grid grid-cols-2 gap-4">
-                {/* Age */}
-                <div>
-                  <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tuổi
-                  </label>
-                  <input
-                    type="number"
-                    id="age"
-                    name="age"
-                    value={form.age}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    min="1"
-                    max="120"
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 ${
-                      errors.age ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Tuổi"
-                  />
-                  {errors.age && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.age}</p>
-                  )}
-                </div>
-
-                {/* Gender */}
-                <div>
-                  <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Giới tính
-                  </label>
-                  <select
-                    id="gender"
-                    name="gender"
-                    value={form.gender}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-                  >
-                    <option value="">Chọn giới tính</option>
-                    {GENDERS.map((gender) => (
-                      <option key={gender.value} value={gender.value}>
-                        {gender.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-
-
-              {/* Role */}
-              <div className="mb-6">
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Vai trò <span className="text-red-500">*</span>
+              {/* Gender */}
+              <div>
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Giới tính
                 </label>
                 <select
-                  id="role"
-                  name="role"
-                  value={form.role}
+                  id="gender"
+                  name="gender"
+                  value={form.gender}
                   onChange={handleInputChange}
                   disabled={isLoading}
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 ${
-                    errors.role ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
-                  }`}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
                 >
-                  {ROLES.map((role) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label} - {role.description}
+                  <option value="">Chọn giới tính</option>
+                  {GENDERS.map((gender) => (
+                    <option key={gender.value} value={gender.value}>
+                      {gender.label}
                     </option>
                   ))}
                 </select>
-                {errors.role && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.role}</p>
-                )}
               </div>
-            </form>
             </div>
-            {/* End scrollable content */}
 
-            {/* Country - Outside scrollable area to prevent dropdown clipping */}
-            <div className="mb-4 px-2 relative" style={{ overflow: 'visible', zIndex: 1 }}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {/* Country */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Quốc gia
               </label>
-              <div style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
+              <div className="relative">
                 <UnifiedCountrySelector
                   value={form.country?.name || ''}
                   onChange={(country) => setForm(prev => ({ ...prev, country }))}
@@ -393,8 +337,34 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
               )}
             </div>
 
+            {/* Role */}
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Vai trò <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="role"
+                name="role"
+                value={form.role}
+                onChange={handleInputChange}
+                disabled={isLoading}
+                className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 ${
+                  errors.role ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                {ROLES.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label} - {role.description}
+                  </option>
+                ))}
+              </select>
+              {errors.role && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.role}</p>
+              )}
+            </div>
+
             {/* Actions */}
-            <div className="flex items-center justify-end space-x-3 px-2">
+            <div className="mt-6 flex justify-end space-x-3 border-t border-gray-200 dark:border-gray-700 pt-4">
               <button
                 type="button"
                 onClick={handleClose}
@@ -404,20 +374,19 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
                 Hủy
               </button>
               <button
-                onClick={handleSubmit}
+                type="submit"
                 disabled={isLoading}
                 className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50 transition-colors flex items-center space-x-2"
               >
                 {isLoading && (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                 )}
                 <span>{isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
               </button>
             </div>
-            </div>
-          </motion.div>
+          </form>
         </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </div>
   );
 }

@@ -74,7 +74,21 @@ export const createLoadingActions = (
       isLoadingTags: false
     }));
   },
-  
+
+  setCategoriesLoaded: () => {
+    setLoadingState(prev => ({
+      ...prev,
+      isLoadingCategories: false
+    }));
+  },
+
+  setAuthorsLoaded: () => {
+    setLoadingState(prev => ({
+      ...prev,
+      isLoadingAuthors: false
+    }));
+  },
+
   setCreateModeDataLoaded: () => {
     setLoadingState(prev => ({
       ...prev,

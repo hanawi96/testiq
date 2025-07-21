@@ -215,7 +215,7 @@ function isDropdownActive(item: any) {
 
 <!-- Sidebar với pre-loaded state -->
 <div id="admin-sidebar"
-     class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-150 ease-in-out"
+     class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700"
      data-server-dropdown-states={JSON.stringify(Object.fromEntries(serverSideDropdownStates))}>
   
   <!-- Logo Section -->
@@ -372,6 +372,17 @@ function isDropdownActive(item: any) {
 
     // Initialize sidebar state
     function initSidebar() {
+      // 🎯 CLEANUP: Remove inline styles nếu có và chuyển về classes
+      if (window.__SIDEBAR_STYLE_APPLIED__) {
+        // Remove inline style element
+        const inlineStyle = document.querySelector('style[data-sidebar-preload="true"]');
+        if (inlineStyle) {
+          inlineStyle.remove();
+        }
+
+        // Clear the flag
+        window.__SIDEBAR_STYLE_APPLIED__ = false;
+      }
 
       if (isCollapsed) {
         sidebar?.classList.add('collapsed');
@@ -545,15 +556,30 @@ function isDropdownActive(item: any) {
 
             if (isOpen) {
               openDropdowns.add(dropdownId);
-              // Sync DOM immediately
-              dropdownContent.classList.remove('dropdown-closed');
-              dropdownContent.classList.add('dropdown-open');
-              dropdownArrow.classList.add('rotate-90');
+
+              // 🎯 SMART: Chỉ apply DOM changes nếu CSS chưa được pre-applied
+              if (!window.__SIDEBAR_STYLE_APPLIED__) {
+                dropdownContent.classList.remove('dropdown-closed');
+                dropdownContent.classList.add('dropdown-open');
+                dropdownArrow.classList.add('rotate-90');
+              } else {
+                // Chỉ sync classes để JavaScript tracking đúng
+                dropdownContent.classList.add('dropdown-open');
+                dropdownContent.classList.remove('dropdown-closed');
+                dropdownArrow.classList.add('rotate-90');
+              }
             } else {
-              // Ensure closed state
-              dropdownContent.classList.remove('dropdown-open');
-              dropdownContent.classList.add('dropdown-closed');
-              dropdownArrow.classList.remove('rotate-90');
+              // 🎯 SMART: Chỉ apply DOM changes nếu CSS chưa được pre-applied
+              if (!window.__SIDEBAR_STYLE_APPLIED__) {
+                dropdownContent.classList.remove('dropdown-open');
+                dropdownContent.classList.add('dropdown-closed');
+                dropdownArrow.classList.remove('rotate-90');
+              } else {
+                // Chỉ sync classes để JavaScript tracking đúng
+                dropdownContent.classList.add('dropdown-closed');
+                dropdownContent.classList.remove('dropdown-open');
+                dropdownArrow.classList.remove('rotate-90');
+              }
             }
           }
 
@@ -594,19 +620,7 @@ function isDropdownActive(item: any) {
     visibility: visible;
   }
 
-  /* Smooth transitions chỉ cho user interactions, không cho initial render */
-  .dropdown-content {
-    transition: max-height 0.2s ease-out, opacity 0.15s ease-out;
-    will-change: auto;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-  }
-
-  .dropdown-arrow {
-    transition: transform 0.2s ease-out;
-    will-change: auto;
-    transform: translateZ(0);
-  }
+  /* Dropdown transitions sẽ được định nghĩa ở dưới */
 
   /* Disable transitions during page load để tránh flash */
   .no-transitions * {
@@ -619,6 +633,14 @@ function isDropdownActive(item: any) {
   }
 
   .no-transitions #sidebar-brand {
+    transition: none !important;
+  }
+
+  .no-transitions .dropdown-content {
+    transition: none !important;
+  }
+
+  .no-transitions .dropdown-arrow {
     transition: none !important;
   }
 

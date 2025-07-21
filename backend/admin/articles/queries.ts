@@ -961,7 +961,7 @@ export class ArticleQueries {
 
   // ===== AUTOSAVE DRAFT =====
   static async upsertDraft(
-    articleId: string,
+    articleId: string | null,
     userId: string,
     contentData: {
       // Core content
@@ -1003,19 +1003,98 @@ export class ArticleQueries {
       // Links
       internal_links?: any;
       external_links?: any;
-    }
+    },
+    existingDraftId?: string | null
   ): Promise<{ data: any | null; error: any }> {
     try {
+      // Đảm bảo supabaseAdmin tồn tại
+      if (!supabaseAdmin) {
+        return { 
+          data: null, 
+          error: new Error('Supabase admin client not initialized') 
+        };
+      }
+      
+      // Nếu có existingDraftId, sử dụng nó để update
+      if (existingDraftId) {
+        console.log(`🔄 Updating existing draft: ${existingDraftId}`);
+        
+        // Update draft hiện có
+        const { data, error } = await supabaseAdmin
+          .from('article_drafts')
+          .update({
+            // Core content
+            title: contentData.title || '',
+            content: contentData.content || '',
+            excerpt: contentData.excerpt || '',
+            slug: contentData.slug || null,
+
+            // SEO fields
+            meta_title: contentData.meta_title || '',
+            meta_description: contentData.meta_description || '',
+            focus_keyword: contentData.focus_keyword || '',
+            keywords: contentData.keywords || null,
+            canonical_url: contentData.canonical_url || null,
+
+            // OpenGraph
+            og_title: contentData.og_title || null,
+            og_description: contentData.og_description || null,
+            og_image: contentData.og_image || null,
+            og_type: contentData.og_type || 'article',
+
+            // Media
+            cover_image: contentData.cover_image || null,
+            cover_image_alt: contentData.cover_image_alt || null,
+
+            // Settings
+            lang: contentData.lang || 'vi',
+            article_type: contentData.article_type || 'article',
+            status: contentData.status || 'draft',
+            featured: contentData.featured || false,
+            category_id: contentData.category_id || null,
+            author_id: contentData.author_id || null, // FIXED: Lưu author_id vào draft
+            schema_type: contentData.schema_type || 'Article',
+            robots_directive: contentData.robots_directive || 'index,follow',
+
+            // Publishing
+            scheduled_at: contentData.scheduled_at ? new Date(contentData.scheduled_at).toISOString() : null,
+
+            // Links
+            internal_links: contentData.internal_links || null,
+            external_links: contentData.external_links || null,
+
+            // Draft management
+            auto_saved: true,
+            is_active: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingDraftId)
+          .select('id, updated_at')
+          .single();
+
+        return { data, error };
+      }
+      
       // 🔧 SIMPLE FIX: Delete existing active draft + Insert new one
       // Đảm bảo chỉ có 1 draft active cho mỗi (article_id, user_id)
 
       // 1. Xóa draft active hiện tại (nếu có)
-      await supabaseAdmin
-        .from('article_drafts')
-        .delete()
-        .eq('article_id', articleId)
-        .eq('user_id', userId)
-        .eq('is_active', true);
+      if (articleId) {
+        await supabaseAdmin
+          .from('article_drafts')
+          .delete()
+          .eq('article_id', articleId)
+          .eq('user_id', userId)
+          .eq('is_active', true);
+      } else {
+        // Với bài viết mới (null articleId), xóa tất cả draft không có article_id của user
+        await supabaseAdmin
+          .from('article_drafts')
+          .delete()
+          .eq('article_id', null)
+          .eq('user_id', userId)
+          .eq('is_active', true);
+      }
 
       // 2. Tạo draft mới với ĐẦY ĐỦ dữ liệu
       const { data, error } = await supabaseAdmin
@@ -1077,6 +1156,78 @@ export class ArticleQueries {
       return { data, error };
     } catch (error) {
       return { data: null, error };
+    }
+  }
+
+  /**
+   * Tìm draft hiện có của bài viết mới chưa liên kết với article nào
+   */
+  static async findNewArticleDraft(userId: string): Promise<string | null> {
+    try {
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not initialized');
+        return null;
+      }
+
+      // FIX: Sử dụng .is('article_id', null) cho UUID null check
+      const { data, error } = await supabaseAdmin
+        .from('article_drafts')
+        .select('id')
+        .is('article_id', null)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 là "no rows returned" - không phải lỗi thực sự
+        console.error('Error finding draft:', error);
+        return null;
+      }
+
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error finding new article draft:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Tìm draft có liên kết với article để lấy article_id
+   */
+  static async findDraftWithArticle(userId: string): Promise<{ draftId: string; articleId: string } | null> {
+    try {
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not initialized');
+        return null;
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('article_drafts')
+        .select('id, article_id')
+        .not('article_id', 'is', null)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error finding draft with article:', error);
+        return null;
+      }
+
+      if (data && data.article_id) {
+        return {
+          draftId: data.id,
+          articleId: data.article_id
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error finding draft with article:', error);
+      return null;
     }
   }
 

@@ -82,36 +82,52 @@ export const useFormHandlers = ({
     setHasUnsavedChanges(true);
   }, [setFormData, setHasUnsavedChanges]);
 
-  // Handle manual slug change with smart filtering
-  const handleSlugChange = useCallback((slug: string) => {
-    // Smart slug filtering: allow letters, numbers, hyphens
-    const filteredSlug = slug
-      .toLowerCase()
+  // Handle slug change
+  const handleSlugChange = useCallback((value: string) => {
+    // Normalize slug: lowercase, only allow a-z, 0-9, hyphen
+    const filteredSlug = value.toLowerCase()
       .replace(/[^a-z0-9\-]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
 
-    setFormData(prev => ({ ...prev, slug: filteredSlug }));
+    // Kiểm tra nếu slug không thay đổi, không cần làm gì cả
+    if (filteredSlug === formData.slug) {
+      return;
+    }
+    
+    setFormData(prevFormData => ({ ...prevFormData, slug: filteredSlug }));
     setHasUnsavedChanges(true);
     setSlugError('');
 
-    // Validate slug after a delay
+    // Validate slug after a delay, sử dụng biến tham chiếu để tránh vòng lặp
     if (filteredSlug) {
-      setTimeout(() => validateSlug(filteredSlug), 500);
+      // Sử dụng requestAnimationFrame thay vì setTimeout
+      requestAnimationFrame(() => {
+        validateSlug(filteredSlug);
+      });
     }
-  }, [setFormData, setHasUnsavedChanges, setSlugError, validateSlug]);
+  }, [formData.slug, setFormData, setHasUnsavedChanges, setSlugError, validateSlug]);
 
   // Generate new slug from title
   const handleGenerateSlug = useCallback(() => {
     const newSlug = generateSlug(formData.title);
-    setFormData(prev => ({ ...prev, slug: newSlug }));
+    
+    // Nếu slug mới giống với slug hiện tại, không cần cập nhật
+    if (newSlug === formData.slug) {
+      return;
+    }
+    
+    setFormData(prevData => ({ ...prevData, slug: newSlug }));
     setHasUnsavedChanges(true);
     setSlugError('');
 
     if (newSlug) {
-      validateSlug(newSlug);
+      // Sử dụng requestAnimationFrame để tránh vòng lặp vô hạn
+      requestAnimationFrame(() => {
+        validateSlug(newSlug);
+      });
     }
-  }, [formData.title, setFormData, setHasUnsavedChanges, setSlugError, validateSlug]);
+  }, [formData.title, formData.slug, setFormData, setHasUnsavedChanges, setSlugError, validateSlug]);
 
   // Handle meta title change
   const handleMetaTitleChange = useCallback((meta_title: string) => {

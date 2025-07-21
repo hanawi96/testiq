@@ -6,7 +6,7 @@ export { AuthService } from './auth/service';
 export { UsersService } from './admin/users-service';
 export { AdminService } from './admin/service';
 export { ResultsService } from './admin/results-service';
-export { ArticlesService } from './admin/articles-service';
+export { ArticlesService } from './admin/articles/service';
 export { CategoriesService } from './admin/categories-service';
 export { TagsService } from './admin/tags-service';
 export { MediaService } from './admin/media-service';

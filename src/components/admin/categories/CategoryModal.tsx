@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CategoriesService } from '../../../../backend';
 import type { Category } from '../../../../backend';
 
@@ -117,33 +116,32 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
     }
 
     setIsLoading(true);
-
+    
+    // Prepare the data for the API call
+    const categoryData = {
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+      status: formData.status,
+      slug: formData.slug.trim(),
+      meta_title: formData.meta_title.trim() || undefined,
+      meta_description: formData.meta_description.trim() || undefined,
+      color: formData.color
+    };
+    
+    // Close modal immediately for better UX
+    onClose();
+    
     try {
       let result;
 
       if (isEdit && category) {
         // Update existing category
-        console.log('CategoryModal: Updating category:', category.id, formData);
-        result = await CategoriesService.updateCategory(category.id, {
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-          slug: formData.slug.trim(),
-          status: formData.status,
-          meta_title: formData.meta_title.trim() || undefined,
-          meta_description: formData.meta_description.trim() || undefined,
-          color: formData.color
-        });
+        console.log('CategoryModal: Updating category:', category.id, categoryData);
+        result = await CategoriesService.updateCategory(category.id, categoryData);
       } else {
-        // Create new category
-        console.log('CategoryModal: Creating category:', formData);
-        result = await CategoriesService.createCategory({
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-          status: formData.status,
-          meta_title: formData.meta_title.trim() || undefined,
-          meta_description: formData.meta_description.trim() || undefined,
-          color: formData.color
-        });
+        // Create new category - Call immediately to minimize delay
+        console.log('CategoryModal: Creating category:', categoryData);
+        result = await CategoriesService.createCategory(categoryData);
       }
 
       console.log('CategoryModal: API result:', result);
@@ -159,23 +157,14 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
       // Success - optimistic update for immediate UI feedback
       if (isEdit && onOptimisticUpdate) {
         const optimisticData = {
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-          slug: formData.slug.trim(),
-          status: formData.status,
-          meta_title: formData.meta_title.trim() || undefined,
-          meta_description: formData.meta_description.trim() || undefined,
-          color: formData.color,
+          ...categoryData,
           updated_at: new Date().toISOString()
         };
         console.log('CategoryModal: Applying optimistic update:', optimisticData);
         onOptimisticUpdate(optimisticData);
       }
 
-      // Close modal immediately for better UX
-      onClose();
-
-      // Then refresh data in background to ensure consistency
+      // Then refresh data immediately to ensure consistency
       onSuccess();
 
     } catch (err) {
@@ -192,245 +181,226 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
     }
   };
 
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 admin-modal">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75"
-            onClick={handleBackdropClick}
-          />
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+        {/* Background overlay */}
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+          onClick={handleClose}
+          aria-hidden="true"
+        ></div>
 
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.15 }}
-            className="w-full max-w-lg p-6 bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-200 dark:border-gray-700 relative z-10 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+        {/* Modal panel */}
+        <div className="inline-block w-full max-w-lg p-6 my-8 text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 relative">
+          {/* Close button */}
+          <button
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onClick={handleClose}
+            disabled={isLoading}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {isEdit ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}
-              </h3>
-              <button
-                onClick={handleClose}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          {/* Title */}
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            {isEdit ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}
+          </h3>
+          
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              </div>
+            )}
+
+            {/* Name Field */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Tên danh mục <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
                 disabled={isLoading}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                placeholder="Nhập tên danh mục..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50"
+              />
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit}>
-              {/* Error Message */}
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-                </div>
-              )}
+            {/* Description Field */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Mô tả <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                disabled={isLoading}
+                rows={3}
+                placeholder="Nhập mô tả danh mục..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 resize-none"
+              />
+            </div>
 
-              {/* Name Field */}
-              <div className="mb-4">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tên danh mục <span className="text-red-500">*</span>
-                </label>
+            {/* Slug Field */}
+            <div>
+              <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Slug URL <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
                 <input
                   type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="slug"
+                  name="slug"
+                  value={formData.slug}
                   onChange={handleInputChange}
                   disabled={isLoading}
-                  placeholder="Nhập tên danh mục..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                  placeholder="slug-url-danh-muc"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 pr-10"
                 />
-              </div>
-
-              {/* Description Field */}
-              <div className="mb-4">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Mô tả <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                  rows={3}
-                  placeholder="Nhập mô tả danh mục..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 resize-none"
-                />
-              </div>
-
-              {/* Slug Field */}
-              <div className="mb-4">
-                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Slug URL <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="slug"
-                    name="slug"
-                    value={formData.slug}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    placeholder="slug-url-danh-muc"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.name) }))}
-                      disabled={isLoading || !formData.name}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Tạo lại slug từ tên"
-                    >
-                      🔄
-                    </button>
-                  </div>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.name) }))}
+                    disabled={isLoading || !formData.name}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Tạo lại slug từ tên"
+                  >
+                    🔄
+                  </button>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  URL: /category/{formData.slug || 'slug-url'}
-                </p>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                URL: /category/{formData.slug || 'slug-url'}
+              </p>
+            </div>
 
-              {/* Color and Status Fields */}
-              <div className="mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Color Field */}
-                  <div className="space-y-2">
-                    <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Màu sắc
-                    </label>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-shrink-0">
-                        <input
-                          type="color"
-                          id="color"
-                          name="color"
-                          value={formData.color}
-                          onChange={handleInputChange}
-                          disabled={isLoading}
-                          className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <input
-                          type="text"
-                          value={formData.color}
-                          onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                          disabled={isLoading}
-                          placeholder="#3B82F6"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                        />
-                      </div>
+            {/* Color and Status Fields */}
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Color Field */}
+                <div>
+                  <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Màu sắc
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <input
+                        type="color"
+                        id="color"
+                        name="color"
+                        value={formData.color}
+                        onChange={handleInputChange}
+                        disabled={isLoading}
+                        className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <input
+                        type="text"
+                        value={formData.color}
+                        onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                        disabled={isLoading}
+                        placeholder="#3B82F6"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50"
+                      />
                     </div>
                   </div>
+                </div>
 
-                  {/* Status Field */}
-                  <div className="space-y-2">
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Trạng thái
-                    </label>
-                    <select
-                      id="status"
-                      name="status"
-                      value={formData.status}
-                      onChange={handleInputChange}
-                      disabled={isLoading}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                    >
-                      <option value="active">Hoạt động</option>
-                      <option value="inactive">Không hoạt động</option>
-                    </select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {formData.status === 'active' ? 'Danh mục hiển thị công khai' : 'Danh mục bị ẩn khỏi công khai'}
-                    </p>
-                  </div>
+                {/* Status Field */}
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Trạng thái
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                  >
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Không hoạt động</option>
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {formData.status === 'active' ? 'Danh mục hiển thị công khai' : 'Danh mục bị ẩn khỏi công khai'}
+                  </p>
                 </div>
               </div>
+            </div>
 
-              {/* Meta Title Field */}
-              <div className="mb-4">
-                <label htmlFor="meta_title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Meta Title (SEO)
-                </label>
-                <input
-                  type="text"
-                  id="meta_title"
-                  name="meta_title"
-                  value={formData.meta_title}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                  placeholder="Tiêu đề SEO cho danh mục..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-                />
-              </div>
+            {/* Meta Title Field */}
+            <div>
+              <label htmlFor="meta_title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Meta Title (SEO)
+              </label>
+              <input
+                type="text"
+                id="meta_title"
+                name="meta_title"
+                value={formData.meta_title}
+                onChange={handleInputChange}
+                disabled={isLoading}
+                placeholder="Tiêu đề SEO cho danh mục..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50"
+              />
+            </div>
 
-              {/* Meta Description Field */}
-              <div className="mb-6">
-                <label htmlFor="meta_description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Meta Description (SEO)
-                </label>
-                <textarea
-                  id="meta_description"
-                  name="meta_description"
-                  value={formData.meta_description}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                  rows={2}
-                  placeholder="Mô tả SEO cho danh mục..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 resize-none"
-                />
-              </div>
+            {/* Meta Description Field */}
+            <div>
+              <label htmlFor="meta_description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Meta Description (SEO)
+              </label>
+              <textarea
+                id="meta_description"
+                name="meta_description"
+                value={formData.meta_description}
+                onChange={handleInputChange}
+                disabled={isLoading}
+                rows={2}
+                placeholder="Mô tả SEO cho danh mục..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 resize-none"
+              />
+            </div>
 
-              {/* Actions */}
-              <div className="flex items-center justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  disabled={isLoading}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  {isLoading && (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  )}
-                  <span>{isEdit ? 'Cập nhật' : 'Tạo danh mục'}</span>
-                </button>
-              </div>
-            </form>
-          </motion.div>
+            {/* Actions */}
+            <div className="mt-6 flex justify-end space-x-3 border-t border-gray-200 dark:border-gray-700 pt-4">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 rounded-lg transition-colors flex items-center"
+              >
+                {isLoading && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                )}
+                <span>{isEdit ? 'Cập nhật' : 'Tạo danh mục'}</span>
+              </button>
+            </div>
+          </form>
         </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </div>
   );
 }

@@ -16,7 +16,9 @@ import { createLoadingActions, createInitialLoadingState } from '../components/L
 
 interface UseArticleDataProps {
   currentArticleId: string | null;
+  currentDraftId?: string | null;
   isEditMode: boolean;
+  isDraftEditMode?: boolean;
   setFormData: (data: any) => void;
   setOriginalContent: (content: string) => void;
   setCurrentUserId: (id: string | null) => void;
@@ -28,7 +30,9 @@ interface UseArticleDataProps {
 
 export const useArticleData = ({
   currentArticleId,
+  currentDraftId,
   isEditMode,
+  isDraftEditMode,
   setFormData,
   setOriginalContent,
   setCurrentUserId,
@@ -205,6 +209,71 @@ export const useArticleData = ({
             }
           }
 
+        } else if (currentDraftId && isDraftEditMode) {
+          // DRAFT EDIT MODE: Load draft + preloaded data
+          console.log('📝 DRAFT MODE: Loading draft and preloaded data');
+
+          const [draftResult, categoriesData, authorsData] = await Promise.all([
+            ArticlesService.loadDraft(currentDraftId),
+            isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
+            isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
+          ]);
+
+          // Handle draft data
+          if (draftResult.error) {
+            setLoadError('Không thể tải draft');
+            return;
+          }
+
+          if (draftResult.data) {
+            console.log(`🔍 DEBUG: Draft data received:`, {
+              title: draftResult.data.title,
+              id: draftResult.data.id
+            });
+
+            // Populate form with draft data
+            const draftContent = draftResult.data.content || '';
+            const formData = {
+              title: draftResult.data.title || '',
+              content: draftContent,
+              excerpt: draftResult.data.excerpt || '',
+              meta_title: draftResult.data.meta_title || '',
+              meta_description: draftResult.data.meta_description || '',
+              slug: draftResult.data.slug || '',
+              status: draftResult.data.status || 'draft',
+              focus_keyword: draftResult.data.focus_keyword || '',
+              categories: [], // TODO: Load draft categories
+              tags: [], // TODO: Load draft tags
+              cover_image: draftResult.data.cover_image || '',
+              cover_image_alt: draftResult.data.cover_image_alt || '',
+              lang: draftResult.data.lang || 'vi',
+              article_type: draftResult.data.article_type || 'article',
+              is_featured: draftResult.data.featured || false,
+              schema_type: draftResult.data.schema_type || 'Article',
+              robots_noindex: draftResult.data.robots_directive?.includes('noindex') || false,
+              scheduled_at: draftResult.data.scheduled_at || '',
+              author_id: draftResult.data.author_id || ''
+            };
+
+            setFormData(formData);
+            setInitialFormData(formData);
+            setOriginalContent(draftContent);
+            setHasUnsavedChanges(false);
+          }
+
+          // Handle categories and authors data (same as article mode)
+          if (categoriesData) {
+            setCategories(categoriesData);
+          }
+
+          if (authorsData) {
+            setAuthors(authorsData);
+            // Set first author as default if no author selected
+            if (!draftResult.data?.author_id && authorsData.length > 0) {
+              setFormData(prev => ({ ...prev, author_id: authorsData[0].id }));
+            }
+          }
+
         } else {
           // CREATE MODE: Load only preloaded data (no article to fetch)
           console.log('🆕 CREATE MODE: Loading categories and authors for new article');
@@ -259,7 +328,7 @@ export const useArticleData = ({
     };
 
     loadAllData();
-  }, []); // FIXED: Chỉ chạy 1 lần khi mount, không cần dependency
+  }, [currentArticleId, currentDraftId, isDraftEditMode]); // Include draft-related dependencies
 
   return {
     categories,

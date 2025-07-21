@@ -10,6 +10,16 @@ export interface ToastProps {
   onClose: (id: string) => void;
 }
 
+export interface UseToastResult {
+  toasts: ToastProps[];
+  addToast: (toast: Omit<ToastProps, 'id' | 'onClose'>) => void;
+  removeToast: (id: string) => void;
+  showSuccess: (title: string, message?: string) => void;
+  showError: (title: string, message?: string) => void;
+  showWarning: (title: string, message?: string) => void;
+  showInfo: (title: string, message?: string) => void;
+}
+
 const TOAST_ICONS = {
   success: '✅',
   error: '❌',
@@ -118,7 +128,7 @@ export function ToastContainer({ toasts, onClose }: ToastContainerProps) {
 }
 
 // Toast Hook
-export function useToast() {
+export function useToast(): UseToastResult {
   const [toasts, setToasts] = React.useState<ToastProps[]>([]);
 
   const addToast = React.useCallback((toast: Omit<ToastProps, 'id' | 'onClose'>) => {

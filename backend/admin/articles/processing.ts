@@ -162,7 +162,6 @@ export class ProcessingUtils {
       featured: articleData.featured === true,
       author_id: authorId,
       category_id: articleData.category_id || null,
-      parent_id: articleData.parent_id || null,
 
       // Content metrics & links
       ...contentData,
@@ -180,38 +179,19 @@ export class ProcessingUtils {
       og_image: articleData.og_image || null,
       og_type: articleData.og_type || 'article',
 
-      // Twitter fields
-      twitter_title: articleData.twitter_title || null,
-      twitter_description: articleData.twitter_description || null,
-      twitter_image: articleData.twitter_image || null,
-      twitter_card_type: articleData.twitter_card_type || 'summary_large_image',
-
       // Media fields
       cover_image: articleData.cover_image?.trim() || null,
       cover_image_alt: articleData.cover_image_alt?.trim() || null,
-      gallery_images: articleData.gallery_images || null,
 
       // Schema fields
       schema_type: articleData.schema_type || 'Article',
-      author_schema: articleData.author_schema || null,
-      organization_schema: articleData.organization_schema || null,
-      faq_schema: articleData.faq_schema || null,
-      howto_schema: articleData.howto_schema || null,
-      breadcrumb_schema: articleData.breadcrumb_schema || null,
 
       // SEO settings
       robots_directive: articleData.robots_directive || 'index,follow',
-      sitemap_include: articleData.sitemap_include !== false,
-      sitemap_priority: articleData.sitemap_priority || 0.5,
-      sitemap_changefreq: articleData.sitemap_changefreq || 'weekly',
 
       // Publishing
       published_at: articleData.status === 'published' ? new Date().toISOString() : null,
       scheduled_at: articleData.scheduled_at || null,
-      expires_at: articleData.expires_at || null,
-
-      // Versioning
-      revision_notes: articleData.revision_notes || null,
 
       // Timestamps
       created_at: new Date().toISOString(),
@@ -228,31 +208,40 @@ export class ProcessingUtils {
     updateData: Partial<CreateArticleData> & { updated_at?: string },
     articleId?: string
   ): Promise<any> {
+    // Loại bỏ các trường không còn tồn tại trong bảng articles
+    const {
+      twitter_title, twitter_description, twitter_image, twitter_card_type,
+      author_schema, organization_schema, faq_schema, howto_schema, breadcrumb_schema,
+      sitemap_include, sitemap_priority, sitemap_changefreq,
+      expires_at, revision_notes, gallery_images,
+      ...validUpdateData
+    } = updateData;
+
     const processedUpdateData: any = {
-      ...updateData,
-      updated_at: updateData.updated_at || new Date().toISOString()
+      ...validUpdateData,
+      updated_at: validUpdateData.updated_at || new Date().toISOString()
     };
 
     // Handle slug update with automatic uniqueness
-    if (updateData.slug) {
-      processedUpdateData.slug = await this.generateUniqueSlug(updateData.slug, articleId);
+    if (validUpdateData.slug) {
+      processedUpdateData.slug = await this.generateUniqueSlug(validUpdateData.slug, articleId);
     }
 
     // Process content data if content changed
-    if (updateData.content) {
-      Object.assign(processedUpdateData, this.processContentData(updateData.content));
+    if (validUpdateData.content) {
+      Object.assign(processedUpdateData, this.processContentData(validUpdateData.content));
     }
 
     // Handle media fields - convert empty strings to null
-    if ('cover_image' in updateData) {
-      processedUpdateData.cover_image = updateData.cover_image?.trim() || null;
+    if ('cover_image' in validUpdateData) {
+      processedUpdateData.cover_image = validUpdateData.cover_image?.trim() || null;
     }
-    if ('cover_image_alt' in updateData) {
-      processedUpdateData.cover_image_alt = updateData.cover_image_alt?.trim() || null;
+    if ('cover_image_alt' in validUpdateData) {
+      processedUpdateData.cover_image_alt = validUpdateData.cover_image_alt?.trim() || null;
     }
 
     // Set published_at when publishing
-    if (updateData.status === 'published') {
+    if (validUpdateData.status === 'published') {
       processedUpdateData.published_at = new Date().toISOString();
     }
 

@@ -35,12 +35,16 @@ import {
   Superscript as SuperscriptIcon,
   Type,
   Highlighter,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import ImageUpload from './ImageUpload';
 import ImageAltEditPopup from '../../../ui/ImageAltEditPopup';
 import ImageHoverOverlay from './ImageHoverOverlay';
 import { ImageStorageService } from '../../../../../backend/storage/image-storage';
+import { SmartLinkConfigManager } from '../../../../utils/smart-link-config';
+
+
 
 interface TiptapEditorProps {
   value: string;
@@ -278,32 +282,52 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
 
   React.useEffect(() => {
     if (isOpen) {
-      // Get selected text if any
       const { from, to } = editor.state.selection;
-      const selectedText = editor.state.doc.textBetween(from, to, '');
-      setText(selectedText);
+      const { state } = editor;
+      const { doc } = state;
 
-      // If cursor is on a link, get the URL
+      // Check if we're editing an existing link
       const linkMark = editor.getAttributes('link');
+
       if (linkMark.href) {
+        // 🎯 EDITING EXISTING LINK
         setUrl(linkMark.href);
+
+        // Get selected text or find link text
+        const selectedText = from !== to ? doc.textBetween(from, to, '') : '';
+        setText(selectedText);
       } else {
+        // 🎯 CREATING NEW LINK
         setUrl('');
+        const selectedText = doc.textBetween(from, to, '');
+        setText(selectedText);
       }
     }
   }, [isOpen, editor]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (url) {
-      if (text) {
-        // Insert new text with link
-        editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run();
-      } else {
-        // Apply link to selected text
-        editor.chain().focus().setLink({ href: url }).run();
-      }
+    if (!url) return;
+
+    const { from, to } = editor.state.selection;
+
+    // 🎯 SMART APPROACH: Calculate attributes based on URL
+    const linkAttributes = SmartLinkConfigManager.getLinkAttributes(url);
+    console.log('🔗 Link URL:', url);
+    console.log('🔗 Is Internal:', SmartLinkConfigManager.isInternalDomain(url));
+    console.log('🔗 Attributes:', linkAttributes);
+
+    if (text && from === to) {
+      // No selection, insert new text with link
+      editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run();
+    } else {
+      // Has selection or editing existing link
+      editor.chain().focus().setLink({
+        href: url,
+        ...linkAttributes
+      }).run();
     }
+
     onClose();
     setUrl('');
     setText('');
@@ -318,8 +342,18 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="popup-container bg-white dark:bg-gray-800 rounded-lg p-6 w-96 border border-gray-300 dark:border-gray-600">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Chèn liên kết</h3>
+      <div className="popup-container bg-white dark:bg-gray-800 rounded-lg p-6 w-96 border border-gray-300 dark:border-gray-600 relative">
+        {/* Close button ở góc phải */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+          title="Đóng"
+        >
+          <X size={20} />
+        </button>
+
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pr-8">Chèn liên kết</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -367,14 +401,6 @@ const LinkModal = ({ editor, isOpen, onClose }: { editor: any, isOpen: boolean, 
                 Xóa liên kết
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded transition-colors"
-            >
-              Hủy
-            </button>
           </div>
         </form>
       </div>
@@ -403,6 +429,11 @@ export default function TiptapEditor({
 }: TiptapEditorProps) {
   // OPTIMIZED: Unified popup management
   const { activePopup, openPopup, closePopup, isPopupOpen } = usePopupManager();
+
+  // 🎯 Auto-detect current domain cho SmartLink
+  React.useEffect(() => {
+    SmartLinkConfigManager.autoDetectCurrentDomain();
+  }, []);
 
   // State cho image hover overlay - ĐƠN GIẢN
   const [hoveredImage, setHoveredImage] = useState<HTMLImageElement | null>(null);
@@ -550,14 +581,12 @@ export default function TiptapEditor({
         defaultAlignment: 'left',
       }),
 
-      // OPTIMIZED: Link extension with performance settings
+      // OPTIMIZED: Link extension với smart attributes
       Link.configure({
         openOnClick: false,
         linkOnPaste: true, // Auto-detect links on paste
         HTMLAttributes: {
           class: 'tiptap-link',
-          rel: 'noopener noreferrer', // Security best practice
-          target: '_blank', // Open in new tab
         },
       }),
 

@@ -6,6 +6,7 @@ interface ArticlesBulkActionsProps {
   showBulkActions: boolean;
   loading: boolean;
   onBulkStatusUpdate: (status: 'published' | 'draft' | 'archived') => void;
+  onBulkDelete: () => void;
   onClearSelection: () => void;
 }
 
@@ -14,6 +15,7 @@ export default function ArticlesBulkActions({
   showBulkActions,
   loading,
   onBulkStatusUpdate,
+  onBulkDelete,
   onClearSelection
 }: ArticlesBulkActionsProps) {
   return (
@@ -58,6 +60,13 @@ export default function ArticlesBulkActions({
                 className="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white text-sm rounded-md transition-colors"
               >
                 Lưu trữ
+              </button>
+              <button
+                onClick={onBulkDelete}
+                disabled={loading}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm rounded-md transition-colors"
+              >
+                Xóa
               </button>
             </div>
           </div>
