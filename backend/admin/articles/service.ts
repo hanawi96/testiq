@@ -173,6 +173,7 @@ export class ArticlesService {
       lang?: string;
       article_type?: string;
       status?: string;
+
       featured?: boolean;
       category_id?: string;
       author_id?: string; // FIXED: Thêm author_id
@@ -196,6 +197,15 @@ export class ArticlesService {
     return serviceWrapper(async () => {
       // Step 1: Lưu content vào article_drafts
       const result = await ArticleQueries.upsertDraft(articleId, userId, contentData);
+
+      // Step 1.5: Nếu có thay đổi status, cập nhật luôn vào main article
+      if (contentData.status) {
+        await ArticleQueries.updateArticle(articleId, {
+          status: contentData.status,
+          updated_at: new Date().toISOString()
+        });
+        console.log(`🔄 Autosave: Updated status to ${contentData.status} in main article`);
+      }
 
       // Step 2: Lưu categories nếu có - MULTIPLE CATEGORIES SUPPORT
       if (contentData.categories && result.data) {

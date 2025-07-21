@@ -409,8 +409,26 @@ export class ArticleQueries {
           .single();
 
         if (draftData) {
-          article = draftData;
-          console.log(`📝 Loading draft for article ${articleId}`);
+          // Load main article first để lấy status, sau đó merge draft content
+          const { data: mainArticle } = await supabaseAdmin
+            .from('articles')
+            .select('*')
+            .eq('id', articleId)
+            .single();
+
+          if (mainArticle) {
+            // Merge draft content với main article, ưu tiên status từ draft
+            article = {
+              ...mainArticle,
+              ...draftData,
+              id: mainArticle.id,
+              created_at: mainArticle.created_at,
+              published_at: mainArticle.published_at
+            };
+          } else {
+            article = draftData;
+          }
+          console.log(`📝 Loading draft for article ${articleId}, status: ${article.status}`);
 
           // Load draft categories - MULTIPLE CATEGORIES SUPPORT
           try {

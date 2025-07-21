@@ -107,12 +107,9 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                 const previewUrl = `/blog/${formData.slug}`;
                 window.open(previewUrl, '_blank');
               }}
-              className="px-3 py-1.5 text-sm bg-white/60 dark:bg-gray-800/60 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 text-sm bg-white/60 dark:bg-gray-800/60 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg transition-colors"
               title="Xem bài viết đã xuất bản"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
               Xem thử
             </button>
           )}
@@ -128,18 +125,21 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {formData.scheduled_at && new Date(formData.scheduled_at) > new Date()
                   ? 'Đã lên lịch'
-                  : formData.is_public ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
+                  : formData.status === 'published' ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
               </p>
             </div>
             <button
-              onClick={() => setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
+              onClick={() => setFormData(prev => ({
+                ...prev,
+                status: prev.status === 'published' ? 'draft' : 'published'
+              }))}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                formData.is_public ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                formData.status === 'published' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                  formData.is_public ? 'translate-x-6' : 'translate-x-1'
+                  formData.status === 'published' ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
@@ -258,15 +258,15 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
 
               {saveStates.isAutoSaving && (
                 <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                  <div className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
+                      <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
+                    </svg>
+                  </div>
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
                     {saveStates.isManualSaving ? 'Đang lưu...' : 'Đang tự động lưu...'}
                   </span>
-                  <div className="w-20 h-1 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-75 ease-out rounded-full"
-                      style={{ width: `${saveStates.saveProgress}%` }}
-                    ></div>
-                  </div>
                 </div>
               )}
 
@@ -294,12 +294,26 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                   ? 'bg-blue-500 text-white cursor-not-allowed opacity-75'
                   : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
               }`}
-              title={formData.is_public ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
+              title={formData.status === 'published' ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <span>{formData.is_public ? 'Lưu và xuất bản' : 'Lưu nháp'}</span>
+              {saveStates.isSaving ? (
+                <div className="w-5 h-5 animate-spin">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
+                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
+                  </svg>
+                </div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              )}
+              <span>
+                {saveStates.isSaving
+                  ? 'Đang lưu...'
+                  : (formData.status === 'published' ? 'Lưu và xuất bản' : 'Lưu nháp')
+                }
+              </span>
             </button>
           </div>
         </div>

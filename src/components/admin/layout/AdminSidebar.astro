@@ -215,7 +215,7 @@ function isDropdownActive(item: any) {
 
 <!-- Sidebar với pre-loaded state -->
 <div id="admin-sidebar"
-     class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700"
+     class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 -translate-x-full lg:translate-x-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-150 ease-in-out"
      data-server-dropdown-states={JSON.stringify(Object.fromEntries(serverSideDropdownStates))}>
   
   <!-- Logo Section -->
@@ -231,16 +231,6 @@ function isDropdownActive(item: any) {
         <p class="text-xs text-gray-500 dark:text-gray-400">IQ Test System</p>
       </div>
     </div>
-    
-    <!-- Collapse Toggle - Desktop -->
-    <button
-      id="sidebar-collapse-btn"
-      class="hidden lg:flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-      </svg>
-    </button>
 
     <!-- Close Button - Mobile -->
     <button
@@ -348,6 +338,17 @@ function isDropdownActive(item: any) {
       </svg>
       <span class="sidebar-text">Về trang chủ</span>
     </a>
+
+    <!-- Collapse Toggle - Desktop -->
+    <button
+      id="sidebar-collapse-btn"
+      class="hidden lg:flex w-full items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg mt-1"
+    >
+      <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      <span class="sidebar-text">Thu nhỏ</span>
+    </button>
   </div>
 </div>
 
@@ -363,6 +364,7 @@ function isDropdownActive(item: any) {
     const themeIconLight = document.querySelector('.theme-icon-light');
     const themeIconDark = document.querySelector('.theme-icon-dark');
     const themeText = document.querySelector('.theme-text');
+    const mainContent = document.getElementById('admin-main-content');
 
     // Simple state management
     let isCollapsed = localStorage.getItem('admin-sidebar-collapsed') === 'true';
@@ -378,6 +380,18 @@ function isDropdownActive(item: any) {
         sidebarTexts.forEach(text => text.classList.add('hidden'));
         sidebarBrand?.classList.add('hidden');
         collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M9 5l7 7-7 7');
+
+        // Điều chỉnh main content cho collapsed state
+        if (mainContent) {
+          mainContent.classList.remove('lg:pl-64');
+          mainContent.classList.add('lg:pl-16');
+        }
+      } else {
+        // Đảm bảo main content có padding đúng cho expanded state
+        if (mainContent) {
+          mainContent.classList.remove('lg:pl-16');
+          mainContent.classList.add('lg:pl-64');
+        }
       }
       updateThemeIcon();
     }
@@ -394,6 +408,12 @@ function isDropdownActive(item: any) {
         sidebarTexts.forEach(text => text.classList.add('hidden'));
         sidebarBrand?.classList.add('hidden');
         collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M9 5l7 7-7 7');
+
+        // Điều chỉnh main content cho collapsed state
+        if (mainContent) {
+          mainContent.classList.remove('lg:pl-64');
+          mainContent.classList.add('lg:pl-16');
+        }
 
         // Close all dropdowns when collapsing
         openDropdowns.forEach(dropdownId => {
@@ -412,6 +432,12 @@ function isDropdownActive(item: any) {
         sidebarTexts.forEach(text => text.classList.remove('hidden'));
         sidebarBrand?.classList.remove('hidden');
         collapseBtn?.querySelector('svg path')?.setAttribute('d', 'M15 19l-7-7 7-7');
+
+        // Điều chỉnh main content cho expanded state
+        if (mainContent) {
+          mainContent.classList.remove('lg:pl-16');
+          mainContent.classList.add('lg:pl-64');
+        }
 
         // Restore dropdown states when expanding
         openDropdowns.forEach(dropdownId => {
@@ -588,12 +614,41 @@ function isDropdownActive(item: any) {
     animation: none !important;
   }
 
+  .no-transitions .sidebar-text {
+    transition: none !important;
+  }
+
+  .no-transitions #sidebar-brand {
+    transition: none !important;
+  }
+
   #admin-sidebar.collapsed .sidebar-text {
-    display: none;
+    opacity: 0;
+    pointer-events: none;
   }
 
   #admin-sidebar.collapsed #sidebar-brand {
-    display: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Smooth transitions for sidebar text and brand */
+  .sidebar-text {
+    transition: opacity 0.15s ease-in-out;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  #sidebar-brand {
+    transition: opacity 0.15s ease-in-out;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* Ensure buttons maintain consistent height */
+  #admin-sidebar button,
+  #admin-sidebar a {
+    min-height: 40px;
   }
 
   /* Hide dropdown content when sidebar is collapsed */
@@ -641,6 +696,11 @@ function isDropdownActive(item: any) {
     transform: translateZ(0);
     backface-visibility: hidden;
     contain: layout style;
+  }
+
+  /* Ensure sidebar transition is disabled during initial load */
+  .no-transitions #admin-sidebar {
+    transition: none !important;
   }
 
   /* Mobile responsive behavior */

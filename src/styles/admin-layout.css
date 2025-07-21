@@ -58,20 +58,23 @@
   }
 }
 
-/* Sidebar collapsed state adjustments */
-.admin-sidebar-collapsed + .admin-main-content {
-  width: calc(100vw - 64px); /* Collapsed sidebar is 64px */
+/* Sidebar collapsed state adjustments - Updated to use class-based approach */
+#admin-main-content.lg\:pl-16 {
+  /* Styles for collapsed sidebar state will be handled by Tailwind classes */
 }
 
-@media (min-width: 1024px) {
-  .admin-sidebar-collapsed + .admin-main-content {
-    padding-left: 64px; /* Adjust for collapsed sidebar */
-  }
+#admin-main-content.lg\:pl-64 {
+  /* Styles for expanded sidebar state will be handled by Tailwind classes */
 }
 
 /* Smooth transitions for layout changes */
-.admin-main-content {
-  transition: width 0.3s ease-in-out, padding-left 0.3s ease-in-out;
+#admin-main-content {
+  transition: padding-left 0.15s ease-in-out;
+}
+
+/* Ensure no transitions during initial load */
+.no-transitions #admin-main-content {
+  transition: none !important;
 }
 
 /* Ensure content doesn't get cut off */

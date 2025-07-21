@@ -409,6 +409,7 @@ create table public.article_drafts (
   article_type public.article_type null default 'article'::article_type,
   status public.article_status null default 'draft'::article_status,
   featured boolean null default false,
+  author_id uuid null,
   category_id uuid null,
   meta_title text null,
   meta_description text null,
@@ -435,6 +436,7 @@ create table public.article_drafts (
   updated_at timestamp with time zone null default now(),
   constraint article_drafts_pkey primary key (id),
   constraint article_drafts_article_id_fkey foreign KEY (article_id) references articles (id) on delete CASCADE,
+  constraint article_drafts_author_id_fkey foreign KEY (author_id) references auth.users (id) on delete set null,
   constraint article_drafts_category_id_fkey foreign KEY (category_id) references categories (id) on delete set null,
   constraint article_drafts_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE,
   constraint valid_metrics check (
@@ -489,6 +491,28 @@ execute FUNCTION update_category_article_count ();
 
 
 
+-- article_draft_categories
+create table public.article_draft_categories (
+  id uuid not null default gen_random_uuid (),
+  article_draft_id uuid not null,
+  category_id uuid not null,
+  sort_order integer null default 1,
+  created_at timestamp with time zone null default now(),
+  constraint article_draft_categories_pkey primary key (id),
+  constraint unique_draft_category unique (article_draft_id, category_id),
+  constraint fk_article_draft_categories_category_id foreign KEY (category_id) references categories (id) on delete CASCADE,
+  constraint fk_article_draft_categories_draft_id foreign KEY (article_draft_id) references article_drafts (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_categories_draft_id on public.article_draft_categories using btree (article_draft_id) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_categories_category_id on public.article_draft_categories using btree (category_id) TABLESPACE pg_default;
+
+
+
+
+
+
 -- article_tags
 create table public.article_tags (
   article_id uuid not null,
@@ -497,6 +521,42 @@ create table public.article_tags (
   constraint article_tags_article_id_fkey foreign KEY (article_id) references articles (id) on delete CASCADE,
   constraint article_tags_tag_id_fkey foreign KEY (tag_id) references tags (id) on delete CASCADE
 ) TABLESPACE pg_default;
+
+
+
+
+
+-- article_draft_tags
+create table public.article_draft_tags (
+  article_draft_id uuid not null,
+  tag_id uuid not null,
+  created_at timestamp with time zone not null default now(),
+  created_by uuid null,
+  sort_order integer null default 0,
+  constraint article_draft_tags_pkey primary key (article_draft_id, tag_id),
+  constraint fk_article_draft_tags_article_draft_id foreign KEY (article_draft_id) references article_drafts (id) on delete CASCADE,
+  constraint fk_article_draft_tags_created_by foreign KEY (created_by) references auth.users (id) on delete set null,
+  constraint fk_article_draft_tags_tag_id foreign KEY (tag_id) references tags (id) on delete CASCADE,
+  constraint chk_sort_order_non_negative check ((sort_order >= 0))
+) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_tags_article_draft_id on public.article_draft_tags using btree (article_draft_id) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_tags_tag_id on public.article_draft_tags using btree (tag_id) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_tags_composite on public.article_draft_tags using btree (article_draft_id, tag_id) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_tags_sort_order on public.article_draft_tags using btree (article_draft_id, sort_order) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_tags_created_by on public.article_draft_tags using btree (created_by) TABLESPACE pg_default;
+
+create index IF not exists idx_article_draft_tags_created_at on public.article_draft_tags using btree (created_at desc) TABLESPACE pg_default;
+
+create trigger trigger_set_article_draft_tags_created_by BEFORE INSERT on article_draft_tags for EACH row
+execute FUNCTION set_article_draft_tags_created_by ();
+
+create trigger trigger_set_article_draft_tags_sort_order BEFORE INSERT on article_draft_tags for EACH row
+execute FUNCTION set_article_draft_tags_sort_order ();
 
 
 -- tags

@@ -24,11 +24,10 @@ export interface FormData {
   cover_image_alt: string;
   lang: string;
   article_type: 'article' | 'page' | 'post';
-  is_public: boolean;
+
   is_featured: boolean;
   schema_type: string;
   robots_noindex: boolean;
-  published_date: string;
   scheduled_at: string;
   author_id: string;
 }
@@ -176,11 +175,7 @@ export const useFormHandlers = ({
     setHasUnsavedChanges(true);
   }, [setFormData, setHasUnsavedChanges]);
 
-  // Handle public toggle
-  const handlePublicToggle = useCallback(() => {
-    setFormData(prev => ({ ...prev, is_public: !prev.is_public }));
-    setHasUnsavedChanges(true);
-  }, [setFormData, setHasUnsavedChanges]);
+
 
   // Handle featured toggle
   const handleFeaturedToggle = useCallback(() => {
@@ -221,7 +216,7 @@ export const useFormHandlers = ({
     handleCoverImageRemove,
     handleAuthorChange,
     handleStatusChange,
-    handlePublicToggle,
+
     handleFeaturedToggle,
     handleRobotsToggle,
     handleSchemaTypeChange,

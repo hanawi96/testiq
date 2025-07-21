@@ -19,11 +19,10 @@ export const DEFAULT_FORM_DATA = {
   cover_image_alt: '',
   lang: 'vi',
   article_type: 'article' as 'article' | 'page' | 'post',
-  is_public: false, // Default to draft for both create and edit mode
+
   is_featured: false,
   schema_type: 'Article',
   robots_noindex: false,
-  published_date: '', // Read-only, auto-set by system
   scheduled_at: '', // Hẹn ngày giờ đăng bài
   author_id: ''
 };

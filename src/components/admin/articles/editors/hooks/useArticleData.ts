@@ -145,7 +145,7 @@ export const useArticleData = ({
               cover_image_alt: articleResult.data.cover_image_alt || '',
               lang: articleResult.data.lang || 'vi',
               article_type: articleResult.data.article_type || 'article',
-              is_public: articleResult.data.status === 'published',
+
               is_featured: articleResult.data.featured === true,
               schema_type: articleResult.data.schema_type || 'Article',
               robots_noindex: articleResult.data.robots_directive?.includes('noindex') || false,

@@ -150,7 +150,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       formData.content !== initialFormData.content ||
       formData.excerpt !== initialFormData.excerpt ||
       formData.slug !== initialFormData.slug ||
-      formData.is_public !== initialFormData.is_public ||
+      formData.status !== initialFormData.status ||
       formData.is_featured !== initialFormData.is_featured ||
       formData.author_id !== initialFormData.author_id ||
       JSON.stringify(formData.categories) !== JSON.stringify(initialFormData.categories) ||
@@ -171,8 +171,8 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       // Ctrl/Cmd + Shift + P to publish
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
         e.preventDefault();
-        // Set public and then save
-        setFormData(prev => ({ ...prev, is_public: true }));
+        // Set published and then save
+        setFormData(prev => ({ ...prev, status: 'published' }));
         setTimeout(() => handleManualSave(), 100);
       }
     };

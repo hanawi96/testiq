@@ -115,7 +115,7 @@ export const useSaveHandlers = ({
         // Settings
         lang: cleanedData.lang,
         article_type: cleanedData.article_type,
-        status: isAutoSave ? 'draft' : cleanedData.status, // Autosave luôn giữ draft
+        status: cleanedData.status,
         featured: cleanedData.is_featured,
         category_id: cleanedData.categories.length > 0 ? cleanedData.categories[0] : undefined,
         schema_type: cleanedData.schema_type,
@@ -138,11 +138,10 @@ export const useSaveHandlers = ({
 
       if (isEditMode && currentArticleId) {
         if (isAutoSave) {
-          // 💾 AUTOSAVE cho bài viết ĐÃ CÓ: Chỉ lưu vào drafts
+          // 💾 AUTOSAVE: Lưu content vào drafts, không ảnh hưởng status
           const result = await ArticlesService.autosaveContent(currentArticleId, {
             ...articleData,
-            author_id: cleanedData.author_id.trim() || null, // FIXED: Truyền author_id vào autosave
-            status: 'draft' // Autosave luôn giữ draft
+            author_id: cleanedData.author_id.trim() || null,
           }, currentUserId);
           data = result.data;
           error = result.error;
