@@ -3,7 +3,7 @@
  * Sidebar component cho publish settings, save button, và status management
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { FormData } from '../../hooks/useFormHandlers';
 import type { SaveStates } from '../../hooks/useSaveHandlers';
 import type { LoadingState } from '../../utils/articleEditorHelpers';
@@ -18,8 +18,13 @@ interface PublishBoxProps {
   hasUnsavedChanges: boolean;
   validationError: string;
   handleManualSave: () => void;
+  handleManualSaveWithData: (data: any) => void; // For state management fix
   loadingState: LoadingState;
   shouldShowSkeleton?: boolean;
+  isEditMode?: boolean; // True for editing existing article, false for new article
+  formHandlers?: {
+    handlePublishedDateChange: (date: string) => void;
+  };
 }
 
 export const PublishBox: React.FC<PublishBoxProps> = ({
@@ -30,9 +35,175 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
   hasUnsavedChanges,
   validationError,
   handleManualSave,
+  handleManualSaveWithData,
   loadingState,
-  shouldShowSkeleton = false
+  shouldShowSkeleton = false,
+  isEditMode = false,
+  formHandlers
 }) => {
+  // State cho date editor
+  const [showDateEditor, setShowDateEditor] = useState(false);
+  const [editingPublishedDate, setEditingPublishedDate] = useState(() => {
+    // Initialize với published_date hiện tại hoặc ngày hiện tại (ISO string format cho DateTimePicker)
+    if (formData.published_date) {
+      return formData.published_date;
+    }
+    return new Date().toISOString();
+  });
+
+  // PHASE 2: Validation state
+  const [localValidationErrors, setLocalValidationErrors] = useState<string[]>([]);
+
+  // Update editingPublishedDate when formData.published_date changes
+  useEffect(() => {
+    if (formData.published_date) {
+      setEditingPublishedDate(formData.published_date);
+    }
+  }, [formData.published_date]);
+
+  // PHASE 2: Auto-clear validation errors when form data changes
+  useEffect(() => {
+    if (localValidationErrors.length > 0) {
+      // Clear errors when user makes changes to fix validation issues
+      setLocalValidationErrors([]);
+    }
+  }, [formData.title, formData.content, formData.slug, formData.excerpt, formData.scheduled_at]);
+
+  // WordPress-style: Simple date change handler
+  const handlePublishedDateChange = (newDate: string) => {
+    if (!newDate) return;
+    setEditingPublishedDate(newDate);
+  };
+
+  // WordPress-style: Save on OK button click
+  const handleSavePublishedDate = () => {
+    if (formHandlers?.handlePublishedDateChange) {
+      formHandlers.handlePublishedDateChange(editingPublishedDate);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        published_date: editingPublishedDate
+      }));
+    }
+    setShowDateEditor(false);
+  };
+
+  // PHASE 2: Comprehensive validation functions
+  const validateBeforeSave = (data: FormData, action: 'draft' | 'publish' | 'schedule'): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    // Basic validation for all actions
+    if (!data.title?.trim()) {
+      errors.push('Tiêu đề không được để trống');
+    }
+
+    // Content length validation
+    if (data.title && data.title.trim().length > 200) {
+      errors.push('Tiêu đề không được vượt quá 200 ký tự');
+    }
+
+    // Draft-specific validation (relaxed)
+    if (action === 'draft') {
+      // For drafts, only require title
+      // Content can be empty for drafts
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    }
+
+    // Publish and Schedule require content
+    if (!data.content?.trim()) {
+      errors.push('Nội dung không được để trống');
+    }
+
+    if (data.content && data.content.trim().length < 50) {
+      errors.push('Nội dung phải có ít nhất 50 ký tự');
+    }
+
+    // Publish-specific validation
+    if (action === 'publish') {
+      if (!data.slug?.trim()) {
+        errors.push('Slug không được để trống khi xuất bản');
+      }
+
+      if (!data.excerpt?.trim()) {
+        errors.push('Mô tả ngắn không được để trống khi xuất bản');
+      }
+    }
+
+    // Schedule-specific validation
+    if (action === 'schedule') {
+      if (!data.scheduled_at) {
+        errors.push('Vui lòng chọn thời gian để lên lịch xuất bản');
+      } else {
+        const scheduledDate = new Date(data.scheduled_at);
+        const now = new Date();
+
+        if (scheduledDate <= now) {
+          errors.push('Thời gian lên lịch phải trong tương lai');
+        }
+
+        // Check if scheduled time is too far in future (1 year)
+        const oneYearFromNow = new Date();
+        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+        if (scheduledDate > oneYearFromNow) {
+          errors.push('Thời gian lên lịch không được quá 1 năm');
+        }
+      }
+
+      // Schedule also requires slug and excerpt
+      if (!data.slug?.trim()) {
+        errors.push('Slug không được để trống khi lên lịch');
+      }
+
+      if (!data.excerpt?.trim()) {
+        errors.push('Mô tả ngắn không được để trống khi lên lịch');
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
+
+  // Unified action handlers - PHASE 2: With comprehensive validation
+  const handleSave = (action: 'draft' | 'publish' | 'schedule') => {
+    // Clear previous validation errors
+    setLocalValidationErrors([]);
+
+    const updatedFormData = { ...formData };
+
+    switch (action) {
+      case 'draft':
+        updatedFormData.status = 'draft';
+        break;
+      case 'publish':
+        updatedFormData.status = 'published';
+        break;
+      case 'schedule':
+        updatedFormData.status = 'scheduled';
+        break;
+    }
+
+    // PHASE 2: Validate before save
+    const validation = validateBeforeSave(updatedFormData, action);
+
+    if (!validation.isValid) {
+      // Show validation errors
+      setLocalValidationErrors(validation.errors);
+
+      // Also show first error as alert for immediate feedback
+      alert(`❌ Không thể ${action === 'draft' ? 'lưu nháp' : action === 'publish' ? 'xuất bản' : 'lên lịch'}:\n\n${validation.errors.join('\n')}`);
+      return;
+    }
+
+    // Validation passed - proceed with save
+    setFormData(updatedFormData);
+    handleManualSaveWithData(updatedFormData);
+  };
 
   if (shouldShowSkeleton) {
     return (
@@ -119,31 +290,6 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
       {/* Content */}
       <div className="p-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Trạng thái xuất bản</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {formData.scheduled_at && new Date(formData.scheduled_at) > new Date()
-                  ? 'Đã lên lịch'
-                  : formData.status === 'published' ? 'Hiển thị công khai' : 'Chỉ riêng tư'}
-              </p>
-            </div>
-            <button
-              onClick={() => setFormData(prev => ({
-                ...prev,
-                status: prev.status === 'published' ? 'draft' : 'published'
-              }))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                formData.status === 'published' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                  formData.status === 'published' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
 
           <div className="flex items-center justify-between">
             <div>
@@ -166,80 +312,150 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
             </button>
           </div>
 
-          {/* Hiển thị thông tin ngày xuất bản (read-only) */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Thông tin xuất bản
-            </label>
+          {/* Consolidated Published Articles Section */}
+          {formData.status === 'published' && (
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Thông tin xuất bản
+              </label>
 
-            {formData.status === 'published' && formData.published_date ? (
-              <div className="text-sm text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg border border-green-200 dark:border-green-800">
-                Đã xuất bản: {new Date(formData.published_date).toLocaleString('vi-VN')}
-              </div>
-            ) : formData.scheduled_at && new Date(formData.scheduled_at) > new Date() ? (
-              <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
-                ⏰ Sẽ xuất bản: {new Date(formData.scheduled_at).toLocaleString('vi-VN')}
-              </div>
-            ) : (
-              <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
-                📝 Chưa xuất bản
-              </div>
-            )}
-          </div>
+              {showDateEditor ? (
+                <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Chỉnh sửa ngày xuất bản:
+                    </label>
+                    <DateTimePicker
+                      label=""
+                      value={editingPublishedDate}
+                      onChange={handlePublishedDateChange}
+                      disabled={false}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSavePublishedDate}
+                      className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                    >
+                      OK
+                    </button>
+                    <button
+                      onClick={() => setShowDateEditor(false)}
+                      className="px-3 py-1 text-xs bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-sm text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                    <div>
+                      Published on: <strong>{formData.published_date ? new Date(formData.published_date).toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'Bây giờ'}</strong>
+                    </div>
+                    <button
+                      onClick={() => setShowDateEditor(true)}
+                      className="ml-2 p-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
+                      title="Chỉnh sửa ngày xuất bản"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                      </svg>
+                    </button>
+                  </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <DateTimePicker
-                  label="Hẹn ngày giờ đăng bài"
-                  value={formData.scheduled_at}
-                  onChange={(value) => {
-                    // Validation: chỉ cho phép chọn ngày trong tương lai
-                    if (value) {
-                      const selectedDate = new Date(value);
-                      const now = new Date();
-
-                      if (selectedDate <= now) {
-                        alert('⚠️ Vui lòng chọn thời gian trong tương lai để hẹn lịch đăng bài');
-                        return;
-                      }
-                    }
-
-                    setFormData(prev => ({ ...prev, scheduled_at: value }));
-                  }}
-                  disabled={loadingState.isLoading}
-                />
-              </div>
-
-              {/* Clear scheduled date button */}
-              {formData.scheduled_at && (
-                <button
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, scheduled_at: '' }));
-                  }}
-                  className="mt-6 p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all duration-200"
-                  title="Hủy lịch hẹn"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  {/* Integrated Update Button */}
+                  <button
+                    onClick={() => handleManualSave()}
+                    disabled={saveStates.isSaving}
+                    className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
+                      saveStates.isSaving
+                        ? 'bg-green-400 text-white cursor-not-allowed opacity-75'
+                        : 'bg-green-600 hover:bg-green-700 hover:shadow-lg text-white'
+                    }`}
+                    title="Cập nhật bài viết (Ctrl+S)"
+                  >
+                    {saveStates.isSaving ? (
+                      <div className="w-5 h-5 animate-spin">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
+                          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
+                        </svg>
+                      </div>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                    <span>{saveStates.isSaving ? 'Đang cập nhật...' : 'Cập nhật'}</span>
+                  </button>
+                </>
               )}
             </div>
+          )}
 
-            {/* Helper text và status cho scheduled publishing */}
-            <div className="space-y-1">
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                💡 Tự động xuất bản vào thời gian đã chọn
-              </div>
+          {/* WordPress-style Scheduling */}
+          {(formData.status === 'draft' || formData.status === 'scheduled') && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Lên lịch xuất bản
+              </label>
 
-              {formData.scheduled_at && (
-                <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
-                  📅 Đã lên lịch: {new Date(formData.scheduled_at).toLocaleString('vi-VN')}
+              {formData.scheduled_at ? (
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  Scheduled for: <strong>{new Date(formData.scheduled_at).toLocaleDateString('vi-VN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</strong>
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, scheduled_at: '' }))}
+                    className="ml-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <DateTimePicker
+                    label="Chọn thời gian xuất bản"
+                    value={formData.scheduled_at}
+                    onChange={(value) => {
+                      // PHASE 2: Better validation with user-friendly feedback
+                      if (value) {
+                        const selectedDate = new Date(value);
+                        const now = new Date();
+
+                        if (selectedDate <= now) {
+                          setLocalValidationErrors(['Thời gian lên lịch phải trong tương lai']);
+                          return;
+                        }
+
+                        // Clear validation errors if time is valid
+                        setLocalValidationErrors([]);
+                      }
+
+                      setFormData(prev => ({ ...prev, scheduled_at: value }));
+                    }}
+                    disabled={loadingState.isLoading}
+                  />
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    � Bài viết sẽ tự động xuất bản vào thời gian đã chọn
+                  </div>
                 </div>
               )}
             </div>
-          </div>
+          )}
+
+
 
           {/* Save Status & Actions */}
           <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -253,6 +469,28 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                   <span className="text-sm font-medium text-red-700 dark:text-red-300">
                     {validationError}
                   </span>
+                </div>
+              )}
+
+              {/* PHASE 2: Local validation errors display */}
+              {localValidationErrors.length > 0 && (
+                <div className="space-y-2 px-3 py-3 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg border border-orange-200 dark:border-orange-800/30">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                      Vui lòng kiểm tra các lỗi sau:
+                    </span>
+                  </div>
+                  <ul className="space-y-1 ml-6">
+                    {localValidationErrors.map((error, index) => (
+                      <li key={index} className="text-sm text-orange-700 dark:text-orange-300 flex items-start gap-2">
+                        <span className="text-orange-500 mt-1">•</span>
+                        <span>{error}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
@@ -285,36 +523,103 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
               )}
             </div>
 
-            {/* Save Button */}
-            <button
-              onClick={() => handleManualSave()}
-              disabled={saveStates.isSaving}
-              className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 font-medium ${
-                saveStates.isSaving
-                  ? 'bg-blue-500 text-white cursor-not-allowed opacity-75'
-                  : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:scale-[1.02] text-white'
-              }`}
-              title={formData.status === 'published' ? "Lưu và xuất bản (Ctrl+S)" : "Lưu nháp (Ctrl+S)"}
-            >
-              {saveStates.isSaving ? (
-                <div className="w-5 h-5 animate-spin">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
-                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
-                  </svg>
+            {/* WordPress-style Action Buttons */}
+            <div className="space-y-2">
+              {/* Draft Articles: Save Draft + Publish in same row */}
+              {formData.status === 'draft' && !formData.scheduled_at && (
+                <div className="flex gap-3">
+                  {/* Save Draft Button - Secondary */}
+                  <button
+                    onClick={() => handleSave('draft')}
+                    disabled={saveStates.isSaving}
+                    className={`flex-1 px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium border ${
+                      saveStates.isSaving
+                        ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
+                    }`}
+                    title="Lưu nháp (Ctrl+S)"
+                  >
+                    {saveStates.isSaving ? (
+                      <div className="w-4 h-4 animate-spin">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
+                          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
+                        </svg>
+                      </div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                      </svg>
+                    )}
+                    <span className="text-sm">{saveStates.isSaving ? 'Đang lưu...' : 'Lưu nháp'}</span>
+                  </button>
+
+                  {/* Publish Button - Primary */}
+                  <button
+                    onClick={() => handleSave('publish')}
+                    disabled={saveStates.isSaving}
+                    className={`flex-1 px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
+                      saveStates.isSaving
+                        ? 'bg-blue-400 text-white cursor-not-allowed opacity-75'
+                        : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25 text-white transform hover:scale-[1.02]'
+                    }`}
+                    title={isEditMode ? "Cập nhật bài viết" : "Xuất bản ngay"}
+                  >
+                    {isEditMode ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                      </svg>
+                    )}
+                    <span className="text-sm font-semibold">{isEditMode ? 'Cập nhật' : 'Xuất bản'}</span>
+                  </button>
                 </div>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
               )}
-              <span>
-                {saveStates.isSaving
-                  ? 'Đang lưu...'
-                  : (formData.status === 'published' ? 'Lưu và xuất bản' : 'Lưu nháp')
-                }
-              </span>
-            </button>
+
+
+
+              {/* Scheduled Articles: Save Draft + Schedule in same row */}
+              {(formData.status === 'draft' || formData.status === 'scheduled') && formData.scheduled_at && (
+                <div className="flex gap-3">
+                  {/* Save Draft Button - Secondary */}
+                  <button
+                    onClick={() => handleSave('draft')}
+                    disabled={saveStates.isSaving}
+                    className={`flex-1 px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium border ${
+                      saveStates.isSaving
+                        ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
+                    }`}
+                    title="Lưu nháp"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
+                    <span className="text-sm">Lưu nháp</span>
+                  </button>
+
+                  {/* Schedule Button - Primary */}
+                  <button
+                    onClick={() => handleSave('schedule')}
+                    disabled={saveStates.isSaving}
+                    className={`flex-1 px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
+                      saveStates.isSaving
+                        ? 'bg-orange-400 text-white cursor-not-allowed opacity-75'
+                        : 'bg-orange-600 hover:bg-orange-700 hover:shadow-lg hover:shadow-orange-500/25 text-white transform hover:scale-[1.02]'
+                    }`}
+                    title="Lên lịch xuất bản"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    <span className="text-sm font-semibold">{formData.status === 'scheduled' ? 'Cập nhật lịch' : 'Lên lịch'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

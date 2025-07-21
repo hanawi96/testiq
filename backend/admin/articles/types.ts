@@ -286,6 +286,7 @@ export interface CreateArticleData extends
 
   // Publishing với ISO strings
   readonly published_at?: string;
+  readonly published_date?: string; // Custom published date for SEO
   readonly scheduled_at?: string;
   readonly expires_at?: string;
   readonly revision_notes?: string;

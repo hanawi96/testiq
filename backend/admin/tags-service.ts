@@ -429,4 +429,66 @@ export class TagsService {
       return { data: 0, error: err };
     }
   }
+
+  /**
+   * Get most popular tags (by usage_count)
+   */
+  static async getPopularTags(limit: number = 15): Promise<{ data: string[]; error: any }> {
+    try {
+      const { data: tags, error } = await supabase
+        .from('tags')
+        .select('name')
+        .order('usage_count', { ascending: false })
+        .order('name', { ascending: true })
+        .limit(limit);
+
+      if (error) {
+        console.error('TagsService: Error getting popular tags:', error);
+        return { data: [], error };
+      }
+
+      return { data: tags?.map(tag => tag.name) || [], error: null };
+
+    } catch (err: any) {
+      console.error('TagsService: Error in getPopularTags:', err);
+      return { data: [], error: err };
+    }
+  }
+
+  /**
+   * Get newest tags (by created_at)
+   */
+  static async getNewestTags(limit: number = 15): Promise<{ data: string[]; error: any }> {
+    try {
+      const { data: tags, error } = await supabase
+        .from('tags')
+        .select('name')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('TagsService: Error getting newest tags:', error);
+        return { data: [], error };
+      }
+
+      return { data: tags?.map(tag => tag.name) || [], error: null };
+
+    } catch (err: any) {
+      console.error('TagsService: Error in getNewestTags:', err);
+      return { data: [], error: err };
+    }
+  }
+
+  /**
+   * Seed sample tags for testing
+   */
+  static async seedSampleTags(): Promise<{ success: boolean; error?: any }> {
+    try {
+      const { seedSampleTags } = await import('../utils/seed-tags');
+      return await seedSampleTags();
+    } catch (err: any) {
+      console.error('TagsService: Error seeding sample tags:', err);
+      return { success: false, error: err };
+    }
+  }
 }

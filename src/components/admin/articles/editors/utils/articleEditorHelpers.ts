@@ -162,7 +162,9 @@ export const cleanFormData = (formData: any) => {
     slug: formData.slug?.trim() || '',
     focus_keyword: formData.focus_keyword?.trim() || '',
     cover_image: formData.cover_image?.trim() || '',
-    cover_image_alt: formData.cover_image_alt?.trim() || ''
+    cover_image_alt: formData.cover_image_alt?.trim() || '',
+    // Include published_date for SEO date editing
+    published_date: formData.published_date || null
   };
 };
 

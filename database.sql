@@ -428,6 +428,7 @@ create table public.article_drafts (
   reading_time integer null default 0,
   internal_links jsonb null,
   external_links jsonb null,
+  published_at timestamp with time zone null,
   scheduled_at timestamp with time zone null,
   version integer null default 1,
   is_active boolean not null default true,

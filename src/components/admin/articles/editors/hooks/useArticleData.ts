@@ -153,7 +153,7 @@ export const useArticleData = ({
               is_featured: articleResult.data.featured === true,
               schema_type: articleResult.data.schema_type || 'Article',
               robots_noindex: articleResult.data.robots_directive?.includes('noindex') || false,
-              published_date: articleResult.data.published_at || '', // Read-only display
+              published_date: articleResult.data.published_at || '', // Map published_at to published_date for editing
               scheduled_at: (articleResult.data as any).scheduled_at ? new Date((articleResult.data as any).scheduled_at).toISOString().slice(0, 16) : '',
               author_id: articleResult.data.author_id || ''
             };
@@ -251,6 +251,7 @@ export const useArticleData = ({
               is_featured: draftResult.data.featured || false,
               schema_type: draftResult.data.schema_type || 'Article',
               robots_noindex: draftResult.data.robots_directive?.includes('noindex') || false,
+              published_date: draftResult.data.published_at || '', // For SEO date editing
               scheduled_at: draftResult.data.scheduled_at || '',
               author_id: draftResult.data.author_id || ''
             };

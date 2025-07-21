@@ -145,8 +145,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       return;
     }
 
-    // Check if form data actually changed from initial state
+    // Check if form data actually changed from initial state - INCLUDE ALL FIELDS
     const hasActualChanges = (
+      // Basic fields
       formData.title !== initialFormData.title ||
       formData.content !== initialFormData.content ||
       formData.excerpt !== initialFormData.excerpt ||
@@ -154,6 +155,25 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       formData.status !== initialFormData.status ||
       formData.is_featured !== initialFormData.is_featured ||
       formData.author_id !== initialFormData.author_id ||
+
+      // SEO fields (only those that exist in FormData type)
+      formData.meta_title !== initialFormData.meta_title ||
+      formData.meta_description !== initialFormData.meta_description ||
+      formData.focus_keyword !== initialFormData.focus_keyword ||
+
+      // Media fields
+      formData.cover_image !== initialFormData.cover_image ||
+      formData.cover_image_alt !== initialFormData.cover_image_alt ||
+
+      // Settings fields
+      formData.lang !== initialFormData.lang ||
+      formData.article_type !== initialFormData.article_type ||
+      formData.schema_type !== initialFormData.schema_type ||
+      formData.robots_noindex !== initialFormData.robots_noindex ||
+      formData.scheduled_at !== initialFormData.scheduled_at ||
+      formData.published_date !== initialFormData.published_date ||
+
+      // Arrays (categories, tags)
       JSON.stringify(formData.categories) !== JSON.stringify(initialFormData.categories) ||
       JSON.stringify(formData.tags) !== JSON.stringify(initialFormData.tags)
     );
@@ -265,7 +285,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   const seoAnalysis = useSeoAnalysis({ formData });
 
   // Save Handlers
-  const { saveStates, handleAutoSave, handleManualSave } = useSaveHandlers({
+  const { saveStates, handleAutoSave, handleManualSave, handleManualSaveWithData } = useSaveHandlers({
     formData,
     isEditMode: isEditMode || isDraftEditMode, // Treat draft edit as edit mode
     currentArticleId: currentArticleId || currentDraftId, // Use draft ID if no article ID
@@ -298,7 +318,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     return () => {
       clearTimeout(autoSaveTimeout);
     };
-  }, [hasUnsavedChanges, saveStates.isManualSaving, formData.title, formData.slug, formData.content, formData.tags, handleAutoSave]);
+  }, [hasUnsavedChanges, saveStates.isManualSaving, handleAutoSave]); // SIMPLIFIED: Chỉ cần hasUnsavedChanges vì nó đã track tất cả fields
 
   // Handle manual slug change with smart filtering
   const handleSlugChange = (slug: string) => {
@@ -432,8 +452,13 @@ n
               hasUnsavedChanges={hasUnsavedChanges}
               validationError={validationError}
               handleManualSave={handleManualSave}
+              handleManualSaveWithData={handleManualSaveWithData}
               loadingState={loadingState}
               shouldShowSkeleton={shouldShowArticleSkeleton}
+              isEditMode={isEditMode}
+              formHandlers={{
+                handlePublishedDateChange: formHandlers.handlePublishedDateChange
+              }}
             />
 
             {/* Categories Section */}

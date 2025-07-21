@@ -417,13 +417,14 @@ export class ArticleQueries {
             .single();
 
           if (mainArticle) {
-            // Merge draft content với main article, ưu tiên status từ draft
+            // Merge draft content với main article, ưu tiên draft data
             article = {
               ...mainArticle,
               ...draftData,
               id: mainArticle.id,
               created_at: mainArticle.created_at,
-              published_at: mainArticle.published_at
+              // Ưu tiên published_at từ draft nếu có, fallback về main article
+              published_at: draftData.published_at || mainArticle.published_at
             };
           } else {
             article = draftData;
@@ -550,18 +551,19 @@ export class ArticleQueries {
 
       const enrichedArticles = enrichArticles([article], authorsResult.data || [], relationshipsResult.data || []);
 
-      // RESTORE DRAFT DATA: Khôi phục draft tags và categories nếu có
-      if (draftTagNames.length > 0) {
-        enrichedArticles[0].tag_names = draftTagNames;
-        console.log(`🔄 Restored draft tags:`, draftTagNames);
-      }
+      // FIXED: ALWAYS ưu tiên draft data hơn main article data
+      // Khôi phục draft tags (có thể là mảng rỗng nếu user đã xóa tags)
+      enrichedArticles[0].tag_names = draftTagNames;
+      console.log(`🔄 Always use draft tags (may be empty):`, draftTagNames);
 
+      // Khôi phục draft categories
       if (draftCategoryIds.length > 0) {
         enrichedArticles[0].category_ids = draftCategoryIds;
         enrichedArticles[0].category_names = draftCategoryNames;
         console.log(`🔄 Restored draft categories:`, { ids: draftCategoryIds, names: draftCategoryNames });
       } else {
-        console.log(`⚠️ No draft categories to restore`);
+        // Nếu không có draft categories, giữ nguyên main article categories
+        console.log(`⚠️ No draft categories, keeping main article categories`);
       }
 
       console.log(`🔍 DEBUG: Final article data:`, {
@@ -998,6 +1000,7 @@ export class ArticleQueries {
       robots_directive?: string;
 
       // Publishing
+      published_date?: string; // Custom published date for SEO
       scheduled_at?: string;
 
       // Links
@@ -1018,7 +1021,9 @@ export class ArticleQueries {
       // Nếu có existingDraftId, sử dụng nó để update
       if (existingDraftId) {
         console.log(`🔄 Updating existing draft: ${existingDraftId}`);
-        
+
+
+
         // Update draft hiện có
         const { data, error } = await supabaseAdmin
           .from('article_drafts')
@@ -1057,6 +1062,7 @@ export class ArticleQueries {
             robots_directive: contentData.robots_directive || 'index,follow',
 
             // Publishing
+            published_at: contentData.published_date ? new Date(contentData.published_date).toISOString() : null,
             scheduled_at: contentData.scheduled_at ? new Date(contentData.scheduled_at).toISOString() : null,
 
             // Links
@@ -1097,6 +1103,8 @@ export class ArticleQueries {
       }
 
       // 2. Tạo draft mới với ĐẦY ĐỦ dữ liệu
+
+
       const { data, error } = await supabaseAdmin
         .from('article_drafts')
         .insert({
@@ -1138,6 +1146,7 @@ export class ArticleQueries {
           robots_directive: contentData.robots_directive || 'index,follow',
 
           // Publishing
+          published_at: contentData.published_date ? new Date(contentData.published_date).toISOString() : null,
           scheduled_at: contentData.scheduled_at ? new Date(contentData.scheduled_at).toISOString() : null,
 
           // Links

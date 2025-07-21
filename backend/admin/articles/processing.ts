@@ -190,7 +190,9 @@ export class ProcessingUtils {
       robots_directive: articleData.robots_directive || 'index,follow',
 
       // Publishing
-      published_at: articleData.status === 'published' ? new Date().toISOString() : null,
+      published_at: articleData.status === 'published'
+        ? (articleData.published_date || new Date().toISOString()) // Allow custom published date
+        : null,
       scheduled_at: articleData.scheduled_at || null,
 
       // Timestamps
@@ -240,9 +242,14 @@ export class ProcessingUtils {
       processedUpdateData.cover_image_alt = validUpdateData.cover_image_alt?.trim() || null;
     }
 
-    // Set published_at when publishing
+    // Set published_at when publishing (allow custom date)
     if (validUpdateData.status === 'published') {
-      processedUpdateData.published_at = new Date().toISOString();
+      processedUpdateData.published_at = validUpdateData.published_date || new Date().toISOString();
+    }
+
+    // Allow updating published_at directly for SEO purposes
+    if ('published_date' in validUpdateData && validUpdateData.published_date) {
+      processedUpdateData.published_at = validUpdateData.published_date;
     }
 
     return processedUpdateData;

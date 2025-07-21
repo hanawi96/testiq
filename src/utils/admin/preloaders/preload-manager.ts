@@ -6,6 +6,7 @@
 import { preloadCategoriesData, isCategoriesDataReady } from './categories-preloader';
 import { preloadAuthorsData, isAuthorsDataReady } from './authors-preloader';
 import { preloadTagsData, isTagsDataReady } from './tags-preloader';
+import { preloadTagsTabsData, isTagsTabsDataReady } from './tags-tabs-preloader';
 
 /**
  * Preload all critical data for article editing
@@ -18,7 +19,8 @@ export async function preloadArticleEditData() {
   const preloadPromises = [
     preloadCategoriesData(),
     preloadAuthorsData(),
-    preloadTagsData()
+    preloadTagsData(),
+    preloadTagsTabsData()
   ];
 
   // Don't wait for completion - let them load in background
@@ -42,7 +44,7 @@ export async function preloadArticleEditData() {
  * Check if all critical data is ready
  */
 export function isArticleEditDataReady(): boolean {
-  return isCategoriesDataReady() && isAuthorsDataReady() && isTagsDataReady();
+  return isCategoriesDataReady() && isAuthorsDataReady() && isTagsDataReady() && isTagsTabsDataReady();
 }
 
 /**

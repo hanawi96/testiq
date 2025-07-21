@@ -24,6 +24,7 @@ export const DEFAULT_FORM_DATA = {
   schema_type: 'Article',
   robots_noindex: false,
   scheduled_at: '', // Hẹn ngày giờ đăng bài
+  published_date: '', // Ngày đăng bài (có thể chỉnh sửa cho SEO)
   author_id: ''
 };
 

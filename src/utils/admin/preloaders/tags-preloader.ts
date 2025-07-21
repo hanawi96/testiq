@@ -12,42 +12,7 @@ let isPreloading = false;
 let preloadPromise: Promise<string[]> | null = null;
 
 /**
- * Instant fallback tags for immediate display
- * Common tags that are likely to exist in most systems
- */
-const INSTANT_TAGS: string[] = [
-  'JavaScript',
-  'TypeScript',
-  'React',
-  'Vue',
-  'Angular',
-  'Node.js',
-  'Python',
-  'Tutorial',
-  'Guide',
-  'Tips',
-  'Best Practices',
-  'Performance',
-  'IQ Test',
-  'Học tập',
-  'Kiến thức',
-  'Hướng dẫn',
-  'Thủ thuật',
-  'Phát triển',
-  'Công nghệ',
-  'Web Development',
-  'Security',
-  'Testing',
-  'Development',
-  'Frontend',
-  'Backend',
-  'Database',
-  'API',
-  'Web Development'
-];
-
-/**
- * Smart tags data loader with fallback strategies
+ * Smart tags data loader - chỉ load từ database
  */
 async function loadTagsData(): Promise<string[]> {
   try {
@@ -59,12 +24,12 @@ async function loadTagsData(): Promise<string[]> {
       console.log(`🏷️ Tags Preloader: Loaded ${tags.length} tags from database`);
       return tags;
     } else {
-      console.log('🏷️ Tags Preloader: No tags in database, using instant fallback');
-      return INSTANT_TAGS;
+      console.log('🏷️ Tags Preloader: No tags in database, returning empty array');
+      return [];
     }
   } catch (error) {
-    console.warn('🏷️ Tags Preloader: Database failed, using instant fallback:', error);
-    return INSTANT_TAGS;
+    console.warn('🏷️ Tags Preloader: Database failed, returning empty array:', error);
+    return [];
   }
 }
 
@@ -105,11 +70,11 @@ export async function preloadTagsData(): Promise<string[]> {
       console.error('🏷️ Tags Preloader: Failed to preload tags:', error);
       isPreloading = false;
       preloadPromise = null;
-      
-      // Return instant fallback on error
-      tagsCache = INSTANT_TAGS;
+
+      // Return empty array on error
+      tagsCache = [];
       cacheTimestamp = now;
-      return INSTANT_TAGS;
+      return [];
     });
 
   return preloadPromise;
@@ -121,18 +86,19 @@ export async function preloadTagsData(): Promise<string[]> {
  */
 export function getInstantTagsData(): string[] {
   const now = Date.now();
-  
+
   // Return cached data if valid
   if (tagsCache && (now - cacheTimestamp) < CACHE_DURATION) {
     return tagsCache;
   }
-  
-  // Return instant fallback while preloading in background
+
+  // Start background preload if not already running
   if (!isPreloading) {
     preloadTagsData(); // Start background preload
   }
-  
-  return INSTANT_TAGS;
+
+  // Return empty array while loading
+  return [];
 }
 
 /**

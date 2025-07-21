@@ -29,6 +29,7 @@ export interface FormData {
   schema_type: string;
   robots_noindex: boolean;
   scheduled_at: string;
+  published_date?: string; // Ngày đăng bài (có thể chỉnh sửa cho SEO)
   author_id: string;
 }
 
@@ -217,6 +218,12 @@ export const useFormHandlers = ({
     setHasUnsavedChanges(true);
   }, [setFormData, setHasUnsavedChanges]);
 
+  // Handle published date change (for SEO)
+  const handlePublishedDateChange = useCallback((published_date: string) => {
+    setFormData(prev => ({ ...prev, published_date }));
+    setHasUnsavedChanges(true);
+  }, [setFormData, setHasUnsavedChanges]);
+
   return {
     handleTitleChange,
     handleContentChange,
@@ -236,6 +243,7 @@ export const useFormHandlers = ({
     handleFeaturedToggle,
     handleRobotsToggle,
     handleSchemaTypeChange,
-    handleScheduledDateChange
+    handleScheduledDateChange,
+    handlePublishedDateChange
   };
 };

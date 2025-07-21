@@ -181,6 +181,7 @@ export class ArticlesService {
       robots_directive?: string;
 
       // Publishing
+      published_date?: string; // Custom published date for SEO
       scheduled_at?: string;
 
       // Links
@@ -194,6 +195,8 @@ export class ArticlesService {
     },
     userId: string
   ): Promise<{ data: any | null; error: any }> {
+
+
     // Nếu không có articleId, gọi autosaveNewArticle cho bài viết mới
     if (!articleId) {
       return this.autosaveNewArticle(contentData, userId);
@@ -258,6 +261,7 @@ export class ArticlesService {
       author_id?: string;
       schema_type?: string;
       robots_directive?: string;
+      published_date?: string; // Custom published date for SEO
       scheduled_at?: string;
       internal_links?: any;
       external_links?: any;
@@ -289,6 +293,7 @@ export class ArticlesService {
             meta_title: contentData.meta_title || '',
             meta_description: contentData.meta_description || '',
             slug: contentData.slug || '',
+            published_at: contentData.published_date ? new Date(contentData.published_date).toISOString() : undefined,
             updated_at: new Date().toISOString()
           })
         ]);
@@ -404,10 +409,10 @@ export class ArticlesService {
    */
   private static async processRelationships(
     draftId: string,
-    contentData: { categories?: string[], tags?: string[] }
+    contentData: { categories?: string[], tags?: string[], keywords?: string[] }
   ): Promise<void> {
     if (!supabaseAdmin) return;
-    
+
     try {
       // Xử lý categories
       if (contentData.categories && contentData.categories.length > 0) {
@@ -429,10 +434,13 @@ export class ArticlesService {
           .insert(categoryRelationships);
       }
 
-      // Xử lý tags
+      // FIXED: Xử lý tags - CHỈ XỬ LÝ KHI CÓ TAGS THỰC SỰ
+      // Không tự động thêm tags từ keywords nữa
       if (contentData.tags && contentData.tags.length > 0) {
+        console.log(`🏷️ Processing ${contentData.tags.length} tags for draft ${draftId}:`, contentData.tags);
+
         const tagIds = await RelationshipsUtils.processTagsToIds(contentData.tags);
-        
+
         if (tagIds.length > 0) {
           // Xóa old tag relationships
           await supabaseAdmin
@@ -450,7 +458,19 @@ export class ArticlesService {
           await supabaseAdmin
             .from('article_draft_tags')
             .insert(tagRelationships);
+
+          console.log(`✅ Successfully processed ${tagIds.length} tag relationships for draft ${draftId}`);
         }
+      } else {
+        console.log(`🏷️ No tags to process for draft ${draftId}`);
+
+        // FIXED: Xóa tất cả draft tags nếu không có tags
+        await supabaseAdmin
+          .from('article_draft_tags')
+          .delete()
+          .eq('article_draft_id', draftId);
+
+        console.log(`🗑️ Cleared all draft tags for draft ${draftId}`);
       }
     } catch (error) {
       console.error('Error processing relationships:', error);

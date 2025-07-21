@@ -1,0 +1,132 @@
+---
+// Test page for TagsInput with tabs
+import Layout from '../../layouts/AdminLayout.astro';
+---
+
+<Layout title="Tags Input Test">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="container mx-auto px-4 py-8">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+              Tags Input với Tabs - Test Page
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">
+              Test tính năng tabs cho TagsInput component
+            </p>
+          </div>
+
+          <!-- Seed Data Controls -->
+          <div class="mb-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+            <h2 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
+              🌱 Seed Test Data
+            </h2>
+            <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+              Tạo dữ liệu mẫu để test tính năng tabs (tags phổ biến và mới nhất)
+            </p>
+            <div class="flex gap-3">
+              <button
+                id="seedBtn"
+                class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Tạo Sample Tags
+              </button>
+              <button
+                id="clearBtn"
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Xóa Tất Cả Tags
+              </button>
+              <div id="seedStatus" class="flex items-center text-sm"></div>
+            </div>
+          </div>
+
+          <!-- TagsInput Demo -->
+          <div id="tagsInputDemo"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // Import will be done dynamically to avoid SSR issues
+
+  // Seed sample tags
+  document.getElementById('seedBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('seedBtn') as HTMLButtonElement;
+    const status = document.getElementById('seedStatus') as HTMLDivElement;
+    
+    btn.disabled = true;
+    btn.textContent = 'Đang tạo...';
+    status.innerHTML = '<span class="text-blue-600">⏳ Đang tạo sample tags...</span>';
+
+    try {
+      const { TagsService } = await import('../../../backend');
+      const result = await TagsService.seedSampleTags();
+      
+      if (result.success) {
+        status.innerHTML = '<span class="text-green-600">✅ Tạo thành công!</span>';
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        status.innerHTML = '<span class="text-red-600">❌ Lỗi: ' + (result.error?.message || 'Unknown error') + '</span>';
+      }
+    } catch (error: any) {
+      status.innerHTML = '<span class="text-red-600">❌ Lỗi: ' + error.message + '</span>';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Tạo Sample Tags';
+    }
+  });
+
+  // Clear all tags
+  document.getElementById('clearBtn')?.addEventListener('click', async () => {
+    if (!confirm('Bạn có chắc muốn xóa tất cả tags?')) return;
+    
+    const btn = document.getElementById('clearBtn') as HTMLButtonElement;
+    const status = document.getElementById('seedStatus') as HTMLDivElement;
+    
+    btn.disabled = true;
+    btn.textContent = 'Đang xóa...';
+    status.innerHTML = '<span class="text-red-600">⏳ Đang xóa tags...</span>';
+
+    try {
+      // Import and use clearAllTags
+      const { clearAllTags } = await import('../../../backend/utils/seed-tags');
+      const result = await clearAllTags();
+      
+      if (result.success) {
+        status.innerHTML = '<span class="text-green-600">✅ Xóa thành công!</span>';
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        status.innerHTML = '<span class="text-red-600">❌ Lỗi: ' + (result.error?.message || 'Unknown error') + '</span>';
+      }
+    } catch (error: any) {
+      status.innerHTML = '<span class="text-red-600">❌ Lỗi: ' + error.message + '</span>';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Xóa Tất Cả Tags';
+    }
+  });
+</script>
+
+<!-- React component for TagsInput demo -->
+<script type="module">
+  import React from 'react';
+  import { createRoot } from 'react-dom/client';
+
+  // Dynamic import to avoid SSR issues
+  const TagsInputDemo = await import('../../components/admin/articles/create/components/TagsInputDemo.tsx');
+
+  // Mount React component
+  const container = document.getElementById('tagsInputDemo');
+  if (container) {
+    const root = createRoot(container);
+    root.render(React.createElement(TagsInputDemo.default));
+  }
+</script>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Hash, Plus } from 'lucide-react';
 import { processBulkTags, lowercaseNormalizeTag } from '../../../../../utils/tag-processing';
 import { getInstantTagsData, preloadTagsData, isTagsDataReady } from '../../../../../utils/admin/preloaders/tags-preloader';
+import TagsTabs from './TagsTabs';
 
 interface TagsInputProps {
   value: string[];
@@ -163,6 +164,13 @@ export default function TagsInput({
     onChange(newTags);
   }, [value, onChange]);
 
+  // Handle tag add from tabs
+  const handleTagAdd = useCallback((tag: string) => {
+    if (!value.map(t => t.toLowerCase()).includes(tag.toLowerCase()) && value.length < maxTags) {
+      onChange([...value, tag]);
+    }
+  }, [value, onChange, maxTags]);
+
   // Handle suggestion click
   const handleSuggestionClick = useCallback((suggestion: string) => {
     const trimmedTag = suggestion.trim();
@@ -294,21 +302,21 @@ export default function TagsInput({
 
       {/* Modern Suggestions Panel */}
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <div className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-lg shadow-gray-100/50 dark:shadow-gray-900/20 backdrop-blur-sm">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-lg shadow-gray-100/50 dark:shadow-gray-900/20 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-2">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
               <Hash size={12} className="text-white" />
             </div>
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Gợi ý tags có sẵn</span>
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Gợi ý tags có sẵn</span>
             <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700"></div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {filteredSuggestions.map((suggestion, index) => (
               <button
                 key={suggestion}
                 onClick={() => handleSuggestionClick(suggestion)}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-2 text-sm rounded-xl font-medium
+                  inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md font-medium
                   ${highlightedIndex === index
                     ? 'bg-gradient-to-r from-primary-500 to-purple-500 text-white'
                     : 'bg-white dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
@@ -316,8 +324,8 @@ export default function TagsInput({
                 `}
               >
                 <span>{highlightMatch(suggestion, newTag)}</span>
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${highlightedIndex === index ? 'bg-white/20' : 'bg-primary-100 dark:bg-primary-900/30'}`}>
-                  <Plus size={10} className={highlightedIndex === index ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
+                <div className={`w-3 h-3 rounded-full flex items-center justify-center ${highlightedIndex === index ? 'bg-white/20' : 'bg-primary-100 dark:bg-primary-900/30'}`}>
+                  <Plus size={8} className={highlightedIndex === index ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
                 </div>
               </button>
             ))}
@@ -349,6 +357,16 @@ export default function TagsInput({
             <span className="text-sm">Chưa có tags nào</span>
           </div>
         )}
+      </div>
+
+      {/* Tags Tabs - Always show */}
+      <div className="mt-3">
+        <TagsTabs
+          selectedTags={value}
+          onTagAdd={handleTagAdd}
+          maxTags={maxTags}
+          disabled={disabled}
+        />
       </div>
     </div>
   );

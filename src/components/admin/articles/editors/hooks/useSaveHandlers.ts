@@ -65,8 +65,8 @@ export const useSaveHandlers = ({
     setSaveStates(prev => ({ ...prev, saveProgress: progress }));
   }, []);
 
-  // Main save handler
-  const handleSave = useCallback(async (action: SaveAction): Promise<SaveResult> => {
+  // Main save handler with optional data override
+  const handleSave = useCallback(async (action: SaveAction, dataOverride?: any): Promise<SaveResult> => {
     const isAutoSave = action === 'autosave';
 
     // PREVENT RACE CONDITION: Skip if already saving
@@ -86,7 +86,12 @@ export const useSaveHandlers = ({
     try {
       // Step 1: Validate form data
       updateSaveProgress(1);
-      const cleanedData = cleanFormData(formData);
+      // Use dataOverride if provided, otherwise use current formData
+      const dataToUse = dataOverride || formData;
+      const cleanedData = cleanFormData(dataToUse);
+
+
+
       const validation = validateFormData(cleanedData);
       
       if (!validation.isValid) {
@@ -99,7 +104,7 @@ export const useSaveHandlers = ({
       // Chuyển readonly arrays thành mutable arrays để tránh lỗi TypeScript
       const tags = [...(cleanedData.tags || [])];
       const categories = [...(cleanedData.categories || [])];
-      
+
       const articleData: Partial<CreateArticleData> = {
         // Core content
         title: cleanedData.title.trim(),
@@ -286,10 +291,16 @@ export const useSaveHandlers = ({
     return handleSave('save');
   }, [handleSave]);
 
+  // Manual save handler with data override - for state management fix
+  const handleManualSaveWithData = useCallback((data: any) => {
+    return handleSave('save', data);
+  }, [handleSave]);
+
   return {
     saveStates,
     handleSave,
     handleAutoSave,
-    handleManualSave
+    handleManualSave,
+    handleManualSaveWithData
   };
 };
