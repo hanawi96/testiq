@@ -487,7 +487,6 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               getSeoCheckColor={getSeoCheckColor}
             />
 
-n 
 
       </MainContent>
 

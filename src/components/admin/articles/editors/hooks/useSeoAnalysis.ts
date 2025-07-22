@@ -130,15 +130,15 @@ export const getSeoScoreGradient = (score: number) => {
 export const getSeoScoreBadge = (score: number) => {
   if (score >= 80) return {
     className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    text: '🎯 Xuất sắc'
+    text: 'Xuất sắc'
   };
   if (score >= 60) return {
     className: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    text: '⚡ Tốt'
+    text: 'Tốt'
   };
   return {
     className: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-    text: '🔧 Cần cải thiện'
+    text: 'Cần cải thiện'
   };
 };
 
