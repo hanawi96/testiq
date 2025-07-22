@@ -375,7 +375,7 @@ export class ArticleQueries {
 
 
   /**
-   * Get article by ID
+   * Get article by ID with relationships (for consistent category loading)
    */
   static async getArticleById(articleId: string) {
     try {
@@ -385,7 +385,26 @@ export class ArticleQueries {
         .eq('id', articleId)
         .single();
 
-      return { data: article, error };
+      if (error || !article) {
+        return { data: null, error };
+      }
+
+      // Load relationships to ensure consistent category/tag data
+      const [authorsResult, relationshipsResult] = await Promise.all([
+        article.author_id
+          ? supabaseAdmin.from('user_profiles').select('id, full_name, role').eq('id', article.author_id)
+          : Promise.resolve({ data: [] }),
+        supabaseAdmin
+          .from('articles')
+          .select('id, article_categories(categories(id, name)), article_tags(tags(id, name))')
+          .eq('id', articleId)
+          .single()
+      ]);
+
+      // Enrich with relationships using same logic as getArticleForEdit
+      const enrichedArticles = enrichArticles([article], authorsResult.data || [], [relationshipsResult.data].filter(Boolean));
+
+      return { data: enrichedArticles[0] || article, error: null };
     } catch (err) {
       return { data: null, error: err };
     }
@@ -424,10 +443,12 @@ export class ArticleQueries {
               id: mainArticle.id,
               created_at: mainArticle.created_at,
               // Ưu tiên published_at từ draft nếu có, fallback về main article
-              published_at: draftData.published_at || mainArticle.published_at
+              published_at: draftData.published_at || mainArticle.published_at,
+              // Flag to indicate this is draft data
+              _hasDraftData: true
             };
           } else {
-            article = draftData;
+            article = { ...draftData, _hasDraftData: true };
           }
           console.log(`📝 Loading draft for article ${articleId}, status: ${article.status}`);
 
@@ -531,7 +552,7 @@ export class ArticleQueries {
           .single();
 
         if (error || !articleData) return { data: null, error: error || new Error('Article not found') };
-        article = articleData;
+        article = { ...articleData, _hasDraftData: false };
         console.log(`📄 Loading published for article ${articleId}`);
       }
 
@@ -551,10 +572,15 @@ export class ArticleQueries {
 
       const enrichedArticles = enrichArticles([article], authorsResult.data || [], relationshipsResult.data || []);
 
-      // FIXED: ALWAYS ưu tiên draft data hơn main article data
-      // Khôi phục draft tags (có thể là mảng rỗng nếu user đã xóa tags)
-      enrichedArticles[0].tag_names = draftTagNames;
-      console.log(`🔄 Always use draft tags (may be empty):`, draftTagNames);
+      // FIXED: Chỉ override tags khi có draft data thực sự
+      if (draftTagNames.length > 0 || (userId && article.id && article.id.includes('draft'))) {
+        // Có draft tags hoặc đang edit draft → Use draft tags
+        enrichedArticles[0].tag_names = draftTagNames;
+        console.log(`🔄 Using draft tags:`, draftTagNames);
+      } else {
+        // Không có draft → Giữ tags từ enrichArticles (từ article_tags table)
+        console.log(`📄 Using published tags:`, enrichedArticles[0].tag_names);
+      }
 
       // Khôi phục draft categories
       if (draftCategoryIds.length > 0) {

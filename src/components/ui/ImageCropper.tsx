@@ -70,7 +70,7 @@ export default function ImageCropper({
   imageUrl,
   onCrop,
   onCancel,
-  initialAspectRatio = 16/9
+  initialAspectRatio = null // Mặc định chế độ crop "tự do"
 }: ImageCropperProps) {
   const [selectedRatio, setSelectedRatio] = useState<number | null>(initialAspectRatio);
   const [cropArea, setCropArea] = useState<CropArea>({ x: 0, y: 0, width: 100, height: 100 });
@@ -217,10 +217,10 @@ export default function ImageCropper({
         height: cropHeight
       });
 
-      // Auto-suggest optimal ratio if no initial ratio provided
+      // Giữ chế độ "tự do" làm mặc định khi initialAspectRatio = null
+      // Không auto-suggest ratio để user có thể crop tự do
       if (initialAspectRatio === null) {
-        const suggestedRatio = suggestOptimalRatio(width, height);
-        setSelectedRatio(suggestedRatio);
+        setSelectedRatio(null); // Luôn giữ chế độ "tự do"
       }
     }
   }, [initialAspectRatio]);

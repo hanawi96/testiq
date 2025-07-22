@@ -12,6 +12,43 @@ export const ExcerptSection: React.FC<ExcerptSectionProps> = ({
   shouldShowArticleSkeleton,
   setFormData
 }) => {
+  // 🤖 Auto Generate Excerpt từ content
+  const generateExcerpt = () => {
+    if (!formData.content) {
+      alert('⚠️ Vui lòng viết nội dung trước khi tạo tóm tắt');
+      return;
+    }
+
+    // Strip HTML tags và lấy text thuần
+    const textContent = formData.content
+      .replace(/<[^>]*>/g, ' ')           // Remove HTML tags
+      .replace(/\s+/g, ' ')              // Normalize whitespace
+      .trim();
+
+    if (!textContent) {
+      alert('⚠️ Nội dung không có text để tạo tóm tắt');
+      return;
+    }
+
+    // Tạo excerpt thông minh: lấy 2-3 câu đầu hoặc 160 ký tự
+    let excerpt = '';
+    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 10);
+
+    if (sentences.length >= 2) {
+      // Lấy 2 câu đầu
+      excerpt = sentences.slice(0, 2).join('. ').trim() + '.';
+    } else {
+      // Fallback: lấy 160 ký tự đầu
+      excerpt = textContent.substring(0, 160).trim();
+    }
+
+    // Giới hạn 200 ký tự
+    if (excerpt.length > 200) {
+      excerpt = excerpt.substring(0, 197) + '...';
+    }
+
+    setFormData(prev => ({ ...prev, excerpt }));
+  };
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Header với màu nền nhẹ nhàng */}
@@ -30,6 +67,19 @@ export const ExcerptSection: React.FC<ExcerptSectionProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Auto Generate Button */}
+            <button
+              onClick={generateExcerpt}
+              disabled={!formData.content}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Tự động tạo tóm tắt từ nội dung bài viết"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Tự động tạo
+            </button>
+
             <span className="text-xs text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded-md">
               {formData.excerpt.length}/200
             </span>

@@ -157,9 +157,24 @@ export const TagsSkeleton: React.FC = () => (
   </div>
 );
 
-// Authors dropdown skeleton
+// Authors dropdown skeleton - đồng bộ với style skeleton khác
 export const AuthorsSkeleton: React.FC = () => (
   <div className="space-y-3">
-    <FieldSkeleton className="h-10 w-full rounded-lg" />
+    {/* Main selector button skeleton - sử dụng FieldSkeleton để đồng bộ */}
+    <div className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800">
+      <div className="flex items-center gap-3">
+        {/* Avatar skeleton */}
+        <FieldSkeleton className="w-8 h-8 rounded-full" />
+
+        {/* Author info skeleton */}
+        <div className="flex-1 min-w-0 space-y-1">
+          <FieldSkeleton className="h-4 w-24" />
+          <FieldSkeleton className="h-3 w-20" />
+        </div>
+
+        {/* Dropdown arrow skeleton */}
+        <FieldSkeleton className="w-4 h-4 rounded" />
+      </div>
+    </div>
   </div>
 );

@@ -1,5 +1,5 @@
 // ===== TEMPORARY SIMPLIFIED IMPORTS FOR DEBUGGING =====
-import React, { useState, useEffect, Suspense, startTransition } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, startTransition } from 'react';
 import { ArticlesService } from '../../../../../backend';
 import type { Category, CreateArticleData, AuthorOption, Article } from '../../../../../backend';
 
@@ -101,6 +101,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   // Track unsaved changes - only when user actually makes changes
   const [initialFormData, setInitialFormData] = useState<any>(null);
 
+  // Track if user has made changes from original (independent of autosave)
+  const [hasChangesFromOriginal, setHasChangesFromOriginal] = useState(false);
+
 
 
   // ===== PROGRESS ANIMATION MOVED =====
@@ -109,7 +112,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
 
   // OPTIMIZED: Data loading logic đã được tách thành hook riêng
-  const { categories, authors, loadingState, loadingActions } = useArticleData({
+  const { categories, authors, loadingState, loadingActions, hasDraftData, setHasDraftData } = useArticleData({
     currentArticleId,
     currentDraftId,
     isEditMode,
@@ -145,7 +148,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       return;
     }
 
-    // Check if form data actually changed from initial state - INCLUDE ALL FIELDS
+    // Check if form data actually changed from initial state (for autosave)
     const hasActualChanges = (
       // Basic fields
       formData.title !== initialFormData.title ||
@@ -179,7 +182,48 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     );
 
     setHasUnsavedChanges(hasActualChanges);
+
+    // 🎯 SIMPLE: Track changes from original (independent of autosave)
+    // Once user makes changes, keep button visible until manual revert
+    if (hasActualChanges) {
+      setHasChangesFromOriginal(true);
+    }
   }, [formData, initialFormData]);
+
+  // 🎯 DETECT DRAFT ON PAGE LOAD: Show button only when we have draft data
+  useEffect(() => {
+    if (hasDraftData) {
+      setHasChangesFromOriginal(true);
+      console.log('🔄 Draft data detected - showing revert button');
+    } else {
+      setHasChangesFromOriginal(false);
+      console.log('📄 Published data loaded - hiding revert button');
+    }
+  }, [hasDraftData]);
+
+  // Revert to original published version (simple & reliable)
+  const handleRevertToOriginal = useCallback(async () => {
+    if (!currentArticleId) {
+      alert('❌ Không tìm thấy bài viết để khôi phục.');
+      return;
+    }
+
+    try {
+      // 1. Deactivate all existing drafts for this article
+      await ArticlesService.deactivateAllDrafts(currentArticleId);
+      console.log('✅ Deactivated all drafts for article:', currentArticleId);
+
+      // 2. Reset state immediately (before reload)
+      setHasChangesFromOriginal(false);
+
+      // 3. Reload page để đảm bảo data consistency
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error reverting to original:', error);
+      alert('❌ Có lỗi xảy ra khi khôi phục bản gốc. Vui lòng thử lại.');
+    }
+  }, [currentArticleId]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -293,7 +337,13 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     setLastSaved,
     setHasUnsavedChanges,
     setValidationError,
-    onSave
+    onSave,
+    onDraftCleared: () => {
+      // Reset hasDraftData when draft is cleared after manual save
+      setHasDraftData(false);
+      setHasChangesFromOriginal(false);
+      console.log('🔄 Draft cleared - hiding revert button');
+    }
   });
 
   // IMPROVED: Smart auto-save with debouncing
@@ -450,6 +500,7 @@ n
               saveStates={saveStates}
               lastSaved={lastSaved}
               hasUnsavedChanges={hasUnsavedChanges}
+              hasChangesFromOriginal={hasChangesFromOriginal}
               validationError={validationError}
               handleManualSave={handleManualSave}
               handleManualSaveWithData={handleManualSaveWithData}
@@ -459,6 +510,7 @@ n
               formHandlers={{
                 handlePublishedDateChange: formHandlers.handlePublishedDateChange
               }}
+              onRevertToOriginal={handleRevertToOriginal}
             />
 
             {/* Categories Section */}
@@ -466,6 +518,7 @@ n
               formData={formData}
               setFormData={setFormData}
               loadingState={loadingState}
+              categories={categories}
               shouldShowSkeleton={shouldShowCategoriesSkeleton}
             />
 
@@ -572,9 +625,42 @@ n
               isOpen={sidebarDropdowns.seo}
               onToggle={() => toggleSidebarDropdown('seo')}
             >
-              <div className="space-y-4">
-                {/* Index/NoIndex Toggle */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
+              {shouldShowSEOSkeleton ? (
+                <div className="space-y-4">
+                  {/* Skeleton for Index/NoIndex Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-lg animate-pulse"></div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="h-4 w-32 bg-gray-200 dark:bg-gray-600 rounded animate-pulse"></div>
+                          <div className="h-5 w-16 bg-gray-200 dark:bg-gray-600 rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="h-3 w-48 bg-gray-200 dark:bg-gray-600 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 rounded-full animate-pulse"></div>
+                  </div>
+
+                  {/* Skeleton for Additional SEO Info */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-start gap-2">
+                      <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded animate-pulse mt-0.5 flex-shrink-0"></div>
+                      <div className="space-y-2 flex-1">
+                        <div className="h-3 w-24 bg-gray-200 dark:bg-gray-600 rounded animate-pulse"></div>
+                        <div className="space-y-1">
+                          <div className="h-3 w-full bg-gray-200 dark:bg-gray-600 rounded animate-pulse"></div>
+                          <div className="h-3 w-5/6 bg-gray-200 dark:bg-gray-600 rounded animate-pulse"></div>
+                          <div className="h-3 w-4/5 bg-gray-200 dark:bg-gray-600 rounded animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Index/NoIndex Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-600/60">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
                       formData.robots_noindex
@@ -582,13 +668,15 @@ n
                         : 'bg-green-100 dark:bg-green-900/30'
                     }`}>
                       {formData.robots_noindex ? (
-                        <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <circle cx="12" cy="12" r="9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l-6 6" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l6 6" />
                         </svg>
                       ) : (
-                        <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <circle cx="12" cy="12" r="9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
                         </svg>
                       )}
                     </div>
@@ -649,6 +737,7 @@ n
                   </div>
                 </div>
               </div>
+              )}
             </DropdownSection>
 
             {/* Schema Type Selector Section - Tách thành component riêng */}

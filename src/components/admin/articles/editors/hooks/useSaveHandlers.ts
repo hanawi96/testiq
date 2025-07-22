@@ -30,6 +30,7 @@ interface UseSaveHandlersProps {
   setHasUnsavedChanges: (hasChanges: boolean) => void;
   setValidationError: (error: string) => void;
   onSave?: (data: any) => void;
+  onDraftCleared?: () => void; // Callback when draft is cleared after save
 }
 
 // Save states interface
@@ -48,7 +49,8 @@ export const useSaveHandlers = ({
   setLastSaved,
   setHasUnsavedChanges,
   setValidationError,
-  onSave
+  onSave,
+  onDraftCleared
 }: UseSaveHandlersProps) => {
 
   // Save states
@@ -228,6 +230,12 @@ export const useSaveHandlers = ({
         // Call onSave callback if provided
         if (onSave) {
           onSave(data);
+        }
+
+        // Call onDraftCleared for manual saves (draft gets deleted)
+        if (!isAutoSave && onDraftCleared) {
+          onDraftCleared();
+          console.log('🗑️ Draft cleared after manual save');
         }
 
         // Redirect logic for new articles

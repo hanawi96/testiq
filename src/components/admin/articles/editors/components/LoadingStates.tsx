@@ -116,7 +116,7 @@ export const createInitialLoadingState = (isEditMode: boolean): LoadingState => 
   isEditorReady: false,
   // Separate loading states for different sections
   isLoadingArticleData: isEditMode,
-  isLoadingCategories: !isEditMode, // Create mode: categories load instantly
-  isLoadingAuthors: !isEditMode, // Create mode: authors load instantly
+  isLoadingCategories: isEditMode, // Edit mode: categories need to load
+  isLoadingAuthors: isEditMode, // Edit mode: authors need to load
   isLoadingTags: isEditMode // Edit mode: tags need to load, Create mode: no tags to load
 });

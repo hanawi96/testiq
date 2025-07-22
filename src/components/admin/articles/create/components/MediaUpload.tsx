@@ -830,7 +830,7 @@ export default function MediaUpload({
                 error: null
               }));
             }}
-            initialAspectRatio={16/9}
+            initialAspectRatio={null} // Mặc định chế độ crop "tự do"
           />
         )}
       </AnimatePresence>

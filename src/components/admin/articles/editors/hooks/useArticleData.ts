@@ -43,6 +43,7 @@ export const useArticleData = ({
 }: UseArticleDataProps) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [authors, setAuthors] = useState<AuthorOption[]>([]);
+  const [hasDraftData, setHasDraftData] = useState(false);
   const [loadingState, setLoadingState] = useState(() =>
     createInitialLoadingState(isEditMode)
   );
@@ -84,7 +85,7 @@ export const useArticleData = ({
         if (currentArticleId) {
           // EDIT MODE: Load article + preloaded data
           const [articleResult, categoriesData, authorsData] = await Promise.all([
-            ArticlesService.getArticleForEdit(currentArticleId, userId),
+            ArticlesService.getArticleForEdit(currentArticleId, userId), // Current (draft + article)
             // Use preloaded data if available, otherwise fetch
             isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
             isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
@@ -97,11 +98,16 @@ export const useArticleData = ({
           }
 
           if (articleResult.data) {
+            // Check if we loaded draft data
+            const hasDraft = articleResult.data._hasDraftData === true;
+            setHasDraftData(hasDraft);
+
             // DEBUG: Log article data để kiểm tra tags
             console.log(`🔍 DEBUG: Article data received:`, {
               tag_names: articleResult.data.tag_names,
               tags: articleResult.data.tags,
-              title: articleResult.data.title
+              title: articleResult.data.title,
+              hasDraftData: hasDraft
             });
 
             // Populate form with article data
@@ -178,12 +184,16 @@ export const useArticleData = ({
             setInitialFormData(formData);
           }
 
+
+
           // Handle preloaded categories data
           if (categoriesData && categoriesData.length > 0) {
             setCategories(categoriesData);
           } else {
             console.warn('No categories data available');
           }
+          // Mark categories as loaded
+          loadingActions.setCategoriesLoaded();
 
           // Handle preloaded authors data
           if (authorsData && authorsData.length > 0) {
@@ -208,6 +218,8 @@ export const useArticleData = ({
               setFormData(prev => ({ ...prev, author_id: fallbackAuthors[0].id }));
             }
           }
+          // Mark authors as loaded
+          loadingActions.setAuthorsLoaded();
 
         } else if (currentDraftId && isDraftEditMode) {
           // DRAFT EDIT MODE: Load draft + preloaded data
@@ -266,6 +278,7 @@ export const useArticleData = ({
           if (categoriesData) {
             setCategories(categoriesData);
           }
+          loadingActions.setCategoriesLoaded();
 
           if (authorsData) {
             setAuthors(authorsData);
@@ -274,6 +287,7 @@ export const useArticleData = ({
               setFormData(prev => ({ ...prev, author_id: authorsData[0].id }));
             }
           }
+          loadingActions.setAuthorsLoaded();
 
         } else {
           // CREATE MODE: Load only preloaded data (no article to fetch)
@@ -335,6 +349,8 @@ export const useArticleData = ({
     categories,
     authors,
     loadingState,
-    loadingActions
+    loadingActions,
+    hasDraftData,
+    setHasDraftData
   };
 };

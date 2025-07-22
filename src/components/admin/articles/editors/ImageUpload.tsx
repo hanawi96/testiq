@@ -271,9 +271,7 @@ export default function ImageUpload({ onImageUpload, onClose, existingImageUrl }
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <Image size={20} />
             Thêm hình ảnh
-            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-full">
-              Production
-            </span>
+           
           </h3>
           <button
             onClick={onClose}

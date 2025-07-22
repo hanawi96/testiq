@@ -405,6 +405,32 @@ export class ArticlesService {
   }
 
   /**
+   * 🗑️ DEACTIVATE ALL DRAFTS: Soft delete all drafts for an article
+   */
+  static async deactivateAllDrafts(articleId: string): Promise<{ data: any | null; error: any }> {
+    return serviceWrapper(async () => {
+      if (!supabaseAdmin) {
+        throw new Error('Supabase admin client not initialized');
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('article_drafts')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('article_id', articleId)
+        .eq('is_active', true); // Only deactivate currently active drafts
+
+      if (error) {
+        throw new Error(`Failed to deactivate drafts: ${error.message}`);
+      }
+
+      return { data, error: null };
+    }, 'Deactivate drafts failed', true);
+  }
+
+  /**
    * Tách riêng việc xử lý relationships để code gọn hơn
    */
   private static async processRelationships(

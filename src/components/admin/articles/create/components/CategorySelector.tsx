@@ -3,24 +3,31 @@ import { CategoriesService, type Category } from '../../../../../../backend/admi
 
 interface CategorySelectorProps {
   value: string[];
+  categories?: Category[]; // Optional - nếu không có thì tự load
   onChange: (categories: string[]) => void;
   disabled?: boolean;
 }
 
 export default function CategorySelector({
   value,
+  categories: propCategories,
   onChange,
   disabled = false
 }: CategorySelectorProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'recent'>('all');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // Fetch real categories from database
+  // Use prop categories or fetch from database
   useEffect(() => {
+    if (propCategories) {
+      // Use categories from props (preloaded)
+      setCategories(propCategories);
+      return;
+    }
+
+    // Fallback: fetch categories if not provided
     const loadCategories = async () => {
       try {
-        setLoading(true);
         console.log('CategorySelector: Loading categories from database...');
 
         const { data: categoriesData, error } = await CategoriesService.getAllCategories();
@@ -41,13 +48,11 @@ export default function CategorySelector({
       } catch (err) {
         console.error('CategorySelector: Failed to load categories:', err);
         setCategories([]);
-      } finally {
-        setLoading(false);
       }
     };
 
     loadCategories();
-  }, []);
+  }, [propCategories]);
 
   // Get categories based on active tab
   const getDisplayCategories = () => {
@@ -102,11 +107,7 @@ export default function CategorySelector({
 
       {/* Categories List */}
       <div className="space-y-2 max-h-64 overflow-y-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-4">
-            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : displayCategories.length === 0 ? (
+        {displayCategories.length === 0 ? (
           <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
             Không có danh mục nào
           </div>

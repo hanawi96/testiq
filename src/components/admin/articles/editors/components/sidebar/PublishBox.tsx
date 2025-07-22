@@ -16,6 +16,7 @@ interface PublishBoxProps {
   saveStates: SaveStates;
   lastSaved: Date | null;
   hasUnsavedChanges: boolean;
+  hasChangesFromOriginal?: boolean; // Track changes from original (independent of autosave)
   validationError: string;
   handleManualSave: () => void;
   handleManualSaveWithData: (data: any) => void; // For state management fix
@@ -25,6 +26,7 @@ interface PublishBoxProps {
   formHandlers?: {
     handlePublishedDateChange: (date: string) => void;
   };
+  onRevertToOriginal?: () => void; // Function to revert to original published version
 }
 
 export const PublishBox: React.FC<PublishBoxProps> = ({
@@ -33,13 +35,15 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
   saveStates,
   lastSaved,
   hasUnsavedChanges,
+  hasChangesFromOriginal = false,
   validationError,
   handleManualSave,
   handleManualSaveWithData,
   loadingState,
   shouldShowSkeleton = false,
   isEditMode = false,
-  formHandlers
+  formHandlers,
+  onRevertToOriginal
 }) => {
   // State cho date editor
   const [showDateEditor, setShowDateEditor] = useState(false);
@@ -370,31 +374,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                     </button>
                   </div>
 
-                  {/* Integrated Update Button */}
-                  <button
-                    onClick={() => handleManualSave()}
-                    disabled={saveStates.isSaving}
-                    className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
-                      saveStates.isSaving
-                        ? 'bg-green-400 text-white cursor-not-allowed opacity-75'
-                        : 'bg-green-600 hover:bg-green-700 hover:shadow-lg text-white'
-                    }`}
-                    title="Cập nhật bài viết (Ctrl+S)"
-                  >
-                    {saveStates.isSaving ? (
-                      <div className="w-5 h-5 animate-spin">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
-                          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
-                        </svg>
-                      </div>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
-                    <span>{saveStates.isSaving ? 'Đang cập nhật...' : 'Cập nhật'}</span>
-                  </button>
+
                 </>
               )}
             </div>
@@ -460,7 +440,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
           {/* Save Status & Actions */}
           <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             {/* Save Status Indicators */}
-            <div className="space-y-3 mb-4">
+            <div className="space-y-3">
               {validationError && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg border border-red-200 dark:border-red-800/30">
                   <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,6 +501,61 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                   </span>
                 </div>
               )}
+
+              {/* Action Buttons for Edit Mode */}
+              {isEditMode && (
+                <div className="space-y-2">
+                  {/* Main Update Button */}
+                  <button
+                    onClick={() => handleManualSave()}
+                    disabled={saveStates.isManualSaving}
+                    className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
+                      saveStates.isManualSaving
+                        ? 'bg-green-400 text-white cursor-not-allowed opacity-75'
+                        : 'bg-green-600 hover:bg-green-700 hover:shadow-lg text-white'
+                    }`}
+                    title="Cập nhật bài viết (Ctrl+S)"
+                  >
+                    {saveStates.isManualSaving ? (
+                      <div className="w-5 h-5 animate-spin">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
+                          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
+                        </svg>
+                      </div>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                      </svg>
+                    )}
+                    <span>{saveStates.isManualSaving ? 'Đang cập nhật...' : 'Cập nhật'}</span>
+                  </button>
+
+                  {/* Revert to Original Button - Only show if there are changes from original */}
+                  {hasChangesFromOriginal && (
+                    <button
+                      onClick={() => {
+                        if (confirm('⚠️ Khôi phục về bản đã xuất bản?\n\n• Tất cả thay đổi hiện tại sẽ bị mất\n• Sẽ load lại nội dung từ bản đã publish\n• Bỏ qua tất cả draft đã lưu\n\nHành động này không thể hoàn tác!')) {
+                          if (onRevertToOriginal) {
+                            onRevertToOriginal();
+                          } else {
+                            // Fallback: reload page to get original data
+                            window.location.reload();
+                          }
+                        }
+                      }}
+                      disabled={saveStates.isManualSaving}
+                      className="w-full px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500"
+                      title="Khôi phục về bản đã xuất bản (bỏ qua tất cả draft)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                      </svg>
+                      <span className="text-sm">Khôi phục bản đã publish</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* WordPress-style Action Buttons */}
@@ -567,7 +602,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                   >
                     {isEditMode ? (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
                       </svg>
                     ) : (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
