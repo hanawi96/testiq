@@ -107,6 +107,8 @@ export class ImageStorageService {
       const fileName = await this.generatePreservedFileName(file.name, folder);
       const filePath = `${folder}/${fileName}`;
 
+
+
       // Parallel processing: dimensions + optimization
       const [dimensions, optimizedFile] = await Promise.all([
         this.getImageDimensions(file),
@@ -172,11 +174,34 @@ export class ImageStorageService {
    */
   static extractPathFromUrl(url: string): string | null {
     try {
-      // Handle Supabase storage URLs
-      const supabasePattern = /\/storage\/v1\/object\/public\/images\/(.+)$/;
-      const match = url.match(supabasePattern);
-      return match ? match[1] : null;
-    } catch {
+      console.log('🔍 Extracting path from URL:', url);
+
+      // Remove query parameters first (like ?t=timestamp for cache busting)
+      const cleanUrl = url.split('?')[0];
+      console.log('🧹 Clean URL (no query params):', cleanUrl);
+
+      // Handle different Supabase storage URL formats
+      const patterns = [
+        // Standard format: /storage/v1/object/public/images/...
+        /\/storage\/v1\/object\/public\/images\/(.+)$/,
+        // Alternative format: /storage/v1/object/public/bucket-name/...
+        /\/storage\/v1\/object\/public\/[^\/]+\/(.+)$/,
+        // Direct bucket access: /images/...
+        /\/images\/(.+)$/
+      ];
+
+      for (const pattern of patterns) {
+        const match = cleanUrl.match(pattern);
+        if (match) {
+          console.log('✅ Extracted path:', match[1]);
+          return match[1];
+        }
+      }
+
+      console.warn('⚠️ No pattern matched for URL:', cleanUrl);
+      return null;
+    } catch (error) {
+      console.error('❌ Error extracting path from URL:', error);
       return null;
     }
   }
@@ -215,12 +240,26 @@ export class ImageStorageService {
 
       // Delete old image if exists and is from our storage
       if (oldImageUrl) {
+        console.log('🗑️ Attempting to delete old image:', oldImageUrl);
         const oldPath = this.extractPathFromUrl(oldImageUrl);
+        console.log('📁 Extracted path:', oldPath);
+
         if (oldPath) {
+          console.log('✅ Deleting old image at path:', oldPath);
           // Delete in background, don't wait for it
-          this.deleteImage(oldPath).catch(error =>
-            console.warn('Failed to cleanup old image:', error)
-          );
+          this.deleteImage(oldPath)
+            .then(({ success, error }) => {
+              if (success) {
+                console.log('✅ Old image deleted successfully:', oldPath);
+              } else {
+                console.warn('❌ Failed to delete old image:', error);
+              }
+            })
+            .catch(error => {
+              console.warn('❌ Error during old image cleanup:', error);
+            });
+        } else {
+          console.warn('⚠️ Could not extract path from URL:', oldImageUrl);
         }
       }
 
@@ -393,6 +432,8 @@ export class ImageStorageService {
     }
 
     const cleanFileName = `${baseName}.${extension}`;
+
+
 
     // OPTIMIZED: Batch check for existing files to reduce API calls
     if (!supabaseAdmin) {

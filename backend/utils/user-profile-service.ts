@@ -7,6 +7,9 @@ export interface UserProfileData {
   country_code?: string;
   email?: string;
   gender?: string;
+  avatar_url?: string;
+  cover_photo_url?: string;
+  bio?: string;
 }
 
 /**
@@ -29,6 +32,8 @@ export async function updateUserProfile(userId: string, profileData: UserProfile
         country_code: profileData.country_code,
         email: profileData.email,
         gender: profileData.gender,
+        avatar_url: profileData.avatar_url,
+        cover_photo_url: profileData.cover_photo_url,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId)
@@ -63,7 +68,7 @@ export async function getUserProfile(userId: string): Promise<{
 
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('full_name, age, country_name, country_code, email, gender')
+      .select('full_name, age, country_name, country_code, email, gender, avatar_url, cover_photo_url, bio')
       .eq('id', userId)
       .single();
 

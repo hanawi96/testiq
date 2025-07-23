@@ -1,0 +1,51 @@
+/* Avatar Cropper - Hide aspect ratio controls for clean 1:1 crop */
+
+.avatar-cropper-wrapper {
+  /* Hide aspect ratio selector section */
+}
+
+.avatar-cropper-wrapper .aspect-ratio-selector,
+.avatar-cropper-wrapper [class*="aspect-ratio"],
+.avatar-cropper-wrapper [class*="ratio-selector"] {
+  display: none !important;
+}
+
+/* Hide any buttons or controls that contain aspect ratio text */
+.avatar-cropper-wrapper button:has-text("16:9"),
+.avatar-cropper-wrapper button:has-text("4:3"),
+.avatar-cropper-wrapper button:has-text("9:16"),
+.avatar-cropper-wrapper button:has-text("Tự do") {
+  display: none !important;
+}
+
+/* Target the aspect ratio controls by looking for common patterns */
+.avatar-cropper-wrapper .grid.grid-cols-5,
+.avatar-cropper-wrapper .flex.gap-2.mb-4,
+.avatar-cropper-wrapper .flex.flex-wrap.gap-2 {
+  display: none !important;
+}
+
+/* Hide any section that contains multiple buttons in a row (likely aspect ratios) */
+.avatar-cropper-wrapper .flex.gap-2:has(button:nth-child(3)) {
+  display: none !important;
+}
+
+/* More specific targeting for ImageCropper component */
+.avatar-cropper-wrapper .bg-white.dark\\:bg-gray-800 > div:first-child .flex.gap-2 {
+  display: none !important;
+}
+
+/* Hide the entire top section if it contains aspect ratio controls */
+.avatar-cropper-wrapper .p-6:first-child .flex.gap-2 {
+  display: none !important;
+}
+
+/* Compact the modal by removing extra spacing */
+.avatar-cropper-wrapper .p-6:first-child {
+  padding-bottom: 1rem !important;
+}
+
+/* Ensure the crop area takes full available space */
+.avatar-cropper-wrapper .relative.bg-gray-100 {
+  margin: 0 auto;
+}

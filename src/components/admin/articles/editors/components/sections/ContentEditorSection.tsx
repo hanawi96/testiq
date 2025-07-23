@@ -63,8 +63,8 @@ export const ContentEditorSection: React.FC<ContentEditorSectionProps> = ({
                 value={formData.content}
                 onChange={(content: string) => setFormData(prev => ({ ...prev, content }))}
                 placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                height="1000px"
-                flexHeight={false}
+                height="auto"
+                flexHeight={true}
                 className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               />
             </Suspense>

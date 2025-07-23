@@ -15,10 +15,11 @@
   background-color: rgba(31, 41, 55, 0.95);
 }
 
-/* Content editor height optimization - Increased height for balance */
+/* Content editor height optimization - Dynamic height for content */
 .article-content-editor {
-  height: 1000px;
-  overflow: hidden;
+  min-height: 600px;
+  height: auto;
+  overflow: visible;
 }
 
 /* Sidebar sticky positioning */
@@ -72,8 +73,9 @@
   }
 
   .article-content-editor {
-    height: 1200px; /* Increased for better balance */
-    overflow: hidden;
+    min-height: 800px; /* Increased min-height for larger screens */
+    height: auto;
+    overflow: visible;
   }
 }
 
@@ -84,8 +86,9 @@
   }
 
   .article-content-editor {
-    height: 1400px; /* Increased for better balance */
-    overflow: hidden;
+    min-height: 1000px; /* Increased min-height for very large screens */
+    height: auto;
+    overflow: visible;
   }
 }
 
@@ -292,8 +295,9 @@
 
   /* Mobile content editor height */
   .article-content-editor {
-    height: 600px;
-    overflow: hidden;
+    min-height: 400px;
+    height: auto;
+    overflow: visible;
   }
 }
 

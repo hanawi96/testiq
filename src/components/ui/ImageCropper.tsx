@@ -41,6 +41,12 @@ const ASPECT_RATIOS: AspectRatio[] = [
     description: 'Crop tự do'
   },
   {
+    label: '3:1',
+    value: 3,
+    icon: <Monitor size={16} />,
+    description: 'Cover photo, Banner'
+  },
+  {
     label: '16:9',
     value: 16/9,
     icon: <Monitor size={16} />,

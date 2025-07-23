@@ -1067,7 +1067,7 @@ export default function TiptapEditor({
         <EditorContent
           editor={editor}
           className={`tiptap-content ${flexHeight ? 'flex-1' : ''}`}
-          style={flexHeight ? { height: '100%' } : { height: height }}
+          style={flexHeight ? { minHeight: '400px', height: 'auto' } : { height: height }}
         />
       </div>
 

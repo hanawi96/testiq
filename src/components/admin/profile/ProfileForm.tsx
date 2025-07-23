@@ -9,6 +9,7 @@ interface AdminProfileData {
   created_at: string;
   updated_at?: string;
   avatar_url?: string;
+  cover_photo_url?: string;
   bio?: string;
   social_links?: SocialLinks;
 }

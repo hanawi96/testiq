@@ -20,6 +20,7 @@ export interface AdminProfileData {
   created_at: string;
   updated_at?: string;
   avatar_url?: string;
+  cover_photo_url?: string;
   bio?: string;
   social_links?: SocialLinks;
 }
@@ -78,6 +79,7 @@ export class AdminProfileService {
         created_at: profile.created_at || '',
         updated_at: profile.updated_at,
         avatar_url: profile.avatar_url,
+        cover_photo_url: profile.cover_photo_url,
         bio: profile.bio || '',
         social_links: profile.social_links || {}
       };
@@ -121,6 +123,10 @@ export class AdminProfileService {
         updateData.avatar_url = updates.avatar_url;
       }
 
+      if (updates.cover_photo_url !== undefined) {
+        updateData.cover_photo_url = updates.cover_photo_url;
+      }
+
       if (updates.bio !== undefined) {
         updateData.bio = updates.bio;
       }
@@ -158,6 +164,7 @@ export class AdminProfileService {
         created_at: data.created_at || '',
         updated_at: data.updated_at,
         avatar_url: data.avatar_url,
+        cover_photo_url: data.cover_photo_url,
         bio: data.bio || '',
         social_links: data.social_links || {}
       };

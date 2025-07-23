@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import type { FormData } from '../../hooks/useFormHandlers';
 import type { SaveStates } from '../../hooks/useSaveHandlers';
-import type { LoadingState } from '../../utils/articleEditorHelpers';
+import type { LoadingState } from '../LoadingStates';
 import DateTimePicker from '../../../create/components/DateTimePicker';
 import { FieldSkeleton } from '../SkeletonComponents';
 
