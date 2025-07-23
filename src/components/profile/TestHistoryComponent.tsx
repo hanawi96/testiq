@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { getAnonymousUserInfo } from '@/utils/testing/iq-test/core';
 import LoginPopup from '@/components/auth/login/LoginPopup';
 
@@ -56,10 +56,30 @@ const AnonymousUserWarning = ({ onRegisterClick }: { onRegisterClick: () => void
   </motion.div>
 );
 
-const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
+const TestHistoryComponent: React.FC<Props> = () => {
   // 🚀 SIMPLE STATES - CHỈ 2 STATE CHÍNH
   const [isLoading, setIsLoading] = useState(true);
   const [testHistory, setTestHistory] = useState<TestHistoryItem[]>([]);
+
+  // Helper functions
+  const getTimeAgo = useCallback((date: Date): string => {
+    const diffDays = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Hôm nay';
+    if (diffDays === 1) return 'Hôm qua';
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return `${Math.floor(diffDays / 30)} tháng trước`;
+  }, []);
+
+  const getScoreGradient = useCallback((score: number) => {
+    if (score >= 140) return 'from-purple-500 via-pink-500 to-red-500';
+    if (score >= 130) return 'from-blue-500 via-purple-500 to-pink-500';
+    if (score >= 120) return 'from-cyan-500 via-blue-500 to-purple-500';
+    if (score >= 110) return 'from-green-500 via-cyan-500 to-blue-500';
+    if (score >= 100) return 'from-yellow-500 via-green-500 to-cyan-500';
+    return 'from-gray-400 via-gray-500 to-gray-600';
+  }, []);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   // Popup states
@@ -153,10 +173,12 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
   }, []);
 
   const getIQLevel = useCallback((score: number) => {
-    if (score >= 140) return { level: 'Thiên tài', color: 'purple', icon: '🌟' };
-    if (score >= 130) return { level: 'Xuất sắc', color: 'blue', icon: '🏆' };
-    if (score >= 115) return { level: 'Trên TB', color: 'green', icon: '⭐' };
-    return { level: 'Trung bình', color: 'yellow', icon: '✅' };
+    if (score >= 140) return { label: 'Thiên tài', icon: '🧠', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' };
+    if (score >= 130) return { label: 'Xuất sắc', icon: '⭐', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' };
+    if (score >= 120) return { label: 'Cao', icon: '🚀', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' };
+    if (score >= 110) return { label: 'Khá', icon: '💪', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' };
+    if (score >= 100) return { label: 'Trung bình', icon: '👍', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' };
+    return { label: 'Cần cải thiện', icon: '📚', color: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' };
   }, []);
 
   // Computed data
@@ -188,20 +210,20 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
     return { totalPages: total, currentItems: items };
   }, [filteredHistory, currentPage]);
 
-  // 🎨 LOADING UI - GIỐNG HỆT PROFILE
+  // 🎨 LOADING UI - DARK MODE SUPPORT
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-24 pb-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pt-24 pb-8">
         <div className="max-w-6xl mx-auto px-4 space-y-6">
-          
+
           {/* Hero Skeleton */}
-          <div className="bg-white rounded-3xl p-8 text-center">
+          <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-700 rounded-3xl p-8 text-center">
             <Skeleton className="w-12 h-12 rounded-xl mx-auto mb-4" />
             <Skeleton className="h-8 w-64 mx-auto mb-2" />
             <Skeleton className="h-4 w-48 mx-auto mb-6" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-white/80 rounded-xl p-3 border">
+                <div key={i} className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
                   <Skeleton className="h-6 w-8 mx-auto mb-1" />
                   <Skeleton className="h-3 w-12 mx-auto" />
                 </div>
@@ -210,7 +232,7 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
           </div>
 
           {/* Filters Skeleton */}
-          <div className="bg-white rounded-2xl p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4">
             <div className="flex gap-3 justify-between">
               <Skeleton className="h-10 flex-1 max-w-md" />
               <Skeleton className="h-10 w-32" />
@@ -218,22 +240,31 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
           </div>
 
           {/* List Skeleton */}
-          <div className="bg-white rounded-2xl p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4">
             <Skeleton className="h-6 w-48 mb-4" />
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="p-4 border rounded-xl">
-                  <div className="flex justify-between">
-                    <div className="flex space-x-3">
-                      <Skeleton className="w-12 h-12 rounded-xl" />
-                      <div className="space-y-2">
-                        <Skeleton className="w-32 h-4" />
-                        <Skeleton className="w-48 h-3" />
+                <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="w-12 h-12 rounded-lg" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Skeleton className="w-20 h-4" />
+                          <Skeleton className="w-16 h-5 rounded-md" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-12 h-3" />
+                          <Skeleton className="w-2 h-3" />
+                          <Skeleton className="w-16 h-3" />
+                          <Skeleton className="w-2 h-3" />
+                          <Skeleton className="w-12 h-3" />
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right space-y-1">
-                      <Skeleton className="w-12 h-8" />
-                      <Skeleton className="w-16 h-5 rounded-full" />
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-12 h-6 rounded-md" />
+                      <Skeleton className="w-20 h-6 rounded-lg" />
                     </div>
                   </div>
                 </div>
@@ -250,42 +281,347 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 pt-24 pb-8">
       <div className="max-w-6xl mx-auto px-4 space-y-6">
 
-        {/* Hero Section với dark mode styling */}
+        {/* 🚀 BREAKTHROUGH HERO SECTION - WOW DESIGN */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-700 rounded-3xl p-8 text-center"
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative overflow-hidden"
         >
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
+          {/* Background with animated gradients */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 dark:from-blue-400/20 dark:via-purple-400/20 dark:to-pink-400/20"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/50 to-transparent dark:via-gray-800/50"></div>
+
+          {/* Floating particles animation */}
+          <div className="absolute inset-0 overflow-hidden">
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                className={`absolute w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-30`}
+                style={{
+                  left: `${20 + i * 15}%`,
+                  top: `${10 + i * 10}%`,
+                }}
+                animate={{
+                  y: [-10, 10, -10],
+                  x: [-5, 5, -5],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  duration: 3 + i * 0.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-200 mb-2">
-            Lịch sử <span className="text-blue-600 dark:text-blue-400">Test IQ</span>
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">Theo dõi hành trình phát triển trí tuệ</p>
+          <div className="relative z-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-gray-700/30 shadow-2xl">
+            <div className="p-8 md:p-12 text-center">
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
-            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.total}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Tổng test</div>
-            </div>
-            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{stats.best}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Cao nhất</div>
-            </div>
-            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-bold text-green-600 dark:text-green-400">{stats.average}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Trung bình</div>
-            </div>
-            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-bold text-orange-600 dark:text-orange-400">+{stats.improvement}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Cải thiện</div>
+              {/* Animated Icon with glow effect */}
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.8, delay: 0.2, type: "spring", bounce: 0.4 }}
+                className="relative mx-auto mb-8"
+              >
+                <div className="w-20 h-20 mx-auto relative">
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl blur-xl opacity-60 animate-pulse"></div>
+                  {/* Main icon */}
+                  <div className="relative w-full h-full bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                  </div>
+                  {/* Orbiting elements */}
+                  <motion.div
+                    className="absolute -top-2 -right-2 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.div
+                    className="absolute -bottom-2 -left-2 w-3 h-3 bg-gradient-to-r from-green-400 to-cyan-500 rounded-full"
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+              </motion.div>
+
+              {/* Title with gradient text */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="mb-6"
+              >
+                <h1 className="text-4xl md:text-5xl font-black mb-3">
+                  <span className="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">
+                    Lịch sử{' '}
+                  </span>
+                  <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Test IQ
+                  </span>
+                </h1>
+                <motion.p
+                  className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  Khám phá hành trình phát triển trí tuệ của bạn qua từng bài test
+                  <br />
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold">Mỗi con số là một bước tiến</span>
+                </motion.p>
+              </motion.div>
+
+              {/* Enhanced Stats Cards */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
+              >
+                {[
+                  { value: stats.total, label: 'Tổng test', icon: '📊', gradient: 'from-blue-500 to-cyan-500', bg: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20' },
+                  { value: stats.best, label: 'Cao nhất', icon: '🏆', gradient: 'from-purple-500 to-pink-500', bg: 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20' },
+                  { value: stats.average, label: 'Trung bình', icon: '📈', gradient: 'from-green-500 to-emerald-500', bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20' },
+                  { value: `+${stats.improvement}`, label: 'Cải thiện', icon: '🚀', gradient: 'from-orange-500 to-red-500', bg: 'from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20' }
+                ].map((stat, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    className="group relative"
+                  >
+                    {/* Glow effect on hover */}
+                    <div className={`absolute inset-0 bg-gradient-to-r ${stat.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300`}></div>
+
+                    {/* Card */}
+                    <div className={`relative bg-gradient-to-br ${stat.bg} backdrop-blur-sm rounded-2xl p-5 border border-white/30 dark:border-gray-700/30 shadow-lg hover:shadow-xl transition-all duration-300`}>
+                      {/* Icon */}
+                      <div className="text-2xl mb-3">{stat.icon}</div>
+
+                      {/* Value with counter animation */}
+                      <motion.div
+                        className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent mb-1`}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.5, delay: 1 + index * 0.1, type: "spring", bounce: 0.6 }}
+                      >
+                        {stat.value}
+                      </motion.div>
+
+                      {/* Label */}
+                      <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        {stat.label}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+
+
             </div>
           </div>
         </motion.section>
+
+        {/* IQ Trend Chart - Separate Box */}
+        {testHistory.length > 1 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                  📈 Xu hướng điểm IQ
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Theo dõi sự tiến bộ qua tất cả {testHistory.length} lần test
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6">
+              <svg
+                width="100%"
+                height="280"
+                viewBox="0 0 800 280"
+                className="overflow-visible"
+                preserveAspectRatio="xMidYMid meet"
+              >
+                {/* Background */}
+                <rect width="100%" height="100%" fill="transparent" />
+
+                {(() => {
+                  // 🚀 OPTIMIZED: Hiển thị tất cả tests, tối ưu cho performance
+                  const chartData = [...testHistory].reverse(); // All tests, oldest first
+                  const width = 800;
+                  const height = 280;
+                  const padding = 50;
+                  const chartWidth = width - (padding * 2);
+                  const chartHeight = height - (padding * 2);
+
+                  const maxValue = Math.max(...chartData.map(d => d.score)) || 160;
+                  const minValue = Math.min(...chartData.map(d => d.score)) || 80;
+                  const valueRange = maxValue - minValue || 80;
+
+                  // 🚀 SMART CALCULATION: Tối ưu cho mọi số lượng tests
+                  const points = chartData.map((test, i) => {
+                    const x = padding + (i * (chartWidth / Math.max(chartData.length - 1, 1)));
+                    const y = padding + chartHeight - ((test.score - minValue) / valueRange * chartHeight);
+                    return { x, y, score: test.score, index: i };
+                  });
+
+                  // Create path string for the line
+                  const pathData = points.reduce((path, point, i) => {
+                    const command = i === 0 ? 'M' : 'L';
+                    return `${path} ${command} ${point.x} ${point.y}`;
+                  }, '');
+
+                  // Create area path
+                  const areaPath = `${pathData} L ${points[points.length - 1]?.x || padding} ${height - padding} L ${padding} ${height - padding} Z`;
+
+                  // Y-axis labels (5 levels)
+                  const yAxisLabels = [];
+                  for (let i = 0; i <= 4; i++) {
+                    const value = minValue + (valueRange * (4 - i) / 4);
+                    yAxisLabels.push(Math.round(value));
+                  }
+
+                  return (
+                    <>
+                      {/* Grid lines */}
+                      {[0, 1, 2, 3, 4].map(i => {
+                        const y = padding + (chartHeight / 4) * i;
+                        return (
+                          <line
+                            key={`grid-${i}`}
+                            x1={padding}
+                            y1={y}
+                            x2={width - padding}
+                            y2={y}
+                            stroke="currentColor"
+                            strokeWidth="1"
+                            className="text-gray-200 dark:text-gray-700"
+                            opacity="0.3"
+                          />
+                        );
+                      })}
+
+                      {/* Y-axis labels */}
+                      {yAxisLabels.map((value, i) => (
+                        <text
+                          key={`y-label-${i}`}
+                          x={padding - 15}
+                          y={padding + (chartHeight / 4) * i + 5}
+                          textAnchor="end"
+                          fontSize="12"
+                          fill="currentColor"
+                          className="text-gray-600 dark:text-gray-400 font-medium"
+                        >
+                          {value}
+                        </text>
+                      ))}
+
+                      {/* Gradient definition */}
+                      <defs>
+                        <linearGradient id="iqTrendGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.1" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Area under the line */}
+                      <motion.path
+                        d={areaPath}
+                        fill="url(#iqTrendGradient)"
+                        opacity="0.3"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.3 }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                      />
+
+                      {/* Main line */}
+                      <motion.path
+                        d={pathData}
+                        fill="none"
+                        stroke="#8B5CF6"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="drop-shadow-sm"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.5, delay: 0.5, ease: "easeInOut" }}
+                      />
+
+                      {/* Data points */}
+                      {points.map((point, i) => (
+                        <motion.g key={i}>
+                          <motion.circle
+                            cx={point.x}
+                            cy={point.y}
+                            r="5"
+                            fill="#8B5CF6"
+                            stroke="white"
+                            strokeWidth="3"
+                            className="cursor-pointer transition-all duration-200 drop-shadow-sm hover:r-6"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 0.3, delay: 0.7 + i * 0.1 }}
+                          />
+
+                          {/* Score label */}
+                          <motion.text
+                            x={point.x}
+                            y={point.y - 15}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fill="currentColor"
+                            className="text-gray-700 dark:text-gray-300 font-semibold"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1 + i * 0.1 }}
+                          >
+                            {point.score}
+                          </motion.text>
+                        </motion.g>
+                      ))}
+
+                      {/* X-axis labels (smart spacing) */}
+                      {points.map((point, i) => {
+                        // 🚀 SMART LABELING: Chỉ hiển thị label khi có đủ space
+                        const shouldShowLabel = chartData.length <= 20 || i % Math.ceil(chartData.length / 10) === 0;
+
+                        return shouldShowLabel ? (
+                          <text
+                            key={`x-label-${i}`}
+                            x={point.x}
+                            y={height - 15}
+                            textAnchor="middle"
+                            fontSize="11"
+                            fill="currentColor"
+                            className="text-gray-600 dark:text-gray-400 font-medium"
+                          >
+                            #{i + 1}
+                          </text>
+                        ) : null;
+                      })}
+                    </>
+                  );
+                })()}
+              </svg>
+            </div>
+          </motion.section>
+        )}
 
         {/* Anonymous User Warning */}
         {isAuthenticated === false && (
@@ -352,58 +688,96 @@ const TestHistoryComponent: React.FC<Props> = ({ initialData }) => {
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {currentItems.map((test, index) => {
                 const iqLevel = getIQLevel(test.score);
                 const globalIndex = (currentPage - 1) * itemsPerPage + index;
-                const isTop = globalIndex === 0;
-                
+                const testNumber = filteredHistory.length - globalIndex;
+                const date = new Date(test.timestamp || Date.now());
+                const timeAgo = getTimeAgo(date);
+
                 return (
                   <motion.div
                     key={test.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className={`p-4 rounded-xl border hover:shadow-md ${
-                      isTop
-                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border-purple-200 dark:border-purple-700'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700'
-                    }`}
+                    className="group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                   >
-                    <div className="flex justify-between">
-                      <div className="flex space-x-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white text-sm ${
-                          isTop ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gray-500 dark:bg-gray-600'
-                        }`}>
-                          #{filteredHistory.length - globalIndex}
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-200">
-                            {isTop ? 'Bài test mới nhất' : `Test IQ #${filteredHistory.length - globalIndex}`}
-                          </h4>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 flex space-x-4">
-                            <span>{test.date}</span>
-                            <span>•</span>
-                            <span>{formatTime(test.timeTaken)}</span>
-                            <span>•</span>
-                            <span>{test.accuracy}% chính xác</span>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        {/* Left side - Score & Basic Info */}
+                        <div className="flex items-center gap-4">
+                          {/* Score Circle - Compact */}
+                          <div className="relative">
+                            <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getScoreGradient(test.score)} p-0.5`}>
+                              <div className="w-full h-full bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                                <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                  {test.score}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Test Info - Compact */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                                Test #{testNumber}
+                              </h4>
+                              <div className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${iqLevel.color}`}>
+                                <span className="mr-1">{iqLevel.icon}</span>
+                                {iqLevel.label}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                              <span>
+                                {date.toLocaleDateString('vi-VN', {
+                                  day: '2-digit',
+                                  month: '2-digit'
+                                })}
+                              </span>
+                              <span>•</span>
+                              <span>{timeAgo}</span>
+                              <span>•</span>
+                              <span>{formatTime(test.timeTaken)}</span>
+                              <span>•</span>
+                              <span>{test.accuracy}% chính xác</span>
+                            </div>
                           </div>
                         </div>
-                        {isTop && (
-                          <span className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full">
-                            ✨ Mới
-                          </span>
-                        )}
-                      </div>
 
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${
-                          isTop ? 'text-purple-600 dark:text-purple-400' : 'text-gray-700 dark:text-gray-300'
-                        }`}>
-                          {test.score}
-                        </div>
-                        <div className={`text-xs px-2 py-1 rounded-full bg-${iqLevel.color}-100 dark:bg-${iqLevel.color}-900/30 text-${iqLevel.color}-700 dark:text-${iqLevel.color}-300`}>
-                          {iqLevel.icon} {iqLevel.level}
+                        {/* Right side - Performance & Action */}
+                        <div className="flex items-center gap-3">
+                          {/* Performance indicator - Compact */}
+                          {index > 0 && currentItems[index - 1] && (
+                            <div className={`flex items-center text-xs px-2 py-1 rounded-md ${
+                              test.score > currentItems[index - 1].score
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : test.score < currentItems[index - 1].score
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
+                              {test.score > currentItems[index - 1].score ? '↗' :
+                               test.score < currentItems[index - 1].score ? '↘' : '→'}
+                              <span className="ml-1">
+                                {test.score > currentItems[index - 1].score ? '+' : ''}
+                                {test.score - currentItems[index - 1].score}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* View Details Button */}
+                          <a
+                            href={`/result?score=${test.score}&percentile=${test.percentile || 50}&time=${test.timeTaken || 1800}&correct=${Math.round(test.score / 10)}&accuracy=${test.accuracy || 75}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                          >
+                            <span>Xem chi tiết</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </a>
                         </div>
                       </div>
                     </div>

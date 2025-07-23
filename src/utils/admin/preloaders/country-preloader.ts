@@ -51,8 +51,8 @@ async function loadCountryData(): Promise<Country[]> {
   }
 
   try {
-    // Fallback to JSON file
-    const response = await fetch('/country.json');
+    // Fallback to JSON file with cache busting
+    const response = await fetch(`/country.json?v=${Date.now()}`);
     const jsonCountries = await response.json();
     
     if (Array.isArray(jsonCountries) && jsonCountries.length > 0) {
@@ -73,7 +73,7 @@ async function loadCountryData(): Promise<Country[]> {
         processedCountries.unshift(vietnam);
       }
       
-      console.log('🌍 Preloader: Loaded countries from JSON');
+      console.log(`🌍 Preloader: Loaded ${processedCountries.length} countries from JSON`);
       return processedCountries;
     }
   } catch (jsonError) {

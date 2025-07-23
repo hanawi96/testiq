@@ -207,7 +207,6 @@ create table public.user_profiles (
   gender text null,
   country_name text null,
   avatar_url text null,
-  cover_photo_url text null,
   bio text null,
   role text not null default 'user'::text,
   is_verified boolean null default false,
@@ -218,7 +217,10 @@ create table public.user_profiles (
   country_code character(2) null,
   email text null,
   social_links jsonb null,
+  cover_photo_url text null,
+  username character varying(30) null,
   constraint user_profiles_pkey primary key (id),
+  constraint user_profiles_username_key unique (username),
   constraint user_profiles_id_fkey foreign KEY (id) references auth.users (id) on delete CASCADE,
   constraint user_profiles_gender_check check (
     (
@@ -226,7 +228,8 @@ create table public.user_profiles (
         array['male'::text, 'female'::text, 'other'::text]
       )
     )
-  )
+  ),
+  constraint user_profiles_social_links_check check (validate_social_links (social_links))
 ) TABLESPACE pg_default;
 
 create index IF not exists idx_user_profiles_social_links on public.user_profiles using gin (social_links) TABLESPACE pg_default;
@@ -237,37 +240,11 @@ create index IF not exists idx_user_profiles_created_at on public.user_profiles 
 
 create index IF not exists idx_user_profiles_is_verified on public.user_profiles using btree (is_verified) TABLESPACE pg_default;
 
+create index IF not exists idx_user_profiles_username on public.user_profiles using btree (username) TABLESPACE pg_default;
+
 create trigger trigger_user_profiles_updated_at BEFORE
 update on user_profiles for EACH row
 execute FUNCTION handle_updated_at ();
-
--- Function validate social links URLs
-CREATE OR REPLACE FUNCTION validate_social_links(links jsonb)
-RETURNS boolean AS $$
-DECLARE
-  key_name text;
-  url_value text;
-BEGIN
-  -- Nếu null thì hợp lệ
-  IF links IS NULL THEN RETURN true; END IF;
-
-  -- Kiểm tra từng URL trong JSONB
-  FOR key_name IN SELECT jsonb_object_keys(links) LOOP
-    url_value := links->>key_name;
-    -- Kiểm tra URL có format hợp lệ
-    IF url_value IS NOT NULL AND NOT (url_value ~ '^https?://[^\s]+$') THEN
-      RETURN false;
-    END IF;
-  END LOOP;
-
-  RETURN true;
-END;
-$$ LANGUAGE plpgsql;
-
--- Thêm constraint validation cho social_links
-ALTER TABLE public.user_profiles
-ADD CONSTRAINT user_profiles_social_links_check
-CHECK (validate_social_links(social_links));
 
 
 

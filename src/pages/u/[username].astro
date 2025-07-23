@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProfileComponent from '../../components/profile/ProfileComponent.tsx';
+import { supabase } from '../../../backend/config/supabase';
+
+export async function getStaticPaths() {
+  return [];
+}
+
+const { username } = Astro.params;
+
+if (!username) {
+  return Astro.redirect('/404');
+}
+
+// Đơn giản: Chỉ pass username, để client-side xử lý canEdit
+const initialUserProfile = {
+  name: username,
+  age: '',
+  location: '',
+  email: '',
+  totalTests: 0,
+  testHistory: [],
+  isAuthenticated: false,
+  canEdit: false,
+  profileUsername: username // Pass username để client check
+};
+---
+
+<BaseLayout 
+  title={`${username} - Profile`}
+  description={`Xem profile của ${username} trên Astro IQ Test`}
+>
+  <ProfileComponent client:load initialProfile={initialUserProfile} profileUsername={username} key={username} />
+</BaseLayout>

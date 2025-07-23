@@ -32,7 +32,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
-          className={`bg-${stat.color}-50 dark:bg-${stat.color}-900/30 rounded-xl p-4 text-center`}
+          className={`bg-${stat.color}-50 dark:bg-${stat.color}-900/30 rounded-xl p-4 text-center shadow-sm`}
         >
           <div className="text-2xl mb-1">{stat.icon}</div>
           <div className={`text-lg font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</div>

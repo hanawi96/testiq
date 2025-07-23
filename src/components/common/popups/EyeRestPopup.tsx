@@ -43,7 +43,7 @@ export default function EyeRestPopup({
             {/* Nút X ở viền phía trên của popup */}
             <button
               onClick={onSkip}
-              className="absolute -top-2.5 -right-2.5 bg-white dark:bg-gray-800 text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 rounded-full w-5 h-5 flex items-center justify-center border border-green-200 dark:border-green-700 shadow-sm transition-colors"
+              className="absolute -top-2.5 -right-2.5 bg-white dark:bg-gray-800 text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 rounded-full w-5 h-5 flex items-center justify-center border border-green-200 dark:border-green-700 shadow-sm"
               aria-label="Đóng"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -70,13 +70,13 @@ export default function EyeRestPopup({
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
               <button
                 onClick={onDisable}
-                className="py-1 px-2.5 text-xs rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="py-1 px-2.5 text-xs rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Không hiển thị
               </button>
               <button
                 onClick={onStartRest}
-                className="py-1 px-2.5 text-xs rounded-md bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+                className="py-1 px-2.5 text-xs rounded-md bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600"
               >
                 Nghỉ ngay
               </button>

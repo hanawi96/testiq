@@ -1,42 +1,21 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import ProfileComponent from '../components/profile/ProfileComponent.tsx';
-
-// Server-side data loading for instant display (like leaderboard)
-let initialUserProfile = {
-  name: 'Người dùng',
-  age: '',
-  location: '',
-  totalTests: 0,
-  testHistory: [],
-  isAuthenticated: false
-};
-
-// Load data from server-side for instant display
+// Redirect /profile to /u/username
+// Lấy thông tin user hiện tại để redirect
+let currentUser = null;
 try {
-  // Try to load initial data (this will be fast and cached)
-  
-  // For now, we'll load from localStorage-like approach on server
-  // This is a placeholder - in real SSR, you'd check auth headers/cookies
-  
-  // Set default data that will be instantly available
-  initialUserProfile = {
-    name: 'Người dùng', // Will be replaced client-side if data exists
-    age: '',
-    location: '',
-    totalTests: 0,
-    testHistory: [],
-    isAuthenticated: false
-  };
-  
+  const { AuthService } = await import('../../backend');
+  const authResponse = await AuthService.getCurrentUser();
+  currentUser = authResponse.user;
 } catch (error) {
-  console.warn('Server-side profile loading failed:', error);
+  console.error('Error getting current user:', error);
+}
+
+if (currentUser) {
+  // Redirect đến /u/username (dùng email làm username tạm thời)
+  const username = currentUser.email?.split('@')[0] || 'user';
+  return Astro.redirect(`/u/${username}`);
+} else {
+  // Chưa đăng nhập, redirect về trang chủ
+  return Astro.redirect('/');
 }
 ---
-
-<BaseLayout 
-  title="Profile - Astro IQ Test"
-  description="Xem thông tin profile và lịch sử bài test IQ của bạn"
->
-  <ProfileComponent client:load initialProfile={initialUserProfile} />
-</BaseLayout> 

@@ -74,7 +74,8 @@ const formatDuration = (seconds?: number): string => {
 
 const handleProfileClick = (userId?: string, name?: string) => {
   if (userId) {
-    window.location.href = `/profile?user=${userId}`;
+    // TODO: Cần lấy username từ userId, tạm thời dùng userId
+    window.location.href = `/u/${userId}`;
   } else {
     // For anonymous users, show a modal or redirect to test
     console.log(`Anonymous user: ${name}`);

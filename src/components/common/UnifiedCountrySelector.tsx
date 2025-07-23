@@ -238,13 +238,13 @@ export default function UnifiedCountrySelector({
 
   // Variant-specific styling
   const getVariantStyles = () => {
-    const base = "w-full px-3 py-2 border rounded-lg transition-colors";
-    
     if (variant === 'admin') {
-      return `${base} border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`;
+      // Match EditProfileModal styling exactly with fixed height
+      return "w-full h-[52px] px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700/50 dark:text-white hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-200";
     }
-    
-    // popup variant (default)
+
+    // popup variant (default) - keep original styling
+    const base = "w-full px-3 py-2 border rounded-lg transition-colors";
     return `${base} border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`;
   };
 
@@ -265,12 +265,13 @@ export default function UnifiedCountrySelector({
         className={`
           ${getVariantStyles()}
           cursor-pointer
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'}
-          ${isOpen ? 'ring-2 ring-blue-500 border-transparent' : ''}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+          ${isOpen && variant === 'admin' ? 'ring-4 ring-blue-500/20 border-blue-500' : ''}
+          ${isOpen && variant === 'popup' ? 'ring-2 ring-blue-500 border-transparent' : ''}
         `}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between min-h-[20px]">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
             {selectedCountry ? (
               <>

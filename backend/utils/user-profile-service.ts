@@ -10,6 +10,7 @@ export interface UserProfileData {
   avatar_url?: string;
   cover_photo_url?: string;
   bio?: string;
+  is_profile_public?: boolean;
 }
 
 /**
@@ -34,6 +35,8 @@ export async function updateUserProfile(userId: string, profileData: UserProfile
         gender: profileData.gender,
         avatar_url: profileData.avatar_url,
         cover_photo_url: profileData.cover_photo_url,
+        bio: profileData.bio,
+        is_profile_public: profileData.is_profile_public,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId)
@@ -68,7 +71,7 @@ export async function getUserProfile(userId: string): Promise<{
 
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('full_name, age, country_name, country_code, email, gender, avatar_url, cover_photo_url, bio')
+      .select('full_name, age, country_name, country_code, email, gender, avatar_url, cover_photo_url, bio, username, is_profile_public')
       .eq('id', userId)
       .single();
 

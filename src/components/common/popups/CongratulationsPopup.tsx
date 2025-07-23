@@ -119,12 +119,17 @@ interface UserInfo {
     };
   }, []);
 
-  // Trigger confetti when popup opens
+  // Trigger confetti when popup opens - với delay để tránh conflict
   useEffect(() => {
     if (isOpen && !hasTriggeredConfetti && onConfettiTrigger) {
-      console.log('CongratulationsPopup: triggering confetti on open');
-      onConfettiTrigger();
-      setHasTriggeredConfetti(true);
+      // Delay confetti để popup animation hoàn thành trước
+      const confettiTimer = setTimeout(() => {
+        console.log('CongratulationsPopup: triggering confetti on open');
+        onConfettiTrigger();
+        setHasTriggeredConfetti(true);
+      }, 300); // Delay 300ms để popup animation hoàn thành
+
+      return () => clearTimeout(confettiTimer);
     }
     if (!isOpen) {
       setHasTriggeredConfetti(false);
@@ -219,21 +224,24 @@ interface UserInfo {
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
         <motion.div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.1 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
         >
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100 dark:border-gray-700 relative"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.1, ease: "easeOut" }}
+            className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-100 dark:border-gray-700"
+            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+            transition={{
+              duration: 0.25,
+              ease: [0.16, 1, 0.3, 1] // Custom easing for smooth animation
+            }}
           >
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 mb-3">

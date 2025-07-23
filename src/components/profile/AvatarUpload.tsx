@@ -91,6 +91,12 @@ export default function AvatarUpload({ currentAvatar, onAvatarUpdate, onClose, o
 
             if (dbSuccess) {
               console.log('✅ Database updated successfully');
+
+              // Dispatch event để header update avatar
+              window.dispatchEvent(new CustomEvent('avatarUpdated', {
+                detail: { avatarUrl: data.url }
+              }));
+
               onAvatarUpdate(data.url);
               onClose();
             } else {
@@ -102,6 +108,12 @@ export default function AvatarUpload({ currentAvatar, onAvatarUpdate, onClose, o
         } catch (dbError) {
           console.error('Database service error:', dbError);
           console.log('⚠️ Using fallback - upload successful but DB update failed');
+
+          // Dispatch event ngay cả khi DB update failed
+          window.dispatchEvent(new CustomEvent('avatarUpdated', {
+            detail: { avatarUrl: data.url }
+          }));
+
           onAvatarUpdate(data.url);
           onClose();
         }
@@ -250,6 +262,11 @@ export default function AvatarUpload({ currentAvatar, onAvatarUpdate, onClose, o
 
       // Delay nhẹ để user thấy loading effect, sau đó update UI
       setTimeout(() => {
+        // Dispatch event để header update về avatar chữ cái
+        window.dispatchEvent(new CustomEvent('avatarUpdated', {
+          detail: { avatarUrl: '' }
+        }));
+
         onAvatarUpdate(''); // Empty string để chuyển về avatar chữ cái
       }, 1000); // 1 giây loading
 
@@ -257,6 +274,11 @@ export default function AvatarUpload({ currentAvatar, onAvatarUpdate, onClose, o
       console.error('Lỗi xóa ảnh đại diện:', error);
       // Nếu lỗi, vẫn update UI để user không bị stuck
       setTimeout(() => {
+        // Dispatch event ngay cả khi có lỗi
+        window.dispatchEvent(new CustomEvent('avatarUpdated', {
+          detail: { avatarUrl: '' }
+        }));
+
         onAvatarUpdate('');
       }, 1000);
     }

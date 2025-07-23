@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, X } from 'lucide-react';
-import { getUserRealTestHistory, type TestResult, getAnonymousUserInfo } from '@/utils/testing/iq-test/core';
+import { type TestResult, getAnonymousUserInfo } from '@/utils/testing/iq-test/core';
 import LoginPopup from '@/components/auth/login/LoginPopup';
 import AvatarUpload from './AvatarUpload';
 import CoverPhotoUpload from './CoverPhotoUpload';
+import EditProfileModal from './EditProfileModal';
 
 interface UserProfile {
   name: string;
@@ -18,15 +19,20 @@ interface UserProfile {
   testHistory?: any[];
   isAuthenticated?: boolean;
   avatarUrl?: string;
-  coverPhotoUrl?: string;
+  coverPhotoUrl?: string | null;
   countryCode?: string;
   countryName?: string;
   gender?: string;
   bio?: string;
+  isSharedProfile?: boolean;
+  canEdit?: boolean;
+  profileUserId?: string;
+  isProfilePublic?: boolean;
 }
 
 interface Props {
   initialProfile?: UserProfile;
+  profileUsername?: string;
 }
 
 // Generate avatar from name
@@ -59,7 +65,7 @@ const getInitials = (name: string): string => {
 // Enhanced loading states
 const ProgressiveLoader = ({ progress }: { progress: number }) => (
   <div className="fixed top-0 left-0 right-0 z-50">
-    <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300" 
+    <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600" 
          style={{ width: `${progress}%` }} />
   </div>
 );
@@ -187,28 +193,9 @@ const SkeletonTestList = () => (
   </div>
 );
 
-const SkeletonPersonalInfo = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-    <OptimizedSkeleton className="h-6 w-32 mb-6" />
-    <div className="grid md:grid-cols-2 gap-6">
-      {[...Array(2)].map((_, col) => (
-        <div key={col} className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <OptimizedSkeleton className="w-10 h-10 rounded-full" delay={col * 200 + i * 100} />
-              <div className="space-y-2">
-                <OptimizedSkeleton className="w-16 h-3" delay={col * 200 + i * 100 + 50} />
-                <OptimizedSkeleton className="w-24 h-4" delay={col * 200 + i * 100 + 100} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
-const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
+
+const ProfileComponent: React.FC<Props> = ({ initialProfile, profileUsername }) => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [dataReady, setDataReady] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
@@ -218,6 +205,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [showCoverPhotoUpload, setShowCoverPhotoUpload] = useState(false);
   const [coverPhotoLoading, setCoverPhotoLoading] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   
   // 🚀 CLEAN INIT: Always start fresh, load from correct source based on auth
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
@@ -249,6 +237,11 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
       : new Date().toLocaleDateString('vi-VN');
 
     return { average, best, joinDate };
+  }, [userProfile.testHistory]);
+
+  // 🚀 MEMOIZED TEST LIST - Chỉ re-render khi testHistory thực sự thay đổi
+  const memoizedTestList = useMemo(() => {
+    return userProfile.testHistory || [];
   }, [userProfile.testHistory]);
 
   // IQ Achievement System
@@ -403,6 +396,26 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     setShowAvatarUpload(false);
   }, []);
 
+  // Handle edit profile success - 🚀 OPTIMIZED: Chỉ update fields thay đổi, giữ nguyên testHistory
+  const handleEditProfileSuccess = useCallback((updatedProfile: any) => {
+    console.log('✅ Profile updated successfully:', updatedProfile);
+    setUserProfile(prev => {
+      // Chỉ update những field thực sự thay đổi, giữ nguyên testHistory reference
+      const newProfile = { ...prev };
+
+      // Chỉ update các field profile cơ bản, KHÔNG touch testHistory
+      if (updatedProfile.name !== undefined) newProfile.name = updatedProfile.name;
+      if (updatedProfile.age !== undefined) newProfile.age = updatedProfile.age;
+      if (updatedProfile.location !== undefined) newProfile.location = updatedProfile.location;
+      if (updatedProfile.bio !== undefined) newProfile.bio = updatedProfile.bio;
+      if (updatedProfile.gender !== undefined) newProfile.gender = updatedProfile.gender;
+      if (updatedProfile.countryCode !== undefined) newProfile.countryCode = updatedProfile.countryCode;
+      if (updatedProfile.isProfilePublic !== undefined) newProfile.isProfilePublic = updatedProfile.isProfilePublic;
+
+      return newProfile;
+    });
+  }, []);
+
 
 
   // Handle remove cover photo - WITH STORAGE CLEANUP
@@ -472,20 +485,86 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     window.location.reload();
   };
 
+  // Handle share profile
+  const handleShareProfile = useCallback(() => {
+    try {
+      // Simple profile URL: /u/username
+      const shareUrl = `${window.location.origin}/u/${profileUsername || 'user'}`;
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.innerHTML = '✅ Link profile đã được sao chép!';
+        toast.style.cssText = `
+          position: fixed; top: 20px; right: 20px; z-index: 9999;
+          background: #10b981; color: white; padding: 12px 20px;
+          border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-size: 14px; font-weight: 500;
+          transform: translateX(100%); transition: transform 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => toast.style.transform = 'translateX(0)', 10);
+        setTimeout(() => {
+          toast.style.transform = 'translateX(100%)';
+          setTimeout(() => document.body.removeChild(toast), 300);
+        }, 2500);
+      }).catch(() => {
+        // Fallback: show URL in prompt
+        prompt('Sao chép link này để chia sẻ:', shareUrl);
+      });
+    } catch (error) {
+      console.error('Error creating share link:', error);
+      alert('Có lỗi xảy ra khi tạo link chia sẻ.');
+    }
+  }, [profileUsername]);
+
   // 💯 SMART DATA LOADING: Auth-first, then fallback (page reload on auth change)
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadDataSmartly = async () => {
       try {
         setLoadingProgress(20);
+
+        // 🔗 CHECK FOR SHARED PROFILE FIRST
+        const urlParams = new URLSearchParams(window.location.search);
+        const isSharedProfile = urlParams.get('share') === 'true';
+        const sharedData = urlParams.get('data');
+
+        if (isSharedProfile && sharedData) {
+          try {
+            // Decode base64 to UTF-8 safely
+            const decodedString = decodeURIComponent(Array.prototype.map.call(atob(sharedData), (c) => {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            const decodedData = JSON.parse(decodedString);
+            const sharedProfile = {
+              ...decodedData,
+              isSharedProfile: true
+            };
+
+            if (!isMounted) return;
+            setUserProfile(sharedProfile);
+            setIsAuthenticated(false);
+            setLoadingProgress(100);
+            setDataReady(true);
+            console.log('✅ Shared profile loaded:', sharedProfile.name);
+            return;
+          } catch (error) {
+            console.error('❌ Failed to decode shared profile:', error);
+            // Continue with normal loading if shared data is invalid
+          }
+        }
 
         // 1️⃣ Load modules
         const [testUtils, backend] = await Promise.all([
           import('@/utils/testing/iq-test/core'),
           import('@/backend').catch(() => null)
         ]);
-        
+
         setLoadingProgress(40);
 
         // 2️⃣ Check authentication status
@@ -506,30 +585,147 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
           averageScore: 0,
           bestScore: 0,
           testHistory: [],
-          isAuthenticated: isAuth
+          isAuthenticated: isAuth,
+          canEdit: initialProfile?.canEdit || false
         };
 
         if (isAuth && backend) {
           // 🔥 AUTHENTICATED: Only use database data
           console.log('🔐 Loading from DATABASE (authenticated user)');
+          console.log('🔍 Profile loading debug:', {
+            profileUsername: profileUsername,
+            isViewingOtherProfile: !!profileUsername,
+            shouldLoadCurrentUser: !profileUsername,
+            shouldLoadSpecificUser: !!profileUsername
+          });
           try {
             // Get user data first, then profile
             const currentUser = await backend.AuthService.getCurrentUser();
             const userId = currentUser?.user?.id;
-            
+
+            console.log('👤 Current user info:', {
+              userId: userId,
+              email: currentUser?.user?.email,
+              profileUsername: profileUsername,
+              shouldLoadThisUser: !profileUsername
+            });
+
             if (!userId) {
               throw new Error('No user ID found');
             }
-            
-            const [profileResult, historyResult] = await Promise.all([
-              backend.getUserProfile?.(userId),
-              testUtils.getUserRealTestHistory?.()
-            ]);
+
+            let profileResult, historyResult;
+            let targetUserId = userId; // Default to current user
+            let isOwnProfile = true; // Default to own profile
+
+            if (profileUsername) {
+              // Load specific user by username
+              console.log('🔍 Loading specific user by username:', profileUsername);
+
+              // First get user ID by username
+              const { data: userData, error: userError } = await backend.supabase
+                .from('user_profiles')
+                .select('id')
+                .eq('username', profileUsername)
+                .single();
+
+              if (userError || !userData) {
+                console.log('❌ User not found:', profileUsername);
+                // Graceful fallback instead of throwing error
+                profileData = {
+                  name: profileUsername,
+                  age: '',
+                  location: '',
+                  totalTests: 0,
+                  averageScore: 0,
+                  bestScore: 0,
+                  testHistory: [],
+                  isAuthenticated: isAuth,
+                  canEdit: false
+                };
+
+                if (!isMounted) return;
+                setUserProfile(profileData);
+                setLoadingProgress(100);
+                setDataReady(true);
+                console.log('✅ Fallback profile created for:', profileUsername);
+                return;
+              }
+
+              console.log('✅ Found user ID for username:', { username: profileUsername, userId: userData.id });
+
+              // Update variables for scope
+              targetUserId = userData.id;
+              isOwnProfile = userData.id === userId;
+              console.log('🔍 Profile type check:', {
+                targetUserId: userData.id,
+                currentUserId: userId,
+                isOwnProfile: isOwnProfile
+              });
+
+              if (isOwnProfile) {
+                // Load own profile with test history
+                console.log('👤 Loading own profile with test history');
+                [profileResult, historyResult] = await Promise.all([
+                  backend.getUserProfile?.(userData.id),
+                  testUtils.getUserRealTestHistory?.()
+                ]);
+                console.log('📊 Own test history loaded:', historyResult?.length || 0, 'tests');
+              } else {
+                // Load other user's profile with test history
+                console.log('👥 Loading other user profile with test history');
+                console.log('🔍 Other user ID:', userData.id);
+
+                // Load other user's test history from database
+                console.log('📊 Fetching test results for other user...');
+                const otherUserHistory = await backend.getUserTestResults?.({
+                  user_id: userData.id,
+                  test_type: 'iq',
+                  limit: 10
+                });
+
+                console.log('📊 Raw other user history:', {
+                  type: typeof otherUserHistory,
+                  success: otherUserHistory?.success,
+                  dataLength: otherUserHistory?.data?.length || 0,
+                  sample: otherUserHistory?.data?.[0]
+                });
+
+                // Convert to expected format
+                const rawData = otherUserHistory?.success ? otherUserHistory.data : [];
+                const convertedHistory = (Array.isArray(rawData) ? rawData : []).map((test: any) => ({
+                  iq: test.score,
+                  timestamp: new Date(test.tested_at).getTime(),
+                  timeSpent: test.duration_seconds || 0,
+                  accuracy: test.accuracy || 0,
+                  percentile: Math.round((test.score - 70) * 1.2)
+                }));
+
+                console.log('📊 Converted other user history:', {
+                  length: convertedHistory.length,
+                  sample: convertedHistory[0]
+                });
+
+                [profileResult, historyResult] = await Promise.all([
+                  backend.getUserProfile?.(userData.id),
+                  Promise.resolve(convertedHistory)
+                ]);
+                console.log('📊 Other user test history loaded:', convertedHistory.length, 'tests');
+              }
+            } else {
+              // Load current user's profile (fallback)
+              console.log('👤 Loading current user profile (fallback)');
+              [profileResult, historyResult] = await Promise.all([
+                backend.getUserProfile?.(userId),
+                testUtils.getUserRealTestHistory?.()
+              ]);
+              console.log('📊 Current user test history loaded:', historyResult?.length || 0, 'tests');
+            }
 
             if (profileResult?.success && profileResult.data) {
               const profile = profileResult.data;
               const user = currentUser?.user;
-              
+
               profileData = {
                 name: profile.full_name || user?.email?.split('@')[0] || 'Người dùng',
                 age: profile.age?.toString() || '',
@@ -545,19 +741,34 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
                 countryCode: profile.country_code || undefined,
                 countryName: profile.country_name || undefined,
                 gender: profile.gender || undefined,
-                bio: profile.bio || undefined
+                bio: profile.bio || undefined,
+                canEdit: initialProfile?.canEdit || false,
+                isProfilePublic: profile.is_profile_public ?? true
               };
-              
-              console.log('💾 Database profile loaded:', {
-                name: profileData.name,
-                avatarUrl: profileData.avatarUrl,
-                rawProfile: profile,
-                email: profileData.email,
-                tests: profileData.totalTests
+
+              // Set canEdit dựa trên isOwnProfile đã tính ở trên
+              profileData.canEdit = isOwnProfile;
+
+              console.log('🔍 CanEdit check:', {
+                currentUserId: userId,
+                profileUserId: targetUserId,
+                isOwnProfile: isOwnProfile,
+                canEdit: profileData.canEdit
+              });
+
+              console.log('💾 Database profile loaded with canEdit:', profileData.canEdit);
+              console.log('📊 Final test history check:', {
+                historyResultLength: historyResult?.length || 0,
+                profileDataTestHistory: profileData.testHistory?.length || 0,
+                profileDataTotalTests: profileData.totalTests,
+                hasTestHistory: !!profileData.testHistory && profileData.testHistory.length > 0,
+                historyResultSample: historyResult?.[0],
+                profileDataHistorySample: profileData.testHistory?.[0]
               });
             } else {
               // Fallback to basic auth info if no profile exists
               const user = currentUser?.user;
+              const historyResult = await testUtils.getUserRealTestHistory?.() || [];
               profileData = {
                 name: user?.email?.split('@')[0] || 'Người dùng',
                 age: '',
@@ -567,14 +778,11 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
                 averageScore: 0,
                 bestScore: 0,
                 testHistory: historyResult || [],
-                isAuthenticated: true
+                isAuthenticated: true,
+                canEdit: initialProfile?.canEdit || false
               };
-              
-              console.log('📧 Using auth fallback data:', {
-                name: profileData.name,
-                email: profileData.email,
-                tests: profileData.totalTests
-              });
+
+              console.log('📧 Using auth fallback with canEdit:', profileData.canEdit);
             }
           } catch (error) {
             console.error('❌ Database load failed:', error);
@@ -596,8 +804,11 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
               averageScore: 0,
               bestScore: 0,
               testHistory: freshHistory || [],
-              isAuthenticated: false
+              isAuthenticated: false,
+              canEdit: initialProfile?.canEdit || false
             };
+
+            console.log('📱 LocalStorage loaded with canEdit:', profileData.canEdit);
           } catch (error) {
             console.warn('⚠️ LocalStorage load failed:', error);
           }
@@ -610,7 +821,9 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
           authenticated: isAuth,
           name: profileData.name,
           totalTests: profileData.totalTests,
-          testHistory: profileData.testHistory?.length || 0
+          testHistory: profileData.testHistory?.length || 0,
+          canEdit: profileData.canEdit,
+          profileUsername: profileUsername
         });
         setUserProfile(profileData);
         setLoadingProgress(100);
@@ -630,7 +843,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, []);
+  }, [profileUsername]);
 
   // Optimized helper functions with memoization
   const formatTimeDisplay = useCallback((totalSeconds: number): string => {
@@ -652,14 +865,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     return `${Math.floor(diffDays / 30)} tháng trước`;
   }, []);
 
-  const getIQColor = useCallback((iq: number) => {
-    if (iq >= 140) return { bg: 'bg-gradient-to-br from-purple-100 to-purple-200', text: 'text-purple-700' };
-    if (iq >= 130) return { bg: 'bg-gradient-to-br from-indigo-100 to-indigo-200', text: 'text-indigo-700' };
-    if (iq >= 120) return { bg: 'bg-gradient-to-br from-blue-100 to-blue-200', text: 'text-blue-700' };
-    if (iq >= 110) return { bg: 'bg-gradient-to-br from-green-100 to-green-200', text: 'text-green-700' };
-    if (iq >= 90) return { bg: 'bg-gradient-to-br from-yellow-100 to-yellow-200', text: 'text-yellow-700' };
-    return { bg: 'bg-gradient-to-br from-orange-100 to-orange-200', text: 'text-orange-700' };
-  }, []);
+
 
   const HeroSection = () => (
     <div className="relative bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm border border-gray-200/50 dark:border-gray-700/50">
@@ -732,27 +938,32 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
 
 
-        {/* Edit Cover Photo Button - Always visible with subtle style */}
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={() => setShowCoverPhotoUpload(true)}
-            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 p-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 font-medium hover:scale-105"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-sm hidden sm:inline">Chỉnh sửa ảnh bìa</span>
-            <span className="text-sm sm:hidden">Chỉnh sửa</span>
-          </button>
-        </div>
+        {/* Edit Cover Photo Button - Only show if user can edit */}
+        {(() => {
+          console.log('🎨 Cover Photo Button - canEdit:', userProfile.canEdit);
+          return userProfile.canEdit;
+        })() && (
+          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button
+              onClick={() => setShowCoverPhotoUpload(true)}
+              className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 p-3 rounded-xl shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-sm hidden sm:inline">Chỉnh sửa ảnh bìa</span>
+              <span className="text-sm sm:hidden">Chỉnh sửa</span>
+            </button>
+          </div>
+        )}
 
-        {/* Remove Cover Photo Button - Professional icon */}
-        {userProfile.coverPhotoUrl && isAuthenticated && (
-          <div className="absolute bottom-4 right-4" style={{ zIndex: 999 }}>
+        {/* Remove Cover Photo Button - Only show if user can edit */}
+        {userProfile.coverPhotoUrl && userProfile.canEdit && (
+          <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ zIndex: 999 }}>
             <button
               onClick={handleRemoveCoverPhoto}
-              className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-lg shadow-lg transition-colors duration-200"
+              className="bg-red-500/90 hover:bg-red-600 text-white p-3 rounded-lg shadow-lg"
               title="Xóa ảnh bìa"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'none' }}>
@@ -766,19 +977,21 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
           </div>
         )}
 
-        {/* Quick Camera Icon - Mobile friendly */}
-        <div className="absolute top-4 left-4 sm:hidden">
-          <button
-            onClick={() => setShowCoverPhotoUpload(true)}
-            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 p-2.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
-            title="Chỉnh sửa ảnh bìa"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-        </div>
+        {/* Quick Camera Icon - Mobile friendly, only show if user can edit */}
+        {userProfile.canEdit && (
+          <div className="absolute top-4 left-4 sm:hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button
+              onClick={() => setShowCoverPhotoUpload(true)}
+              className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 p-2.5 rounded-full shadow-lg"
+              title="Chỉnh sửa ảnh bìa"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Cover Photo Info (Bottom Left) - Always visible */}
         
@@ -793,7 +1006,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
             <div
               className={`relative w-32 h-32 rounded-full shadow-xl border-4 ${
                 getIQAchievement ? `border-gradient-to-r ${getIQAchievement.borderGradient}` : 'border-white dark:border-gray-800'
-              } ${userProfile.avatarUrl && !avatarLoading ? 'cursor-pointer hover:scale-105 transition-transform duration-200' : ''}`}
+              } ${userProfile.avatarUrl && !avatarLoading ? 'cursor-pointer hover:scale-105' : ''}`}
               onClick={userProfile.avatarUrl && !avatarLoading ? handleAvatarClick : undefined}
               title={userProfile.avatarUrl && !avatarLoading ? 'Click để xem ảnh đại diện' : undefined}
             >
@@ -831,14 +1044,16 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
 
 
 
-            {/* Online Status */}
-            <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-3 border-white dark:border-gray-800 rounded-full"></div>
 
-            {/* Edit Avatar Button - Only show for authenticated users */}
-            {isAuthenticated && (
+
+            {/* Edit Avatar Button - Only show if user can edit */}
+            {(() => {
+              console.log('👤 Avatar Button - canEdit:', userProfile.canEdit);
+              return userProfile.canEdit;
+            })() && (
               <button
                 onClick={() => setShowAvatarUpload(true)}
-                className="absolute bottom-0 right-0 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+                className="absolute bottom-0 right-0 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-2 rounded-full shadow-lg hover:scale-110"
                 title="Cập nhật ảnh đại diện"
               >
                 <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -858,21 +1073,33 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
                 {userProfile.name}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 text-lg">
-                @{userProfile.name.toLowerCase().replace(/\s+/g, '')}
+                @{profileUsername || userProfile.name.toLowerCase().replace(/\s+/g, '')}
               </p>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                Chỉnh sửa
-              </button>
-              <button className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors duration-200">
+              {(() => {
+                console.log('✏️ Edit Profile Button - canEdit:', userProfile.canEdit);
+                return userProfile.canEdit;
+              })() && (
+                <button
+                  onClick={() => setShowEditProfile(true)}
+                  className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  title="Chỉnh sửa thông tin"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={handleShareProfile}
+                className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg"
+                title="Chia sẻ profile"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
               </button>
             </div>
@@ -960,25 +1187,54 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                {userProfile.totalTests || 0}
+          {/* Stats - Enhanced Design */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-4 uppercase tracking-wide">Thống kê thành tích</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl blur-xl group-hover:blur-2xl"></div>
+                <div className="relative text-center p-5 bg-white/70 dark:bg-gray-800/70 rounded-2xl border border-blue-200/50 dark:border-blue-700/30 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-800/90 hover:scale-105">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="text-3xl font-black text-blue-600 dark:text-blue-400 mb-2">
+                    {userProfile.totalTests || 0}
+                  </div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Bài test</div>
+                </div>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Bài test</div>
-            </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
-                {profileStats.average || 0}
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl blur-xl group-hover:blur-2xl"></div>
+                <div className="relative text-center p-5 bg-white/70 dark:bg-gray-800/70 rounded-2xl border border-green-200/50 dark:border-green-700/30 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-800/90 hover:scale-105">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div className="text-3xl font-black text-green-600 dark:text-green-400 mb-2">
+                    {profileStats.average || 0}
+                  </div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Điểm TB</div>
+                </div>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Điểm TB</div>
-            </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                {profileStats.best || 0}
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl group-hover:blur-2xl"></div>
+                <div className="relative text-center p-5 bg-white/70 dark:bg-gray-800/70 rounded-2xl border border-purple-200/50 dark:border-purple-700/30 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-800/90 hover:scale-105">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  </div>
+                  <div className="text-3xl font-black text-purple-600 dark:text-purple-400 mb-2">
+                    {profileStats.best || 0}
+                  </div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Tốt nhất</div>
+                </div>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Tốt nhất</div>
             </div>
           </div>
         </div>
@@ -1001,7 +1257,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
             </p>
             <button
               onClick={handleOpenRegisterPopup}
-              className="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-lg hover:bg-amber-700 dark:hover:bg-amber-600 transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-lg hover:bg-amber-700 dark:hover:bg-amber-600 text-sm font-medium"
             >
               🔐 Đăng ký tài khoản để lưu dữ liệu
             </button>
@@ -1011,76 +1267,10 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     )
   );
 
-  const PersonalInfo = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-200 mb-6 flex items-center">
-        <span className="mr-2">👤</span>
-        Thông tin cá nhân
-      </h3>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 dark:text-blue-400">🏷️</span>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Tên</div>
-              <div className="font-semibold text-gray-900 dark:text-gray-200">{userProfile.name}</div>
-            </div>
-          </div>
 
-          {userProfile.age && (
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                <span className="text-green-600 dark:text-green-400">🎂</span>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Tuổi</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-200">{userProfile.age} tuổi</div>
-              </div>
-            </div>
-          )}
-
-          {userProfile.location && (
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 dark:text-purple-400">📍</span>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Địa điểm</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-200">{userProfile.location}</div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-              <span className="text-orange-600 dark:text-orange-400">📅</span>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Ngày tham gia</div>
-              <div className="font-semibold text-gray-900 dark:text-gray-200">{profileStats.joinDate}</div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-              <span className="text-red-600 dark:text-red-400">🎯</span>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Trạng thái</div>
-              <div className="font-semibold text-green-600 dark:text-green-400">Đang hoạt động</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const RecentTestsOverview = () => {
+  // 🚀 MEMOIZED COMPONENT - Chỉ re-render khi testHistory thay đổi
+  const RecentTestsOverview = useMemo(() => {
     const getScoreGradient = (score: number) => {
       if (score >= 140) return 'from-purple-500 via-pink-500 to-red-500';
       if (score >= 130) return 'from-blue-500 via-purple-500 to-pink-500';
@@ -1100,137 +1290,134 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     };
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-700 backdrop-blur-sm">
-        {/* Header với gradient background */}
-        <div className="relative mb-8 p-6 rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white overflow-hidden">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 backdrop-blur-sm">
+        {/* Header - Modern Minimalist Design */}
+        <div className="mb-6 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 dark:bg-blue-400/10 flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
               <div>
-                <h3 className="text-2xl font-bold mb-2 flex items-center">
-                  <span className="mr-3 text-3xl">🎯</span>
-                  Lịch sử bài test
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Bài test gần nhất
                 </h3>
-                <p className="text-blue-100 text-sm">
-                  Theo dõi hành trình phát triển IQ của bạn
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {userProfile.totalTests || 0} bài test đã hoàn thành
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold">{userProfile.totalTests || 0}</div>
-                <div className="text-blue-100 text-sm">Tổng bài test</div>
-              </div>
             </div>
+
+            {(userProfile.totalTests || 0) > 0 && userProfile.canEdit && (
+              <a
+                href="/test-history"
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                title="Xem tất cả lịch sử test"
+              >
+                <span>Xem tất cả</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            )}
           </div>
-          {/* Decorative elements */}
-          <div className="absolute top-4 right-4 w-20 h-20 bg-white/10 rounded-full blur-xl"></div>
-          <div className="absolute bottom-4 left-4 w-16 h-16 bg-white/5 rounded-full blur-lg"></div>
         </div>
 
         <ContentLoader
-          isLoading={!dataReady && (!userProfile.testHistory || userProfile.testHistory.length === 0)}
+          isLoading={!dataReady && (!memoizedTestList || memoizedTestList.length === 0)}
           skeleton={<SkeletonTestList />}
         >
-          {(userProfile.testHistory?.length || 0) > 0 ? (
+          {memoizedTestList.length > 0 ? (
             <div className="space-y-4">
-              {(userProfile.testHistory || []).slice(0, 10).map((test, index) => {
+              {memoizedTestList.slice(0, 10).map((test, index) => {
                 const date = test.timestamp ? new Date(test.timestamp) : new Date();
                 const timeAgo = getTimeAgo(date);
                 const scoreLevel = getScoreLevel(test.iq);
-                const testNumber = (userProfile.testHistory?.length || 0) - index;
-                const isRecent = index < 3;
+                const testNumber = memoizedTestList.length - index;
 
                 return (
                   <div
                     key={`${test.timestamp || index}-${test.iq}`}
-                    className={`group relative overflow-hidden rounded-2xl border ${
-                      isRecent
-                        ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-700'
-                        : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
-                    }`}
+                    className="group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                   >
-                    {/* Gradient overlay for recent tests */}
-                    {isRecent && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5"></div>
-                    )}
-
-                    <div className="relative p-6">
+                    <div className="p-4">
                       <div className="flex items-center justify-between">
-                        {/* Left side - Score & Info */}
-                        <div className="flex items-center space-x-6">
-                          {/* Animated Score Circle */}
+                        {/* Left side - Score & Basic Info */}
+                        <div className="flex items-center gap-4">
+                          {/* Score Circle - Compact */}
                           <div className="relative">
-                            <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getScoreGradient(test.iq)} p-0.5 shadow-lg`}>
-                              <div className="w-full h-full bg-white dark:bg-gray-800 rounded-full flex items-center justify-center">
-                                <span className="text-lg font-bold text-gray-900 dark:text-white">
+                            <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getScoreGradient(test.iq)} p-0.5`}>
+                              <div className="w-full h-full bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                                <span className="text-sm font-bold text-gray-900 dark:text-white">
                                   {test.iq}
                                 </span>
                               </div>
                             </div>
-
                           </div>
 
-                          {/* Test Info */}
-                          <div>
-                            <div className="flex items-center space-x-3 mb-2">
-                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                Bài test #{testNumber}
+                          {/* Test Info - Compact */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                                Test #{testNumber}
                               </h4>
-                              {isRecent && (
-                                <span className="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded-full">
-                                  Mới
-                                </span>
-                              )}
+                              <div className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${scoreLevel.color}`}>
+                                <span className="mr-1">{scoreLevel.icon}</span>
+                                {scoreLevel.label}
+                              </div>
                             </div>
 
-                            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
-                              <span className="flex items-center">
-                                <span className="mr-1">📅</span>
+                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                              <span>
                                 {date.toLocaleDateString('vi-VN', {
                                   day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric'
+                                  month: '2-digit'
                                 })}
                               </span>
-                              <span className="flex items-center">
-                                <span className="mr-1">⏱️</span>
-                                {timeAgo}
-                              </span>
+                              <span>•</span>
+                              <span>{timeAgo}</span>
                               {test.totalTime && (
-                                <span className="flex items-center">
-                                  <span className="mr-1">🎯</span>
-                                  {formatTimeDisplay(test.totalTime)}
-                                </span>
+                                <>
+                                  <span>•</span>
+                                  <span>{formatTimeDisplay(test.totalTime)}</span>
+                                </>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        {/* Right side - Level & Stats */}
-                        <div className="text-right">
-                          <div className={`inline-flex items-center px-3 py-2 rounded-xl bg-white dark:bg-gray-800 shadow-sm border ${scoreLevel.color} font-medium text-sm mb-3`}>
-                            <span className="mr-2">{scoreLevel.icon}</span>
-                            {scoreLevel.label}
-                          </div>
+                        {/* Right side - Performance & Action */}
+                        <div className="flex items-center gap-3">
+                          {/* Performance indicator - Compact */}
+                          {index > 0 && userProfile.testHistory && userProfile.testHistory[index - 1] && (
+                            <div className={`flex items-center text-xs px-2 py-1 rounded-md ${
+                              test.iq > userProfile.testHistory[index - 1].iq
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : test.iq < userProfile.testHistory[index - 1].iq
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
+                              {test.iq > userProfile.testHistory[index - 1].iq ? '↗' :
+                               test.iq < userProfile.testHistory[index - 1].iq ? '↘' : '→'}
+                              <span className="ml-1">
+                                {test.iq > userProfile.testHistory[index - 1].iq ? '+' : ''}
+                                {test.iq - userProfile.testHistory[index - 1].iq}
+                              </span>
+                            </div>
+                          )}
 
-                          {/* Performance indicator */}
-                          <div className="flex items-center justify-end space-x-2">
-                            {index > 0 && userProfile.testHistory && userProfile.testHistory[index - 1] && (
-                              <div className={`flex items-center text-xs px-2 py-1 rounded-full ${
-                                test.iq > userProfile.testHistory[index - 1].iq
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                  : test.iq < userProfile.testHistory[index - 1].iq
-                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                  : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                              }`}>
-                                {test.iq > userProfile.testHistory[index - 1].iq ? '📈' :
-                                 test.iq < userProfile.testHistory[index - 1].iq ? '📉' : '➡️'}
-                                <span className="ml-1">
-                                  {test.iq > userProfile.testHistory[index - 1].iq ? '+' : ''}
-                                  {test.iq - userProfile.testHistory[index - 1].iq}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                          {/* View Details Button */}
+                          <a
+                            href={`/result?score=${test.iq}&percentile=${test.percentile || 50}&time=${test.totalTime || 1800}&correct=${test.correctAnswers || Math.round(test.iq / 10)}&accuracy=${test.accuracy || 75}&name=${encodeURIComponent(userProfile.name)}&age=${userProfile.age}&location=${encodeURIComponent(userProfile.location || '')}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                          >
+                            <span>Xem chi tiết</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </a>
                         </div>
                       </div>
                     </div>
@@ -1252,20 +1439,19 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
               </p>
               <button
                 onClick={() => window.location.href = '/test/iq'}
-                className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 shadow-lg"
               >
-                <span className="relative z-10 flex items-center">
+                <span className="flex items-center">
                   <span className="mr-2">🚀</span>
                   Bắt đầu test ngay
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
               </button>
             </div>
           )}
         </ContentLoader>
       </div>
     );
-  };
+  }, [memoizedTestList, dataReady, getTimeAgo]);
 
 
 
@@ -1275,7 +1461,6 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     if (!dataReady) {
       return (
         <>
-          <SkeletonPersonalInfo />
           <SkeletonTestList />
         </>
       );
@@ -1284,8 +1469,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
     // Direct content rendering without tabs
     return (
       <>
-        <PersonalInfo />
-        <RecentTestsOverview />
+        {RecentTestsOverview}
       </>
     );
   };
@@ -1326,8 +1510,8 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
         prefilledEmail={prefilledEmail}
       />
 
-      {/* Avatar Upload Modal */}
-      {showAvatarUpload && (
+      {/* Avatar Upload Modal - Only show if user can edit */}
+      {showAvatarUpload && userProfile.canEdit && (
         <AvatarUpload
           currentAvatar={userProfile.avatarUrl}
           onAvatarUpdate={handleAvatarUpdate}
@@ -1355,7 +1539,7 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
             >
               <button
                 onClick={() => setShowAvatarViewer(false)}
-                className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1369,10 +1553,20 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile }) => {
         )}
       </AnimatePresence>
 
-      {/* Cover Photo Upload Modal */}
-      {showCoverPhotoUpload && (
+      {/* Edit Profile Modal - Only show if user can edit */}
+      {showEditProfile && userProfile.canEdit && (
+        <EditProfileModal
+          isOpen={showEditProfile}
+          onClose={() => setShowEditProfile(false)}
+          onSuccess={handleEditProfileSuccess}
+          currentProfile={userProfile}
+        />
+      )}
+
+      {/* Cover Photo Upload Modal - Only show if user can edit */}
+      {showCoverPhotoUpload && userProfile.canEdit && (
         <CoverPhotoUpload
-          currentCoverPhoto={userProfile.coverPhotoUrl}
+          currentCoverPhoto={userProfile.coverPhotoUrl || undefined}
           onCoverPhotoUpdate={handleCoverPhotoUpdate}
           onClose={handleCoverPhotoUploadClose}
           onStartLoading={handleStartCoverPhotoLoading}

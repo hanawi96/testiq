@@ -13,6 +13,8 @@ export default function Header() {
   
   // Auth state
   const [user, setUser] = useState<any>(null);
+  const [username, setUsername] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const languages = [
@@ -64,6 +66,21 @@ export default function Header() {
     checkAuthState();
   }, []);
 
+  // Listen for avatar updates
+  useEffect(() => {
+    const handleAvatarUpdate = (event: CustomEvent) => {
+      const newAvatarUrl = event.detail.avatarUrl;
+      console.log('Header: Avatar update received:', newAvatarUrl);
+      setAvatarUrl(newAvatarUrl || '');
+    };
+
+    window.addEventListener('avatarUpdated', handleAvatarUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('avatarUpdated', handleAvatarUpdate as EventListener);
+    };
+  }, []);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -91,6 +108,30 @@ export default function Header() {
       }
       
       setUser(currentUser);
+
+      // Load user profile if logged in
+      if (currentUser) {
+        try {
+          const { getUserProfile } = await import('../../../../backend');
+          const profileResult = await getUserProfile(currentUser.id);
+
+          if (profileResult?.success && profileResult.data) {
+            const realUsername = profileResult.data.username || currentUser.email?.split('@')[0] || 'user';
+            const userAvatarUrl = profileResult.data.avatar_url || '';
+            setUsername(realUsername);
+            setAvatarUrl(userAvatarUrl);
+            console.log('Header: Profile loaded:', { username: realUsername, hasAvatar: !!userAvatarUrl });
+          }
+        } catch (profileError) {
+          console.log('Header: Failed to load user profile:', profileError);
+          setUsername(currentUser.email?.split('@')[0] || 'user');
+          setAvatarUrl('');
+        }
+      } else {
+        setUsername('');
+        setAvatarUrl('');
+      }
+
       console.log('Header: Auth state updated, user:', currentUser ? 'logged in' : 'not logged in');
     } catch (err) {
       console.log('Header: Auth check failed (normal if not logged in)');
@@ -131,10 +172,7 @@ export default function Header() {
     setShowMobileMenu(false);
   };
 
-  // Extract username from email
-  const getUsername = (email: string) => {
-    return email.split('@')[0];
-  };
+
 
   // Get anonymous user info
   const getAnonymousUserInfo = () => {
@@ -172,7 +210,7 @@ export default function Header() {
         </svg>
       ),
       label: 'Thông tin cá nhân',
-      href: '/profile'
+      href: `/u/${username || 'user'}`
     },
     {
       icon: (
@@ -405,9 +443,20 @@ export default function Header() {
                   >
                     {(() => {
                       const anonymousUser = getAnonymousUserInfo();
-                      const displayName = user?.email ? getUsername(user.email) : (anonymousUser?.name || 'Người dùng');
+                      const displayName = username || (anonymousUser?.name || 'Người dùng');
                       const avatarLetter = displayName.charAt(0).toUpperCase();
                       const avatarColor = generateAvatarColor(displayName);
+
+                      // Hiển thị avatar thật nếu có, ngược lại hiển thị chữ cái
+                      if (avatarUrl) {
+                        return (
+                          <img
+                            src={avatarUrl}
+                            alt={displayName}
+                            className="w-8 h-8 rounded-full object-cover shadow-sm border border-gray-200 dark:border-gray-600"
+                          />
+                        );
+                      }
 
                       return (
                         <div className={`relative w-8 h-8 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm`}>
@@ -698,7 +747,7 @@ export default function Header() {
                       {/* User Info */}
                       <div className="flex justify-center px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
                         <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
-                          {user.email ? getUsername(user.email).charAt(0).toUpperCase() : 'U'}
+                          {username ? username.charAt(0).toUpperCase() : 'U'}
                         </div>
                       </div>
 
@@ -755,6 +804,17 @@ export default function Header() {
                           const displayName = anonymousUser?.name || 'Người dùng';
                           const avatarLetter = displayName.charAt(0).toUpperCase();
                           const avatarColor = generateAvatarColor(displayName);
+
+                          // Hiển thị avatar thật nếu có, ngược lại hiển thị chữ cái
+                          if (avatarUrl) {
+                            return (
+                              <img
+                                src={avatarUrl}
+                                alt={displayName}
+                                className="w-6 h-6 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                              />
+                            );
+                          }
 
                           return (
                             <div className={`w-6 h-6 bg-gradient-to-r ${avatarColor} rounded-full flex items-center justify-center text-white font-semibold text-xs`}>
