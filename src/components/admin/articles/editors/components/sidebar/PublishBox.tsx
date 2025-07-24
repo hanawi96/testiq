@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { RevertConfirmModal } from '../modals/RevertConfirmModal';
 import type { FormData } from '../../hooks/useFormHandlers';
 import type { SaveStates } from '../../hooks/useSaveHandlers';
 import type { LoadingState } from '../LoadingStates';
@@ -17,6 +18,7 @@ interface PublishBoxProps {
   lastSaved: Date | null;
   hasUnsavedChanges: boolean;
   hasChangesFromOriginal?: boolean; // Track changes from original (independent of autosave)
+  hasDraftInDatabase?: boolean; // 🔧 NEW: Track if draft actually exists in database
   validationError: string;
   handleManualSave: () => void;
   handleManualSaveWithData: (data: any) => void; // For state management fix
@@ -36,6 +38,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
   lastSaved,
   hasUnsavedChanges,
   hasChangesFromOriginal = false,
+  hasDraftInDatabase = false,
   validationError,
   handleManualSave,
   handleManualSaveWithData,
@@ -67,6 +70,10 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
     }
     return new Date().toISOString();
   });
+
+  // 🔧 NEW: State cho revert modal
+  const [showRevertModal, setShowRevertModal] = useState(false);
+  const [isReverting, setIsReverting] = useState(false);
 
   // PHASE 2: Validation state
   const [localValidationErrors, setLocalValidationErrors] = useState<string[]>([]);
@@ -188,6 +195,21 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
     };
   };
 
+  // 🔧 NEW: Handle revert confirmation
+  const handleRevertConfirm = async () => {
+    if (!onRevertToOriginal) return;
+
+    setIsReverting(true);
+    try {
+      await onRevertToOriginal();
+      setShowRevertModal(false);
+    } catch (error) {
+      console.error('Error reverting:', error);
+    } finally {
+      setIsReverting(false);
+    }
+  };
+
   // Unified action handlers - PHASE 2: With comprehensive validation
   const handleSave = (action: 'draft' | 'publish' | 'schedule') => {
     // Clear previous validation errors
@@ -270,6 +292,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
   }
 
   return (
+    <>
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" style={{ overflow: 'visible' }}>
       {/* Header với màu nền nhẹ nhàng */}
       <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/30">
@@ -514,60 +537,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                 </div>
               )}
 
-              {/* Action Buttons for Edit Mode - Only for PUBLISHED articles */}
-              {isEditMode && isPublishedArticle && (
-                <div className="space-y-2">
-                  {/* Main Update Button */}
-                  <button
-                    onClick={() => handleManualSave()}
-                    disabled={saveStates.isManualSaving}
-                    className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
-                      saveStates.isManualSaving
-                        ? 'bg-green-400 text-white cursor-not-allowed opacity-75'
-                        : 'bg-green-600 hover:bg-green-700 hover:shadow-lg text-white'
-                    }`}
-                    title="Cập nhật bài viết (Ctrl+S)"
-                  >
-                    {saveStates.isManualSaving ? (
-                      <div className="w-5 h-5 animate-spin">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
-                          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
-                        </svg>
-                      </div>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                      </svg>
-                    )}
-                    <span>{saveStates.isManualSaving ? 'Đang cập nhật...' : 'Cập nhật'}</span>
-                  </button>
 
-                  {/* Revert to Original Button - Only show for PUBLISHED articles with changes */}
-                  {hasChangesFromOriginal && isPublishedArticle && (
-                    <button
-                      onClick={() => {
-                        if (confirm('⚠️ Khôi phục về bản đã xuất bản?\n\n• Tất cả thay đổi hiện tại sẽ bị mất\n• Sẽ load lại nội dung từ bản đã publish\n• Bỏ qua tất cả draft đã lưu\n\nHành động này không thể hoàn tác!')) {
-                          if (onRevertToOriginal) {
-                            onRevertToOriginal();
-                          } else {
-                            // Fallback: reload page to get original data
-                            window.location.reload();
-                          }
-                        }
-                      }}
-                      disabled={saveStates.isManualSaving}
-                      className="w-full px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500"
-                      title="Khôi phục về bản đã xuất bản (bỏ qua tất cả draft)"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-                      </svg>
-                      <span className="text-sm">Khôi phục bản đã publish</span>
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* WordPress-style Action Buttons */}
@@ -610,18 +580,12 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                         ? 'bg-blue-400 text-white cursor-not-allowed opacity-75'
                         : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25 text-white transform hover:scale-[1.02]'
                     }`}
-                    title={isEditMode ? "Cập nhật bài viết" : "Xuất bản ngay"}
+                    title="Xuất bản ngay"
                   >
-                    {isEditMode ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-                      </svg>
-                    )}
-                    <span className="text-sm font-semibold">{isEditMode ? 'Cập nhật' : 'Xuất bản'}</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                    </svg>
+                    <span className="text-sm font-semibold">Xuất bản</span>
                   </button>
                 </div>
               )}
@@ -666,10 +630,65 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                   </button>
                 </div>
               )}
+
+              {/* 🔧 FIX: Published Articles being edited - Show Update button */}
+              {formData.status === 'published' && isEditMode && (
+                <div className="space-y-2">
+                  {/* Update Button - Primary */}
+                  <button
+                    onClick={() => handleSave('publish')}
+                    disabled={saveStates.isManualSaving}
+                    className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
+                      saveStates.isManualSaving
+                        ? 'bg-green-400 text-white cursor-not-allowed opacity-75'
+                        : 'bg-green-600 hover:bg-green-700 hover:shadow-lg text-white'
+                    }`}
+                    title="Cập nhật bài viết (Ctrl+S)"
+                  >
+                    {saveStates.isManualSaving ? (
+                      <div className="w-4 h-4 animate-spin">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
+                          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"/>
+                        </svg>
+                      </div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                      </svg>
+                    )}
+                    <span className="text-sm font-semibold">{saveStates.isManualSaving ? 'Đang cập nhật...' : 'Cập nhật'}</span>
+                  </button>
+
+                  {/* Revert to Original Button - Only show when draft actually exists in database */}
+                  {hasChangesFromOriginal && hasDraftInDatabase && formData.status === 'published' && isEditMode && !saveStates.isManualSaving && (
+                    <button
+                      onClick={() => setShowRevertModal(true)}
+                      disabled={saveStates.isManualSaving}
+                      className="w-full px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500"
+                      title="Khôi phục về bản đã xuất bản (bỏ qua tất cả draft)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                      </svg>
+                      <span className="text-sm">Khôi phục bản đã publish</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    {/* 🔧 NEW: Revert Confirmation Modal */}
+    <RevertConfirmModal
+      isOpen={showRevertModal}
+      onClose={() => setShowRevertModal(false)}
+      onConfirm={handleRevertConfirm}
+      isLoading={isReverting}
+    />
+    </>
   );
 };

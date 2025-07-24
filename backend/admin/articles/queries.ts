@@ -315,11 +315,14 @@ export class ArticleQueries {
         }
       }
 
-      // Execute main query with count
+      // Execute main query with count + draft info
       const offset = (page - 1) * limit;
       let query = supabase
         .from('articles')
-        .select(getOptimizedFields('admin'), { count: 'exact' });
+        .select(`
+          ${getOptimizedFields('admin')},
+          article_drafts!left(id, user_id, updated_at, is_active)
+        `, { count: 'exact' });
 
       query = this.applyFilters(query, resolvedFilters);
       query = query.range(offset, offset + limit - 1);
@@ -338,8 +341,21 @@ export class ArticleQueries {
 
       if (!articles?.length) return cacheAndReturn(cacheKey, [], totalCount);
 
+      // 🔧 ADD: Process draft information
+      const articlesWithDraftInfo = articles.map(article => {
+        const activeDrafts = article.article_drafts?.filter((draft: any) => draft.is_active) || [];
+        return {
+          ...article,
+          hasActiveDraft: activeDrafts.length > 0,
+          draftCount: activeDrafts.length,
+          lastDraftUpdate: activeDrafts.length > 0
+            ? Math.max(...activeDrafts.map((d: any) => new Date(d.updated_at).getTime()))
+            : null
+        };
+      });
+
       // Fetch and enrich relationships
-      const [authorsResult, relationshipsResult] = await fetchRelationships(articles);
+      const [authorsResult, relationshipsResult] = await fetchRelationships(articlesWithDraftInfo);
 
       // Handle errors safely
       const authorsError = 'error' in authorsResult ? authorsResult.error : null;
@@ -349,7 +365,7 @@ export class ArticleQueries {
         return { data: null, error: authorsError || relationshipsError, count: totalCount };
       }
 
-      const enrichedArticles = enrichArticles(articles, authorsResult.data || [], relationshipsResult.data || []);
+      const enrichedArticles = enrichArticles(articlesWithDraftInfo, authorsResult.data || [], relationshipsResult.data || []);
 
       // Validate category filter if applied
       if (resolvedFilters.target_category_name) {
@@ -436,12 +452,14 @@ export class ArticleQueries {
             .single();
 
           if (mainArticle) {
-            // Merge draft content với main article, ưu tiên draft data
+            // 🔧 FIX: Merge draft content với main article, nhưng giữ nguyên status của main article
             article = {
               ...mainArticle,
               ...draftData,
               id: mainArticle.id,
               created_at: mainArticle.created_at,
+              // 🔧 IMPORTANT: Giữ nguyên status của main article (published/archived)
+              status: mainArticle.status,
               // Ưu tiên published_at từ draft nếu có, fallback về main article
               published_at: draftData.published_at || mainArticle.published_at,
               // Flag to indicate this is draft data

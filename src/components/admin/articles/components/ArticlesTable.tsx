@@ -5,7 +5,7 @@ import { SkeletonTable } from '../../common/Skeleton';
 import { SmartPreloader } from '../../../../utils/admin/preloaders/preload-manager';
 import SearchHighlight from '../../common/SearchHighlight';
 import CategoryDisplay from './CategoryDisplay';
-import { getCategoryColor, getStatusBadge, getStatusLabel, formatDate, formatNumber } from '../utils/articleHelpers';
+import { getCategoryColor, getStatusBadge, getStatusLabel, getEditingBadge, formatDate, formatNumber } from '../utils/articleHelpers';
 
 interface LoadingStates {
   articles: boolean;
@@ -425,9 +425,17 @@ export default function ArticlesTable({
                   {/* Status Column */}
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      <span className={getStatusBadge(article.status)}>
-                        {getStatusLabel(article.status)}
-                      </span>
+                      <div className="flex flex-col space-y-1">
+                        <span className={getStatusBadge(article.status)}>
+                          {getStatusLabel(article.status)}
+                        </span>
+                        {/* 🔧 NEW: Editing badge for published articles with active drafts */}
+                        {article.status === 'published' && (article as any).hasActiveDraft && (
+                          <span className={getEditingBadge()}>
+                            Đang chỉnh sửa
+                          </span>
+                        )}
+                      </div>
                       <button
                         onClick={(e) => onQuickStatusEdit(e, article.id)}
                         className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"

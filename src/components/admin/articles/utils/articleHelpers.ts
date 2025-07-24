@@ -34,6 +34,11 @@ export const getStatusBadge = (status: string) => {
   return styles[status as keyof typeof styles] || styles.draft;
 };
 
+// 🔧 NEW: Get editing badge for articles with active drafts
+export const getEditingBadge = () => {
+  return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800';
+};
+
 // Get status label
 export const getStatusLabel = (status: string) => {
   const labels = {

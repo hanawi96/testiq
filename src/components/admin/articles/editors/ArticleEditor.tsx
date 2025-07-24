@@ -104,6 +104,9 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
   // Track if user has made changes from original (independent of autosave)
   const [hasChangesFromOriginal, setHasChangesFromOriginal] = useState(false);
 
+  // 🔧 NEW: Track if draft actually exists in database (after autosave)
+  const [hasDraftInDatabase, setHasDraftInDatabase] = useState(false);
+
 
 
   // ===== PROGRESS ANIMATION MOVED =====
@@ -183,23 +186,31 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
 
     setHasUnsavedChanges(hasActualChanges);
 
-    // 🎯 SIMPLE: Track changes from original (independent of autosave)
-    // Once user makes changes, keep button visible until manual revert
-    if (hasActualChanges) {
+    // 🔧 FIX: Track changes from original - CHỈ cho bài viết PUBLISHED
+    // KHÔNG hiển thị button ngay lập tức, chờ autosave tạo draft
+    if (hasActualChanges && formData.status === 'published' && isEditMode) {
+      // Chỉ set flag có changes, chưa hiển thị button
       setHasChangesFromOriginal(true);
+    } else if (!hasActualChanges) {
+      // Reset khi không có changes
+      setHasChangesFromOriginal(false);
+      setHasDraftInDatabase(false);
     }
   }, [formData, initialFormData]);
 
-  // 🎯 DETECT DRAFT ON PAGE LOAD: Show button only when we have draft data
+  // 🔧 FIX: DETECT DRAFT ON PAGE LOAD - CHỈ cho published articles
   useEffect(() => {
-    if (hasDraftData) {
+    // Chỉ hiển thị button cho published articles có draft data
+    if (hasDraftData && formData.status === 'published' && isEditMode) {
       setHasChangesFromOriginal(true);
-      console.log('🔄 Draft data detected - showing revert button');
+      setHasDraftInDatabase(true); // Draft đã tồn tại từ trước
+      console.log('🔄 Published article with draft data - showing revert button');
     } else {
       setHasChangesFromOriginal(false);
-      console.log('📄 Published data loaded - hiding revert button');
+      setHasDraftInDatabase(false);
+      console.log('📄 No revert needed - hiding revert button');
     }
-  }, [hasDraftData]);
+  }, [hasDraftData, formData.status, isEditMode]);
 
   // Revert to original published version (simple & reliable)
   const handleRevertToOriginal = useCallback(async () => {
@@ -342,7 +353,15 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
       // Reset hasDraftData when draft is cleared after manual save
       setHasDraftData(false);
       setHasChangesFromOriginal(false);
+      setHasDraftInDatabase(false);
       console.log('🔄 Draft cleared - hiding revert button');
+    },
+    onAutoSaveSuccess: () => {
+      // 🔧 NEW: Set draft exists after successful autosave
+      if (formData.status === 'published' && isEditMode && hasChangesFromOriginal) {
+        setHasDraftInDatabase(true);
+        console.log('✅ Autosave completed - draft now exists in database');
+      }
     }
   });
 
@@ -500,6 +519,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
               lastSaved={lastSaved}
               hasUnsavedChanges={hasUnsavedChanges}
               hasChangesFromOriginal={hasChangesFromOriginal}
+              hasDraftInDatabase={hasDraftInDatabase}
               validationError={validationError}
               handleManualSave={handleManualSave}
               handleManualSaveWithData={handleManualSaveWithData}
