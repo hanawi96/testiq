@@ -45,6 +45,19 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
   formHandlers,
   onRevertToOriginal
 }) => {
+  // 🔧 FIX: Phân biệt bài viết mới vs bài viết đã publish
+  const isNewArticle = !formData.published_at; // Chưa từng publish
+  const isPublishedArticle = !!formData.published_at; // Đã từng publish
+
+  // Debug logging
+  console.log('🔍 PublishBox Debug:', {
+    isEditMode,
+    isNewArticle,
+    isPublishedArticle,
+    hasChangesFromOriginal,
+    published_at: formData.published_at,
+    status: formData.status
+  });
   // State cho date editor
   const [showDateEditor, setShowDateEditor] = useState(false);
   const [editingPublishedDate, setEditingPublishedDate] = useState(() => {
@@ -131,9 +144,10 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
         errors.push('Slug không được để trống khi xuất bản');
       }
 
-      if (!data.excerpt?.trim()) {
-        errors.push('Mô tả ngắn không được để trống khi xuất bản');
-      }
+      // 🔧 REMOVED: Excerpt validation - không bắt buộc excerpt khi xuất bản
+      // if (!data.excerpt?.trim()) {
+      //   errors.push('Mô tả ngắn không được để trống khi xuất bản');
+      // }
     }
 
     // Schedule-specific validation
@@ -157,14 +171,15 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
         }
       }
 
-      // Schedule also requires slug and excerpt
+      // Schedule also requires slug but not excerpt
       if (!data.slug?.trim()) {
         errors.push('Slug không được để trống khi lên lịch');
       }
 
-      if (!data.excerpt?.trim()) {
-        errors.push('Mô tả ngắn không được để trống khi lên lịch');
-      }
+      // 🔧 REMOVED: Excerpt validation - không bắt buộc excerpt khi lên lịch
+      // if (!data.excerpt?.trim()) {
+      //   errors.push('Mô tả ngắn không được để trống khi lên lịch');
+      // }
     }
 
     return {
@@ -196,11 +211,8 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
     const validation = validateBeforeSave(updatedFormData, action);
 
     if (!validation.isValid) {
-      // Show validation errors
+      // Show validation errors (chỉ hiển thị trong UI, không dùng alert)
       setLocalValidationErrors(validation.errors);
-
-      // Also show first error as alert for immediate feedback
-      alert(`❌ Không thể ${action === 'draft' ? 'lưu nháp' : action === 'publish' ? 'xuất bản' : 'lên lịch'}:\n\n${validation.errors.join('\n')}`);
       return;
     }
 
@@ -428,7 +440,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                     disabled={loadingState.isLoading}
                   />
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    � Bài viết sẽ tự động xuất bản vào thời gian đã chọn
+                    Bài viết sẽ tự động xuất bản vào thời gian đã chọn
                   </div>
                 </div>
               )}
@@ -440,7 +452,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
           {/* Save Status & Actions */}
           <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             {/* Save Status Indicators */}
-            <div className="space-y-3">
+            <div className="space-y-3 mb-4">
               {validationError && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg border border-red-200 dark:border-red-800/30">
                   <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -475,7 +487,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
               )}
 
               {saveStates.isAutoSaving && (
-                <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                <div className="flex items-center gap-3 px-3 py-2 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
                   <div className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
@@ -489,7 +501,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
               )}
 
               {lastSaved && !hasUnsavedChanges && !saveStates.isAutoSaving && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-100 dark:border-green-800/30">
+                <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-lg border bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-100 dark:border-green-800/30">
                   <div className="relative">
                     <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -502,8 +514,8 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                 </div>
               )}
 
-              {/* Action Buttons for Edit Mode */}
-              {isEditMode && (
+              {/* Action Buttons for Edit Mode - Only for PUBLISHED articles */}
+              {isEditMode && isPublishedArticle && (
                 <div className="space-y-2">
                   {/* Main Update Button */}
                   <button
@@ -531,8 +543,8 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                     <span>{saveStates.isManualSaving ? 'Đang cập nhật...' : 'Cập nhật'}</span>
                   </button>
 
-                  {/* Revert to Original Button - Only show if there are changes from original */}
-                  {hasChangesFromOriginal && (
+                  {/* Revert to Original Button - Only show for PUBLISHED articles with changes */}
+                  {hasChangesFromOriginal && isPublishedArticle && (
                     <button
                       onClick={() => {
                         if (confirm('⚠️ Khôi phục về bản đã xuất bản?\n\n• Tất cả thay đổi hiện tại sẽ bị mất\n• Sẽ load lại nội dung từ bản đã publish\n• Bỏ qua tất cả draft đã lưu\n\nHành động này không thể hoàn tác!')) {
@@ -566,15 +578,15 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                   {/* Save Draft Button - Secondary */}
                   <button
                     onClick={() => handleSave('draft')}
-                    disabled={saveStates.isSaving}
+                    disabled={saveStates.isManualSaving}
                     className={`flex-1 px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium border ${
-                      saveStates.isSaving
+                      saveStates.isManualSaving
                         ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
                         : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
                     }`}
                     title="Lưu nháp (Ctrl+S)"
                   >
-                    {saveStates.isSaving ? (
+                    {saveStates.isManualSaving ? (
                       <div className="w-4 h-4 animate-spin">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25"/>
@@ -586,7 +598,7 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                       </svg>
                     )}
-                    <span className="text-sm">{saveStates.isSaving ? 'Đang lưu...' : 'Lưu nháp'}</span>
+                    <span className="text-sm">{saveStates.isManualSaving ? 'Đang lưu...' : 'Lưu nháp'}</span>
                   </button>
 
                   {/* Publish Button - Primary */}

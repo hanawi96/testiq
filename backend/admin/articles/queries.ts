@@ -1227,44 +1227,7 @@ export class ArticleQueries {
     }
   }
 
-  /**
-   * Tìm draft có liên kết với article để lấy article_id
-   */
-  static async findDraftWithArticle(userId: string): Promise<{ draftId: string; articleId: string } | null> {
-    try {
-      if (!supabaseAdmin) {
-        console.error('Supabase admin client not initialized');
-        return null;
-      }
 
-      const { data, error } = await supabaseAdmin
-        .from('article_drafts')
-        .select('id, article_id')
-        .not('article_id', 'is', null)
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error finding draft with article:', error);
-        return null;
-      }
-
-      if (data && data.article_id) {
-        return {
-          draftId: data.id,
-          articleId: data.article_id
-        };
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error finding draft with article:', error);
-      return null;
-    }
-  }
 
   /**
    * Xóa draft sau khi save & publish

@@ -10,6 +10,7 @@ export interface UserProfileData {
   avatar_url?: string;
   cover_photo_url?: string;
   bio?: string;
+  username?: string;
   is_profile_public?: boolean;
 }
 
@@ -36,6 +37,7 @@ export async function updateUserProfile(userId: string, profileData: UserProfile
         avatar_url: profileData.avatar_url,
         cover_photo_url: profileData.cover_photo_url,
         bio: profileData.bio,
+        username: profileData.username,
         is_profile_public: profileData.is_profile_public,
         updated_at: new Date().toISOString()
       })

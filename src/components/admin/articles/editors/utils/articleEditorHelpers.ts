@@ -111,37 +111,72 @@ export const hasFormChanges = (
 };
 
 /**
- * Validate form data
+ * Validate form data for manual save (strict validation)
  */
 export const validateFormData = (formData: any): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   // Required fields
   if (!formData.title?.trim()) {
     errors.push('Tiêu đề không được để trống');
   }
-  
+
   if (!formData.content?.trim()) {
     errors.push('Nội dung không được để trống');
   }
-  
+
   // Length validations
   if (formData.title && formData.title.length > 200) {
     errors.push('Tiêu đề không được vượt quá 200 ký tự');
   }
-  
+
   if (formData.meta_title && formData.meta_title.length > 60) {
     errors.push('Meta title không được vượt quá 60 ký tự');
   }
-  
+
   if (formData.meta_description && formData.meta_description.length > 160) {
     errors.push('Meta description không được vượt quá 160 ký tự');
   }
-  
+
   if (formData.excerpt && formData.excerpt.length > 500) {
     errors.push('Tóm tắt không được vượt quá 500 ký tự');
   }
-  
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+/**
+ * 🔧 FIX: Validate form data for autosave (relaxed validation)
+ * Chỉ cần có title HOẶC content để autosave
+ */
+export const validateFormDataForAutosave = (formData: any): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+
+  // Relaxed validation: chỉ cần có title HOẶC content
+  if (!formData.title?.trim() && !formData.content?.trim()) {
+    errors.push('Cần có ít nhất tiêu đề hoặc nội dung để lưu tự động');
+  }
+
+  // Length validations (giữ nguyên)
+  if (formData.title && formData.title.length > 200) {
+    errors.push('Tiêu đề không được vượt quá 200 ký tự');
+  }
+
+  if (formData.meta_title && formData.meta_title.length > 60) {
+    errors.push('Meta title không được vượt quá 60 ký tự');
+  }
+
+  if (formData.meta_description && formData.meta_description.length > 160) {
+    errors.push('Meta description không được vượt quá 160 ký tự');
+  }
+
+  if (formData.excerpt && formData.excerpt.length > 500) {
+    errors.push('Tóm tắt không được vượt quá 500 ký tự');
+  }
+
   return {
     isValid: errors.length === 0,
     errors

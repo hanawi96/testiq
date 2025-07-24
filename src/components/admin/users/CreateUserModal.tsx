@@ -155,23 +155,63 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
         ></div>
 
         {/* Modal panel */}
-        <div className="inline-block w-full max-w-md p-6 my-8 text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 relative">
+        <div className="inline-block w-full max-w-md my-8 text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 relative overflow-hidden">
           {!showConfirmation ? (
             <>
-              {/* Close button */}
-              <button
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                onClick={onClose}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              
-              {/* Title */}
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Thêm người dùng mới
-              </h3>
+              {/* Header - Thiết kế mới giống ảnh */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    {/* Icon với background màu xanh dương */}
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="drop-shadow-sm"
+                      >
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        <path d="M20 8v6"/>
+                        <path d="M23 11h-6"/>
+                      </svg>
+                    </div>
+
+                    {/* Tiêu đề và mô tả */}
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        Thêm người dùng mới
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                        Tạo tài khoản mới cho hệ thống
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Close button */}
+                  <div>
+                    <button
+                      onClick={onClose}
+                      className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                      title="Đóng"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Content */}
+              <div className="p-6">
               
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -292,19 +332,46 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                   </button>
                 </div>
               </form>
+              </div>
             </>
           ) : (
             <>
-              {/* Confirmation Dialog */}
-              <div className="text-center">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-4">
-                  <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
+              {/* Header cho Confirmation Dialog */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    {/* Icon với background màu vàng */}
+                    <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="drop-shadow-sm"
+                      >
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                      </svg>
+                    </div>
+
+                    {/* Tiêu đề và mô tả */}
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        Xác nhận tạo người dùng
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                        Kiểm tra thông tin trước khi tạo
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Xác nhận tạo người dùng
-                </h3>
+              </div>
+
+              {/* Confirmation Dialog Content */}
+              <div className="p-6 text-center">
                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-6 space-y-2">
                   <p><strong>Email:</strong> {form.email}</p>
                   <p><strong>Họ tên:</strong> {form.fullName}</p>

@@ -20,7 +20,7 @@ export interface AdminProfileData {
   created_at: string;
   updated_at?: string;
   avatar_url?: string;
-  cover_photo_url?: string;
+  cover_photo_url?: string | null;
   bio?: string;
   social_links?: SocialLinks;
 }
@@ -124,7 +124,8 @@ export class AdminProfileService {
       }
 
       if (updates.cover_photo_url !== undefined) {
-        updateData.cover_photo_url = updates.cover_photo_url;
+        // Convert undefined to null for database (to clear the field)
+        updateData.cover_photo_url = updates.cover_photo_url || null;
       }
 
       if (updates.bio !== undefined) {

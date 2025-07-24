@@ -104,15 +104,15 @@ export default function AdminDashboard() {
       <ArticleViewsChart className="mb-6 lg:mb-8 2xl:mb-10" />
 
       {/* New Users Charts Grid - Daily and Weekly */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 2xl:gap-10">
-        <NewUsersChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
-        <WeeklyNewUsersChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 2xl:gap-6 mb-4">
+        <NewUsersChart />
+        <WeeklyNewUsersChart />
       </div>
 
       {/* Test Charts Grid - Daily and Weekly Test Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 2xl:gap-10">
-        <DailyTestChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
-        <WeeklyTestChart className="lg:min-h-[400px] xl:min-h-[450px] 2xl:min-h-[500px]" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 2xl:gap-6 mb-6 lg:mb-8 2xl:mb-10">
+        <DailyTestChart />
+        <WeeklyTestChart />
       </div>
 
       {/* Recent Activity */}

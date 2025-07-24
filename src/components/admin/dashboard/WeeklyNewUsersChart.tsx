@@ -311,22 +311,33 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h3 
-            id="weekly-new-users-chart-title"
-            className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2"
-          >
-            Người dùng mới (6 tuần qua)
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Thống kê số lượng người dùng mới theo tuần
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-2">
+    <div className={className}>
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-cyan-50/50 via-teal-50/30 to-emerald-50/50 dark:from-cyan-950/20 dark:via-teal-950/10 dark:to-emerald-950/20 rounded-t-lg p-4 border border-cyan-100 dark:border-cyan-800/30 border-b-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* Icon */}
+            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+
+            {/* Title and Description */}
+            <div className="flex-1">
+              <h3
+                id="weekly-new-users-chart-title"
+                className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1"
+              >
+                Người dùng mới (6 tuần qua)
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Thống kê số lượng người dùng mới theo tuần
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
           <button
             onClick={() => loadWeeklyNewUsersData(true)}
             disabled={isLoading}
@@ -338,16 +349,19 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
             </svg>
             <span className="hidden sm:inline">{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
           </button>
+          </div>
         </div>
       </div>
 
-      {/* Chart */}
-      <div 
-        className="mb-4"
-        role="img"
-        aria-labelledby="weekly-new-users-chart-title"
-        aria-describedby="weekly-new-users-chart-description"
-      >
+      {/* Content Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-cyan-100 dark:border-cyan-800/30 border-t-0 p-4">
+        {/* Chart */}
+        <div
+          className="mb-4"
+          role="img"
+          aria-labelledby="weekly-new-users-chart-title"
+          aria-describedby="weekly-new-users-chart-description"
+        >
         <div id="weekly-new-users-chart-description" className="sr-only">
           Biểu đồ cột thể hiện số lượng người dùng mới trong 6 tuần gần nhất. 
           Tổng cộng có {data?.totalNewUsers || 0} người dùng mới.
@@ -357,7 +371,7 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
 
       {/* Summary Stats */}
       <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
         role="region"
         aria-label="Tóm tắt thống kê người dùng mới theo tuần"
       >
@@ -412,6 +426,7 @@ export default function WeeklyNewUsersChart({ className = '' }: Props) {
             {data?.weeklyData?.reduce((sum, week) => sum + week.anonymousUsers, 0) || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Chưa đăng ký</div>
+        </div>
         </div>
       </div>
     </div>

@@ -37,7 +37,7 @@ export default function UsersList() {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const aggressivePrefetchDone = useRef<Set<string>>(new Set()); // Track completed aggressive prefetches
 
-  const limit = 10;
+  const [limit, setLimit] = useState(10);
 
   // Detect screen size
   useEffect(() => {
@@ -69,26 +69,26 @@ export default function UsersList() {
   }, [searchInput]);
 
   // Generate cache key
-  const getCacheKey = (page: number, currentFilters: UsersFilters) => {
-    return `${page}-${JSON.stringify(currentFilters)}`;
+  const getCacheKey = (page: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
+    return `${page}-${pageLimit}-${JSON.stringify(currentFilters)}`;
   };
 
   // Prefetch data for instant pagination
-  const prefetchPage = useCallback(async (page: number, currentFilters: UsersFilters) => {
-    const cacheKey = getCacheKey(page, currentFilters);
-    
+  const prefetchPage = useCallback(async (page: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
+    const cacheKey = getCacheKey(page, currentFilters, pageLimit);
+
     if (cache.current.has(cacheKey)) {
       return;
     }
-    
+
     if (prefetchQueue.current.has(page)) {
       return;
     }
 
     prefetchQueue.current.add(page);
-    
+
     try {
-      const { data, error: fetchError } = await UsersService.getUsers(page, limit, currentFilters);
+      const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, currentFilters);
       if (!fetchError && data) {
         cache.current.set(cacheKey, data);
         console.log(`✅ Prefetch SUCCESS page ${page}`);
@@ -101,29 +101,29 @@ export default function UsersList() {
   }, []);
 
   // Smart aggressive prefetch - ONCE ONLY per filter set
-  const smartAggressivePrefetch = useCallback(async (totalPages: number, currentFilters: UsersFilters) => {
-    const filterKey = JSON.stringify(currentFilters);
-    
+  const smartAggressivePrefetch = useCallback(async (totalPages: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
+    const filterKey = `${JSON.stringify(currentFilters)}-${pageLimit}`;
+
     if (aggressivePrefetchDone.current.has(filterKey)) {
       return; // Already done for this filter set
     }
-    
+
     console.log(`🚀 SMART AGGRESSIVE PREFETCH: ${totalPages} pages (ONCE ONLY)`);
     aggressivePrefetchDone.current.add(filterKey);
-    
+
     // Prefetch all pages with smart timing
     for (let page = 1; page <= totalPages; page++) {
-      const cacheKey = getCacheKey(page, currentFilters);
-      
+      const cacheKey = getCacheKey(page, currentFilters, pageLimit);
+
       if (!cache.current.has(cacheKey)) {
-        setTimeout(() => prefetchPage(page, currentFilters), page * 50); // Faster 50ms
+        setTimeout(() => prefetchPage(page, currentFilters, pageLimit), page * 50); // Faster 50ms
       }
     }
   }, [prefetchPage]);
 
   // Fetch users data with instant cache lookup
-  const fetchUsers = useCallback(async (page: number = currentPage) => {
-    const cacheKey = getCacheKey(page, filters);
+  const fetchUsers = useCallback(async (page: number = currentPage, pageLimit: number = limit) => {
+    const cacheKey = getCacheKey(page, filters, pageLimit);
     
     console.log(`🔍 Fetch page ${page}`);
     
@@ -135,7 +135,7 @@ export default function UsersList() {
       setError('');
       
       // Smart aggressive prefetch - ONCE ONLY
-      smartAggressivePrefetch(cachedData.totalPages, filters);
+      smartAggressivePrefetch(cachedData.totalPages, filters, pageLimit);
       
       return;
     }
@@ -145,7 +145,7 @@ export default function UsersList() {
     setError('');
     
     try {
-      const { data, error: fetchError } = await UsersService.getUsers(page, limit, filters);
+      const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, filters);
       
       if (fetchError || !data) {
         setError('Không thể tải danh sách users');
@@ -153,18 +153,19 @@ export default function UsersList() {
       }
       
       console.log(`✅ Loaded page ${page}`);
+      console.log('🔍 UsersList: First user data:', data.users[0]); // Debug username
       cache.current.set(cacheKey, data);
       setUsersData(data);
       
       // Smart aggressive prefetch - ONCE ONLY
-      smartAggressivePrefetch(data.totalPages, filters);
+      smartAggressivePrefetch(data.totalPages, filters, pageLimit);
       
     } catch (err) {
       setError('Có lỗi xảy ra khi tải dữ liệu');
     } finally {
       if (page === 1 && !usersData) setIsLoading(false);
     }
-  }, [currentPage, filters, usersData, smartAggressivePrefetch]);
+  }, [currentPage, limit, filters, usersData, smartAggressivePrefetch]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -196,6 +197,17 @@ export default function UsersList() {
     console.log(`🔄 PAGE CHANGE: ${currentPage} → ${newPage}`);
     setCurrentPage(newPage);
     fetchUsers(newPage);
+  };
+
+  // Handle limit change - Reset to page 1
+  const handleLimitChange = (newLimit: number) => {
+    console.log(`🔄 LIMIT CHANGE: ${limit} → ${newLimit}`);
+    setLimit(newLimit);
+    setCurrentPage(1);
+    // Clear cache since page size changed
+    cache.current.clear();
+    aggressivePrefetchDone.current.clear();
+    fetchUsers(1, newLimit);
   };
 
   // Handle filter change - OPTIMIZED
@@ -650,16 +662,46 @@ export default function UsersList() {
 
       {/* Users Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Table Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        {/* Table Header - Thiết kế mới giống ảnh */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Danh sách người dùng</h2>
+            <div className="flex items-center space-x-4">
+              {/* Icon với background màu xanh */}
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="drop-shadow-sm"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+
+              {/* Tiêu đề và mô tả */}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  Danh sách người dùng
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                  Quản lý thông tin người dùng và phân quyền
+                </p>
+              </div>
             </div>
+
+            {/* Action button */}
             <div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
                 title="Thêm người dùng mới"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -699,8 +741,8 @@ export default function UsersList() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Đăng nhập cuối
                   </th>
-                  <th className="relative px-6 py-3">
-                    <span className="sr-only">Hành động</span>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Hành động
                   </th>
                 </tr>
               </thead>
@@ -721,13 +763,13 @@ export default function UsersList() {
                             <span className={`text-lg font-semibold ${
                               isAnonymousUser(user) ? 'text-orange-700 dark:text-orange-400' : 'text-primary-700 dark:text-primary-400'
                             }`}>
-                              {user.full_name.charAt(0).toUpperCase()}
+                              {(user.username || user.full_name).charAt(0).toUpperCase()}
                             </span>
                           </div>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.full_name}</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.username || user.full_name}</div>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getUserTypeBadge(user.user_type)}`}>
                               {user.user_type === 'anonymous' ? 'Chưa đăng ký' : 'Đã đăng ký'}
                             </span>
@@ -897,26 +939,36 @@ export default function UsersList() {
 
 
 
-      {/* Pagination Info */}
+      {/* Unified Pagination - Single Row Design */}
       {usersData && usersData.users.length > 0 && (
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-            <div>
-              Hiển thị {usersData.users.length} trên {usersData.total} người dùng
-            </div>
-            {usersData.totalPages > 1 && (
-              <div>
-                Trang {currentPage} / {usersData.totalPages}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          <div className="flex items-center justify-between">
+            {/* Left: Results Info */}
+            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+              <span>
+                Hiển thị {Math.min(currentPage * limit, usersData.total)}/{usersData.total} người dùng
+              </span>
 
-      {/* Pagination - Clean & Simple */}
-      {usersData && usersData.totalPages > 1 && usersData.users.length > 0 && (
-        <div className="flex items-center justify-center px-6 py-4">
-          <nav className="flex items-center space-x-1 sm:space-x-2">
+              {/* Items Per Page Selector - Compact */}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={limit}
+                  onChange={(e) => handleLimitChange(Number(e.target.value))}
+                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-xs text-gray-500 dark:text-gray-400">/ trang</span>
+              </div>
+            </div>
+
+            {/* Right: Pagination Controls - Only show if more than 1 page */}
+            {usersData.totalPages > 1 && (
+              <nav className="flex items-center space-x-1">
             {/* First Page - Hidden on mobile */}
             <button
               onClick={() => handlePageChange(1)}
@@ -986,27 +1038,29 @@ export default function UsersList() {
             >
               ⇥
             </button>
-          </nav>
 
-          {/* Mobile-only: Jump to page input */}
-          {usersData.totalPages > 5 && (
-            <div className="flex sm:hidden items-center ml-4 space-x-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Đến:</span>
-              <input
-                type="number"
-                min="1"
-                max={usersData.totalPages}
-                value={currentPage}
-                onChange={(e) => {
-                  const page = parseInt(e.target.value);
-                  if (page >= 1 && page <= usersData.totalPages) {
-                    handlePageChange(page);
-                  }
-                }}
-                className="w-12 h-8 text-xs text-center border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-          )}
+                {/* Mobile-only: Jump to page input */}
+                {usersData.totalPages > 5 && (
+                  <div className="flex sm:hidden items-center ml-2 space-x-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Đến:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={usersData.totalPages}
+                      value={currentPage}
+                      onChange={(e) => {
+                        const page = parseInt(e.target.value);
+                        if (page >= 1 && page <= usersData.totalPages) {
+                          handlePageChange(page);
+                        }
+                      }}
+                      className="w-12 h-8 text-xs text-center border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                )}
+              </nav>
+            )}
+          </div>
         </div>
       )}
 

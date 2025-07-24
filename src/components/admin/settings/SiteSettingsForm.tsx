@@ -120,13 +120,25 @@ export default function SiteSettingsForm({
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       {/* Form Header */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Cài đặt trang web
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Cấu hình thông tin cơ bản của website
-        </p>
+      <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-purple-50/50 dark:from-blue-950/20 dark:via-indigo-950/10 dark:to-purple-950/20">
+        <div className="flex items-center space-x-4">
+          {/* Icon */}
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+            </svg>
+          </div>
+
+          {/* Title and Description */}
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              Nội dung bài viết
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Soạn thảo nội dung chính của bài viết
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Form Content */}

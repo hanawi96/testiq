@@ -167,28 +167,6 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cài đặt hệ thống</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Quản lý cấu hình và thiết lập của hệ thống
-          </p>
-        </div>
-        
-        {/* Success Message */}
-        {showSuccessMessage && (
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-4 py-2">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="text-green-800 dark:text-green-200 font-medium">Đã lưu thành công!</span>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
@@ -207,7 +185,7 @@ export default function AdminSettings() {
               Cài đặt trang web
             </div>
           </button>
-          
+
 
           <button
             onClick={() => setActiveTab('security')}

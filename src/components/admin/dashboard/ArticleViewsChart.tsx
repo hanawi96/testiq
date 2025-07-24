@@ -410,18 +410,18 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
                 className="cursor-pointer"
                 onMouseEnter={(e) => {
                   // Show tooltip
-                  const tooltip = e.currentTarget.nextElementSibling;
+                  const tooltip = e.currentTarget.nextElementSibling as SVGElement;
                   if (tooltip) tooltip.style.opacity = '1';
                   // Enlarge visible circle
-                  const visibleCircle = e.currentTarget.parentElement?.querySelector('.data-point');
+                  const visibleCircle = e.currentTarget.parentElement?.querySelector('.data-point') as SVGCircleElement;
                   if (visibleCircle) visibleCircle.setAttribute('r', '6');
                 }}
                 onMouseLeave={(e) => {
                   // Hide tooltip
-                  const tooltip = e.currentTarget.nextElementSibling;
+                  const tooltip = e.currentTarget.nextElementSibling as SVGElement;
                   if (tooltip) tooltip.style.opacity = '0';
                   // Reset visible circle
-                  const visibleCircle = e.currentTarget.parentElement?.querySelector('.data-point');
+                  const visibleCircle = e.currentTarget.parentElement?.querySelector('.data-point') as SVGCircleElement;
                   if (visibleCircle) visibleCircle.setAttribute('r', '4');
                 }}
               />
@@ -430,9 +430,9 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
               <g style={{ opacity: 0, transition: 'opacity 200ms', pointerEvents: 'none' }}>
                 {/* Dynamic tooltip size based on content */}
                 {(() => {
-                  const hasGroupInfo = point.data.groupSize && point.data.groupSize > 1;
-                  const tooltipWidth = hasGroupInfo ? 120 : 60;
-                  const tooltipHeight = hasGroupInfo ? 40 : 24;
+                  // Simplified tooltip - no groupSize needed for daily views
+                  const tooltipWidth = 80;
+                  const tooltipHeight = 32;
 
                   return (
                     <>
@@ -448,7 +448,7 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
                       />
                       <text
                         x={point.x}
-                        y={point.y - (hasGroupInfo ? 28 : 24)}
+                        y={point.y - 20}
                         textAnchor="middle"
                         fontSize="11"
                         fill="white"
@@ -456,17 +456,15 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
                       >
                         {point.data.views.toLocaleString()} views
                       </text>
-                      {hasGroupInfo && (
-                        <text
-                          x={point.x}
-                          y={point.y - 14}
-                          textAnchor="middle"
-                          fontSize="9"
-                          fill="rgba(255,255,255,0.7)"
-                        >
-                          ({point.data.groupSize} ngày)
-                        </text>
-                      )}
+                      <text
+                        x={point.x}
+                        y={point.y - 8}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill="rgba(255,255,255,0.7)"
+                      >
+                        {point.data.dateLabel}
+                      </text>
                     </>
                   );
                 })()}
@@ -609,31 +607,43 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
           ? 'xl:grid-cols-4' // For 14+ days: wider chart takes more space
           : 'lg:grid-cols-3'  // For 7 days: normal layout
       }`}>
-        {/* Chart Box - Dynamic width based on time range */}
-        <div className={`bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700 ${
+        {/* Chart Component - Dynamic width based on time range */}
+        <div className={`${
           timeRange >= 14
             ? 'xl:col-span-3' // Takes 3/4 width for longer periods
             : 'lg:col-span-2'  // Takes 2/3 width for 7 days
         }`}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                📈 Xu hướng lượt xem
-                {timeRange > 14 && (
-                  <span className="text-sm text-gray-500 ml-2 font-normal">
-                    ({getAggregationConfig(timeRange).groupSize} ngày/điểm)
-                  </span>
-                )}
-              </h3>
-              {data && (
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Tổng: {data.dailyViews.reduce((sum, day) => sum + day.views, 0).toLocaleString()} views
-                </span>
-              )}
-            </div>
+          {/* Header Section */}
+          <div className="bg-gradient-to-r from-green-50/50 via-emerald-50/30 to-teal-50/50 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/20 rounded-t-lg p-4 border border-green-100 dark:border-green-800/30 border-b-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {/* Icon */}
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
 
-            {/* Chart Time Range Filter & Refresh */}
-            <div className="flex items-center space-x-2">
+                {/* Title and Description */}
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                    Xu hướng lượt xem
+                    {timeRange > 14 && (
+                      <span className="text-sm text-gray-500 ml-2 font-normal">
+                        ({getAggregationConfig(timeRange).groupSize} ngày/điểm)
+                      </span>
+                    )}
+                  </h3>
+                  {data && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Tổng: {data.dailyViews.reduce((sum, day) => sum + day.views, 0).toLocaleString()} views
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Chart Time Range Filter & Refresh */}
+              <div className="flex items-center space-x-2">
               {/* Time Range Filter */}
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -692,10 +702,13 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
+              </div>
             </div>
           </div>
 
-          {isChartLoading ? (
+          {/* Chart Content Section */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border border-green-100 dark:border-green-800/30 border-t-0 p-6">
+            {isChartLoading ? (
             <div className="h-60 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           ) : chartError ? (
             <div className="text-center py-8">
@@ -714,17 +727,35 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
           ) : (
             <LineChart />
           )}
+          </div>
         </div>
 
-        {/* Top Articles Box - Takes 1/3 width */}
-        <div className="lg:col-span-1 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              🏆 Top 5 bài viết
-            </h3>
+        {/* Top Articles Component - Takes 1/3 width */}
+        <div className="lg:col-span-1">
+          {/* Header Section */}
+          <div className="bg-gradient-to-r from-amber-50/50 via-orange-50/30 to-yellow-50/50 dark:from-amber-950/20 dark:via-orange-950/10 dark:to-yellow-950/20 rounded-t-lg p-4 border border-amber-100 dark:border-amber-800/30 border-b-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {/* Icon */}
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                </div>
 
-            {/* Top Articles Time Range Filter */}
-            <div className="relative" ref={topArticlesDropdownRef}>
+                {/* Title and Description */}
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                    Top 5 bài viết
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Bài viết được xem nhiều nhất
+                  </p>
+                </div>
+              </div>
+
+              {/* Top Articles Time Range Filter */}
+              <div className="relative" ref={topArticlesDropdownRef}>
               <button
                 onClick={() => setIsTopArticlesDropdownOpen(!isTopArticlesDropdownOpen)}
                 disabled={isTopArticlesLoading}
@@ -765,10 +796,13 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
                   </motion.div>
                 )}
               </AnimatePresence>
+              </div>
             </div>
           </div>
 
-          {isTopArticlesLoading ? (
+          {/* Content Section */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border border-amber-100 dark:border-amber-800/30 border-t-0 p-6">
+            {isTopArticlesLoading ? (
             <div className="space-y-3">
               {[1,2,3,4,5].map(i => (
                 <div key={i} className="space-y-2">
@@ -790,6 +824,7 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
           ) : (
             <TopArticlesChart />
           )}
+          </div>
         </div>
       </div>
     </div>

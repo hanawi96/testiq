@@ -428,26 +428,33 @@ export default function DailyTestChart({ className = '' }: Props) {
   }
 
   return (
-    <div
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}
-    >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h3
-            id="daily-test-chart-title"
-            className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2"
-          >
-            {getChartTitle(timeRange)}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Thống kê số lượng bài test được thực hiện theo thời gian
-          </p>
-        </div>
+    <div className={className}>
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-orange-50/50 via-red-50/30 to-pink-50/50 dark:from-orange-950/20 dark:via-red-950/10 dark:to-pink-950/20 rounded-t-lg p-4 border border-orange-100 dark:border-orange-800/30 border-b-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* Icon */}
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center shadow-sm">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
 
-        <div className="flex items-center space-x-2">
+            {/* Title and Description */}
+            <div className="flex-1">
+              <h3
+                id="daily-test-chart-title"
+                className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1"
+              >
+                {getChartTitle(timeRange)}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Thống kê số lượng bài test được thực hiện theo thời gian
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
           {/* Time Range Filter */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -506,16 +513,19 @@ export default function DailyTestChart({ className = '' }: Props) {
             </svg>
             <span className="hidden sm:inline">{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
           </button>
+          </div>
         </div>
       </div>
 
-      {/* Chart */}
-      <div 
-        className="mb-4"
-        role="img"
-        aria-labelledby="daily-test-chart-title"
-        aria-describedby="daily-chart-description"
-      >
+      {/* Content Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-orange-100 dark:border-orange-800/30 border-t-0 p-4">
+        {/* Chart */}
+        <div
+          className="mb-4"
+          role="img"
+          aria-labelledby="daily-test-chart-title"
+          aria-describedby="daily-chart-description"
+        >
         <div id="daily-chart-description" className="sr-only">
           Biểu đồ đường thể hiện số lượt làm bài test trong 7 ngày gần nhất. 
           Tổng cộng có {data?.totalTests || 0} lượt test được thực hiện.
@@ -525,7 +535,7 @@ export default function DailyTestChart({ className = '' }: Props) {
 
       {/* Summary Stats */}
       <div 
-        className="grid grid-cols-2 gap-2 sm:gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"
+        className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
         role="region"
         aria-label="Tóm tắt thống kê ngày"
       >
@@ -554,6 +564,7 @@ export default function DailyTestChart({ className = '' }: Props) {
             {data?.averagePerDay || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">TB/ngày</div>
+        </div>
         </div>
       </div>
     </div>

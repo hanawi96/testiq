@@ -438,7 +438,13 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile, profileUsername }) 
       console.log('📁 Extracted file path:', filePath);
 
       // Update database first
-      await AdminProfileService.updateAdminProfile(user.id, { cover_photo_url: null });
+      const updateResult = await AdminProfileService.updateAdminProfile(user.id, {
+        cover_photo_url: null
+      });
+
+      if (!updateResult.success) {
+        throw new Error(updateResult.error?.message || 'Failed to update database');
+      }
       console.log('✅ Database updated successfully');
 
       // Update UI immediately
@@ -1294,26 +1300,42 @@ const ProfileComponent: React.FC<Props> = ({ initialProfile, profileUsername }) 
         {/* Header - Modern Minimalist Design */}
         <div className="mb-6 px-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 dark:bg-blue-400/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <div className="flex items-center space-x-4">
+              {/* Icon với background màu xanh lá cho recent tests */}
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="drop-shadow-sm"
+                >
+                  <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4" />
+                  <rect x="9" y="7" width="6" height="6" />
+                  <path d="M12 1v6" />
                 </svg>
               </div>
+
+              {/* Tiêu đề và mô tả */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   Bài test gần nhất
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                   {userProfile.totalTests || 0} bài test đã hoàn thành
                 </p>
               </div>
             </div>
 
+            {/* Action button */}
             {(userProfile.totalTests || 0) > 0 && userProfile.canEdit && (
               <a
                 href="/test-history"
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                 title="Xem tất cả lịch sử test"
               >
                 <span>Xem tất cả</span>

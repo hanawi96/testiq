@@ -18,9 +18,7 @@ function computeServerSideDropdownState(currentPath: string, item: any): boolean
     if (subItem.href === '/admin/users') {
       return currentPath === '/admin/users' || currentPath === '/admin/users/';
     }
-    if (subItem.href === '/admin/users/create') {
-      return currentPath === '/admin/users/create' || currentPath === '/admin/users/create/';
-    }
+
     return currentPath.startsWith(subItem.href);
   });
 }
@@ -56,42 +54,14 @@ const menuItems = [
   {
     id: 'categories',
     title: 'Danh mục',
-    icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
-    hasDropdown: true,
-    subItems: [
-      {
-        id: 'categories-create',
-        title: 'Thêm danh mục',
-        href: '/admin/categories/create',
-        icon: 'M12 4v16m8-8H4'
-      },
-      {
-        id: 'categories-manage',
-        title: 'Quản lý danh mục',
-        href: '/admin/categories',
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
-      }
-    ]
+    href: '/admin/categories',
+    icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'
   },
   {
     id: 'tags',
     title: 'Tags',
-    icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z',
-    hasDropdown: true,
-    subItems: [
-      {
-        id: 'tags-create',
-        title: 'Thêm tag',
-        href: '/admin/tags/create',
-        icon: 'M12 4v16m8-8H4'
-      },
-      {
-        id: 'tags-manage',
-        title: 'Quản lý tags',
-        href: '/admin/tags',
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
-      }
-    ]
+    href: '/admin/tags',
+    icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
   },
   {
     id: 'comments',
@@ -116,22 +86,8 @@ const menuItems = [
   {
     id: 'users',
     title: 'Người dùng',
-    icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
-    hasDropdown: true,
-    subItems: [
-      {
-        id: 'users-create',
-        title: 'Thêm người dùng',
-        href: '/admin/users/create',
-        icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'
-      },
-      {
-        id: 'users-manage',
-        title: 'Quản lý người dùng',
-        href: '/admin/users',
-        icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
-      }
-    ]
+    href: '/admin/users',
+    icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'
   },
   {
     id: 'results',
@@ -187,17 +143,13 @@ function isActive(href: string) {
   if (href === '/admin/categories') {
     return currentPath === '/admin/categories' || currentPath === '/admin/categories/';
   }
-  if (href === '/admin/categories/create') {
-    return currentPath === '/admin/categories/create' || currentPath === '/admin/categories/create/';
-  }
+
 
   // Users
   if (href === '/admin/users') {
     return currentPath === '/admin/users' || currentPath === '/admin/users/';
   }
-  if (href === '/admin/users/create') {
-    return currentPath === '/admin/users/create' || currentPath === '/admin/users/create/';
-  }
+
 
   // For other paths, use startsWith
   return currentPath.startsWith(href);

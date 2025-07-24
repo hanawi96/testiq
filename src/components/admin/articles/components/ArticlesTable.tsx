@@ -80,17 +80,49 @@ export default function ArticlesTable({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      {/* Table Header - Thiết kế mới giống ảnh */}
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Danh sách bài viết ({articlesData.total.toLocaleString()})
-          </h3>
+          <div className="flex items-center space-x-4">
+            {/* Icon với background màu xanh lá */}
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="drop-shadow-sm"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+              </svg>
+            </div>
+
+            {/* Tiêu đề và mô tả */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                Danh sách bài viết
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                Quản lý {articlesData.total.toLocaleString()} bài viết và nội dung
+              </p>
+            </div>
+          </div>
+
+          {/* Action button */}
           <div>
             <a
               href="/admin/articles/create"
               onClick={() => SmartPreloader.triggerSmartPreload('click')}
               onMouseEnter={() => SmartPreloader.triggerSmartPreload('hover')}
-              className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
               title="Tạo bài viết mới"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -536,51 +568,22 @@ export default function ArticlesTable({
         </div>
       )}
 
-      {/* Pagination */}
+      {/* Unified Pagination - Single Row Design */}
       {articlesData.total > 0 && (
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              {Math.min(currentPage * limit, articlesData.total)}/{articlesData.total} bài viết
-            </div>
+            {/* Left: Results Info + Limit Selector */}
+            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+              <span>
+                Hiển thị {Math.min(currentPage * limit, articlesData.total)}/{articlesData.total} bài viết
+              </span>
 
-            <div className="flex items-center space-x-4">
-              {/* Page Navigation - Only show if more than 1 page */}
-              {articlesData.totalPages > 1 && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage <= 1}
-                    className="p-2 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-
-                  <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Trang {currentPage} / {articlesData.totalPages}
-                  </span>
-
-                  <button
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage >= articlesData.totalPages}
-                    className="p-2 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {/* Items Per Page - Always show */}
+              {/* Items Per Page Selector - Compact */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700 dark:text-gray-300">Hiển thị:</span>
                 <select
                   value={limit}
                   onChange={(e) => onLimitChange(Number(e.target.value))}
-                  className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -590,9 +593,100 @@ export default function ArticlesTable({
                   <option value={300}>300</option>
                   <option value={500}>500</option>
                 </select>
-                <span className="text-sm text-gray-700 dark:text-gray-300">/ trang</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">/ trang</span>
               </div>
             </div>
+
+            {/* Right: Pagination Controls - Only show if more than 1 page */}
+            {articlesData.totalPages > 1 && (
+              <nav className="flex items-center space-x-1">
+                {/* First Page */}
+                <button
+                  onClick={() => onPageChange(1)}
+                  disabled={currentPage === 1}
+                  className="hidden sm:flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Trang đầu"
+                >
+                  ⇤
+                </button>
+
+                {/* Previous Page */}
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Trang trước"
+                >
+                  ←
+                </button>
+
+                {/* Page Numbers - Show 3-5 pages */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({
+                    length: Math.min(5, articlesData.totalPages)
+                  }, (_, i) => {
+                    const page = i + Math.max(1, currentPage - 2);
+                    if (page > articlesData.totalPages) return null;
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => onPageChange(page)}
+                        className={`flex items-center justify-center w-8 h-8 text-sm font-medium rounded-lg ${
+                          page === currentPage
+                            ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm'
+                            : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                        aria-label={`Trang ${page}`}
+                        aria-current={page === currentPage ? 'page' : undefined}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Next Page */}
+                <button
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage >= articlesData.totalPages}
+                  className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Trang sau"
+                >
+                  →
+                </button>
+
+                {/* Last Page */}
+                <button
+                  onClick={() => onPageChange(articlesData.totalPages)}
+                  disabled={currentPage === articlesData.totalPages}
+                  className="hidden sm:flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Trang cuối"
+                >
+                  ⇥
+                </button>
+
+                {/* Mobile-only: Jump to page input */}
+                {articlesData.totalPages > 5 && (
+                  <div className="flex sm:hidden items-center ml-2 space-x-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Đến:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={articlesData.totalPages}
+                      value={currentPage}
+                      onChange={(e) => {
+                        const page = parseInt(e.target.value);
+                        if (page >= 1 && page <= articlesData.totalPages) {
+                          onPageChange(page);
+                        }
+                      }}
+                      className="w-12 h-8 text-xs text-center border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                )}
+              </nav>
+            )}
           </div>
         </div>
       )}

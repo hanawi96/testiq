@@ -463,22 +463,33 @@ export default function NewUsersChart({ className = '' }: Props) {
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h3
-            id="new-users-chart-title"
-            className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2"
-          >
-            Người dùng mới ({getTimeRangeLabel(timeRange)})
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Thống kê số lượng người dùng mới theo ngày
-          </p>
-        </div>
+    <div className={className}>
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-purple-50/50 via-indigo-50/30 to-blue-50/50 dark:from-purple-950/20 dark:via-indigo-950/10 dark:to-blue-950/20 rounded-t-lg p-4 border border-purple-100 dark:border-purple-800/30 border-b-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* Icon */}
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
 
-        <div className="flex items-center space-x-2">
+            {/* Title and Description */}
+            <div className="flex-1">
+              <h3
+                id="new-users-chart-title"
+                className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1"
+              >
+                Người dùng mới ({getTimeRangeLabel(timeRange)})
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Thống kê số lượng người dùng mới theo ngày
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
           {/* Time Range Filter */}
           <div className="relative" data-time-filter>
             <button
@@ -536,16 +547,19 @@ export default function NewUsersChart({ className = '' }: Props) {
             </svg>
             <span className="hidden sm:inline">{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
           </button>
+          </div>
         </div>
       </div>
 
-      {/* Chart */}
-      <div
-        className="mb-4"
-        role="img"
-        aria-labelledby="new-users-chart-title"
-        aria-describedby="new-users-chart-description"
-      >
+      {/* Content Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-purple-100 dark:border-purple-800/30 border-t-0 p-4">
+        {/* Chart */}
+        <div
+          className="mb-4"
+          role="img"
+          aria-labelledby="new-users-chart-title"
+          aria-describedby="new-users-chart-description"
+        >
         <div id="new-users-chart-description" className="sr-only">
           Biểu đồ đường thể hiện số lượng người dùng mới trong 7 ngày gần nhất.
           Tổng cộng có {data?.totalNewUsers || 0} người dùng mới.
@@ -555,7 +569,7 @@ export default function NewUsersChart({ className = '' }: Props) {
 
       {/* Summary Stats */}
       <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
         role="region"
         aria-label="Tóm tắt thống kê người dùng mới"
       >
@@ -610,6 +624,7 @@ export default function NewUsersChart({ className = '' }: Props) {
             {data?.dailyData?.reduce((sum, day) => sum + day.anonymousUsers, 0) || 0}
           </div>
           <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Chưa đăng ký</div>
+        </div>
         </div>
       </div>
     </div>

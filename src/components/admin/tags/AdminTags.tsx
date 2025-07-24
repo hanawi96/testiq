@@ -327,24 +327,53 @@ export default function AdminTags() {
 
       {/* Tags Table - Always show container */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        {/* Table Header - Thiết kế mới giống ảnh */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Danh sách tags {tagsData ? `(${tagsData.total.toLocaleString()})` : ''}
-            </h3>
-              <div>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-                  title="Thêm tag mới"
+            <div className="flex items-center space-x-4">
+              {/* Icon với background màu cam */}
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="drop-shadow-sm"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                  <line x1="7" y1="7" x2="7.01" y2="7"/>
+                </svg>
+              </div>
+
+              {/* Tiêu đề và mô tả */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  Danh sách tags
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                  Quản lý {tagsData ? tagsData.total.toLocaleString() : '0'} tags và từ khóa
+                </p>
               </div>
             </div>
+
+            {/* Action button */}
+            <div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
+                title="Thêm tag mới"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
           </div>
+        </div>
 
           {/* Table */}
           <div className="overflow-x-auto">

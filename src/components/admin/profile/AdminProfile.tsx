@@ -3,6 +3,7 @@ import { AuthService } from '@/backend';
 import type { UserProfile } from '@/backend';
 import ProfileHeader from './ProfileHeader';
 import ProfileForm from './ProfileForm';
+import SocialLinksBox from './SocialLinksBox';
 import LoadingSpinner from '../common/LoadingSpinner';
 import AdminProfileService from './AdminProfileService';
 import type { AdminProfileData } from './AdminProfileService';
@@ -208,6 +209,13 @@ const AdminProfile: React.FC = () => {
         onFormChange={handleFormChange}
         onSave={handleSave}
         onReset={handleReset}
+      />
+
+      {/* Social Links Box */}
+      <SocialLinksBox
+        profile={profileState.data}
+        isLoading={profileState.isSaving}
+        onSave={handleSave}
       />
 
       {/* Confirmation Dialog */}

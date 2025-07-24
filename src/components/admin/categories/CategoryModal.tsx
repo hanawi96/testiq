@@ -194,22 +194,69 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
         ></div>
 
         {/* Modal panel */}
-        <div className="inline-block w-full max-w-lg p-6 my-8 text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 relative">
-          {/* Close button */}
-          <button
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            onClick={handleClose}
-            disabled={isLoading}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          
-          {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            {isEdit ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}
-          </h3>
+        <div className="inline-block w-full max-w-lg my-8 text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 relative overflow-hidden">
+          {/* Header - Thiết kế mới giống ảnh */}
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {/* Icon với background màu tím */}
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="drop-shadow-sm"
+                  >
+                    {isEdit ? (
+                      <>
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </>
+                    ) : (
+                      <>
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        <path d="M12 11v6"/>
+                        <path d="M9 14h6"/>
+                      </>
+                    )}
+                  </svg>
+                </div>
+
+                {/* Tiêu đề và mô tả */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {isEdit ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới'}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                    {isEdit ? 'Cập nhật thông tin danh mục hiện có' : 'Thêm danh mục mới cho hệ thống'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Close button */}
+              <div>
+                <button
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Đóng"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Content */}
+          <div className="p-6">
           
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -399,6 +446,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
               </button>
             </div>
           </form>
+          </div>
         </div>
       </div>
     </div>

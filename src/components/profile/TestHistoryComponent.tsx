@@ -384,10 +384,34 @@ const TestHistoryComponent: React.FC<Props> = () => {
                 className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
               >
                 {[
-                  { value: stats.total, label: 'Tổng test', icon: '📊', gradient: 'from-blue-500 to-cyan-500', bg: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20' },
-                  { value: stats.best, label: 'Cao nhất', icon: '🏆', gradient: 'from-purple-500 to-pink-500', bg: 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20' },
-                  { value: stats.average, label: 'Trung bình', icon: '📈', gradient: 'from-green-500 to-emerald-500', bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20' },
-                  { value: `+${stats.improvement}`, label: 'Cải thiện', icon: '🚀', gradient: 'from-orange-500 to-red-500', bg: 'from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20' }
+                  {
+                    value: stats.total,
+                    label: 'Tổng test',
+                    icon: '📊',
+                    gradient: 'from-blue-500 to-cyan-500',
+                    bg: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20'
+                  },
+                  {
+                    value: stats.best,
+                    label: 'Cao nhất',
+                    icon: '🏆',
+                    gradient: 'from-purple-500 to-pink-500',
+                    bg: 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20'
+                  },
+                  {
+                    value: stats.average,
+                    label: 'Trung bình',
+                    icon: '📈',
+                    gradient: 'from-green-500 to-emerald-500',
+                    bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
+                  },
+                  {
+                    value: `+${stats.improvement}`,
+                    label: 'Cải thiện',
+                    icon: '🚀',
+                    gradient: 'from-orange-500 to-red-500',
+                    bg: 'from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20'
+                  }
                 ].map((stat, index) => (
                   <motion.div
                     key={index}
@@ -401,13 +425,15 @@ const TestHistoryComponent: React.FC<Props> = () => {
                     <div className={`absolute inset-0 bg-gradient-to-r ${stat.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300`}></div>
 
                     {/* Card */}
-                    <div className={`relative bg-gradient-to-br ${stat.bg} backdrop-blur-sm rounded-2xl p-5 border border-white/30 dark:border-gray-700/30 shadow-lg hover:shadow-xl transition-all duration-300`}>
-                      {/* Icon */}
-                      <div className="text-2xl mb-3">{stat.icon}</div>
+                    <div className={`relative bg-gradient-to-br ${stat.bg} backdrop-blur-sm rounded-2xl p-6 border border-white/30 dark:border-gray-700/30 shadow-lg hover:shadow-xl transition-all duration-300 text-center`}>
+                      {/* Icon với background gradient - căn giữa */}
+                      <div className={`w-14 h-14 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl transform hover:scale-110 transition-transform duration-300`}>
+                        <span className="text-2xl filter drop-shadow-lg">{stat.icon}</span>
+                      </div>
 
-                      {/* Value with counter animation */}
+                      {/* Value with counter animation - căn giữa */}
                       <motion.div
-                        className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent mb-1`}
+                        className={`text-3xl md:text-4xl font-black bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent mb-2`}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ duration: 0.5, delay: 1 + index * 0.1, type: "spring", bounce: 0.6 }}
@@ -415,8 +441,8 @@ const TestHistoryComponent: React.FC<Props> = () => {
                         {stat.value}
                       </motion.div>
 
-                      {/* Label */}
-                      <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      {/* Label - căn giữa */}
+                      <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
                         {stat.label}
                       </div>
                     </div>
@@ -439,13 +465,39 @@ const TestHistoryComponent: React.FC<Props> = () => {
             className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700"
           >
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                  📈 Xu hướng điểm IQ
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Theo dõi sự tiến bộ qua tất cả {testHistory.length} lần test
-                </p>
+              <div className="flex items-center space-x-4">
+                {/* Icon với background màu xanh giống trong ảnh */}
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="drop-shadow-sm"
+                  >
+                    <path d="M3 3v18h18" />
+                    <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+                  </svg>
+                </div>
+
+                {/* Tiêu đề và mô tả */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    Xu hướng điểm IQ
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                    Theo dõi sự tiến bộ qua tất cả {testHistory.length} lần test
+                  </p>
+                </div>
+              </div>
+
+              {/* Action button (tùy chọn) */}
+              <div className="text-sm text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                Xem thêm
               </div>
             </div>
 
@@ -668,9 +720,56 @@ const TestHistoryComponent: React.FC<Props> = () => {
           transition={{ delay: 0.2 }}
           className="bg-white dark:bg-gray-800 rounded-2xl p-4"
         >
-          <h3 className="text-lg font-bold mb-4 flex items-center text-gray-900 dark:text-gray-200">
-            📈 Danh sách bài test
-          </h3>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              {/* Icon với background màu tím cho danh sách */}
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="drop-shadow-sm"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14,2 14,8 20,8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10,9 9,9 8,9" />
+                </svg>
+              </div>
+
+              {/* Tiêu đề và mô tả */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  Danh sách bài test
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                  Lịch sử chi tiết {filteredHistory.length} bài test đã hoàn thành
+                </p>
+              </div>
+            </div>
+
+            {/* Stats summary */}
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="text-center">
+                <div className="font-semibold text-gray-900 dark:text-gray-100">{stats.total}</div>
+                <div className="text-gray-500 dark:text-gray-400">Tổng test</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-gray-900 dark:text-gray-100">{stats.average}</div>
+                <div className="text-gray-500 dark:text-gray-400">Điểm TB</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-gray-900 dark:text-gray-100">{stats.best}</div>
+                <div className="text-gray-500 dark:text-gray-400">Cao nhất</div>
+              </div>
+            </div>
+          </div>
 
           {currentItems.length === 0 ? (
             <div className="text-center py-12">

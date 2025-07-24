@@ -181,20 +181,61 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
           className="w-full max-w-lg p-6 bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-200 dark:border-gray-700 relative z-10 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {isEdit ? 'Chỉnh sửa tag' : 'Tạo tag mới'}
-            </h3>
-            <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+          {/* Header - Thiết kế mới giống ảnh */}
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 -mx-6 -mt-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {/* Icon với background màu cam */}
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="drop-shadow-sm"
+                  >
+                    {isEdit ? (
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    ) : (
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    )}
+                    {isEdit && (
+                      <>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </>
+                    )}
+                  </svg>
+                </div>
+
+                {/* Tiêu đề và mô tả */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {isEdit ? 'Chỉnh sửa tag' : 'Tạo tag mới'}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                    {isEdit ? 'Cập nhật thông tin tag hiện có' : 'Thêm tag mới cho hệ thống'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Close button */}
+              <div>
+                <button
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Đóng"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Error Message */}

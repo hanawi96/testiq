@@ -7,7 +7,7 @@ import { useState, useCallback } from 'react';
 import { ArticlesService } from '../../../../../../backend';
 import type { CreateArticleData } from '../../../../../../backend';
 import { BlogService } from '../../../../../services/blog-service';
-import { cleanFormData, validateFormData, extractImagesFromContent, calculateSaveProgress } from '../utils/articleEditorHelpers';
+import { cleanFormData, validateFormData, validateFormDataForAutosave, extractImagesFromContent, calculateSaveProgress } from '../utils/articleEditorHelpers';
 import type { FormData } from './useFormHandlers';
 
 // Save action type
@@ -94,8 +94,11 @@ export const useSaveHandlers = ({
 
 
 
-      const validation = validateFormData(cleanedData);
-      
+      // 🔧 FIX: Sử dụng validation khác nhau cho autosave vs manual save
+      const validation = isAutoSave
+        ? validateFormDataForAutosave(cleanedData)
+        : validateFormData(cleanedData);
+
       if (!validation.isValid) {
         setValidationError(validation.errors.join(', '));
         return { success: false, error: validation.errors.join(', ') };

@@ -7,6 +7,7 @@ export interface UserWithProfile {
   created_at: string;
   last_sign_in_at: string | null;
   full_name: string;
+  username?: string; // 🔥 Thêm username field
   role: 'user' | 'admin' | 'mod' | 'editor' | 'author' | 'reviewer';
   is_verified: boolean;
   last_login: string | null;
@@ -88,6 +89,7 @@ export class UsersService {
             id,
             full_name,
             email,
+            username,
             role,
             is_verified,
             last_login,
@@ -150,6 +152,7 @@ export class UsersService {
         created_at: player.created_at,
         last_sign_in_at: null,
         full_name: player.name,
+        username: player.name || `anonymous-${player.id.slice(0, 8)}`, // 🔥 Thêm username cho anonymous
         role: 'user' as const,
         is_verified: false,
         last_login: null,
@@ -170,6 +173,7 @@ export class UsersService {
         created_at: user.created_at,
         last_sign_in_at: user.last_login, // Use last_login as approximation
         full_name: user.full_name || 'Unknown User',
+        username: user.username, // 🔥 Thêm username field
         role: user.role || 'user',
         is_verified: user.is_verified || false,
         last_login: user.last_login,
@@ -431,6 +435,7 @@ export class UsersService {
       console.log('UsersService: Auth user created, now creating profile via RPC...');
 
       // Create user profile using RPC function (same as regular signup)
+      // RPC function sẽ tự động tạo username từ email
       try {
         const { data: rpcResult, error: rpcError } = await supabase.rpc('create_user_profile', {
           user_id: authData.user.id,
@@ -450,6 +455,20 @@ export class UsersService {
           }
 
           return { success: false, error: rpcError };
+        }
+
+        // Check RPC function result (JSON response)
+        if (rpcResult && typeof rpcResult === 'object' && !rpcResult.success) {
+          console.error('UsersService: RPC function returned error:', rpcResult.error);
+
+          // Try to delete the auth user if profile creation failed
+          try {
+            await supabase.auth.admin.deleteUser(authData.user.id);
+          } catch (cleanupError) {
+            console.error('UsersService: Error cleaning up auth user:', cleanupError);
+          }
+
+          return { success: false, error: { message: rpcResult.message || rpcResult.error } };
         }
 
         console.log('UsersService: Profile created successfully via RPC');

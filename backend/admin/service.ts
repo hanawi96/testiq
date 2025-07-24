@@ -1003,11 +1003,17 @@ export class AdminService {
     try {
       console.log('AdminService: Creating admin user profile');
       
+      // Tạo username từ email
+      const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9._]/g, '');
+      const username = baseUsername.length > 25 ? baseUsername.substring(0, 25) : baseUsername;
+
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .insert({
           id: userId,
           full_name: fullName || email.split('@')[0] + ' (Admin)',
+          email: email,
+          username: username + '_admin',
           role: 'admin',
           is_verified: true, // Admins are auto-verified
           created_at: new Date().toISOString(),

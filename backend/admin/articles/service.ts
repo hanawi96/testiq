@@ -275,44 +275,13 @@ export class ArticlesService {
         throw new Error('User ID is required for autosave');
       }
 
-      // Kiểm tra xem đã có draft chưa
+      // 🔧 FIX: Chỉ kiểm tra draft chưa có article_id (draft từ trang create)
+      // Loại bỏ logic draftWithArticle để tránh cập nhật nhầm bài viết khác
       const existingDraftId = await ArticleQueries.findNewArticleDraft(userId);
-      const draftWithArticle = await ArticleQueries.findDraftWithArticle(userId);
 
-      if (draftWithArticle) {
-        // 🔄 CẬP NHẬT DRAFT + ARTICLE HIỆN TẠI
-        console.log(`🔍 Autosave: Updating existing draft ${draftWithArticle.draftId} and article ${draftWithArticle.articleId} for user ${userId}`);
-
-        // Update both draft and article
-        const [draftResult, articleResult] = await Promise.all([
-          ArticleQueries.upsertDraft(draftWithArticle.articleId, userId, contentData, draftWithArticle.draftId),
-          ArticleQueries.updateArticle(draftWithArticle.articleId, {
-            title: contentData.title || 'Untitled',
-            content: contentData.content || '',
-            excerpt: contentData.excerpt || '',
-            meta_title: contentData.meta_title || '',
-            meta_description: contentData.meta_description || '',
-            slug: contentData.slug || '',
-            published_at: contentData.published_date ? new Date(contentData.published_date).toISOString() : undefined,
-            updated_at: new Date().toISOString()
-          })
-        ]);
-
-        if (draftResult.data) {
-          await this.processRelationships(draftResult.data.id, contentData);
-        }
-
-        // Return article data for frontend redirect
-        return {
-          data: {
-            ...articleResult.data,
-            draft_id: draftResult.data?.id
-          },
-          error: articleResult.error || draftResult.error
-        };
-      } else if (existingDraftId) {
-        // 🔄 CẬP NHẬT DRAFT CHƯA CÓ ARTICLE
-        console.log(`🔍 Autosave: Updating existing draft ${existingDraftId} for user ${userId}`);
+      if (existingDraftId) {
+        // 🔄 CẬP NHẬT DRAFT CHƯA CÓ ARTICLE (từ trang create trước đó)
+        console.log(`🔍 Autosave: Updating existing new article draft ${existingDraftId} for user ${userId}`);
 
         const result = await ArticleQueries.upsertDraft(null, userId, contentData, existingDraftId);
 
@@ -323,7 +292,7 @@ export class ArticlesService {
         return result;
       } else {
         // 🚀 TẠO ARTICLE MỚI + DRAFT để hiển thị trong danh sách
-        console.log(`🔍 Autosave: Creating new article for user ${userId}`);
+        console.log(`🔍 Autosave: Creating NEW article for user ${userId} (no existing drafts)`);
 
         // Chuẩn bị dữ liệu article với status draft
         const articleData = {
@@ -359,10 +328,12 @@ export class ArticlesService {
         const articleResult = await this.createArticle(articleData as any, contentData.author_id || userId, true);
 
         if (articleResult.error || !articleResult.data) {
+          console.error('❌ Failed to create new article:', articleResult.error);
           return articleResult;
         }
 
         const newArticleId = articleResult.data.id;
+        console.log(`✅ Created new article with ID: ${newArticleId}`);
 
         // Tạo draft liên kết với article vừa tạo
         const draftResult = await ArticleQueries.upsertDraft(newArticleId, userId, contentData);

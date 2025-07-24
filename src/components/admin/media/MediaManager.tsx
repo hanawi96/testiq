@@ -752,17 +752,46 @@ export default function MediaManager() {
 
       {/* Media Grid/List - Always show container */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        {/* Header - Thiết kế mới giống ảnh */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Media Files {mediaData ? `(${mediaData.total.toLocaleString()})` : ''}
-            </h3>
+            <div className="flex items-center space-x-4">
+              {/* Icon với background màu hồng */}
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="drop-shadow-sm"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="9" cy="9" r="2"/>
+                  <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                </svg>
+              </div>
+
+              {/* Tiêu đề và mô tả */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  Media Files
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                  Quản lý {mediaData ? mediaData.total.toLocaleString() : '0'} tệp media và hình ảnh
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleSelectAll}
                 disabled={!mediaData}
-                className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
+                className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 px-3 py-1.5 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 {mediaData && selectedFiles.length === mediaData.files.length && mediaData.files.length > 0 ? (
                   <CheckSquare className="w-4 h-4" />
@@ -770,6 +799,14 @@ export default function MediaManager() {
                   <Square className="w-4 h-4" />
                 )}
                 <span>Chọn tất cả</span>
+              </button>
+
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
+                title="Upload media mới"
+              >
+                <Upload className="w-5 h-5" />
               </button>
             </div>
           </div>

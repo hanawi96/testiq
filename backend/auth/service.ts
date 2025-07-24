@@ -91,14 +91,16 @@ export class AuthService {
       console.log('AuthService: RPC parameters:', {
         user_id: data.user.id,
         user_email: credentials.email,
-        display_name: credentials.email.split('@')[0]
+        display_name: credentials.email.split('@')[0],
+        user_role: 'user' // Default role
       });
-      
+
       try {
         const { data: rpcResult, error: rpcError } = await supabase.rpc('create_user_profile', {
           user_id: data.user.id,
           user_email: credentials.email,
-          display_name: credentials.email.split('@')[0]
+          display_name: credentials.email.split('@')[0],
+          user_role: 'user' // 🔥 THÊM user_role parameter
         });
 
         console.log('AuthService: RPC call completed');
@@ -107,16 +109,17 @@ export class AuthService {
 
         if (rpcError) {
           console.error('AuthService: RPC profile creation error:', rpcError);
-          console.error('AuthService: RPC error details:', {
-            message: rpcError.message,
-            code: rpcError.code,
-            details: rpcError.details,
-            hint: rpcError.hint
-          });
           console.warn('AuthService: User registered but profile creation failed');
         } else {
           console.log('AuthService: Profile created successfully via RPC');
-          console.log('AuthService: RPC function returned:', rpcResult);
+
+          // Check if RPC function returned success
+          if (rpcResult && typeof rpcResult === 'object' && rpcResult.success === true) {
+            console.log('AuthService: Username created:', rpcResult.username);
+          } else if (rpcResult && rpcResult.success === false) {
+            console.error('AuthService: RPC function returned error:', rpcResult.error);
+            console.warn('AuthService: User registered but profile creation failed');
+          }
         }
       } catch (rpcErr) {
         console.error('AuthService: RPC call failed with exception:', rpcErr);

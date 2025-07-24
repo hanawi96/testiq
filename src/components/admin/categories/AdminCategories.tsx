@@ -1017,24 +1017,52 @@ export default function AdminCategories() {
 
       {/* Categories Table - Always show container */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        {/* Table Header - Thiết kế mới giống ảnh */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Danh sách danh mục {categoriesData ? `(${categoriesData.total.toLocaleString()})` : ''}
-            </h3>
-              <div>
-                <button
-                  onClick={() => handleOpenCreateModal()}
-                  className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-                  title="Thêm danh mục mới"
+            <div className="flex items-center space-x-4">
+              {/* Icon với background màu tím */}
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="drop-shadow-sm"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+
+              {/* Tiêu đề và mô tả */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  Danh sách danh mục
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                  Quản lý {categoriesData ? categoriesData.total.toLocaleString() : '0'} danh mục và phân loại
+                </p>
               </div>
             </div>
+
+            {/* Action button */}
+            <div>
+              <button
+                onClick={() => handleOpenCreateModal()}
+                className="flex items-center justify-center w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
+                title="Thêm danh mục mới"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
           </div>
+        </div>
 
           {/* Table Container - Always show */}
           <div className="overflow-x-auto">

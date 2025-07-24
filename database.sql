@@ -88,6 +88,124 @@ $$;
 -- Grant execute permission
 grant execute on function public.get_best_scores_per_email() to authenticated, anon;
 
+-- ✅ Cập nhật function create_user_profile để thêm username auto-generation
+CREATE OR REPLACE FUNCTION public.create_user_profile(
+    user_id UUID,
+    user_email TEXT,
+    display_name TEXT,
+    user_role TEXT DEFAULT 'user'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result JSON;
+    base_username TEXT;
+    final_username TEXT;
+    counter INTEGER := 0;
+    username_exists BOOLEAN;
+BEGIN
+    -- Validate role
+    IF user_role NOT IN ('user', 'admin', 'editor', 'author', 'reviewer') THEN
+        user_role := 'user';
+    END IF;
+
+    -- Tạo username từ email
+    base_username := split_part(user_email, '@', 1);
+    base_username := regexp_replace(base_username, '[^a-zA-Z0-9._]', '', 'g');
+
+    IF length(base_username) > 25 THEN
+        base_username := left(base_username, 25);
+    END IF;
+
+    -- Tìm username unique
+    final_username := base_username;
+    LOOP
+        SELECT EXISTS(SELECT 1 FROM user_profiles WHERE username = final_username) INTO username_exists;
+        IF NOT username_exists THEN EXIT; END IF;
+
+        counter := counter + 1;
+        final_username := base_username || counter::TEXT;
+
+        IF length(final_username) > 30 THEN
+            base_username := left(base_username, 30 - length(counter::TEXT));
+            final_username := base_username || counter::TEXT;
+        END IF;
+
+        IF counter > 9999 THEN
+            final_username := left(base_username, 25) || floor(random() * 10000)::TEXT;
+            EXIT;
+        END IF;
+    END LOOP;
+
+    -- Insert user profile với username
+    INSERT INTO public.user_profiles (
+        id,
+        full_name,
+        email,
+        username,
+        role,
+        is_verified,
+        created_at,
+        updated_at
+    ) VALUES (
+        user_id,
+        display_name,
+        user_email,
+        final_username,
+        user_role,
+        CASE WHEN user_role = 'admin' THEN true ELSE false END,
+        NOW(),
+        NOW()
+    );
+
+    -- Return success result
+    SELECT json_build_object(
+        'success', true,
+        'user_id', user_id,
+        'email', user_email,
+        'username', final_username,
+        'role', user_role,
+        'message', 'User profile created successfully'
+    ) INTO result;
+
+    RETURN result;
+
+EXCEPTION
+    WHEN unique_violation THEN
+        -- Profile already exists, update it (giữ username cũ)
+        UPDATE public.user_profiles
+        SET
+            full_name = display_name,
+            email = user_email,
+            role = user_role,
+            updated_at = NOW()
+        WHERE id = user_id;
+
+        SELECT json_build_object(
+            'success', true,
+            'user_id', user_id,
+            'email', user_email,
+            'username', (SELECT username FROM user_profiles WHERE id = user_id),
+            'role', user_role,
+            'message', 'User profile updated successfully'
+        ) INTO result;
+
+        RETURN result;
+
+    WHEN OTHERS THEN
+        -- Return error
+        SELECT json_build_object(
+            'success', false,
+            'error', SQLERRM,
+            'message', 'Failed to create user profile'
+        ) INTO result;
+
+        RETURN result;
+END;
+$$;
+
 -- ✅ RPC function để lấy users với email từ auth.users
 CREATE OR REPLACE FUNCTION public.get_users_with_email(
     page_limit INTEGER DEFAULT 10,
@@ -123,6 +241,7 @@ BEGIN
             au.created_at, -- từ auth.users (timestamptz)
             au.last_sign_in_at, -- từ auth.users (timestamptz)
             up.full_name,
+            up.username, -- 🔥 Thêm username field
             up.role,
             up.is_verified,
             up.last_login, -- từ user_profiles (timestamp without time zone)
@@ -135,9 +254,10 @@ BEGIN
             (role_filter IS NULL OR up.role = role_filter)
             -- Filter by verification status
             AND (verified_filter IS NULL OR up.is_verified = verified_filter)
-            -- Search in full_name or email
+            -- Search in username, full_name or email
             AND (
                 search_term IS NULL
+                OR up.username ILIKE '%' || search_term || '%'
                 OR up.full_name ILIKE '%' || search_term || '%'
                 OR au.email ILIKE '%' || search_term || '%'
             )
