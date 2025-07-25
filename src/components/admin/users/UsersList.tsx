@@ -8,6 +8,7 @@ import QuickRoleEditor from './QuickRoleEditor';
 import { ToastContainer, useToast } from '../common/Toast';
 import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
+import countryData from '../../../../Country.json';
 
 export default function UsersList() {
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
@@ -1017,40 +1018,45 @@ export default function UsersList() {
                           {/* Flag */}
                           <div className="flex-shrink-0">
                             {(() => {
-                              // Simple mapping từ country name sang country code
-                              const countryCodeMap: { [key: string]: string } = {
-                                'Viet Nam': 'VN',
-                                'Vietnam': 'VN',
-                                'Afghanistan': 'AF',
-                                'United Arab Emirates': 'AE',
-                                'United States': 'US',
-                                'United Kingdom': 'GB',
-                                'Germany': 'DE',
-                                'France': 'FR',
-                                'Japan': 'JP',
-                                'South Korea': 'KR',
-                                'China': 'CN',
-                                'India': 'IN',
-                                'Australia': 'AU',
-                                'Canada': 'CA',
-                                'Singapore': 'SG'
-                              };
+                              // ✅ CÁCH ĐÚNG: Sử dụng country_code trực tiếp (chuẩn quốc tế)
+                              let code = user.country_code;
 
-                              const code = user.country_code || countryCodeMap[user.country_name];
+                              // Fallback: Nếu không có country_code, map từ country_name
+                              if (!code && user.country_name) {
+                                // Tạo mapping từ Country.json
+                                const countryNameToCode: { [key: string]: string } = {};
+                                countryData.forEach((country: any) => {
+                                  countryNameToCode[country.name.toLowerCase()] = country.code;
+                                });
 
-                              return code ? (
-                                <img
-                                  src={`/flag/${code}.svg`}
-                                  alt={`${user.country_name} flag`}
-                                  className="w-5 h-4 object-cover rounded-sm"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-sm text-gray-400">🏳️</span>
-                              );
+                                // Thêm variations phổ biến
+                                countryNameToCode['viet nam'] = 'VN';
+                                countryNameToCode['vietnam'] = 'VN';
+                                countryNameToCode['antigua and barbuda'] = 'AG';
+                                countryNameToCode['trinidad and tobago'] = 'TT';
+                                countryNameToCode['united states'] = 'US';
+                                countryNameToCode['usa'] = 'US';
+                                countryNameToCode['uk'] = 'GB';
+                                countryNameToCode['united kingdom'] = 'GB';
+
+                                code = countryNameToCode[user.country_name.toLowerCase()];
+                              }
+
+                              if (code) {
+                                return (
+                                  <img
+                                    src={`/flag/${code.toUpperCase()}.svg`}
+                                    alt={`${user.country_name} flag`}
+                                    className="w-5 h-4 object-cover rounded-sm"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
+                                  />
+                                );
+                              } else {
+                                return <span className="text-sm text-gray-400">🏳️</span>;
+                              }
                             })()}
                           </div>
                           {/* Country name */}
