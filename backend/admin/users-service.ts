@@ -13,6 +13,7 @@ export interface UserWithProfile {
   last_login: string | null;
   age?: number;
   country_name?: string;
+  country_code?: string; // 🔥 Thêm country_code field
   user_type?: 'registered' | 'anonymous';
   // Thêm 3 trường mới cho các cột bảng
   gender?: string | null;
@@ -95,6 +96,7 @@ export class UsersService {
             last_login,
             age,
             country_name,
+            country_code,
             gender,
             created_at,
             updated_at
@@ -103,7 +105,7 @@ export class UsersService {
         // Query anonymous users from anonymous_players table với gender và country
         supabase
           .from('anonymous_players')
-          .select('id, name, age, country_name, email, created_at, test_score, gender')
+          .select('id, name, age, country_name, country_code, email, created_at, test_score, gender')
           .order('created_at', { ascending: false }),
         // Query test counts từ user_test_results
         supabase

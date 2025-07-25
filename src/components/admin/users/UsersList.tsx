@@ -7,6 +7,7 @@ import EditUserModal from './EditUserModal';
 import QuickRoleEditor from './QuickRoleEditor';
 import { ToastContainer, useToast } from '../common/Toast';
 import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
+import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 
 export default function UsersList() {
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
@@ -468,10 +469,6 @@ export default function UsersList() {
   };
 
   // Helper functions để format dữ liệu
-  const formatCountry = (country: string | null | undefined): string => {
-    if (!country || country.trim() === '') return 'Chưa có';
-    return country;
-  };
 
   const formatGender = (gender: string | null | undefined): string => {
     if (!gender || gender.trim() === '') return 'Chưa có';
@@ -1014,8 +1011,56 @@ export default function UsersList() {
                     </td>
 
                     {/* Country */}
-                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {formatCountry(user.country)}
+                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
+                      {user.country_name ? (
+                        <div className="flex items-center space-x-2">
+                          {/* Flag */}
+                          <div className="flex-shrink-0">
+                            {(() => {
+                              // Simple mapping từ country name sang country code
+                              const countryCodeMap: { [key: string]: string } = {
+                                'Viet Nam': 'VN',
+                                'Vietnam': 'VN',
+                                'Afghanistan': 'AF',
+                                'United Arab Emirates': 'AE',
+                                'United States': 'US',
+                                'United Kingdom': 'GB',
+                                'Germany': 'DE',
+                                'France': 'FR',
+                                'Japan': 'JP',
+                                'South Korea': 'KR',
+                                'China': 'CN',
+                                'India': 'IN',
+                                'Australia': 'AU',
+                                'Canada': 'CA',
+                                'Singapore': 'SG'
+                              };
+
+                              const code = user.country_code || countryCodeMap[user.country_name];
+
+                              return code ? (
+                                <img
+                                  src={`/flag/${code}.svg`}
+                                  alt={`${user.country_name} flag`}
+                                  className="w-5 h-4 object-cover rounded-sm"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-sm text-gray-400">🏳️</span>
+                              );
+                            })()}
+                          </div>
+                          {/* Country name */}
+                          <div className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                            {user.country_name}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Chưa có</span>
+                      )}
                     </td>
 
                     {/* Gender */}
