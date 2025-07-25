@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResultsService } from '../../../../backend';
+import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 import type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from '../../../../backend';
 import ResultsTestChart from './ResultsTestChart';
 
@@ -22,7 +23,16 @@ export default function AdminResults() {
   const [selectedResults, setSelectedResults] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const limit = 20;
+  const [limit, setLimit] = useState(10);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Bulk selection helpers
   const toggleSelectAll = () => {
@@ -72,18 +82,18 @@ export default function AdminResults() {
   };
 
   // Fetch results data
-  const fetchResults = useCallback(async (page: number = currentPage) => {
-    console.log(`🔍 Fetch results page ${page}`);
+  const fetchResults = useCallback(async (page: number = currentPage, pageLimit: number = limit) => {
+    console.log(`🔍 Fetch results page ${page} with limit ${pageLimit}`);
     setError('');
-    
+
     try {
-      const { data, error: fetchError } = await ResultsService.getResults(page, limit, filters);
-      
+      const { data, error: fetchError } = await ResultsService.getResults(page, pageLimit, filters);
+
       if (fetchError || !data) {
         setError('Không thể tải danh sách kết quả test');
         return;
       }
-      
+
       console.log(`✅ Loaded results page ${page}`);
       setResultsData(data);
 
@@ -93,7 +103,7 @@ export default function AdminResults() {
     } catch (err) {
       setError('Có lỗi xảy ra khi tải dữ liệu');
     }
-  }, [currentPage, filters]);
+  }, [currentPage, limit, filters]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -134,10 +144,19 @@ export default function AdminResults() {
     loadData();
   }, [filters]);
 
-  // Handle page change
+  // Handle page change - INSTANT
   const handlePageChange = (page: number) => {
+    console.log(`🔄 PAGE CHANGE: ${currentPage} → ${page}`);
     setCurrentPage(page);
     fetchResults(page);
+  };
+
+  // Handle limit change - Reset to page 1
+  const handleLimitChange = (newLimit: number) => {
+    console.log(`🔄 LIMIT CHANGE: ${limit} → ${newLimit}`);
+    setLimit(newLimit);
+    setCurrentPage(1);
+    fetchResults(1, newLimit);
   };
 
   // Handle filter change
@@ -251,8 +270,24 @@ export default function AdminResults() {
         <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
       </td>
 
-      {/* Ngày test - ~12% */}
-      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '12%' }}>
+      {/* Tuổi - ~10% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '10%' }}>
+        <div className="space-y-1">
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-8"></div>
+        </div>
+      </td>
+
+      {/* Quốc gia - ~15% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '15%' }}>
+        <div className="flex items-center space-x-2">
+          <div className="w-5 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
+        </div>
+      </td>
+
+      {/* Ngày test - ~10% */}
+      <td className="px-6 py-4 whitespace-nowrap" style={{ width: '10%' }}>
         <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
       </td>
 
@@ -488,7 +523,10 @@ export default function AdminResults() {
                     Thời gian
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Thông tin
+                    Tuổi
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Quốc gia
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Ngày test
@@ -555,17 +593,53 @@ export default function AdminResults() {
                       )}
                     </td>
 
-                    {/* Info */}
+                    {/* Age */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-gray-100">
-                        {result.age && `${result.age} tuổi`}
-                        {result.age && result.country && ' • '}
-                        {result.country}
+                        {result.age ? `${result.age} tuổi` : '-'}
                       </div>
                       {result.gender && (
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {result.gender === 'male' ? 'Nam' : result.gender === 'female' ? 'Nữ' : 'Khác'}
                         </div>
+                      )}
+                    </td>
+
+                    {/* Country */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {result.country ? (
+                        <div className="flex items-center space-x-2">
+                          {/* Flag */}
+                          <div className="flex-shrink-0">
+                            {result.country_code ? (
+                              <img
+                                src={getCountryFlagSvgByCode(result.country_code)}
+                                alt={`${result.country} flag`}
+                                className="w-5 h-4 object-cover rounded-sm"
+                                onError={(e) => {
+                                  // Fallback to emoji if SVG fails
+                                  const target = e.target as HTMLImageElement;
+                                  const flag = result.country ? getCountryFlag(result.country) : '';
+                                  if (flag) {
+                                    target.style.display = 'none';
+                                    const span = document.createElement('span');
+                                    span.textContent = flag;
+                                    span.className = 'text-lg';
+                                    target.parentNode?.appendChild(span);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span className="text-lg">{result.country ? getCountryFlag(result.country) : ''}</span>
+                            )}
+                          </div>
+                          {/* Country name */}
+                          <div className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                            {result.country}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
                       )}
                     </td>
 
@@ -635,90 +709,213 @@ export default function AdminResults() {
             )}
           </div>
 
-          {/* Pagination */}
-          {resultsData && resultsData.totalPages > 1 && (
+          {/* Pagination - Enhanced like UsersList */}
+          {resultsData && (
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700 dark:text-gray-300">
-                  Hiển thị {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, resultsData.total)}
-                  trong tổng số {resultsData.total.toLocaleString()} kết quả
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
+                {/* Left: Info + Items Per Page */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                  {/* Results Info */}
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
+                    Hiển thị {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, resultsData.total)}/{resultsData.total.toLocaleString()} kết quả
+                  </div>
+
+                  {/* Items Per Page Selector - Compact */}
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={limit}
+                      onChange={(e) => handleLimitChange(Number(e.target.value))}
+                      className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">/ trang</span>
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={!resultsData.hasPrev}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Trước
-                  </button>
+                {/* Right: Pagination Controls - Only show if more than 1 page */}
+                {resultsData.totalPages > 1 && (
+                  <nav className="flex items-center space-x-1">
+                    {/* First Page - Hidden on mobile */}
+                    <button
+                      onClick={() => handlePageChange(1)}
+                      disabled={currentPage === 1}
+                      className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Trang đầu"
+                    >
+                      ⇤
+                    </button>
 
-                  <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Trang {currentPage} / {resultsData.totalPages}
-                  </span>
+                    {/* Previous Page */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={!resultsData.hasPrev}
+                      className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Trang trước"
+                    >
+                      ←
+                    </button>
 
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={!resultsData.hasNext}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Sau
-                  </button>
-                </div>
+                    {/* Page Numbers - Responsive count */}
+                    <div className="flex items-center space-x-1">
+                      {Array.from({
+                        length: Math.min(
+                          isMobile ? 3 : 5, // 3 on mobile, 5 on desktop
+                          resultsData.totalPages
+                        )
+                      }, (_, i) => {
+                        const maxVisible = isMobile ? 3 : 5;
+                        const page = i + Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                        if (page > resultsData.totalPages) return null;
+
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg ${
+                              page === currentPage
+                                ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
+                                : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            }`}
+                            aria-label={`Trang ${page}`}
+                            aria-current={page === currentPage ? 'page' : undefined}
+                          >
+                            {page}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Next Page */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={!resultsData.hasNext}
+                      className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Trang sau"
+                    >
+                      →
+                    </button>
+
+                    {/* Last Page - Hidden on mobile */}
+                    <button
+                      onClick={() => handlePageChange(resultsData.totalPages)}
+                      disabled={currentPage === resultsData.totalPages}
+                      className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Trang cuối"
+                    >
+                      ⇥
+                    </button>
+
+                    {/* Mobile-only: Jump to page input */}
+                    {resultsData.totalPages > 5 && (
+                      <div className="flex sm:hidden items-center ml-2 space-x-1">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Đến:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max={resultsData.totalPages}
+                          value={currentPage}
+                          onChange={(e) => {
+                            const page = parseInt(e.target.value);
+                            if (page >= 1 && page <= resultsData.totalPages) {
+                              handlePageChange(page);
+                            }
+                          }}
+                          className="w-12 h-8 text-xs text-center border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                    )}
+                  </nav>
+                )}
               </div>
             </div>
           )}
         </div>
 
-      {/* Score Distribution Chart */}
-      {scoreDistribution && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Phân bố điểm số</h3>
-          <div className="space-y-3">
-            {scoreDistribution.map((item, index) => (
-              <div key={item.range} className="flex items-center">
-                <div className="w-20 text-sm text-gray-600 dark:text-gray-400">{item.range}</div>
-                <div className="flex-1 mx-4">
-                  <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-4 relative overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(item.count / Math.max(...scoreDistribution.map(s => s.count))) * 100}%` }}
-                      transition={{ delay: index * 0.1, duration: 0.8 }}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full"
-                    />
+      {/* Score Distribution & Top Countries - Combined Row */}
+      {(scoreDistribution || (stats?.topCountries && stats.topCountries.length > 0)) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Score Distribution Chart */}
+          {scoreDistribution && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              {/* Header with table header gradient */}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 px-6 py-3 rounded-t-xl">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                   </div>
-                </div>
-                <div className="w-16 text-sm text-gray-900 dark:text-gray-100 text-right">
-                  {item.count.toLocaleString()}
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Phân bố điểm số</h3>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              {/* Content */}
+              <div className="p-6">
+              <div className="space-y-3">
+                {scoreDistribution.map((item, index) => (
+                  <div key={item.range} className="flex items-center">
+                    <div className="w-16 text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">{item.range}</div>
+                    <div className="flex-1 mx-3">
+                      <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-3 relative overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(item.count / Math.max(...scoreDistribution.map(s => s.count))) * 100}%` }}
+                          transition={{ delay: index * 0.1, duration: 0.8 }}
+                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="w-12 text-sm text-gray-900 dark:text-gray-100 text-right flex-shrink-0">
+                      {item.count.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </div>
+            </div>
+          )}
 
-      {/* Top Countries */}
-      {stats?.topCountries && stats.topCountries.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Top quốc gia</h3>
-          <div className="space-y-3">
-            {stats.topCountries.map((country, index) => (
-              <div key={country.country} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg font-semibold text-gray-500 dark:text-gray-400">#{index + 1}</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{country.country}</span>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {country.count} test{country.count > 1 ? 's' : ''}
-                  </span>
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">
-                    {country.avgScore} điểm TB
-                  </span>
+          {/* Top Countries */}
+          {stats?.topCountries && stats.topCountries.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              {/* Header with table header gradient */}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 px-6 py-3 rounded-t-xl">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center mr-3">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Top quốc gia</h3>
                 </div>
               </div>
-            ))}
-          </div>
+              {/* Content */}
+              <div className="p-6">
+              <div className="space-y-3">
+                {stats.topCountries.slice(0, 8).map((country, index) => (
+                  <div key={country.country} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center space-x-2 min-w-0 flex-1">
+                      <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">#{index + 1}</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100 truncate">{country.country}</span>
+                    </div>
+                    <div className="flex items-center space-x-3 flex-shrink-0">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {country.count}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {country.avgScore}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

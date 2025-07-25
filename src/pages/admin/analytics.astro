@@ -1,0 +1,11 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminAnalytics from '../../components/admin/analytics/AdminAnalytics.tsx';
+
+const title = 'Thống kê hành vi người dùng - Admin';
+const description = 'Phân tích dữ liệu test để tối ưu trải nghiệm người dùng';
+---
+
+<AdminLayout title={title} description={description}>
+  <AdminAnalytics client:load />
+</AdminLayout>
