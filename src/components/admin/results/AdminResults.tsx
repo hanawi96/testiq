@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResultsService } from '../../../../backend';
 import type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from '../../../../backend';
+import ResultsTestChart from './ResultsTestChart';
 
 export default function AdminResults() {
   const [resultsData, setResultsData] = useState<ResultsListResponse | null>(null);
@@ -17,7 +18,58 @@ export default function AdminResults() {
   });
   const [isExporting, setIsExporting] = useState(false);
 
+  // Bulk selection state
+  const [selectedResults, setSelectedResults] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const limit = 20;
+
+  // Bulk selection helpers
+  const toggleSelectAll = () => {
+    if (selectedResults.size === resultsData?.results.length) {
+      setSelectedResults(new Set());
+    } else {
+      setSelectedResults(new Set(resultsData?.results.map(r => r.id) || []));
+    }
+  };
+
+  const toggleSelectResult = (id: string) => {
+    const newSelected = new Set(selectedResults);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedResults(newSelected);
+  };
+
+  const deleteSelectedResults = async () => {
+    if (selectedResults.size === 0) return;
+
+    // Confirm deletion
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedResults.size} kết quả test đã chọn?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const { data, error } = await ResultsService.deleteResults(Array.from(selectedResults));
+      if (error) {
+        console.error('Error deleting results:', error);
+        alert('Có lỗi xảy ra khi xóa kết quả test');
+        return;
+      }
+
+      console.log(`Successfully deleted ${data} results`);
+      setSelectedResults(new Set());
+      await fetchResults(currentPage);
+    } catch (err) {
+      console.error('Exception deleting results:', err);
+      alert('Có lỗi xảy ra khi xóa kết quả test');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Fetch results data
   const fetchResults = useCallback(async (page: number = currentPage) => {
@@ -34,7 +86,10 @@ export default function AdminResults() {
       
       console.log(`✅ Loaded results page ${page}`);
       setResultsData(data);
-      
+
+      // Clear selection when loading new page
+      setSelectedResults(new Set());
+
     } catch (err) {
       setError('Có lỗi xảy ra khi tải dữ liệu');
     }
@@ -158,6 +213,10 @@ export default function AdminResults() {
 
   const SkeletonTableRow = () => (
     <tr className="animate-pulse hover:bg-gray-50 dark:hover:bg-gray-700">
+      {/* Checkbox */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+      </td>
       {/* Người dùng (avatar + name/email + country) - ~30% */}
       <td className="px-6 py-4 whitespace-nowrap" style={{ width: '30%' }}>
         <div className="flex items-center">
@@ -206,33 +265,6 @@ export default function AdminResults() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quản lý kết quả test</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Phân tích và quản lý kết quả test IQ của người dùng</p>
-        </div>
-        <button
-          onClick={handleExport}
-          disabled={isExporting}
-          className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors"
-        >
-          {isExporting ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Đang export...</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span>Export CSV</span>
-            </>
-          )}
-        </button>
-      </div>
-
       {/* Error */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -295,6 +327,9 @@ export default function AdminResults() {
           </>
         )}
       </div>
+
+      {/* Results Test Chart */}
+      <ResultsTestChart className="mb-6" defaultTimeRange="1m" />
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -392,12 +427,31 @@ export default function AdminResults() {
               </div>
             </div>
 
-            {/* Export button */}
-            <div>
+            {/* Action buttons */}
+            <div className="flex items-center space-x-2">
+              {/* Bulk delete button - only show when items selected */}
+              {selectedResults.size > 0 && (
+                <button
+                  onClick={deleteSelectedResults}
+                  disabled={isDeleting}
+                  className="flex items-center justify-center w-10 h-10 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium shadow-lg hover:shadow-xl"
+                  title={`Xóa ${selectedResults.size} kết quả đã chọn`}
+                >
+                  {isDeleting ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
+                </button>
+              )}
+
+              {/* Export button */}
               <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="flex items-center justify-center w-10 h-10 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
+                className="flex items-center justify-center w-10 h-10 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium shadow-lg hover:shadow-xl"
                 title="Export dữ liệu"
               >
                 {isExporting ? (
@@ -416,6 +470,14 @@ export default function AdminResults() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      checked={selectedResults.size > 0 && selectedResults.size === resultsData?.results.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Người dùng
                   </th>
@@ -440,6 +502,15 @@ export default function AdminResults() {
                 {/* Real results */}
                 {resultsData?.results.map((result) => (
                   <tr key={result.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    {/* Checkbox */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        checked={selectedResults.has(result.id)}
+                        onChange={() => toggleSelectResult(result.id)}
+                      />
+                    </td>
                     {/* User Info */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">

@@ -268,34 +268,34 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
     setTopArticlesTimeRange(newTimeRange);
   };
 
-  // Simplified chart dimensions - use fixed viewBox like DailyTestChart
+  // State for responsive recalculation
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+  // Handle window resize for responsive label calculation
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Responsive chart dimensions - use container width like DailyTestChart
   const chartDimensions = useMemo(() => {
     if (!data?.dailyViews.length) return { width: 800, height: 240 };
 
-    const chartData = data.dailyViews;
-    const dataPoints = chartData.length;
+    // Responsive chart dimensions - use container width like DailyTestChart
+    const containerWidth = windowWidth > 1280 ? windowWidth - 400 : // XL screens: subtract sidebar + padding
+                           windowWidth > 1024 ? windowWidth - 350 : // LG screens: subtract sidebar + padding
+                           windowWidth > 768 ? windowWidth - 100 :  // MD screens: subtract padding
+                           windowWidth - 60; // SM screens: minimal padding
 
-    // Use fixed width for viewBox - SVG will scale automatically
-    // Adjust width based on data density for better label spacing
-    const calculateViewBoxWidth = () => {
-      if (timeRange >= 90) {
-        return 1200; // Wider viewBox for 90+ days to spread out labels
-      }
-      if (timeRange >= 60) {
-        return 1000; // Medium-wide for 60+ days
-      }
-      if (timeRange >= 30) {
-        return 900; // Slightly wider for 30+ days
-      }
-      if (timeRange >= 14) {
-        return 800; // Standard width for 14+ days
-      }
-      return 700; // Compact for 7 days
-    };
-
-    const width = calculateViewBoxWidth();
+    const width = Math.max(600, Math.min(containerWidth, 1400)); // Min 600px, max 1400px
     return { width, height: 240 };
-  }, [data?.dailyViews.length, timeRange]);
+  }, [data?.dailyViews.length, timeRange, windowWidth]);
 
   // Line Chart Component (reusing pattern from existing charts)
   const LineChart = useCallback(() => {
@@ -335,12 +335,12 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
     const areaPath = `${pathData} L ${points[points.length - 1].x} ${height - padding} L ${padding} ${height - padding} Z`;
 
     return (
-      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 w-full">
         <svg
           width="100%"
           height="240"
           viewBox={`0 0 ${width} ${height}`}
-          className="overflow-visible"
+          className="overflow-visible w-full"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Gradient definition */}
@@ -608,13 +608,13 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
           : 'lg:grid-cols-3'  // For 7 days: normal layout
       }`}>
         {/* Chart Component - Dynamic width based on time range */}
-        <div className={`${
+        <div className={`w-full ${
           timeRange >= 14
             ? 'xl:col-span-3' // Takes 3/4 width for longer periods
             : 'lg:col-span-2'  // Takes 2/3 width for 7 days
         }`}>
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-green-50/50 via-emerald-50/30 to-teal-50/50 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/20 rounded-t-lg p-4 border border-green-100 dark:border-green-800/30 border-b-0">
+          <div className="bg-gradient-to-r from-green-50/50 via-emerald-50/30 to-teal-50/50 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/20 rounded-t-lg p-4 border border-green-100 dark:border-green-800/30 border-b-0 w-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 {/* Icon */}
@@ -707,7 +707,7 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
           </div>
 
           {/* Chart Content Section */}
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border border-green-100 dark:border-green-800/30 border-t-0 p-6">
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border border-green-100 dark:border-green-800/30 border-t-0 p-6 w-full">
             {isChartLoading ? (
             <div className="h-60 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           ) : chartError ? (

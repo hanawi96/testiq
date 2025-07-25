@@ -2,6 +2,16 @@ import React from 'react';
 import AuthorSelector from './AuthorSelector';
 import TagsInput from './TagsInput';
 import CategorySelector from './CategorySelector';
+import {
+  TitleFieldSkeleton,
+  SlugFieldSkeleton,
+  ExcerptFieldSkeleton,
+  CategorySelectorSkeleton,
+  StatusSelectorSkeleton,
+  AuthorSelectorSkeleton,
+  TagsInputSkeleton,
+  FeaturedCheckboxSkeleton
+} from './SkeletonComponents';
 
 interface FormData {
   title: string;
@@ -21,6 +31,13 @@ interface SettingsSidebarProps {
   onChange: (field: string, value: any) => void;
   onClearError: (field: string) => void;
   isSubmitting: boolean;
+  // Progressive Loading props
+  shouldShowCategoriesSkeleton?: boolean;
+  shouldShowAuthorsSkeleton?: boolean;
+  shouldShowTagsSkeleton?: boolean;
+  categories?: any[];
+  authors?: any[];
+  availableTags?: string[];
 }
 
 export default function SettingsSidebar({
@@ -28,7 +45,13 @@ export default function SettingsSidebar({
   errors,
   onChange,
   onClearError,
-  isSubmitting
+  isSubmitting,
+  shouldShowCategoriesSkeleton = false,
+  shouldShowAuthorsSkeleton = false,
+  shouldShowTagsSkeleton = false,
+  categories = [],
+  authors = [],
+  availableTags = []
 }: SettingsSidebarProps) {
   // Mock authors data - trong thực tế sẽ fetch từ API
   const authors = [
@@ -72,7 +95,7 @@ export default function SettingsSidebar({
         </div>
 
         <div className="p-6 space-y-6">
-                {/* Title */}
+                {/* Title - Static, no skeleton needed */}
                 <div className="group">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-primary-500 to-purple-500"></div>
@@ -207,14 +230,19 @@ export default function SettingsSidebar({
                   )}
                 </div>
 
-                {/* Categories */}
-                <CategorySelector
-                  value={formData.categories || []}
-                  onChange={(categories) => onChange('categories', categories)}
-                  disabled={isSubmitting}
-                />
+                {/* Categories - Progressive Loading */}
+                {shouldShowCategoriesSkeleton ? (
+                  <CategorySelectorSkeleton />
+                ) : (
+                  <CategorySelector
+                    value={formData.categories || []}
+                    onChange={(categories) => onChange('categories', categories)}
+                    disabled={isSubmitting}
+                    categories={categories}
+                  />
+                )}
 
-                {/* Status */}
+                {/* Status - Static, no skeleton needed */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Trạng thái
@@ -231,42 +259,51 @@ export default function SettingsSidebar({
                   </select>
                 </div>
 
-                {/* Author Selector */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tác giả
-                  </label>
-                  <AuthorSelector
-                    value={formData.author_id || ''}
-                    authors={authors}
-                    onChange={(authorId) => onChange('author_id', authorId)}
-                    disabled={isSubmitting}
-                  />
-                  {errors.author_id && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                      {errors.author_id}
-                    </p>
-                  )}
-                </div>
+                {/* Author Selector - Progressive Loading */}
+                {shouldShowAuthorsSkeleton ? (
+                  <AuthorSelectorSkeleton />
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Tác giả
+                    </label>
+                    <AuthorSelector
+                      value={formData.author_id || ''}
+                      authors={authors}
+                      onChange={(authorId) => onChange('author_id', authorId)}
+                      disabled={isSubmitting}
+                    />
+                    {errors.author_id && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {errors.author_id}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-                {/* Tags */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tags
-                  </label>
-                  <TagsInput
-                    value={formData.tags || []}
-                    onChange={(tags) => onChange('tags', tags)}
-                    placeholder="Thêm tags cho bài viết..."
-                    maxTags={20}
-                    disabled={isSubmitting}
-                  />
-                  {errors.tags && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                      {errors.tags}
-                    </p>
-                  )}
-                </div>
+                {/* Tags - Progressive Loading */}
+                {shouldShowTagsSkeleton ? (
+                  <TagsInputSkeleton />
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Tags
+                    </label>
+                    <TagsInput
+                      value={formData.tags || []}
+                      onChange={(tags) => onChange('tags', tags)}
+                      placeholder="Thêm tags cho bài viết..."
+                      maxTags={20}
+                      disabled={isSubmitting}
+                      availableTags={availableTags}
+                    />
+                    {errors.tags && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {errors.tags}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Featured */}
                 <div className="flex items-center">
@@ -276,7 +313,7 @@ export default function SettingsSidebar({
                     checked={formData.featured}
                     onChange={(e) => onChange('featured', e.target.checked)}
                     disabled={isSubmitting}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                   />
                   <label htmlFor="featured" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                     Bài viết nổi bật

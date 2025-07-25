@@ -18,13 +18,16 @@ export const TitleSkeleton: React.FC = () => (
   </div>
 );
 
-// Editor skeleton - matches TipTap editor layout
-export const EditorSkeleton: React.FC = () => (
-  <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900" style={{ height: '1000px' }}>
+// UNIFIED Editor skeleton - works for both CREATE and EDIT modes
+export const EditorSkeleton: React.FC<{ height?: string; compact?: boolean }> = ({
+  height = '600px',
+  compact = false
+}) => (
+  <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900" style={{ height }}>
     {/* Toolbar Skeleton - khớp với TipTap toolbar */}
     <div className="border-b border-gray-300 dark:border-gray-600 p-3">
       <div className="flex items-center gap-2 flex-wrap">
-        {Array.from({ length: 15 }, (_, i) => (
+        {Array.from({ length: compact ? 12 : 15 }, (_, i) => (
           <FieldSkeleton key={i} className="w-8 h-8 rounded" />
         ))}
       </div>
@@ -32,14 +35,14 @@ export const EditorSkeleton: React.FC = () => (
 
     {/* Content Area Skeleton */}
     <div className="p-6 space-y-4">
-      {Array.from({ length: 20 }, (_, i) => (
-        <FieldSkeleton 
-          key={i} 
+      {Array.from({ length: compact ? 15 : 20 }, (_, i) => (
+        <FieldSkeleton
+          key={i}
           className={`h-4 ${
-            i % 4 === 0 ? 'w-3/4' : 
-            i % 4 === 1 ? 'w-full' : 
+            i % 4 === 0 ? 'w-3/4' :
+            i % 4 === 1 ? 'w-full' :
             i % 4 === 2 ? 'w-5/6' : 'w-2/3'
-          }`} 
+          }`}
         />
       ))}
     </div>

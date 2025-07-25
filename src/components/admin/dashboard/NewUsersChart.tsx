@@ -207,6 +207,20 @@ export default function NewUsersChart({ className = '' }: Props) {
     return getVisibleLabelIndices(chartData.length, timeRange);
   }, [chartData.length, timeRange, windowWidth]);
 
+  // Dashboard responsive chart dimensions - optimized for 2-column grid
+  const chartDimensions = useMemo(() => {
+    if (!chartData.length) return { width: 800, height: 260 };
+
+    // Dashboard context: in 2-column grid, so use smaller dimensions
+    const containerWidth = windowWidth > 1280 ? (windowWidth - 400) / 2 - 20 : // XL screens: half width minus gap
+                           windowWidth > 1024 ? (windowWidth - 350) / 2 - 20 : // LG screens: half width minus gap
+                           windowWidth > 768 ? windowWidth - 100 :  // MD screens: full width
+                           windowWidth - 60; // SM screens: full width
+
+    const width = Math.max(400, Math.min(containerWidth, 800)); // Cap at 800px for dashboard
+    return { width, height: 260 };
+  }, [chartData.length, timeRange, windowWidth]);
+
   // SVG Line Chart Component
   const LineChart = useCallback(() => {
     if (!chartData.length) {
@@ -222,11 +236,11 @@ export default function NewUsersChart({ className = '' }: Props) {
       );
     }
 
-    // Responsive chart dimensions
-    const width = 800;
-    const height = 260;
+    // Use responsive viewBox dimensions with reasonable limits for font rendering
+    const { width, height } = chartDimensions;
+    const viewBoxWidth = Math.min(width, 1000); // Cap at 1000px to prevent excessive scaling
     const padding = 45;
-    const chartWidth = width - (padding * 2);
+    const chartWidth = viewBoxWidth - (padding * 2);
     const chartHeight = height - (padding * 2);
 
     // Calculate points for the line
@@ -246,12 +260,12 @@ export default function NewUsersChart({ className = '' }: Props) {
     const areaPath = `${pathData} L ${points[points.length - 1].x} ${padding + chartHeight} L ${padding} ${padding + chartHeight} Z`;
 
     return (
-      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 w-full">
         <svg
           width="100%"
           height="260"
-          viewBox={`0 0 ${width} ${height}`}
-          className="overflow-visible h-60 lg:h-72 xl:h-80 2xl:h-96"
+          viewBox={`0 0 ${Math.min(chartDimensions.width, 1000)} ${height}`}
+          className="overflow-visible h-60 lg:h-72 xl:h-80 2xl:h-96 w-full"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Background */}
@@ -265,7 +279,7 @@ export default function NewUsersChart({ className = '' }: Props) {
                 key={`grid-${i}`}
                 x1={padding}
                 y1={y}
-                x2={width - padding}
+                x2={viewBoxWidth - padding}
                 y2={y}
                 stroke="currentColor"
                 strokeWidth="1"
@@ -346,7 +360,7 @@ export default function NewUsersChart({ className = '' }: Props) {
                     x={point.x}
                     y={point.y - 35}
                     textAnchor="middle"
-                    fontSize="10"
+                    fontSize="11"
                     fill="rgba(255, 255, 255, 0.8)"
                     className="animate-in fade-in duration-200"
                   >
@@ -357,7 +371,7 @@ export default function NewUsersChart({ className = '' }: Props) {
                     x={point.x}
                     y={point.y - 22}
                     textAnchor="middle"
-                    fontSize="10"
+                    fontSize="11"
                     fill="rgba(255, 255, 255, 0.8)"
                     className="animate-in fade-in duration-200"
                   >
@@ -383,9 +397,10 @@ export default function NewUsersChart({ className = '' }: Props) {
                   x={point.x}
                   y={height - 10}
                   textAnchor="middle"
-                  fontSize="10"
+                  fontSize={timeRange !== '7d' ? "11" : "10"}
                   fill="currentColor"
                   className="text-gray-600 dark:text-gray-400"
+                  pointerEvents="none"
                 >
                   {point.data.dateLabel}
                 </text>
@@ -403,18 +418,18 @@ export default function NewUsersChart({ className = '' }: Props) {
                 x={padding - 10}
                 y={y + 4}
                 textAnchor="end"
-                fontSize="10"
+                fontSize="12"
                 fill="currentColor"
                 className="text-gray-600 dark:text-gray-400"
               >
-                {value}
+                {value.toLocaleString()}
               </text>
             );
           })}
         </svg>
       </div>
     );
-  }, [chartData, maxValue, hoveredPoint]);
+  }, [chartData, maxValue, hoveredPoint, chartDimensions, visibleLabelIndices]);
 
   // Simple loading skeleton
   if (isLoading) {
@@ -463,7 +478,7 @@ export default function NewUsersChart({ className = '' }: Props) {
   }
 
   return (
-    <div className={className}>
+    <div className={`w-full ${className}`}>
       {/* Header Section */}
       <div className="bg-gradient-to-r from-purple-50/50 via-indigo-50/30 to-blue-50/50 dark:from-purple-950/20 dark:via-indigo-950/10 dark:to-blue-950/20 rounded-t-lg p-4 border border-purple-100 dark:border-purple-800/30 border-b-0">
         <div className="flex items-center justify-between">
@@ -552,10 +567,10 @@ export default function NewUsersChart({ className = '' }: Props) {
       </div>
 
       {/* Content Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-purple-100 dark:border-purple-800/30 border-t-0 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-purple-100 dark:border-purple-800/30 border-t-0 p-4 w-full">
         {/* Chart */}
         <div
-          className="mb-4"
+          className="mb-4 w-full"
           role="img"
           aria-labelledby="new-users-chart-title"
           aria-describedby="new-users-chart-description"

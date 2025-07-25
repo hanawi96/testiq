@@ -11,6 +11,7 @@ interface TagsInputProps {
   maxTags?: number;
   disabled?: boolean;
   className?: string;
+  availableTags?: string[]; // Progressive Loading support
 }
 
 export default function TagsInput({
@@ -19,7 +20,8 @@ export default function TagsInput({
   placeholder = "Thêm tags...",
   maxTags = 20,
   disabled = false,
-  className = ""
+  className = "",
+  availableTags: propAvailableTags
 }: TagsInputProps) {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
@@ -32,7 +34,13 @@ export default function TagsInput({
 
   // Load available tags on component mount
   useEffect(() => {
-    // Set instant data immediately to avoid loading delay
+    if (propAvailableTags) {
+      // Use tags from props (Progressive Loading)
+      setAvailableTags(propAvailableTags);
+      return;
+    }
+
+    // Fallback: load tags if not provided via props
     const instantTags = getInstantTagsData();
     setAvailableTags(instantTags);
 
@@ -46,7 +54,7 @@ export default function TagsInput({
         console.warn('🏷️ TagsInput: Failed to load tags, using instant fallback');
       });
     }
-  }, []);
+  }, [propAvailableTags]);
 
   // Debounced filter function for autocomplete
   const filterSuggestions = useCallback((input: string) => {

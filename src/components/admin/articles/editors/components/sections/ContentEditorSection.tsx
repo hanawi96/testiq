@@ -54,20 +54,18 @@ export const ContentEditorSection: React.FC<ContentEditorSectionProps> = ({
       {/* Content Editor Area */}
       <div className="p-6">
         <div className="article-content-editor">
-          {/* PROGRESSIVE LOADING: Show skeleton for editor when loading article data */}
+          {/* OPTIMIZED: Simplified loading - remove redundant Suspense */}
           {shouldShowArticleSkeleton ? (
-            <EditorSkeleton />
+            <EditorSkeleton height="600px" compact={true} />
           ) : (
-            <Suspense fallback={<EditorSkeleton />}>
-              <TiptapEditor
-                value={formData.content}
-                onChange={(content: string) => setFormData(prev => ({ ...prev, content }))}
-                placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
-                height="auto"
-                flexHeight={true}
-                className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-              />
-            </Suspense>
+            <TiptapEditor
+              value={formData.content}
+              onChange={(content: string) => setFormData(prev => ({ ...prev, content }))}
+              placeholder="Bắt đầu viết nội dung tuyệt vời của bạn..."
+              height="auto"
+              flexHeight={true}
+              className="focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            />
           )}
         </div>
       </div>

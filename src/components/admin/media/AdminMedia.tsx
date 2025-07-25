@@ -418,40 +418,8 @@ export default function AdminMedia() {
 
       {/* Bulk Actions Container */}
       <div className="relative">
-        <AnimatePresence mode="wait">
-          {showBulkActions && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1,
-                transition: {
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 30,
-                  mass: 0.8,
-                  opacity: { duration: 0.2, ease: "easeOut" },
-                  y: { type: "spring", stiffness: 400, damping: 30 },
-                  scale: { type: "spring", stiffness: 400, damping: 30 }
-                }
-              }}
-              exit={{
-                opacity: 0,
-                y: -15,
-                scale: 0.95,
-                transition: {
-                  duration: 0.2,
-                  ease: [0.4, 0.0, 1, 1],
-                  opacity: { duration: 0.15 },
-                  y: { duration: 0.2, ease: [0.4, 0.0, 1, 1] },
-                  scale: { duration: 0.2, ease: [0.4, 0.0, 1, 1] }
-                }
-              }}
-              className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden mb-4 shadow-sm"
-              style={{ willChange: 'transform, opacity' }}
-              layout
-            >
+        {showBulkActions && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden mb-4 shadow-sm">
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -494,9 +462,8 @@ export default function AdminMedia() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
       </div>
 
       {/* Media Grid/List */}

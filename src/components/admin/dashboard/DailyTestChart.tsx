@@ -5,14 +5,15 @@ import type { DailyTestStats, TestTimeRange } from '../../../../backend';
 
 interface Props {
   className?: string;
+  defaultTimeRange?: TestTimeRange;
 }
 
-export default function DailyTestChart({ className = '' }: Props) {
+export default function DailyTestChart({ className = '', defaultTimeRange = '7d' }: Props) {
   const [data, setData] = useState<DailyTestStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
-  const [timeRange, setTimeRange] = useState<TestTimeRange>('7d');
+  const [timeRange, setTimeRange] = useState<TestTimeRange>(defaultTimeRange);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -208,8 +209,13 @@ export default function DailyTestChart({ className = '' }: Props) {
       );
     }
 
-    // Responsive chart dimensions
-    const width = 800;
+    // Dashboard responsive chart dimensions - optimized for 2-column grid
+    const containerWidth = windowWidth > 1280 ? (windowWidth - 400) / 2 - 20 : // XL screens: half width minus gap
+                           windowWidth > 1024 ? (windowWidth - 350) / 2 - 20 : // LG screens: half width minus gap
+                           windowWidth > 768 ? windowWidth - 100 :  // MD screens: full width
+                           windowWidth - 60; // SM screens: full width
+
+    const width = Math.max(400, Math.min(containerWidth, 800)); // Cap at 800px for dashboard
     const baseHeight = 260;
     const height = baseHeight;
     const padding = 45;
@@ -233,12 +239,12 @@ export default function DailyTestChart({ className = '' }: Props) {
     const areaPath = `${pathData} L ${points[points.length - 1].x} ${padding + chartHeight} L ${padding} ${padding + chartHeight} Z`;
 
     return (
-      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 w-full">
         <svg
           width="100%"
           height="260"
           viewBox={`0 0 ${width} ${height}`}
-          className="overflow-visible h-60 lg:h-72 xl:h-80 2xl:h-96"
+          className="overflow-visible h-60 lg:h-72 xl:h-80 2xl:h-96 w-full"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Background */}
@@ -248,15 +254,15 @@ export default function DailyTestChart({ className = '' }: Props) {
           {[0, 1, 2, 3, 4].map(i => {
             const y = padding + (chartHeight / 4) * i;
             return (
-              <line 
+              <line
                 key={`grid-${i}`}
-                x1={padding} 
-                y1={y} 
-                x2={width - padding} 
-                y2={y} 
-                stroke="currentColor" 
-                strokeWidth="1" 
-                className="text-gray-200 dark:text-gray-700" 
+                x1={padding}
+                y1={y}
+                x2={width - padding}
+                y2={y}
+                stroke="currentColor"
+                strokeWidth="1"
+                className="text-gray-200 dark:text-gray-700"
                 opacity="0.3"
               />
             );
@@ -348,9 +354,10 @@ export default function DailyTestChart({ className = '' }: Props) {
                   x={point.x}
                   y={height - 10}
                   textAnchor="middle"
-                  fontSize="10"
+                  fontSize={timeRange !== '7d' ? "11" : "10"}
                   fill="currentColor"
                   className="text-gray-600 dark:text-gray-400"
+                  pointerEvents="none"
                 >
                   {point.data.dateLabel}
                 </text>
@@ -363,16 +370,16 @@ export default function DailyTestChart({ className = '' }: Props) {
             const value = Math.round((maxValue / 4) * (4 - i));
             const y = padding + (chartHeight / 4) * i;
             return (
-              <text 
+              <text
                 key={`y-label-${i}`}
-                x={padding - 10} 
-                y={y + 4} 
-                textAnchor="end" 
-                fontSize="10" 
-                fill="currentColor" 
+                x={padding - 10}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="12"
+                fill="currentColor"
                 className="text-gray-600 dark:text-gray-400"
               >
-                {value}
+                {value.toLocaleString()}
               </text>
             );
           })}
@@ -428,9 +435,9 @@ export default function DailyTestChart({ className = '' }: Props) {
   }
 
   return (
-    <div className={className}>
+    <div className={`w-full ${className}`}>
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-orange-50/50 via-red-50/30 to-pink-50/50 dark:from-orange-950/20 dark:via-red-950/10 dark:to-pink-950/20 rounded-t-lg p-4 border border-orange-100 dark:border-orange-800/30 border-b-0">
+      <div className="bg-gradient-to-r from-orange-50/50 via-red-50/30 to-pink-50/50 dark:from-orange-950/20 dark:via-red-950/10 dark:to-pink-950/20 rounded-t-lg p-4 border border-orange-100 dark:border-orange-800/30 border-b-0 w-full">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {/* Icon */}
@@ -518,10 +525,10 @@ export default function DailyTestChart({ className = '' }: Props) {
       </div>
 
       {/* Content Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-orange-100 dark:border-orange-800/30 border-t-0 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-orange-100 dark:border-orange-800/30 border-t-0 p-4 w-full">
         {/* Chart */}
         <div
-          className="mb-4"
+          className="mb-4 w-full"
           role="img"
           aria-labelledby="daily-test-chart-title"
           aria-describedby="daily-chart-description"

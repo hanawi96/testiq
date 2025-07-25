@@ -710,14 +710,8 @@ export default function MediaManager() {
       </div>
 
       {/* Bulk Actions */}
-      <AnimatePresence>
-        {showBulkActions && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-          >
+      {showBulkActions && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
@@ -746,9 +740,8 @@ export default function MediaManager() {
                 <span>{isUpdating ? 'Đang xóa...' : 'Xóa đã chọn'}</span>
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* Media Grid/List - Always show container */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -830,19 +823,32 @@ export default function MediaManager() {
                         : "relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden border-2 border-dashed border-blue-300 dark:border-blue-600 shadow-lg"
                       }
                     >
-                      {/* Selection Checkbox for completed uploads */}
+                      {/* Selection Checkbox for completed uploads - Hidden by default, visible on hover or when selected */}
                       {uploadData.isCompleted && uploadData.uploadedFile && (
-                        <div className="absolute top-2 left-2 z-10">
+                        <div className={`absolute top-2 left-2 z-10 transition-opacity duration-200 ${
+                          selectedFiles.includes(uploadData.uploadedFile.id)
+                            ? 'opacity-100'
+                            : 'opacity-0 group-hover:opacity-100'
+                        }`}>
                           <input
                             type="checkbox"
                             checked={selectedFiles.includes(uploadData.uploadedFile.id)}
-                            onChange={() => handleSelectFile(uploadData.uploadedFile!.id)}
-                            className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-800"
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleSelectFile(uploadData.uploadedFile!.id);
+                            }}
+                            className="w-[17px] h-[17px] rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-800 shadow-lg"
                           />
                         </div>
                       )}
 
-                      <div className="aspect-square flex items-center justify-center p-4 relative">
+                      <div
+                        className={`aspect-square flex items-center justify-center p-4 relative ${
+                          uploadData.isCompleted && uploadData.uploadedFile ? 'cursor-pointer' : ''
+                        }`}
+                        onClick={uploadData.isCompleted && uploadData.uploadedFile ? () => handleSelectFile(uploadData.uploadedFile!.id) : undefined}
+                        title={uploadData.isCompleted && uploadData.uploadedFile ? "Click để chọn/bỏ chọn" : ""}
+                      >
                         {/* Show real image if completed, otherwise loading */}
                         {uploadData.isCompleted && uploadData.uploadedFile ? (
                           <img
@@ -905,58 +911,67 @@ export default function MediaManager() {
                         )}
                       </div>
 
-                      {/* Actions Overlay for completed uploads */}
+                      {/* Actions for completed uploads - Visible on hover WITHOUT overlay background */}
                       {uploadData.isCompleted && uploadData.uploadedFile && (
-                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center space-x-2">
-                          <button
-                            onClick={() => window.open(uploadData.uploadedFile!.url, '_blank')}
-                            className="p-2 bg-white dark:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            title="Xem"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleEditFile(uploadData.uploadedFile!)}
-                            className="p-2 bg-white dark:bg-gray-800 rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            title="Chỉnh sửa"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          {uploadData.uploadedFile.type.startsWith('image/') && (
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center space-x-2 pointer-events-none">
+                          <div className="flex items-center space-x-2 pointer-events-auto">
                             <button
-                              onClick={() => handleCropFile(uploadData.uploadedFile!)}
-                              className="p-2 bg-white dark:bg-gray-800 rounded-full text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                              title="Crop ảnh"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(uploadData.uploadedFile!.url, '_blank');
+                              }}
+                              className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                              title="Xem"
                             >
-                              <Crop className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            onClick={() => navigator.clipboard.writeText(uploadData.uploadedFile!.url)}
-                            className="p-2 bg-white dark:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            title="Copy URL"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteFile(uploadData.uploadedFile!.id)}
-                            disabled={isUpdating}
-                            className="p-2 bg-white dark:bg-gray-800 rounded-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
-                            title="Xóa"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditFile(uploadData.uploadedFile!);
+                              }}
+                              className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-blue-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                              title="Chỉnh sửa"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            {uploadData.uploadedFile.type.startsWith('image/') && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCropFile(uploadData.uploadedFile!);
+                                }}
+                                className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-green-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                                title="Crop ảnh"
+                              >
+                                <Crop className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(uploadData.uploadedFile!.url);
+                              }}
+                              className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-purple-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                              title="Copy URL"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteFile(uploadData.uploadedFile!.id);
+                              }}
+                              disabled={isUpdating}
+                              className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-red-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg disabled:opacity-50"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       )}
+
                     </motion.div>
                     ))}
                   </AnimatePresence>
@@ -969,18 +984,29 @@ export default function MediaManager() {
                       animate={{ opacity: 1, scale: 1 }}
                       className="relative group bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600"
                     >
-                      {/* Selection Checkbox */}
-                      <div className="absolute top-2 left-2 z-10">
+                      {/* Selection Checkbox - Hidden by default, visible on hover or when selected */}
+                      <div className={`absolute top-2 left-2 z-10 transition-opacity duration-200 ${
+                        selectedFiles.includes(file.id)
+                          ? 'opacity-100'
+                          : 'opacity-0 group-hover:opacity-100'
+                      }`}>
                         <input
                           type="checkbox"
                           checked={selectedFiles.includes(file.id)}
-                          onChange={() => handleSelectFile(file.id)}
-                          className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-800"
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectFile(file.id);
+                          }}
+                          className="w-[17px] h-[17px] rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-800 shadow-lg"
                         />
                       </div>
 
-                      {/* File Preview */}
-                      <div className="aspect-square flex items-center justify-center p-4 relative">
+                      {/* File Preview - Clickable to toggle selection */}
+                      <div
+                        className="aspect-square flex items-center justify-center p-4 relative cursor-pointer"
+                        onClick={() => handleSelectFile(file.id)}
+                        title="Click để chọn/bỏ chọn"
+                      >
                         {file.type.startsWith('image/') ? (
                           <>
                             <img
@@ -1022,47 +1048,65 @@ export default function MediaManager() {
                         </div>
                       </div>
 
-                      {/* Actions Overlay */}
-                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => window.open(file.url, '_blank')}
-                          className="p-2 bg-white dark:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          title="Xem"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditFile(file)}
-                          className="p-2 bg-white dark:bg-gray-800 rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          title="Chỉnh sửa"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        {file.type.startsWith('image/') && (
+                      {/* Actions - Visible on hover WITHOUT overlay background */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center space-x-2 pointer-events-none">
+                        <div className="flex items-center space-x-2 pointer-events-auto">
                           <button
-                            onClick={() => handleCropFile(file)}
-                            className="p-2 bg-white dark:bg-gray-800 rounded-full text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            title="Crop ảnh"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(file.url, '_blank');
+                            }}
+                            className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                            title="Xem"
                           >
-                            <Crop className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleCopyUrl(file.url)}
-                          className="p-2 bg-white dark:bg-gray-800 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          title="Copy URL"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteFile(file.id)}
-                          disabled={isUpdating}
-                          className="p-2 bg-white dark:bg-gray-800 rounded-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditFile(file);
+                            }}
+                            className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-blue-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          {file.type.startsWith('image/') && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCropFile(file);
+                              }}
+                              className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-green-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                              title="Crop ảnh"
+                            >
+                              <Crop className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyUrl(file.url);
+                            }}
+                            className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-purple-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg"
+                            title="Copy URL"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFile(file.id);
+                            }}
+                            disabled={isUpdating}
+                            className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-red-600 hover:bg-white dark:hover:bg-gray-800 shadow-lg disabled:opacity-50"
+                            title="Xóa"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+
                     </motion.div>
                   ))}
 

@@ -152,7 +152,7 @@ export default function ArticlesTable({
                       type="checkbox"
                       checked={selectedArticles.length === articlesData.articles.length && articlesData.articles.length > 0}
                       onChange={onSelectAll}
-                      className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                     />
                     <span>Bài viết</span>
                   </div>
@@ -193,7 +193,7 @@ export default function ArticlesTable({
                         type="checkbox"
                         checked={selectedArticles.includes(article.id)}
                         onChange={() => onSelectArticle(article.id)}
-                        className="mt-1 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                        className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start space-x-2">

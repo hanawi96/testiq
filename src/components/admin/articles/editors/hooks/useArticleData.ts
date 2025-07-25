@@ -290,13 +290,23 @@ export const useArticleData = ({
           loadingActions.setAuthorsLoaded();
 
         } else {
-          // CREATE MODE: Load only preloaded data (no article to fetch)
+          // OPTIMIZED CREATE MODE: Smart preloading with timing control
           console.log('🆕 CREATE MODE: Loading categories and authors for new article');
+
+          // PERFORMANCE: Add minimum loading time for consistent UX
+          const minLoadTime = 150; // ms - prevent skeleton flash
+          const loadStartTime = Date.now();
 
           const [categoriesData, authorsData] = await Promise.all([
             isCategoriesDataReady() ? Promise.resolve(getInstantCategoriesData()) : preloadCategoriesData(),
             isAuthorsDataReady() ? Promise.resolve(getInstantAuthorsData()) : preloadAuthorsData()
           ]);
+
+          // TIMING: Ensure minimum skeleton display time
+          const loadDuration = Date.now() - loadStartTime;
+          if (loadDuration < minLoadTime) {
+            await new Promise(resolve => setTimeout(resolve, minLoadTime - loadDuration));
+          }
 
           // FIXED: Batch all state updates in startTransition to avoid hydration conflicts
           startTransition(() => {

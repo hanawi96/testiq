@@ -3,7 +3,7 @@
  * Tách logic save (autosave & manual save) để dễ quản lý
  */
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ArticlesService } from '../../../../../../backend';
 import type { CreateArticleData } from '../../../../../../backend';
 import { BlogService } from '../../../../../services/blog-service';
@@ -29,6 +29,7 @@ interface UseSaveHandlersProps {
   setLastSaved: (date: Date | null) => void;
   setHasUnsavedChanges: (hasChanges: boolean) => void;
   setValidationError: (error: string) => void;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>; // 🔧 NEW: For updating formData after save
   onSave?: (data: any) => void;
   onDraftCleared?: () => void; // Callback when draft is cleared after save
   onAutoSaveSuccess?: () => void; // 🔧 NEW: Callback when autosave succeeds
@@ -50,6 +51,7 @@ export const useSaveHandlers = ({
   setLastSaved,
   setHasUnsavedChanges,
   setValidationError,
+  setFormData,
   onSave,
   onDraftCleared,
   onAutoSaveSuccess
@@ -232,6 +234,25 @@ export const useSaveHandlers = ({
           }).catch(() => {});
         }
 
+        // 🔧 FIX: Update formData with saved data to reflect new status and published_at
+        if (!isAutoSave) {
+          // For manual saves (publish/schedule), update formData with server response
+          setFormData(prev => ({
+            ...prev,
+            status: data.status || prev.status,
+            published_at: data.published_at || prev.published_at,
+            published_date: data.published_date || data.published_at || prev.published_date,
+            // Update other fields that might have changed on server
+            id: data.id || prev.id,
+            slug: data.slug || prev.slug
+          }));
+          console.log('🔄 FormData updated after manual save:', {
+            status: data.status,
+            published_at: data.published_at,
+            published_date: data.published_date
+          });
+        }
+
         // Call onSave callback if provided
         if (onSave) {
           onSave(data);
@@ -299,6 +320,7 @@ export const useSaveHandlers = ({
     setLastSaved,
     setHasUnsavedChanges,
     setValidationError,
+    setFormData,
     onSave,
     updateSaveProgress
   ]);

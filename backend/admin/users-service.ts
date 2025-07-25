@@ -509,6 +509,80 @@ export class UsersService {
   }
 
   /**
+   * Bulk update user roles
+   */
+  static async bulkUpdateUserRole(
+    userIds: string[],
+    newRole: 'admin' | 'editor' | 'author' | 'reviewer'
+  ): Promise<{ success: boolean; error: any }> {
+    try {
+      console.log('UsersService: Bulk updating user roles:', { userIds, newRole });
+
+      if (!userIds || userIds.length === 0) {
+        return { success: true, error: null };
+      }
+
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .update({
+          role: newRole,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', userIds)
+        .select('id');
+
+      if (error) {
+        console.error('UsersService: Error in bulk role update:', error);
+        return { success: false, error };
+      }
+
+      console.log('UsersService: Bulk role update completed:', data?.length || 0, 'users updated');
+      return { success: true, error: null };
+
+    } catch (err: any) {
+      console.error('UsersService: Unexpected error in bulk role update:', err);
+      return { success: false, error: err };
+    }
+  }
+
+  /**
+   * Bulk update user verification status
+   */
+  static async bulkUpdateUserVerification(
+    userIds: string[],
+    verified: boolean
+  ): Promise<{ success: boolean; error: any }> {
+    try {
+      console.log('UsersService: Bulk updating user verification:', { userIds, verified });
+
+      if (!userIds || userIds.length === 0) {
+        return { success: true, error: null };
+      }
+
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .update({
+          is_verified: verified,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', userIds)
+        .select('id');
+
+      if (error) {
+        console.error('UsersService: Error in bulk verification update:', error);
+        return { success: false, error };
+      }
+
+      console.log('UsersService: Bulk verification update completed:', data?.length || 0, 'users updated');
+      return { success: true, error: null };
+
+    } catch (err: any) {
+      console.error('UsersService: Unexpected error in bulk verification update:', err);
+      return { success: false, error: err };
+    }
+  }
+
+  /**
    * Update user information
    */
   static async updateUser(

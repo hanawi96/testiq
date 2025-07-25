@@ -3,9 +3,9 @@
 export const prerender = false;
 
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import ArticleEditor from '../../../components/admin/articles/editors/ArticleEditor.tsx';
+import ArticleEditor from '../../../components/admin/articles/editors/ArticleEditor';
 ---
 
 <AdminLayout title="Tạo bài viết mới">
-  <ArticleEditor client:only="react" />
+  <ArticleEditor client:load mode="create" />
 </AdminLayout>

@@ -140,11 +140,7 @@ const SocialLinksBox: React.FC<SocialLinksBoxProps> = ({
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 Liên kết mạng xã hội
-                <span className="text-purple-500">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M13.5 2c-5.621 0-10.211 4.443-10.475 10h-3.025l5 6.625 5-6.625h-3.053c.218-3.51 3.182-6.375 6.553-6.375 3.371 0 6.335 2.865 6.553 6.375h-3.053l5 6.625 5-6.625h-3.025c-.264-5.557-4.854-10-10.475-10z"/>
-                  </svg>
-                </span>
+                
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
                 Kết nối với cộng đồng thông qua các nền tảng mạng xã hội và trang web cá nhân
@@ -419,7 +415,7 @@ const SocialLinksBox: React.FC<SocialLinksBoxProps> = ({
               type="button"
               onClick={handleReset}
               disabled={!hasChanges || isLoading}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Đặt lại
             </button>
@@ -427,7 +423,7 @@ const SocialLinksBox: React.FC<SocialLinksBoxProps> = ({
             <button
               type="submit"
               disabled={!hasChanges || !isFormValid || isLoading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isLoading && (
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">

@@ -30,6 +30,10 @@ export default function UsersList() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
+
+  // Bulk actions state
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
   
   // Cache for instant pagination and filtering
   const cache = useRef<Map<string, UsersListResponse>>(new Map());
@@ -303,6 +307,83 @@ export default function UsersList() {
   const handleEditUserClose = () => {
     setShowEditModal(false);
     setSelectedUser(null);
+  };
+
+  // Handle user selection
+  const handleUserSelect = (userId: string, checked: boolean) => {
+    setSelectedUsers(prev => {
+      const newSelection = checked
+        ? [...prev, userId]
+        : prev.filter(id => id !== userId);
+      setShowBulkActions(newSelection.length > 0);
+      return newSelection;
+    });
+  };
+
+  // Handle select all users
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && usersData) {
+      // Only select non-anonymous users for bulk actions
+      const selectableUsers = usersData.users.filter(user => !isAnonymousUser(user));
+      setSelectedUsers(selectableUsers.map(user => user.id));
+      setShowBulkActions(selectableUsers.length > 0);
+    } else {
+      setSelectedUsers([]);
+      setShowBulkActions(false);
+    }
+  };
+
+  // Handle bulk role update
+  const handleBulkRoleUpdate = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer') => {
+    if (selectedUsers.length === 0) return;
+
+    if (!confirm(`Bạn có chắc chắn muốn cập nhật role thành "${newRole}" cho ${selectedUsers.length} người dùng đã chọn?`)) return;
+
+    setActionLoading('bulk-role');
+    try {
+      const { success, error } = await UsersService.bulkUpdateUserRole(selectedUsers, newRole);
+      if (success) {
+        // Clear cache và refresh data
+        cache.current.clear();
+        await Promise.all([fetchUsers(currentPage), fetchStats()]);
+        setSelectedUsers([]);
+        setShowBulkActions(false);
+        showSuccess(`Đã cập nhật role cho ${selectedUsers.length} người dùng thành công`);
+      } else {
+        showError(error?.message || 'Không thể cập nhật role cho người dùng');
+      }
+    } catch (err: any) {
+      showError(err?.message || 'Có lỗi xảy ra khi cập nhật role');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  // Handle bulk verification toggle
+  const handleBulkVerificationToggle = async (verified: boolean) => {
+    if (selectedUsers.length === 0) return;
+
+    const action = verified ? 'xác thực' : 'hủy xác thực';
+    if (!confirm(`Bạn có chắc chắn muốn ${action} ${selectedUsers.length} người dùng đã chọn?`)) return;
+
+    setActionLoading('bulk-verification');
+    try {
+      const { success, error } = await UsersService.bulkUpdateUserVerification(selectedUsers, verified);
+      if (success) {
+        // Clear cache và refresh data
+        cache.current.clear();
+        await Promise.all([fetchUsers(currentPage), fetchStats()]);
+        setSelectedUsers([]);
+        setShowBulkActions(false);
+        showSuccess(`Đã ${action} ${selectedUsers.length} người dùng thành công`);
+      } else {
+        showError(error?.message || `Không thể ${action} người dùng`);
+      }
+    } catch (err: any) {
+      showError(err?.message || `Có lỗi xảy ra khi ${action}`);
+    } finally {
+      setActionLoading('');
+    }
   };
 
   // Handle edit user success
@@ -642,6 +723,79 @@ export default function UsersList() {
         </div>
       </div>
 
+      {/* Bulk Actions */}
+      {showBulkActions && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                Đã chọn {selectedUsers.length} người dùng
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedUsers([]);
+                  setShowBulkActions(false);
+                }}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+              >
+                Bỏ chọn tất cả
+              </button>
+            </div>
+            <div className="flex items-center space-x-2">
+              {/* Role Update Dropdown */}
+              <div className="relative">
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleBulkRoleUpdate(e.target.value as 'admin' | 'editor' | 'author' | 'reviewer');
+                      e.target.value = '';
+                    }
+                  }}
+                  disabled={actionLoading === 'bulk-role'}
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Cập nhật role</option>
+                  <option value="admin">Admin</option>
+                  <option value="editor">Editor</option>
+                  <option value="author">Author</option>
+                  <option value="reviewer">Reviewer</option>
+                </select>
+              </div>
+
+              {/* Verification Actions */}
+              <button
+                onClick={() => handleBulkVerificationToggle(true)}
+                disabled={actionLoading === 'bulk-verification'}
+                className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed"
+              >
+                {actionLoading === 'bulk-verification' ? 'Đang xử lý...' : 'Xác thực'}
+              </button>
+              <button
+                onClick={() => handleBulkVerificationToggle(false)}
+                disabled={actionLoading === 'bulk-verification'}
+                className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed"
+              >
+                {actionLoading === 'bulk-verification' ? 'Đang xử lý...' : 'Hủy xác thực'}
+              </button>
+
+              {/* Close button */}
+              <button
+                onClick={() => {
+                  setSelectedUsers([]);
+                  setShowBulkActions(false);
+                }}
+                className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors ml-2"
+                title="Đóng thanh công cụ"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <motion.div
@@ -718,7 +872,15 @@ export default function UsersList() {
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Người dùng
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.length > 0 && selectedUsers.length === usersData?.users.filter(user => !isAnonymousUser(user)).length}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
+                      />
+                      <span>Người dùng</span>
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Vai trò
@@ -756,6 +918,19 @@ export default function UsersList() {
                     {/* User Info */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
+                        {/* Checkbox - only for non-anonymous users */}
+                        <div className="flex-shrink-0 mr-3">
+                          {!isAnonymousUser(user) ? (
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.includes(user.id)}
+                              onChange={(e) => handleUserSelect(user.id, e.target.checked)}
+                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
+                            />
+                          ) : (
+                            <div className="h-4 w-4"></div>
+                          )}
+                        </div>
                         <div className="flex-shrink-0 h-12 w-12 mr-4">
                           <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
                             isAnonymousUser(user) ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-primary-100 dark:bg-primary-900/30'

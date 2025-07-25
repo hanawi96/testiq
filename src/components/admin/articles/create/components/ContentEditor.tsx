@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import TiptapEditor from '../editor/TiptapEditor';
 import type { ContentEditorProps } from '../types/articleForm';
+// OPTIMIZED: Use unified skeleton from main editor
+import { EditorSkeleton } from '../../editors/components/SkeletonComponents';
+
+interface ExtendedContentEditorProps extends ContentEditorProps {
+  shouldShowSkeleton?: boolean;
+}
 
 export default function ContentEditor({
   value,
@@ -8,8 +14,9 @@ export default function ContentEditor({
   placeholder = "Bắt đầu viết nội dung...",
   disabled = false,
   onFocus,
-  onBlur
-}: ContentEditorProps) {
+  onBlur,
+  shouldShowSkeleton = false
+}: ExtendedContentEditorProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [characterCount, setCharacterCount] = useState(0);
@@ -38,6 +45,11 @@ export default function ContentEditor({
 
   const readingTime = Math.ceil(wordCount / 200); // Average reading speed
 
+  // Show skeleton if loading
+  if (shouldShowSkeleton) {
+    return <ContentEditorSkeleton />;
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       {/* Header */}
@@ -46,7 +58,7 @@ export default function ContentEditor({
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
             Nội dung bài viết
           </h2>
-          
+
           {/* Stats */}
           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
             <span>{wordCount} từ</span>
@@ -58,17 +70,21 @@ export default function ContentEditor({
         </div>
       </div>
 
-      {/* Editor */}
+      {/* OPTIMIZED: Simplified editor without redundant Suspense */}
       <div className={`relative ${isFocused ? 'ring-2 ring-blue-500 ring-opacity-20' : ''}`}>
-        <TiptapEditor
-          content={value}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          disabled={disabled}
-          className="min-h-[500px] p-6"
-        />
+        {shouldShowSkeleton ? (
+          <EditorSkeleton height="500px" compact={true} />
+        ) : (
+          <TiptapEditor
+            content={value}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            disabled={disabled}
+            className="min-h-[500px] p-6"
+          />
+        )}
       </div>
 
       {/* Footer with additional info */}

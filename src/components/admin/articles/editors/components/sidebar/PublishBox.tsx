@@ -48,19 +48,9 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
   formHandlers,
   onRevertToOriginal
 }) => {
-  // 🔧 FIX: Phân biệt bài viết mới vs bài viết đã publish
-  const isNewArticle = !formData.published_at; // Chưa từng publish
-  const isPublishedArticle = !!formData.published_at; // Đã từng publish
 
-  // Debug logging
-  console.log('🔍 PublishBox Debug:', {
-    isEditMode,
-    isNewArticle,
-    isPublishedArticle,
-    hasChangesFromOriginal,
-    published_at: formData.published_at,
-    status: formData.status
-  });
+
+
   // State cho date editor
   const [showDateEditor, setShowDateEditor] = useState(false);
   const [editingPublishedDate, setEditingPublishedDate] = useState(() => {
@@ -238,8 +228,8 @@ export const PublishBox: React.FC<PublishBoxProps> = ({
       return;
     }
 
-    // Validation passed - proceed with save
-    setFormData(updatedFormData);
+    // 🔧 FIX: Chỉ gọi API với data mới, KHÔNG cập nhật formData trước
+    // formData sẽ được cập nhật trong onSave callback sau khi API thành công
     handleManualSaveWithData(updatedFormData);
   };
 

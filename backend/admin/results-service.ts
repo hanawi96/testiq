@@ -349,4 +349,34 @@ export class ResultsService {
       return { data: null, error: err };
     }
   }
+
+  /**
+   * Bulk delete test results
+   */
+  static async deleteResults(resultIds: string[]): Promise<{ data: number; error: any }> {
+    try {
+      console.log('ResultsService: Bulk deleting results:', resultIds);
+
+      if (!resultIds || resultIds.length === 0) {
+        return { data: 0, error: null };
+      }
+
+      const { error: deleteError } = await supabase
+        .from('user_test_results')
+        .delete()
+        .in('id', resultIds);
+
+      if (deleteError) {
+        console.error('ResultsService: Error in bulk delete:', deleteError);
+        return { data: 0, error: deleteError };
+      }
+
+      console.log('ResultsService: Bulk delete completed:', resultIds.length, 'results deleted');
+      return { data: resultIds.length, error: null };
+
+    } catch (err: any) {
+      console.error('ResultsService: Unexpected error in bulk delete:', err);
+      return { data: 0, error: err };
+    }
+  }
 }

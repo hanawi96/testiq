@@ -348,6 +348,7 @@ export default function ArticleEditor({ articleId, onSave }: ArticleEditorProps)
     setLastSaved,
     setHasUnsavedChanges,
     setValidationError,
+    setFormData, // 🔧 FIX: Pass setFormData to update form after save
     onSave,
     onDraftCleared: () => {
       // Reset hasDraftData when draft is cleared after manual save

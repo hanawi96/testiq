@@ -917,14 +917,8 @@ export default function AdminCategories() {
       </div>
 
       {/* Bulk Actions */}
-      <AnimatePresence>
-        {showBulkActions && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-          >
+      {showBulkActions && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
@@ -1009,11 +1003,25 @@ export default function AdminCategories() {
                     </>
                   )}
                 </button>
+
+                {/* Close button */}
+                <button
+                  onClick={() => {
+                    setSelectedCategories([]);
+                    setShowBulkActions(false);
+                  }}
+                  disabled={bulkActionLoading !== null}
+                  className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors ml-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Đóng thanh công cụ"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* Categories Table - Always show container */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -1076,7 +1084,7 @@ export default function AdminCategories() {
                           checked={categoriesData ? selectedCategories.length === categoriesData.categories.length && categoriesData.categories.length > 0 : false}
                           onChange={handleSelectAll}
                           disabled={!categoriesData}
-                          className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded disabled:opacity-50"
                         />
                         <span>Danh mục</span>
                       </div>
@@ -1112,7 +1120,7 @@ export default function AdminCategories() {
                             type="checkbox"
                             checked={selectedCategories.includes(category.id)}
                             onChange={() => handleSelectCategory(category.id)}
-                            className="mt-1 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                            className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center group">

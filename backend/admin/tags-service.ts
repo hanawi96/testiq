@@ -431,6 +431,65 @@ export class TagsService {
   }
 
   /**
+   * Bulk delete tags
+   */
+  static async bulkDeleteTags(tagIds: string[]): Promise<{ data: number; error: any }> {
+    try {
+      console.log('TagsService: Bulk deleting tags:', tagIds);
+
+      if (!tagIds || tagIds.length === 0) {
+        return { data: 0, error: null };
+      }
+
+      // Check if any tags are being used
+      const { data: tagsWithUsage, error: checkError } = await supabase
+        .from('tags')
+        .select(`
+          id,
+          name,
+          usage_count
+        `)
+        .in('id', tagIds);
+
+      if (checkError) {
+        console.error('TagsService: Error checking tags for deletion:', checkError);
+        return { data: 0, error: checkError };
+      }
+
+      // Find tags that cannot be deleted (have usage_count > 0)
+      const blockedTags = tagsWithUsage?.filter(tag => tag.usage_count > 0) || [];
+
+      if (blockedTags.length > 0) {
+        const blockedNames = blockedTags.map(tag =>
+          `"${tag.name}" (${tag.usage_count} bài viết)`
+        ).join(', ');
+        return {
+          data: 0,
+          error: new Error(`Không thể xóa các tag đang được sử dụng: ${blockedNames}`)
+        };
+      }
+
+      // Delete tags that can be deleted
+      const { error: deleteError } = await supabase
+        .from('tags')
+        .delete()
+        .in('id', tagIds);
+
+      if (deleteError) {
+        console.error('TagsService: Error in bulk delete:', deleteError);
+        return { data: 0, error: deleteError };
+      }
+
+      console.log('TagsService: Bulk delete completed:', tagIds.length, 'tags deleted');
+      return { data: tagIds.length, error: null };
+
+    } catch (err: any) {
+      console.error('TagsService: Unexpected error in bulk delete:', err);
+      return { data: 0, error: err };
+    }
+  }
+
+  /**
    * Get most popular tags (by usage_count)
    */
   static async getPopularTags(limit: number = 15): Promise<{ data: string[]; error: any }> {

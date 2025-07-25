@@ -23,6 +23,7 @@ export default function AdminTags() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   // Fetch tags data
   const fetchTags = useCallback(async (page: number = currentPage) => {
@@ -88,19 +89,59 @@ export default function AdminTags() {
 
   // Handle tag selection
   const handleTagSelect = (tagId: string, checked: boolean) => {
-    setSelectedTags(prev => 
-      checked 
+    setSelectedTags(prev => {
+      const newSelection = checked
         ? [...prev, tagId]
-        : prev.filter(id => id !== tagId)
-    );
+        : prev.filter(id => id !== tagId);
+      setShowBulkActions(newSelection.length > 0);
+      return newSelection;
+    });
   };
 
   // Handle select all
   const handleSelectAll = (checked: boolean) => {
     if (checked && tagsData) {
       setSelectedTags(tagsData.tags.map(tag => tag.id));
+      setShowBulkActions(true);
     } else {
       setSelectedTags([]);
+      setShowBulkActions(false);
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedTags.length === 0) return;
+
+    // Check if any selected tags have usage
+    const selectedTagsData = tagsData?.tags.filter(tag => selectedTags.includes(tag.id)) || [];
+    const tagsWithUsage = selectedTagsData.filter(tag => tag.usage_count > 0);
+
+    if (tagsWithUsage.length > 0) {
+      const tagNames = tagsWithUsage.map(tag => `"${tag.name}" (${tag.usage_count} bài viết)`).join(', ');
+      alert(`Không thể xóa các tag sau vì đang được sử dụng: ${tagNames}`);
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedTags.length} tag đã chọn?`)) return;
+
+    setIsUpdating(true);
+    try {
+      const { error } = await TagsService.bulkDeleteTags(selectedTags);
+      if (error) {
+        setError(error.message || 'Không thể xóa tags');
+        return;
+      }
+
+      // Refresh data
+      await Promise.all([fetchTags(currentPage), fetchStats()]);
+      setSelectedTags([]);
+      setShowBulkActions(false);
+      alert(`Đã xóa ${selectedTags.length} tag thành công`);
+    } catch (err: any) {
+      setError(err?.message || 'Có lỗi xảy ra khi xóa tags');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -294,6 +335,8 @@ export default function AdminTags() {
         </div>
       )}
 
+
+
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -324,6 +367,52 @@ export default function AdminTags() {
           </div>
         </div>
       </div>
+
+      {/* Bulk Actions */}
+      {showBulkActions && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                Đã chọn {selectedTags.length} tag
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedTags([]);
+                  setShowBulkActions(false);
+                }}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+              >
+                Bỏ chọn tất cả
+              </button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleBulkDelete}
+                disabled={isUpdating}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed"
+              >
+                {isUpdating ? 'Đang xóa...' : 'Xóa đã chọn'}
+              </button>
+
+              {/* Close button */}
+              <button
+                onClick={() => {
+                  setSelectedTags([]);
+                  setShowBulkActions(false);
+                }}
+                disabled={isUpdating}
+                className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors ml-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Đóng thanh công cụ"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tags Table - Always show container */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -386,7 +475,7 @@ export default function AdminTags() {
                       checked={tagsData ? selectedTags.length === tagsData.tags.length && tagsData.tags.length > 0 : false}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       disabled={!tagsData}
-                      className="rounded border-gray-300 dark:border-gray-600 disabled:opacity-50"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded disabled:opacity-50"
                     />
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -415,7 +504,7 @@ export default function AdminTags() {
                         type="checkbox"
                         checked={selectedTags.includes(tag.id)}
                         onChange={(e) => handleTagSelect(tag.id, e.target.checked)}
-                        className="rounded border-gray-300 dark:border-gray-600"
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                       />
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">

@@ -1,235 +1,217 @@
-import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { useArticleForm } from './hooks/useArticleForm';
-import { useAutoSave } from './hooks/useAutoSave';
-import ContentEditor from './components/ContentEditor';
-import SettingsSidebar from './components/SettingsSidebar';
-import PublishActions from './components/PublishActions';
-import PreviewModal from './components/PreviewModal';
-import type { ArticleCreatePageProps } from './types/articleForm';
+// Copy chính xác imports từ ArticleEditor để đảm bảo UI/UX giống hệt nhau
+import React, { useState, useEffect, useCallback, Suspense, startTransition } from 'react';
 
-export default function ArticleCreatePage({ 
-  initialData, 
-  mode = 'create',
-  articleId 
-}: ArticleCreatePageProps) {
-  // Form state management
-  const {
-    formData,
-    errors,
-    isSubmitting,
-    isDirty,
-    isAutoSaving,
-    lastSaved,
-    setField,
-    setMultipleFields,
-    clearError,
-    validateAllFields,
-    setSubmitting,
-    setAutoSaving,
-    setLastSaved,
-    resetForm,
-    isValid
-  } = useArticleForm(initialData);
+// Layout components (copy từ edit)
+import { ArticleEditorLayout, MainContent, Sidebar } from '../editors/layouts';
 
-  // Preview state
-  const [previewState, setPreviewState] = useState({
-    isOpen: false,
-    isLoading: false
-  });
+// Sections (copy từ edit)
+import { TitleSection, ContentEditorSection, ExcerptSection, SEOSection } from '../editors/components/sections';
 
-  // Auto-save functionality
-  const { saveNow } = useAutoSave(formData, isDirty, {
-    enabled: true,
-    interval: 30000, // 30 seconds
-    onSaveStart: () => setAutoSaving(true),
-    onSaveSuccess: (date) => {
-      setAutoSaving(false);
-      setLastSaved(date);
-    },
-    onSaveError: (error) => {
-      setAutoSaving(false);
-      console.error('Auto-save failed:', error);
+// Sidebar components (copy từ edit)
+import { PublishBox } from '../editors/components/sidebar/PublishBox';
+import { CategoriesSection } from '../editors/components/sidebar/CategoriesSection';
+
+// Lazy load TiptapEditor (copy từ edit)
+import { lazy } from 'react';
+const TiptapEditor = lazy(() => import('../editors/TiptapEditor'));
+
+// Đơn giản hóa interface để tránh lỗi
+interface SimpleFormData {
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  status: string;
+  featured: boolean;
+  author_id: string;
+  categories: string[];
+  tags: string[];
+  meta_title: string;
+  meta_description: string;
+  focus_keyword: string;
+  cover_image: string;
+  published_at: string;
+  schema_type: string;
+  internal_links: string[];
+  external_links: string[];
+}
+
+const defaultFormData: SimpleFormData = {
+  title: '',
+  slug: '',
+  content: '',
+  excerpt: '',
+  status: 'published',
+  featured: false,
+  author_id: '',
+  categories: [],
+  tags: [],
+  meta_title: '',
+  meta_description: '',
+  focus_keyword: '',
+  cover_image: '',
+  published_at: '',
+  schema_type: 'Article',
+  internal_links: [],
+  external_links: []
+};
+
+export default function ArticleCreatePage() {
+  // Dispatch event để hide static skeleton
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('article-create-mounted'));
     }
-  });
-
-  // Handle field changes
-  const handleFieldChange = useCallback((field: keyof typeof formData, value: any) => {
-    setField(field, value);
-  }, [setField]);
-
-  // Handle save draft
-  const handleSaveDraft = useCallback(async () => {
-    if (!validateAllFields()) return;
-
-    setSubmitting(true);
-    try {
-      await saveNow();
-      // Show success message
-      console.log('Draft saved successfully');
-    } catch (error) {
-      console.error('Failed to save draft:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [validateAllFields, setSubmitting, saveNow]);
-
-  // Handle publish
-  const handlePublish = useCallback(async () => {
-    if (!validateAllFields()) return;
-
-    setSubmitting(true);
-    try {
-      const publishData = {
-        ...formData,
-        status: 'published' as const,
-        published_at: new Date().toISOString()
-      };
-
-      // Call API to publish
-      console.log('Publishing article:', publishData);
-      
-      // Show success message and redirect
-      window.location.href = '/admin/articles';
-    } catch (error) {
-      console.error('Failed to publish article:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [formData, validateAllFields, setSubmitting]);
-
-  // Handle schedule
-  const handleSchedule = useCallback(async (scheduledDate: string) => {
-    if (!validateAllFields()) return;
-
-    setSubmitting(true);
-    try {
-      const scheduleData = {
-        ...formData,
-        status: 'draft' as const,
-        scheduled_at: scheduledDate
-      };
-
-      // Call API to schedule
-      console.log('Scheduling article:', scheduleData);
-      
-      // Show success message
-    } catch (error) {
-      console.error('Failed to schedule article:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [formData, validateAllFields, setSubmitting]);
-
-  // Handle preview
-  const handlePreview = useCallback(() => {
-    setPreviewState({ isOpen: true, isLoading: false });
   }, []);
 
-  const handleClosePreview = useCallback(() => {
-    setPreviewState({ isOpen: false, isLoading: false });
+  // Simple form state
+  const [formData, setFormData] = useState<SimpleFormData>(defaultFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Mock data cho Progressive Loading
+  const [categories, setCategories] = useState<any[]>([]);
+  const [authors, setAuthors] = useState<any[]>([]);
+  const [shouldShowArticleSkeleton, setShouldShowArticleSkeleton] = useState(false);
+  const [shouldShowCategoriesSkeleton, setShouldShowCategoriesSkeleton] = useState(true);
+  const [shouldShowAuthorsSkeleton, setShouldShowAuthorsSkeleton] = useState(true);
+
+  // Progressive Loading simulation
+  useEffect(() => {
+    // Load mock data với delay để thấy skeleton
+    setTimeout(() => {
+      setCategories([
+        { id: '1', name: 'Công nghệ', slug: 'cong-nghe' },
+        { id: '2', name: 'Giáo dục', slug: 'giao-duc' }
+      ]);
+      setShouldShowCategoriesSkeleton(false);
+    }, 500);
+
+    setTimeout(() => {
+      setAuthors([
+        { id: '1', full_name: 'Nguyễn Văn A', email: 'admin@example.com', role: 'admin' }
+      ]);
+      setShouldShowAuthorsSkeleton(false);
+    }, 800);
   }, []);
 
+  // Simple handlers
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Mock functions để match interface của edit
+  const handleTitleChange = (title: string) => handleFieldChange('title', title);
+  const handleSlugChange = (slug: string) => handleFieldChange('slug', slug);
+  const validateSlug = () => Promise.resolve(true);
+  const getSeoScoreColor = () => 'text-gray-500';
+  const getSeoScoreGradient = () => 'from-gray-400 to-gray-600';
+  const getSeoScoreBadge = () => ({ className: 'bg-gray-100', text: 'Chưa phân tích' });
+  const getSeoCheckColor = () => 'text-gray-400';
+
+  // Copy chính xác JSX structure từ ArticleEditor
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header with actions */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Title */}
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                {mode === 'create' ? 'Tạo bài viết mới' : 'Chỉnh sửa bài viết'}
-              </h1>
-              
-              {/* Auto-save indicator */}
-              {isAutoSaving && (
-                <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span>Đang lưu...</span>
-                </div>
-              )}
-              
-              {lastSaved && !isAutoSaving && (
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Đã lưu lúc {lastSaved.toLocaleTimeString()}
-                </div>
-              )}
-            </div>
+    <ArticleEditorLayout>
+      <MainContent>
+        {/* Title Section - Copy từ edit */}
+        <TitleSection
+          formData={formData}
+          shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+          showSlugEdit={false}
+          setShowSlugEdit={() => {}}
+          slugError=""
+          loadingState={{}}
+          handleTitleChange={handleTitleChange}
+          handleSlugChange={handleSlugChange}
+          validateSlug={validateSlug}
+          setFormData={setFormData}
+        />
 
-            {/* Actions */}
-            <PublishActions
-              formData={formData}
-              isSubmitting={isSubmitting}
-              isDirty={isDirty}
-              isAutoSaving={isAutoSaving}
-              lastSaved={lastSaved}
-              onSaveDraft={handleSaveDraft}
-              onPublish={handlePublish}
-              onSchedule={handleSchedule}
-              onPreview={handlePreview}
-            />
-          </div>
-        </div>
-      </div>
+        {/* Content Editor Section - Copy từ edit */}
+        <ContentEditorSection
+          formData={formData}
+          shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+          setFormData={setFormData}
+          TiptapEditor={TiptapEditor}
+        />
 
-      {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Content Editor - Left Column */}
-          <div className="lg:col-span-2">
-            <ContentEditor
-              value={formData.content}
-              onChange={(value) => handleFieldChange('content', value)}
-              placeholder="Bắt đầu viết nội dung bài viết..."
-              disabled={isSubmitting}
-            />
-          </div>
+        {/* Excerpt Section - Copy từ edit */}
+        <ExcerptSection
+          formData={formData}
+          shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+          setFormData={setFormData}
+        />
 
-          {/* Settings Sidebar - Right Column */}
-          <div className="lg:col-span-1">
-            <SettingsSidebar
-              formData={formData}
-              errors={errors}
-              onChange={handleFieldChange}
-              onClearError={clearError}
-              isSubmitting={isSubmitting}
-            />
-          </div>
-        </div>
-      </div>
+        {/* SEO Settings Section - Copy từ edit */}
+        <SEOSection
+          formData={formData}
+          shouldShowArticleSkeleton={shouldShowArticleSkeleton}
+          seoAnalysis={{
+            score: 0,
+            checks: [], // Fix: Thêm empty array để tránh lỗi map
+            suggestions: []
+          }}
+          setFormData={setFormData}
+          getSeoScoreColor={getSeoScoreColor}
+          getSeoScoreGradient={getSeoScoreGradient}
+          getSeoScoreBadge={getSeoScoreBadge}
+          getSeoCheckColor={getSeoCheckColor}
+        />
+      </MainContent>
 
-      {/* Preview Modal */}
-      <PreviewModal
-        isOpen={previewState.isOpen}
-        isLoading={previewState.isLoading}
-        data={formData}
-        onClose={handleClosePreview}
-      />
+      <Sidebar>
+        {/* Publish Box - Copy từ edit với any type để tránh lỗi */}
+        <PublishBox
+          formData={formData as any}
+          setFormData={setFormData as any}
+          saveStates={{
+            isSaving: isSubmitting,
+            isAutoSaving: false,
+            isManualSaving: false,
+            saveProgress: 0
+          }}
+          lastSaved={null}
+          hasUnsavedChanges={false}
+          hasChangesFromOriginal={false}
+          hasDraftInDatabase={false}
+          validationError=""
+          handleManualSave={() => {}}
+          handleManualSaveWithData={() => {}}
+          loadingState={{
+            isLoading: false,
+            isDataLoaded: true,
+            isValidatingSlug: false,
+            isEditorReady: true,
+            isLoadingArticleData: false,
+            isLoadingCategories: false,
+            isLoadingAuthors: false,
+            isLoadingTags: false
+          }}
+          shouldShowSkeleton={shouldShowArticleSkeleton}
+          isEditMode={false}
+          formHandlers={{
+            handlePublishedDateChange: (date: string) => handleFieldChange('published_at', date)
+          }}
+          onRevertToOriginal={() => {}}
+        />
 
-      {/* Error notification */}
-      {Object.keys(errors).length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 right-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 shadow-lg z-50"
-        >
-          <div className="flex items-start space-x-3">
-            <svg className="w-5 h-5 text-red-400 dark:text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                Có lỗi trong form
-              </h3>
-              <div className="mt-1 text-sm text-red-700 dark:text-red-300">
-                Vui lòng kiểm tra và sửa các lỗi trước khi tiếp tục.
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </div>
+        {/* Categories Section - Copy từ edit với any type để tránh lỗi */}
+        <CategoriesSection
+          formData={formData as any}
+          setFormData={setFormData as any}
+          categories={categories}
+          loadingState={{
+            isLoading: false,
+            isDataLoaded: true,
+            isValidatingSlug: false,
+            isEditorReady: true,
+            isLoadingArticleData: false,
+            isLoadingCategories: shouldShowCategoriesSkeleton,
+            isLoadingAuthors: false,
+            isLoadingTags: false
+          }}
+          shouldShowSkeleton={shouldShowCategoriesSkeleton}
+        />
+      </Sidebar>
+    </ArticleEditorLayout>
   );
 }
