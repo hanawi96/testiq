@@ -65,10 +65,10 @@ export default function LinkAnalysisModal({ articleId, articleTitle, isOpen, onC
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.15 }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Phân tích Links
@@ -88,7 +88,7 @@ export default function LinkAnalysisModal({ articleId, articleTitle, isOpen, onC
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <div className="p-6 overflow-y-auto flex-1 min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
@@ -210,7 +210,7 @@ export default function LinkAnalysisModal({ articleId, articleTitle, isOpen, onC
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3 flex-shrink-0">
             <button
               onClick={onClose}
               className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"

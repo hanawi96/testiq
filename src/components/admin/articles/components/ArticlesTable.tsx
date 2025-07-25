@@ -320,35 +320,32 @@ export default function ArticlesTable({
 
                           {/* Links for mobile - compact display */}
                           <div className="lg:hidden flex items-center space-x-2">
-                            {/* Internal Links */}
-                            <div className="flex items-center space-x-1">
+                            {/* Internal Links - Clickable */}
+                            <button
+                              onClick={() => onLinkAnalysis(article.id, article.title)}
+                              className="flex items-center space-x-1 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                              title="Phân tích internal links"
+                            >
                               <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                               </svg>
                               <span className="text-green-600 dark:text-green-400 text-xs">
                                 {article.internal_links && Array.isArray(article.internal_links) ? article.internal_links.length : 0}
                               </span>
-                            </div>
+                            </button>
 
-                            {/* External Links */}
-                            <div className="flex items-center space-x-1">
+                            {/* External Links - Clickable */}
+                            <button
+                              onClick={() => onLinkAnalysis(article.id, article.title)}
+                              className="flex items-center space-x-1 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                              title="Phân tích external links"
+                            >
                               <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                               </svg>
                               <span className="text-blue-600 dark:text-blue-400 text-xs">
                                 {article.external_links && Array.isArray(article.external_links) ? article.external_links.length : 0}
                               </span>
-                            </div>
-
-                            {/* Analyze button for mobile */}
-                            <button
-                              onClick={() => onLinkAnalysis(article.id, article.title)}
-                              className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-                              title="Phân tích links"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                              </svg>
                             </button>
                           </div>
                         </div>
@@ -426,15 +423,19 @@ export default function ArticlesTable({
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
                       <div className="flex flex-col space-y-1">
-                        <span className={getStatusBadge(article.status)}>
+                        <span className={getStatusBadge(article.status) + " relative"}>
+                          {/* Dấu chấm tròn ở góc trên phải của badge */}
+                          {article.status === 'published' && (article as any).hasActiveDraft && (
+                            <span className="absolute -top-1 -right-1 group">
+                              <span className="block w-3 h-3 bg-orange-500 rounded-full border border-white dark:border-gray-800 animate-pulse"></span>
+                              <span className="absolute bottom-full right-0 mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                                Đang chỉnh sửa
+                              </span>
+                            </span>
+                          )}
                           {getStatusLabel(article.status)}
                         </span>
-                        {/* 🔧 NEW: Editing badge for published articles with active drafts */}
-                        {article.status === 'published' && (article as any).hasActiveDraft && (
-                          <span className={getEditingBadge()}>
-                            Đang chỉnh sửa
-                          </span>
-                        )}
+                        {/* Đã xóa badge "Đang chỉnh sửa" riêng biệt */}
                       </div>
                       <button
                         onClick={(e) => onQuickStatusEdit(e, article.id)}
@@ -481,35 +482,32 @@ export default function ArticlesTable({
                   {/* Links Column - Desktodp */}
                   <td className="hidden lg:table-cell px-6 py-4">
                     <div className="flex items-center space-x-4">
-                      {/* Internal Links */}
-                      <div className="flex items-center space-x-1">
+                      {/* Internal Links - Clickable */}
+                      <button
+                        onClick={() => onLinkAnalysis(article.id, article.title)}
+                        className="flex items-center space-x-1 p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                        title="Phân tích internal links"
+                      >
                         <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                         <span className="text-green-600 dark:text-green-400 text-sm font-medium">
                           {article.internal_links && Array.isArray(article.internal_links) ? article.internal_links.length : 0}
                         </span>
-                      </div>
+                      </button>
 
-                      {/* External Links */}
-                      <div className="flex items-center space-x-1">
+                      {/* External Links - Clickable */}
+                      <button
+                        onClick={() => onLinkAnalysis(article.id, article.title)}
+                        className="flex items-center space-x-1 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        title="Phân tích external links"
+                      >
                         <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
                         <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
                           {article.external_links && Array.isArray(article.external_links) ? article.external_links.length : 0}
                         </span>
-                      </div>
-
-                      {/* Analyze button */}
-                      <button
-                        onClick={() => onLinkAnalysis(article.id, article.title)}
-                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-                        title="Phân tích links"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
                       </button>
                     </div>
                   </td>
