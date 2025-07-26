@@ -9,7 +9,7 @@ interface UsersBulkActionsProps {
   selectedUsers: string[];
   actionLoading: string;
   onClearSelection: () => void;
-  onBulkRoleUpdate: (role: 'admin' | 'editor' | 'author' | 'reviewer' | 'user') => void;
+  onBulkRoleUpdate: (role: 'admin' | 'editor' | 'author' | 'reviewer' | 'mod' | 'user') => void;
   onBulkVerificationToggle: (verified: boolean) => void;
   onBulkDelete: () => void;
 }
@@ -42,7 +42,7 @@ export const UsersBulkActions: React.FC<UsersBulkActionsProps> = ({
             <select
               onChange={(e) => {
                 if (e.target.value) {
-                  onBulkRoleUpdate(e.target.value as 'admin' | 'editor' | 'author' | 'reviewer' | 'user');
+                  onBulkRoleUpdate(e.target.value as 'admin' | 'editor' | 'author' | 'reviewer' | 'mod' | 'user');
                   e.target.value = '';
                 }
               }}
@@ -54,6 +54,7 @@ export const UsersBulkActions: React.FC<UsersBulkActionsProps> = ({
               <option value="editor">Editor</option>
               <option value="author">Author</option>
               <option value="reviewer">Reviewer</option>
+              <option value="mod">Moderator</option>
               <option value="user">User</option>
             </select>
           </div>

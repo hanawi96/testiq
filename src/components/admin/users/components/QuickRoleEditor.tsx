@@ -4,39 +4,53 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface QuickRoleEditorProps {
   userId: string;
   currentRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'user' | 'mod';
-  onRoleUpdate: (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer') => Promise<void>;
+  onRoleUpdate: (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'mod' | 'user') => Promise<void>;
   isLoading?: boolean;
   disabled?: boolean;
 }
 
 const ROLES = [
-  { 
-    value: 'admin', 
-    label: 'Admin', 
+  {
+    value: 'admin',
+    label: 'Admin',
     description: 'Toàn quyền quản lý hệ thống',
     color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
     icon: '👑'
   },
-  { 
-    value: 'editor', 
-    label: 'Editor', 
+  {
+    value: 'editor',
+    label: 'Editor',
     description: 'Quản lý nội dung, bài viết, danh mục',
     color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
     icon: '✏️'
   },
-  { 
-    value: 'author', 
-    label: 'Author', 
+  {
+    value: 'author',
+    label: 'Author',
     description: 'Tạo và chỉnh sửa bài viết của mình',
     color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
     icon: '📝'
   },
-  { 
-    value: 'reviewer', 
-    label: 'Reviewer', 
+  {
+    value: 'reviewer',
+    label: 'Reviewer',
     description: 'Xem xét và phê duyệt nội dung',
     color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800',
     icon: '🔍'
+  },
+  {
+    value: 'mod',
+    label: 'Moderator',
+    description: 'Kiểm duyệt và quản lý cộng đồng',
+    color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
+    icon: '🛡️'
+  },
+  {
+    value: 'user',
+    label: 'User',
+    description: 'Người dùng thông thường',
+    color: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600',
+    icon: '👤'
   }
 ] as const;
 
@@ -52,17 +66,12 @@ export default function QuickRoleEditor({
   const badgeRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  // Handle legacy roles mapping
-  const mapLegacyRole = (role: string) => {
-    switch (role) {
-      case 'user': return 'author'; // Map user to author
-      case 'mod': return 'editor';  // Map mod to editor
-      default: return role;
-    }
+  // Find current role info
+  const getCurrentRoleInfo = (role: string) => {
+    return ROLES.find(r => r.value === role) || ROLES.find(r => r.value === 'user');
   };
 
-  const mappedRole = mapLegacyRole(currentRole);
-  const currentRoleData = ROLES.find(role => role.value === mappedRole) || ROLES[3]; // fallback to reviewer
+  const currentRoleData = getCurrentRoleInfo(currentRole);
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -137,8 +146,8 @@ export default function QuickRoleEditor({
     }
   }, [isLoading, isUpdating]);
 
-  const handleRoleSelect = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer') => {
-    if (newRole === mappedRole || isUpdating) return;
+  const handleRoleSelect = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'mod' | 'user') => {
+    if (newRole === currentRole || isUpdating) return;
 
     // Close popup immediately when user selects a role
     setIsOpen(false);
@@ -216,9 +225,6 @@ export default function QuickRoleEditor({
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Vai trò hiện tại: {currentRoleData.label}
-                    {currentRole !== mappedRole && (
-                      <span className="text-orange-600 dark:text-orange-400"> (được chuyển đổi từ {currentRole})</span>
-                    )}
                   </p>
                 </div>
                 
@@ -230,7 +236,7 @@ export default function QuickRoleEditor({
                       disabled={isUpdating}
                       className={`
                         w-full flex items-center px-3 py-2 text-sm text-left
-                        ${role.value === mappedRole
+                        ${role.value === currentRole
                           ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }
@@ -242,7 +248,7 @@ export default function QuickRoleEditor({
                       <div className="flex-1">
                         <div className="flex items-center">
                           <span className="font-medium">{role.label}</span>
-                          {role.value === mappedRole && (
+                          {role.value === currentRole && (
                             <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">✓</span>
                           )}
                         </div>

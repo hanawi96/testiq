@@ -45,7 +45,7 @@ export const useUsersBulkActions = ({
 }: UseUsersBulkActionsProps) => {
 
   // Handle bulk role update
-  const handleBulkRoleUpdate = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'user') => {
+  const handleBulkRoleUpdate = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'mod' | 'user') => {
     if (selectedUsers.length === 0) return;
 
     if (!confirm(`Bạn có chắc chắn muốn cập nhật role thành "${newRole}" cho ${selectedUsers.length} người dùng đã chọn?`)) return;

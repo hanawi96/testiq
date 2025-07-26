@@ -114,6 +114,8 @@ export const useUsersActions = ({
   const handleFilterChange = useCallback((newFilters: Partial<UsersFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
 
+    console.log('🔄 FILTER CHANGE: Updating filters and resetting to page 1');
+
     // 🚀 Update URL with new filters and reset to page 1
     updateURL(1, updatedFilters);
 
@@ -122,7 +124,7 @@ export const useUsersActions = ({
   }, [filters, updateURL, setFilters, setCurrentPage]);
 
   // Handle role update with validation - only show error toast, no success toast
-  const handleRoleUpdate = async (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'user') => {
+  const handleRoleUpdate = async (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'mod' | 'user') => {
     // Find user and validate
     const user = usersData?.users.find(u => u.id === userId);
     if (!user) {

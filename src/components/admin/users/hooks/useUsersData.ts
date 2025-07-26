@@ -214,26 +214,29 @@ export const useUsersData = ({
     }
   }, [setStats]);
 
-  // Clear cache when filters change
+  // Clear cache when filters change and trigger refetch
   const prevFiltersRef = useRef<UsersFilters>(filters);
   useEffect(() => {
     const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
-    if (filtersChanged) {
-      console.log('🧹 CACHE CLEAR: Filters changed');
+    if (filtersChanged && isInitialized) {
+      console.log('🧹 FILTERS CHANGED: Clearing cache and refetching data');
       cache.current.clear();
       cacheWithTTL.current.clear();
       prefetchQueue.current.clear();
       aggressivePrefetchDone.current.clear();
       prevFiltersRef.current = filters;
+
+      // Trigger data refetch when filters change
+      fetchUsers(displayCurrentPage);
     }
-  }, [filters, cache, cacheWithTTL, prefetchQueue, aggressivePrefetchDone]);
+  }, [filters, isInitialized, displayCurrentPage, fetchUsers, cache, cacheWithTTL, prefetchQueue, aggressivePrefetchDone]);
 
   // Initial load with SSR hydration - Simplified
   useEffect(() => {
     // Wait for URL initialization
     if (!isInitialized) return;
 
-    // Prevent infinite loops - only run once
+    // Prevent infinite loops - only run once for initial load
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
 
@@ -273,11 +276,11 @@ export const useUsersData = ({
       return; // Skip API call
     }
 
-    // Fallback to API if no SSR data - ONLY ONCE
-    console.log('🔄 CLIENT-SIDE: Loading data via API for page', displayCurrentPage);
+    // Fallback to API if no SSR data - ONLY ONCE for initial load
+    console.log('🔄 CLIENT-SIDE: Loading initial data via API for page', displayCurrentPage);
     fetchUsers(displayCurrentPage);
     fetchStats();
-  }, [filters, isInitialized, displayCurrentPage, limit]);
+  }, [isInitialized, displayCurrentPage, limit]);
 
   return {
     getCacheKey,

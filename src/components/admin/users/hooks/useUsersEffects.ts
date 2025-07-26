@@ -12,9 +12,11 @@ interface UseUsersEffectsProps {
   setIsMobile: (mobile: boolean) => void;
   setCurrentPage: (page: number) => void;
   searchInput: string;
+  setSearchInput: (search: string) => void;
   searchTimeoutRef: React.MutableRefObject<NodeJS.Timeout | undefined>;
   usersDataRef: React.MutableRefObject<any>;
   usersData: any;
+  filters: UsersFilters;
 }
 
 export const useUsersEffects = ({
@@ -23,9 +25,11 @@ export const useUsersEffects = ({
   setIsMobile,
   setCurrentPage,
   searchInput,
+  setSearchInput,
   searchTimeoutRef,
   usersDataRef,
-  usersData
+  usersData,
+  filters
 }: UseUsersEffectsProps) => {
 
   // 🚀 URL Sync Utilities
@@ -68,6 +72,7 @@ export const useUsersEffects = ({
     };
 
     setFilters(urlFilters);
+    setSearchInput(urlSearch); // Sync search input with URL search
     setIsInitialized(true);
 
     // Handle browser back/forward
@@ -77,7 +82,7 @@ export const useUsersEffects = ({
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [setFilters, setIsInitialized]);
+  }, [setFilters, setSearchInput, setIsInitialized]);
 
   // Detect screen size
   useEffect(() => {

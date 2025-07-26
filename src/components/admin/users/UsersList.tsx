@@ -77,9 +77,11 @@ export const UsersList = () => {
     setIsMobile,
     setCurrentPage,
     searchInput,
+    setSearchInput,
     searchTimeoutRef,
     usersDataRef,
-    usersData
+    usersData,
+    filters
   });
 
   // Initialize data hook
@@ -328,9 +330,11 @@ export const UsersList = () => {
             >
               <option value="all">Tất cả</option>
               <option value="admin">Admin</option>
+              <option value="editor">Editor</option>
+              <option value="author">Author</option>
+              <option value="reviewer">Reviewer</option>
               <option value="mod">Moderator</option>
               <option value="user">User</option>
-              <option value="anonymous">Người chơi chưa đăng ký</option>
             </select>
           </div>
 
