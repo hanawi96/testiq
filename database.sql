@@ -315,6 +315,9 @@ create table public.countries (
 -- Migration: Add gender column to anonymous_players if not exists
 ALTER TABLE public.anonymous_players ADD COLUMN IF NOT EXISTS gender text;
 
+-- Migration: Add username column to anonymous_players if not exists
+ALTER TABLE public.anonymous_players ADD COLUMN IF NOT EXISTS username text;
+
 -- Migration: Add cover_photo_url column to user_profiles if not exists
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS cover_photo_url text;
 

@@ -47,6 +47,7 @@ export interface CreateUserData {
 }
 
 export interface UpdateUserData {
+  username?: string;
   fullName?: string;
   age?: number;
   gender?: 'male' | 'female' | 'other';
@@ -102,10 +103,10 @@ export class UsersService {
             updated_at
           `)
           .order('created_at', { ascending: false }),
-        // Query anonymous users from anonymous_players table với gender và country
+        // Query anonymous users from anonymous_players table với gender, country và username
         supabase
           .from('anonymous_players')
-          .select('id, name, age, country_name, country_code, email, created_at, test_score, gender')
+          .select('id, name, username, age, country_name, country_code, email, created_at, test_score, gender')
           .order('created_at', { ascending: false }),
         // Query test counts từ user_test_results
         supabase
@@ -154,7 +155,7 @@ export class UsersService {
         created_at: player.created_at,
         last_sign_in_at: null,
         full_name: player.name,
-        username: player.name || `anonymous-${player.id.slice(0, 8)}`, // 🔥 Thêm username cho anonymous
+        username: player.username || player.name || `anonymous-${player.id.slice(0, 8)}`, // 🔥 Sử dụng username từ DB
         role: 'user' as const,
         is_verified: false,
         last_login: null,
@@ -259,7 +260,7 @@ export class UsersService {
   }
 
   /**
-   * Update user role
+   * Update user role - only for registered users
    */
   static async updateUserRole(
     userId: string,
@@ -268,9 +269,21 @@ export class UsersService {
     try {
       console.log('UsersService: Updating user role:', { userId, newRole });
 
+      // Check if this is a registered user (anonymous users don't have roles)
+      const { data: registeredUser } = await supabase
+        .from(TABLES.PROFILES)
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (!registeredUser) {
+        console.log('UsersService: Cannot update role for anonymous user');
+        return { success: true, error: null }; // Skip silently for anonymous users
+      }
+
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
-        .update({ 
+        .update({
           role: newRole,
           updated_at: new Date().toISOString()
         })
@@ -293,7 +306,7 @@ export class UsersService {
   }
 
   /**
-   * Toggle user verification status
+   * Toggle user verification status - only for registered users
    */
   static async toggleUserVerification(
     userId: string
@@ -301,7 +314,7 @@ export class UsersService {
     try {
       console.log('UsersService: Toggling user verification:', userId);
 
-      // Get current status first
+      // Get current status first (only for registered users)
       const { data: currentUser, error: fetchError } = await supabase
         .from(TABLES.PROFILES)
         .select('is_verified')
@@ -309,15 +322,15 @@ export class UsersService {
         .single();
 
       if (fetchError) {
-        console.error('UsersService: Error fetching current user:', fetchError);
-        return { success: false, error: fetchError };
+        console.log('UsersService: Cannot toggle verification for anonymous user');
+        return { success: true, error: null }; // Skip silently for anonymous users
       }
 
       const newVerifiedStatus = !currentUser.is_verified;
 
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
-        .update({ 
+        .update({
           is_verified: newVerifiedStatus,
           updated_at: new Date().toISOString()
         })
@@ -340,20 +353,114 @@ export class UsersService {
   }
 
   /**
+   * Get users by country statistics
+   */
+  static async getUsersByCountry(): Promise<{
+    data: Array<{
+      country_name: string;
+      country_code: string | null;
+      total_users: number;
+      registered_users: number;
+      anonymous_users: number;
+    }> | null;
+    error: any;
+  }> {
+    try {
+      console.log('UsersService: Fetching users by country statistics');
+
+      // Fetch both registered and anonymous users with country info
+      const [registeredResult, anonymousResult] = await Promise.all([
+        supabase
+          .from(TABLES.PROFILES)
+          .select('country_name, country_code')
+          .not('country_name', 'is', null),
+        supabase
+          .from('anonymous_players')
+          .select('country_name, country_code')
+          .not('country_name', 'is', null)
+      ]);
+
+      const { data: registeredData, error: registeredError } = registeredResult;
+      const { data: anonymousData, error: anonymousError } = anonymousResult;
+
+      if (registeredError) {
+        console.error('UsersService: Error fetching registered users by country:', registeredError);
+        return { data: null, error: registeredError };
+      }
+
+      if (anonymousError) {
+        console.error('UsersService: Error fetching anonymous users by country:', anonymousError);
+        return { data: null, error: anonymousError };
+      }
+
+      // Aggregate data by country
+      const countryMap = new Map<string, {
+        country_name: string;
+        country_code: string | null;
+        registered_users: number;
+        anonymous_users: number;
+      }>();
+
+      // Process registered users
+      (registeredData || []).forEach(user => {
+        const key = user.country_name;
+        if (!countryMap.has(key)) {
+          countryMap.set(key, {
+            country_name: user.country_name,
+            country_code: user.country_code,
+            registered_users: 0,
+            anonymous_users: 0
+          });
+        }
+        countryMap.get(key)!.registered_users++;
+      });
+
+      // Process anonymous users
+      (anonymousData || []).forEach(user => {
+        const key = user.country_name;
+        if (!countryMap.has(key)) {
+          countryMap.set(key, {
+            country_name: user.country_name,
+            country_code: user.country_code,
+            registered_users: 0,
+            anonymous_users: 0
+          });
+        }
+        countryMap.get(key)!.anonymous_users++;
+      });
+
+      // Convert to array and add total_users
+      const result = Array.from(countryMap.values())
+        .map(country => ({
+          ...country,
+          total_users: country.registered_users + country.anonymous_users
+        }))
+        .sort((a, b) => b.total_users - a.total_users); // Sort by total users desc
+
+      console.log('UsersService: Users by country fetched:', result.length, 'countries');
+      return { data: result, error: null };
+
+    } catch (err) {
+      console.error('UsersService: Unexpected error fetching users by country:', err);
+      return { data: null, error: err };
+    }
+  }
+
+  /**
    * Get user statistics (bao gồm cả anonymous players)
    */
-  static async getUserStats(): Promise<{ 
-    data: { 
-      total: number; 
-      admins: number; 
-      mods: number; 
-      users: number; 
-      verified: number; 
+  static async getUserStats(): Promise<{
+    data: {
+      total: number;
+      admins: number;
+      mods: number;
+      users: number;
+      verified: number;
       unverified: number;
       registered: number;
       anonymous: number;
-    } | null; 
-    error: any 
+    } | null;
+    error: any
   }> {
     try {
       console.log('UsersService: Fetching user statistics (registered + anonymous)');
@@ -400,6 +507,56 @@ export class UsersService {
     } catch (err) {
       console.error('UsersService: Error fetching stats:', err);
       return { data: null, error: err };
+    }
+  }
+
+  /**
+   * Check if email already exists in the system
+   */
+  static async checkEmailExists(email: string): Promise<{ exists: boolean; error: any }> {
+    try {
+      console.log('UsersService: Checking if email exists:', email);
+
+      // Check in user_profiles table (registered users)
+      const { data: profileData, error: profileError } = await supabase
+        .from(TABLES.PROFILES)
+        .select('id')
+        .eq('email', email)
+        .limit(1);
+
+      if (profileError) {
+        console.error('UsersService: Error checking email in profiles:', profileError);
+        return { exists: false, error: profileError };
+      }
+
+      if (profileData && profileData.length > 0) {
+        console.log('UsersService: Email exists in user_profiles');
+        return { exists: true, error: null };
+      }
+
+      // Check in anonymous_players table
+      const { data: anonymousData, error: anonymousError } = await supabase
+        .from('anonymous_players')
+        .select('id')
+        .eq('email', email)
+        .limit(1);
+
+      if (anonymousError) {
+        console.error('UsersService: Error checking email in anonymous_players:', anonymousError);
+        return { exists: false, error: anonymousError };
+      }
+
+      if (anonymousData && anonymousData.length > 0) {
+        console.log('UsersService: Email exists in anonymous_players');
+        return { exists: true, error: null };
+      }
+
+      console.log('UsersService: Email does not exist');
+      return { exists: false, error: null };
+
+    } catch (err) {
+      console.error('UsersService: Unexpected error checking email:', err);
+      return { exists: false, error: err };
     }
   }
 
@@ -511,7 +668,7 @@ export class UsersService {
   }
 
   /**
-   * Bulk update user roles
+   * Bulk update user roles - only for registered users
    */
   static async bulkUpdateUserRole(
     userIds: string[],
@@ -524,13 +681,26 @@ export class UsersService {
         return { success: true, error: null };
       }
 
+      // Filter to only registered users (anonymous users don't have roles)
+      const { data: registeredUsers } = await supabase
+        .from(TABLES.PROFILES)
+        .select('id')
+        .in('id', userIds);
+
+      const registeredUserIds = registeredUsers?.map(u => u.id) || [];
+
+      if (registeredUserIds.length === 0) {
+        console.log('UsersService: No registered users to update roles');
+        return { success: true, error: null };
+      }
+
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .update({
           role: newRole,
           updated_at: new Date().toISOString()
         })
-        .in('id', userIds)
+        .in('id', registeredUserIds)
         .select('id');
 
       if (error) {
@@ -538,7 +708,7 @@ export class UsersService {
         return { success: false, error };
       }
 
-      console.log('UsersService: Bulk role update completed:', data?.length || 0, 'users updated');
+      console.log('UsersService: Bulk role update completed:', data?.length || 0, 'registered users updated');
       return { success: true, error: null };
 
     } catch (err: any) {
@@ -548,7 +718,7 @@ export class UsersService {
   }
 
   /**
-   * Bulk update user verification status
+   * Bulk update user verification status - only for registered users
    */
   static async bulkUpdateUserVerification(
     userIds: string[],
@@ -561,13 +731,26 @@ export class UsersService {
         return { success: true, error: null };
       }
 
+      // Filter to only registered users (anonymous users don't have verification)
+      const { data: registeredUsers } = await supabase
+        .from(TABLES.PROFILES)
+        .select('id')
+        .in('id', userIds);
+
+      const registeredUserIds = registeredUsers?.map(u => u.id) || [];
+
+      if (registeredUserIds.length === 0) {
+        console.log('UsersService: No registered users to update verification');
+        return { success: true, error: null };
+      }
+
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .update({
           is_verified: verified,
           updated_at: new Date().toISOString()
         })
-        .in('id', userIds)
+        .in('id', registeredUserIds)
         .select('id');
 
       if (error) {
@@ -575,7 +758,7 @@ export class UsersService {
         return { success: false, error };
       }
 
-      console.log('UsersService: Bulk verification update completed:', data?.length || 0, 'users updated');
+      console.log('UsersService: Bulk verification update completed:', data?.length || 0, 'registered users updated');
       return { success: true, error: null };
 
     } catch (err: any) {
@@ -585,7 +768,7 @@ export class UsersService {
   }
 
   /**
-   * Update user information
+   * Update user information - supports both registered and anonymous users
    */
   static async updateUser(
     userId: string,
@@ -594,48 +777,176 @@ export class UsersService {
     try {
       console.log('UsersService: Updating user:', { userId, userData });
 
-      // Prepare update data
-      const updateData: any = {
-        updated_at: new Date().toISOString()
-      };
+      // First, detect if this is a registered or anonymous user
+      // Try both tables to determine user type
+      const [registeredResult, anonymousResult] = await Promise.all([
+        supabase
+          .from(TABLES.PROFILES)
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle(), // Use maybeSingle to avoid errors when not found
+        supabase
+          .from('anonymous_players')
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle()
+      ]);
 
-      if (userData.fullName !== undefined) {
-        updateData.full_name = userData.fullName;
+      const { data: registeredUser } = registeredResult;
+      const { data: anonymousUser } = anonymousResult;
+
+      if (registeredUser) {
+        // This is a registered user - update user_profiles
+        const updateData: any = {
+          updated_at: new Date().toISOString()
+        };
+
+        if (userData.username !== undefined) {
+          updateData.username = userData.username;
+        }
+        if (userData.fullName !== undefined) {
+          updateData.full_name = userData.fullName;
+        }
+        if (userData.age !== undefined) {
+          updateData.age = userData.age;
+        }
+        if (userData.gender !== undefined) {
+          updateData.gender = userData.gender;
+        }
+        if (userData.country_name !== undefined) {
+          updateData.country_name = userData.country_name;
+        }
+        if (userData.role !== undefined) {
+          updateData.role = userData.role;
+        }
+
+        const { data, error } = await supabase
+          .from(TABLES.PROFILES)
+          .update(updateData)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('UsersService: Error updating registered user:', error);
+          return { success: false, error };
+        }
+
+        console.log('UsersService: Registered user updated successfully');
+        return { success: true, error: null };
+
+      } else if (anonymousUser) {
+        // This is an anonymous user - update anonymous_players
+        const updateData: any = {};
+
+        if (userData.username !== undefined) {
+          updateData.username = userData.username; // Now anonymous_players has username field
+        }
+        if (userData.fullName !== undefined) {
+          updateData.name = userData.fullName; // anonymous_players uses 'name' field
+        }
+        if (userData.age !== undefined) {
+          updateData.age = userData.age;
+        }
+        if (userData.gender !== undefined) {
+          updateData.gender = userData.gender;
+        }
+        if (userData.country_name !== undefined) {
+          updateData.country_name = userData.country_name;
+        }
+        // Note: anonymous users don't have role field
+
+        const { data, error } = await supabase
+          .from('anonymous_players')
+          .update(updateData)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('UsersService: Error updating anonymous user:', error);
+          return { success: false, error };
+        }
+
+        console.log('UsersService: Anonymous user updated successfully');
+        return { success: true, error: null };
+      } else {
+        // User not found in either table
+        console.error('UsersService: User not found in any table:', userId);
+        return { success: false, error: { message: 'User not found' } };
       }
-
-      if (userData.age !== undefined) {
-        updateData.age = userData.age;
-      }
-
-      if (userData.gender !== undefined) {
-        updateData.gender = userData.gender;
-      }
-
-      if (userData.country_name !== undefined) {
-        updateData.country_name = userData.country_name;
-      }
-
-      if (userData.role !== undefined) {
-        updateData.role = userData.role;
-      }
-
-      const { data, error } = await supabase
-        .from(TABLES.PROFILES)
-        .update(updateData)
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('UsersService: Error updating user:', error);
-        return { success: false, error };
-      }
-
-      console.log('UsersService: User updated successfully');
-      return { success: true, error: null };
 
     } catch (err) {
       console.error('UsersService: Unexpected error updating user:', err);
+      return { success: false, error: err };
+    }
+  }
+
+  /**
+   * Bulk delete users - supports both registered and anonymous users
+   */
+  static async bulkDeleteUsers(userIds: string[]): Promise<{ success: boolean; error: any }> {
+    try {
+      console.log('UsersService: Bulk deleting users:', userIds);
+
+      if (!userIds || userIds.length === 0) {
+        return { success: false, error: { message: 'Danh sách user ID không hợp lệ' } };
+      }
+
+      // Separate registered and anonymous users
+      const { data: registeredUsers } = await supabase
+        .from(TABLES.PROFILES)
+        .select('id')
+        .in('id', userIds);
+
+      const registeredUserIds = registeredUsers?.map(u => u.id) || [];
+      const anonymousUserIds = userIds.filter(id => !registeredUserIds.includes(id));
+
+      console.log('UsersService: Separating users:', {
+        registered: registeredUserIds.length,
+        anonymous: anonymousUserIds.length
+      });
+
+      // Delete registered users from user_profiles
+      if (registeredUserIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from(TABLES.PROFILES)
+          .delete()
+          .in('id', registeredUserIds);
+
+        if (deleteError) {
+          console.error('UsersService: Error deleting registered users:', deleteError);
+          return { success: false, error: deleteError };
+        }
+
+        // Delete from auth.users
+        try {
+          for (const userId of registeredUserIds) {
+            await supabase.auth.admin.deleteUser(userId);
+          }
+        } catch (authError) {
+          console.warn('UsersService: Some auth users may not exist:', authError);
+        }
+      }
+
+      // Delete anonymous users from anonymous_players
+      if (anonymousUserIds.length > 0) {
+        const { error: deleteAnonymousError } = await supabase
+          .from('anonymous_players')
+          .delete()
+          .in('id', anonymousUserIds);
+
+        if (deleteAnonymousError) {
+          console.error('UsersService: Error deleting anonymous users:', deleteAnonymousError);
+          return { success: false, error: deleteAnonymousError };
+        }
+      }
+
+      console.log('UsersService: Successfully bulk deleted users:', userIds);
+      return { success: true, error: null };
+
+    } catch (err) {
+      console.error('UsersService: Unexpected error bulk deleting users:', err);
       return { success: false, error: err };
     }
   }

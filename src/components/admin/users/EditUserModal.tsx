@@ -13,6 +13,7 @@ interface EditUserModalProps {
 }
 
 interface EditUserForm {
+  username: string;
   fullName: string;
   age: number | '';
   gender: 'male' | 'female' | 'other' | '';
@@ -21,6 +22,7 @@ interface EditUserForm {
 }
 
 interface EditUserFormErrors {
+  username?: string;
   fullName?: string;
   age?: string;
   gender?: string;
@@ -44,6 +46,7 @@ const GENDERS = [
 
 export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimisticUpdate, user }: EditUserModalProps) {
   const [form, setForm] = useState<EditUserForm>({
+    username: '',
     fullName: '',
     age: '',
     gender: '',
@@ -90,6 +93,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
       preloadTriggers.onUserInteraction();
 
       setForm({
+        username: user.username || '',
         fullName: user.full_name || '',
         age: user.age || '',
         gender: (user.gender as 'male' | 'female' | 'other') || '',
@@ -114,6 +118,14 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
   // Validate form
   const validateForm = (): boolean => {
     const newErrors: EditUserFormErrors = {};
+
+    if (!form.username.trim()) {
+      newErrors.username = 'Username là bắt buộc';
+    } else if (form.username.trim().length < 3) {
+      newErrors.username = 'Username phải có ít nhất 3 ký tự';
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(form.username.trim())) {
+      newErrors.username = 'Username chỉ được chứa chữ cái, số, dấu gạch dưới và dấu gạch ngang';
+    }
 
     if (!form.fullName.trim()) {
       newErrors.fullName = 'Tên là bắt buộc';
@@ -147,6 +159,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
 
       // Prepare update data
       const updateData = {
+        username: form.username.trim(),
         fullName: form.fullName.trim(),
         age: form.age === '' ? undefined : Number(form.age),
         gender: form.gender || undefined,
@@ -165,6 +178,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
         if (onOptimisticUpdate) {
           const countryName = form.country?.name || undefined;
           const optimisticData = {
+            username: form.username.trim(),
             full_name: form.fullName.trim(),
             age: form.age === '' ? undefined : Number(form.age),
             gender: form.gender || undefined,
@@ -245,6 +259,28 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Username */}
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Username <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={form.username}
+                onChange={handleInputChange}
+                disabled={isLoading}
+                className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 ${
+                  errors.username ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                }`}
+                placeholder="Nhập username (chỉ chữ cái, số, _, -)"
+              />
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.username}</p>
+              )}
+            </div>
+
             {/* Full Name */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

@@ -1,10 +1,71 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import UsersList from '@/components/admin/users/UsersList.tsx';
+import UsersPage from '@/components/admin/users/UsersPage.tsx';
+
+// 🚀 SSR: Pre-fetch initial data for instant load
+let initialData = null;
+let initialStats = null;
+
+try {
+  console.log('🔄 SSR: Fetching initial users data...');
+
+  // Import backend service
+  const { UsersService } = await import('../../../backend');
+
+  // Parse URL params to get the correct page and filters
+  const url = new URL(Astro.request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
+  const role = url.searchParams.get('role') || 'all';
+  const search = url.searchParams.get('search') || '';
+  const verified = url.searchParams.get('verified') ? url.searchParams.get('verified') === 'true' : undefined;
+  const user_type = url.searchParams.get('user_type') || undefined;
+
+  const filters = {
+    role: role as 'all' | 'admin' | 'editor' | 'author' | 'reviewer' | 'user',
+    search,
+    verified,
+    user_type: user_type as 'registered' | 'anonymous' | undefined
+  };
+
+  console.log('🔄 SSR: Fetching page', page, 'with filters:', filters);
+
+  // Parallel fetch for better performance
+  const [usersResult, statsResult] = await Promise.all([
+    UsersService.getUsers(page, 10, filters),
+    UsersService.getUserStats()
+  ]);
+
+  if (!usersResult.error && usersResult.data) {
+    initialData = usersResult.data;
+    console.log(`✅ SSR: Loaded ${usersResult.data.users.length} users`);
+  }
+
+  if (!statsResult.error && statsResult.data) {
+    initialStats = statsResult.data;
+    console.log('✅ SSR: Loaded user stats');
+  }
+
+} catch (error) {
+  console.warn('⚠️ SSR: Failed to fetch initial data, will fallback to client-side:', error);
+  // Fallback to client-side loading if SSR fails
+}
 ---
 
 <AdminLayout title="Quản lý người dùng">
-  <UsersList client:load />
+  <!-- 🚀 SSR: Inject initial data for instant hydration -->
+  <script define:vars={{ initialData, initialStats }}>
+    // Make data available globally for React component
+    window.__USERS_INITIAL_DATA__ = initialData;
+    window.__USERS_INITIAL_STATS__ = initialStats;
+
+    if (initialData) {
+      console.log('✅ SSR: Initial data injected, users count:', initialData.users.length);
+    } else {
+      console.log('⚠️ SSR: No initial data, will use client-side loading');
+    }
+  </script>
+
+  <UsersPage client:load />
 </AdminLayout>
 
 <style>

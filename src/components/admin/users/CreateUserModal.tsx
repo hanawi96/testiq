@@ -41,6 +41,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   const [errors, setErrors] = useState<CreateUserFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -54,8 +56,44 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
       });
       setErrors({});
       setShowConfirmation(false);
+      setShowPassword(false);
+      setIsCheckingEmail(false);
     }
   }, [isOpen]);
+
+  // Debounced email check
+  useEffect(() => {
+    if (!form.email.trim() || !isOpen) return;
+
+    // Basic email format check first
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setErrors(prev => ({ ...prev, email: undefined }));
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsCheckingEmail(true);
+      try {
+        const { UsersService } = await import('../../../../backend');
+        const { exists, error } = await UsersService.checkEmailExists(form.email.trim());
+
+        if (error) {
+          setErrors(prev => ({ ...prev, email: 'Không thể kiểm tra email' }));
+        } else if (exists) {
+          setErrors(prev => ({ ...prev, email: 'Email này đã được sử dụng' }));
+        } else {
+          setErrors(prev => ({ ...prev, email: undefined }));
+        }
+      } catch (err) {
+        setErrors(prev => ({ ...prev, email: 'Lỗi kiểm tra email' }));
+      } finally {
+        setIsCheckingEmail(false);
+      }
+    }, 800); // 800ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [form.email, isOpen]);
 
   // Auto-focus email field when modal opens
   useEffect(() => {
@@ -105,7 +143,9 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
+
+    // Simple validation - email already checked real-time
+    if (validateForm() && !errors.email && !isCheckingEmail) {
       setShowConfirmation(true);
     }
   };
@@ -220,16 +260,23 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                   <label htmlFor="create-user-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Email <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    id="create-user-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                      errors.email ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="user@example.com"
-                  />
+                  <div className="relative">
+                    <input
+                      id="create-user-email"
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
+                      className={`w-full px-3 py-2 pr-10 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                        errors.email ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                      placeholder="user@example.com"
+                    />
+                    {isCheckingEmail && (
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                      </div>
+                    )}
+                  </div>
                   {errors.email && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
                   )}
@@ -260,16 +307,35 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                   <label htmlFor="create-user-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Mật khẩu tạm thời <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    id="create-user-password"
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => setForm(prev => ({ ...prev, password: e.target.value }))}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                      errors.password ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Tối thiểu 8 ký tự"
-                  />
+                  <div className="relative">
+                    <input
+                      id="create-user-password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => setForm(prev => ({ ...prev, password: e.target.value }))}
+                      className={`w-full px-3 py-2 pr-10 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                        errors.password ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                      placeholder="Tối thiểu 8 ký tự"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                    >
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.password}</p>
                   )}
@@ -326,7 +392,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
+                    disabled={isCheckingEmail || !!errors.email}
+                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Tạo người dùng
                   </button>

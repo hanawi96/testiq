@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UsersService } from '../../../../backend';
 import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
@@ -9,8 +9,12 @@ import { ToastContainer, useToast } from '../common/Toast';
 import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 import countryData from '../../../../Country.json';
+import UsersChart from './UsersChart';
 
 export default function UsersList() {
+
+
+  // State management - Start with defaults, sync with URL in useEffect
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -21,6 +25,30 @@ export default function UsersList() {
     verified: undefined,
     user_type: undefined
   });
+
+  // Computed current page from URL with validation
+  const displayCurrentPage = useMemo(() => {
+    if (typeof window === 'undefined') return currentPage;
+    const params = new URLSearchParams(window.location.search);
+    const urlPage = Math.max(1, parseInt(params.get('page') || '1'));
+
+    // Validate against totalPages if available
+    if (usersData?.totalPages && urlPage > usersData.totalPages) {
+      console.warn('🚨 INVALID PAGE: URL page', urlPage, 'exceeds totalPages', usersData.totalPages);
+      // Redirect to last valid page
+      if (typeof window !== 'undefined') {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('page', usersData.totalPages.toString());
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+      return usersData.totalPages;
+    }
+
+    return urlPage;
+  }, [currentPage, usersData?.totalPages, typeof window !== 'undefined' ? window.location.search : '']);
+
+  // URL sync state
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Toast notifications
   const { toasts, removeToast, showSuccess, showError } = useToast();
@@ -37,24 +65,91 @@ export default function UsersList() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
   
-  // Cache for instant pagination and filtering
+  // Enhanced cache with TTL for stale-while-revalidate
   const cache = useRef<Map<string, UsersListResponse>>(new Map());
+  const cacheWithTTL = useRef<Map<string, {
+    data: UsersListResponse;
+    timestamp: number;
+    ttl: number;
+  }>>(new Map());
   const prefetchQueue = useRef<Set<number>>(new Set());
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const aggressivePrefetchDone = useRef<Set<string>>(new Set()); // Track completed aggressive prefetches
+  const usersDataRef = useRef<UsersListResponse | null>(null); // Track usersData without dependency
+
+
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   const [limit, setLimit] = useState(10);
+
+  // 🚀 URL Sync Utilities
+  const updateURL = useCallback((page: number, newFilters: UsersFilters) => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams();
+
+    // Only add non-default values to keep URL clean
+    if (page > 1) params.set('page', page.toString());
+    if (newFilters.role !== 'all') params.set('role', newFilters.role);
+    if (newFilters.search) params.set('search', newFilters.search);
+    if (newFilters.verified !== undefined) params.set('verified', newFilters.verified.toString());
+    if (newFilters.user_type) params.set('user_type', newFilters.user_type);
+
+    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+
+    // Use pushState to update URL without page reload
+    window.history.pushState({}, '', newUrl);
+
+    console.log('🔗 URL updated:', newUrl);
+  }, []);
+
+  // 🚀 Simple URL sync on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Parse URL and sync filters only (page handled by displayCurrentPage)
+    const params = new URLSearchParams(window.location.search);
+    const urlRole = params.get('role') || 'all';
+    const urlSearch = params.get('search') || '';
+    const urlVerified = params.get('verified') ? params.get('verified') === 'true' : undefined;
+    const urlUserType = params.get('user_type') || undefined;
+
+    const urlFilters = {
+      role: urlRole as UsersFilters['role'],
+      search: urlSearch,
+      verified: urlVerified,
+      user_type: urlUserType as UsersFilters['user_type']
+    };
+
+    setFilters(urlFilters);
+    setIsInitialized(true);
+
+    // Handle browser back/forward
+    const handlePopState = () => {
+      window.location.reload(); // Simple reload on navigation
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Detect screen size
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
-    
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+  // Sync usersDataRef with usersData state
+  useEffect(() => {
+    usersDataRef.current = usersData;
+  }, [usersData]);
+
+
 
   // Debounced search effect
   useEffect(() => {
@@ -83,7 +178,8 @@ export default function UsersList() {
   const prefetchPage = useCallback(async (page: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
     const cacheKey = getCacheKey(page, currentFilters, pageLimit);
 
-    if (cache.current.has(cacheKey)) {
+    // Check both caches
+    if (cacheWithTTL.current.has(cacheKey) || cache.current.has(cacheKey)) {
       return;
     }
 
@@ -96,7 +192,13 @@ export default function UsersList() {
     try {
       const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, currentFilters);
       if (!fetchError && data) {
+        // Store in both caches
         cache.current.set(cacheKey, data);
+        cacheWithTTL.current.set(cacheKey, {
+          data,
+          timestamp: Date.now(),
+          ttl: CACHE_TTL
+        });
         console.log(`✅ Prefetch SUCCESS page ${page}`);
       }
     } catch (err) {
@@ -121,57 +223,100 @@ export default function UsersList() {
     for (let page = 1; page <= totalPages; page++) {
       const cacheKey = getCacheKey(page, currentFilters, pageLimit);
 
-      if (!cache.current.has(cacheKey)) {
+      // Check both caches before prefetching
+      if (!cacheWithTTL.current.has(cacheKey) && !cache.current.has(cacheKey)) {
         setTimeout(() => prefetchPage(page, currentFilters, pageLimit), page * 50); // Faster 50ms
       }
     }
   }, [prefetchPage]);
 
-  // Fetch users data with instant cache lookup
+  // Fetch users data with stale-while-revalidate
   const fetchUsers = useCallback(async (page: number = currentPage, pageLimit: number = limit) => {
     const cacheKey = getCacheKey(page, filters, pageLimit);
-    
+
     console.log(`🔍 Fetch page ${page}`);
-    
-    // Instant display from cache
-    const cachedData = cache.current.get(cacheKey);
-    if (cachedData) {
-      console.log(`⚡ INSTANT page ${page}`);
-      setUsersData(cachedData);
+
+    // 🚀 STEP 3: Stale-while-revalidate strategy
+    const cached = cacheWithTTL.current.get(cacheKey);
+
+    // Serve stale data immediately if available
+    if (cached) {
+      console.log(`⚡ INSTANT page ${page} (${cached.data.users.length} users)`);
+      setUsersData(cached.data);
       setError('');
-      
-      // Smart aggressive prefetch - ONCE ONLY
-      smartAggressivePrefetch(cachedData.totalPages, filters, pageLimit);
-      
-      return;
+
+      // Check if data is stale
+      const isStale = Date.now() - cached.timestamp > cached.ttl;
+      if (!isStale) {
+        console.log(`✅ Data is fresh, no revalidation needed`);
+        // Smart aggressive prefetch - ONCE ONLY
+        smartAggressivePrefetch(cached.data.totalPages, filters, pageLimit);
+        return; // Fresh data, no need to revalidate
+      }
+
+      // Data is stale, revalidate in background
+      console.log(`🔄 Data is stale, revalidating page ${page} in background...`);
+    } else {
+      // No cached data, show loading
+      console.log(`🔄 Loading page ${page}...`);
+      // Use ref to check current usersData without adding it to dependencies
+      if (page === 1 && !usersDataRef.current) setIsLoading(true);
     }
 
-    console.log(`🔄 Loading page ${page}...`);
-    if (page === 1 && !usersData) setIsLoading(true);
     setError('');
-    
+
     try {
       const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, filters);
-      
+
       if (fetchError || !data) {
-        setError('Không thể tải danh sách users');
+        // Only show error if no stale data was served
+        if (!cached) {
+          setError('Không thể tải danh sách users');
+        }
         return;
       }
-      
-      console.log(`✅ Loaded page ${page}`);
-      console.log('🔍 UsersList: First user data:', data.users[0]); // Debug username
+
+      console.log(`✅ Loaded fresh page ${page}`);
+
+      // Handle boundary condition: if current page is empty but there are other pages
+      if (data.users.length === 0 && data.totalPages > 0 && page > data.totalPages) {
+        console.log('🔧 BOUNDARY: Current page is empty, redirecting to last valid page');
+        const lastValidPage = Math.max(1, data.totalPages);
+        setCurrentPage(lastValidPage);
+        updateURL(lastValidPage, filters);
+        fetchUsers(lastValidPage, pageLimit);
+        return;
+      }
+
+      // Update cache with TTL
+      cacheWithTTL.current.set(cacheKey, {
+        data,
+        timestamp: Date.now(),
+        ttl: CACHE_TTL
+      });
+
+      // Also update old cache for backward compatibility
       cache.current.set(cacheKey, data);
-      setUsersData(data);
-      
+
+      // Update UI only if no stale data was served
+      if (!cached) {
+        setUsersData(data);
+        console.log('🔍 UsersList: First user data:', data.users[0]); // Debug username
+      }
+
       // Smart aggressive prefetch - ONCE ONLY
       smartAggressivePrefetch(data.totalPages, filters, pageLimit);
-      
+
     } catch (err) {
-      setError('Có lỗi xảy ra khi tải dữ liệu');
+      // Only show error if no stale data was served
+      if (!cached) {
+        setError('Có lỗi xảy ra khi tải dữ liệu');
+      }
     } finally {
-      if (page === 1 && !usersData) setIsLoading(false);
+      // Use ref to check current usersData without adding it to dependencies
+      if (page === 1 && !usersDataRef.current) setIsLoading(false);
     }
-  }, [currentPage, limit, filters, usersData, smartAggressivePrefetch]);
+  }, [currentPage, limit, filters]); // Remove usersData and smartAggressivePrefetch dependencies
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -185,24 +330,94 @@ export default function UsersList() {
     }
   }, []);
 
-  // Initial load
+  // Clear cache when filters change
+  const prevFiltersRef = useRef<UsersFilters>(filters);
   useEffect(() => {
-    // Clear all caches when filters change
-    cache.current.clear();
-    prefetchQueue.current.clear();
-    aggressivePrefetchDone.current.clear();
-    
-    fetchUsers(1);
-    fetchStats();
+    const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
+    if (filtersChanged) {
+      console.log('🧹 CACHE CLEAR: Filters changed');
+      cache.current.clear();
+      cacheWithTTL.current.clear();
+      prefetchQueue.current.clear();
+      aggressivePrefetchDone.current.clear();
+      prevFiltersRef.current = filters;
+    }
   }, [filters]);
 
+  // Initial load with SSR hydration - Simplified
+  useEffect(() => {
+    // Wait for URL initialization
+    if (!isInitialized) return;
 
 
-  // Handle page change - INSTANT
+
+    // 🚀 Hydrate from SSR data if available
+    if (typeof window !== 'undefined' && (window as any).__USERS_INITIAL_DATA__) {
+      const initialData = (window as any).__USERS_INITIAL_DATA__;
+      const initialStats = (window as any).__USERS_INITIAL_STATS__;
+
+      console.log('⚡ SSR HYDRATION: Using pre-loaded data', {
+        page: initialData?.page,
+        usersCount: initialData?.users?.length,
+        totalPages: initialData?.totalPages
+      });
+
+      // Set data immediately (0ms)
+      setUsersData(initialData);
+      if (initialStats) setStats(initialStats);
+      setIsLoading(false);
+      setError('');
+
+      // Cache the initial data with TTL
+      const cacheKey = getCacheKey(initialData.page, filters, limit);
+      cache.current.set(cacheKey, initialData);
+      cacheWithTTL.current.set(cacheKey, {
+        data: initialData,
+        timestamp: Date.now(),
+        ttl: CACHE_TTL
+      });
+
+      // Start aggressive prefetch for remaining pages
+      smartAggressivePrefetch(initialData.totalPages, filters, limit);
+
+      // Clear the global data to prevent reuse
+      delete (window as any).__USERS_INITIAL_DATA__;
+      delete (window as any).__USERS_INITIAL_STATS__;
+
+      return; // Skip API call
+    }
+
+    // Fallback to API if no SSR data
+    console.log('🔄 CLIENT-SIDE: Loading data via API for page', displayCurrentPage);
+    fetchUsers(displayCurrentPage);
+    fetchStats();
+  }, [filters, isInitialized, displayCurrentPage]);
+
+
+
+  // Handle page change - Simple and reliable
   const handlePageChange = (newPage: number) => {
-    console.log(`🔄 PAGE CHANGE: ${currentPage} → ${newPage}`);
-    setCurrentPage(newPage);
-    fetchUsers(newPage);
+    // Validate page bounds
+    if (newPage < 1 || (usersData?.totalPages && newPage > usersData.totalPages)) {
+      return;
+    }
+
+    console.log(`🔄 PAGE CHANGE: → ${newPage}`);
+
+    // Update URL and let displayCurrentPage handle the rest
+    updateURL(newPage, filters);
+
+    // Simple cache check for instant display
+    const cacheKey = getCacheKey(newPage, filters, limit);
+    const cached = cacheWithTTL.current.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      setUsersData(cached.data);
+      setError('');
+    } else {
+      setIsLoading(true);
+      fetchUsers(newPage);
+    }
   };
 
   // Handle limit change - Reset to page 1
@@ -212,18 +427,31 @@ export default function UsersList() {
     setCurrentPage(1);
     // Clear cache since page size changed
     cache.current.clear();
+    cacheWithTTL.current.clear();
     aggressivePrefetchDone.current.clear();
     fetchUsers(1, newLimit);
   };
 
-  // Handle filter change - OPTIMIZED
+  // Handle filter change - OPTIMIZED + URL SYNC
   const handleFilterChange = useCallback((newFilters: Partial<UsersFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    setCurrentPage(1);
-  }, []);
+    const updatedFilters = { ...filters, ...newFilters };
 
-  // Handle role update - only show error toast, no success toast
-  const handleRoleUpdate = async (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer') => {
+    // 🚀 Update URL with new filters and reset to page 1
+    updateURL(1, updatedFilters);
+
+    setFilters(updatedFilters);
+    setCurrentPage(1);
+  }, [filters, updateURL]);
+
+  // Handle role update with validation - only show error toast, no success toast
+  const handleRoleUpdate = async (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'user') => {
+    // Find user and validate
+    const user = usersData?.users.find(u => u.id === userId);
+    if (!user) {
+      showError('Lỗi', 'Không tìm thấy người dùng');
+      return;
+    }
+
     // Optimistic update - update UI ngay lập tức
     if (usersData) {
       const updatedUsers = usersData.users.map(user =>
@@ -258,13 +486,20 @@ export default function UsersList() {
     }
   };
 
-  // Handle verification toggle
+  // Handle verification toggle with validation
   const handleVerificationToggle = async (userId: string) => {
+    // Find user and validate
+    const user = usersData?.users.find(u => u.id === userId);
+    if (!user) {
+      showError('Lỗi', 'Không tìm thấy người dùng');
+      return;
+    }
+
     setActionLoading(`verify-${userId}`);
-    
+
     // Optimistic update - update UI ngay lập tức
     if (usersData) {
-      const updatedUsers = usersData.users.map(user => 
+      const updatedUsers = usersData.users.map(user =>
         user.id === userId ? { ...user, is_verified: !user.is_verified } : user
       );
       setUsersData({ ...usersData, users: updatedUsers });
@@ -291,13 +526,16 @@ export default function UsersList() {
     }
   };
 
-  // Handle edit user
+  // Handle edit user with validation
   const handleEditUser = (userId: string) => {
     const user = usersData?.users.find(u => u.id === userId);
-    if (user) {
-      setSelectedUser(user);
-      setShowEditModal(true);
+    if (!user) {
+      setError('Không tìm thấy người dùng');
+      return;
     }
+
+    setSelectedUser(user);
+    setShowEditModal(true);
   };
 
   // Handle edit button hover - preload country data
@@ -325,10 +563,9 @@ export default function UsersList() {
   // Handle select all users
   const handleSelectAll = (checked: boolean) => {
     if (checked && usersData) {
-      // Only select non-anonymous users for bulk actions
-      const selectableUsers = usersData.users.filter(user => !isAnonymousUser(user));
-      setSelectedUsers(selectableUsers.map(user => user.id));
-      setShowBulkActions(selectableUsers.length > 0);
+      // Select all users for bulk actions
+      setSelectedUsers(usersData.users.map(user => user.id));
+      setShowBulkActions(usersData.users.length > 0);
     } else {
       setSelectedUsers([]);
       setShowBulkActions(false);
@@ -336,26 +573,104 @@ export default function UsersList() {
   };
 
   // Handle bulk role update
-  const handleBulkRoleUpdate = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer') => {
+  const handleBulkRoleUpdate = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'user') => {
     if (selectedUsers.length === 0) return;
 
     if (!confirm(`Bạn có chắc chắn muốn cập nhật role thành "${newRole}" cho ${selectedUsers.length} người dùng đã chọn?`)) return;
+
+    // Optimistic UI update - cập nhật UI ngay lập tức
+    const originalData = usersData;
+    if (usersData) {
+      const updatedUsers = usersData.users.map(user =>
+        selectedUsers.includes(user.id)
+          ? { ...user, role: newRole, updated_at: new Date().toISOString() }
+          : user
+      );
+      setUsersData({ ...usersData, users: updatedUsers });
+    }
 
     setActionLoading('bulk-role');
     try {
       const { success, error } = await UsersService.bulkUpdateUserRole(selectedUsers, newRole);
       if (success) {
-        // Clear cache và refresh data
+        // Clear cache để đảm bảo data fresh cho lần fetch tiếp theo
         cache.current.clear();
-        await Promise.all([fetchUsers(currentPage), fetchStats()]);
+        cacheWithTTL.current.clear();
+
+        // Refresh stats (không cần fetch lại users vì đã optimistic update)
+        await fetchStats();
+
         setSelectedUsers([]);
         setShowBulkActions(false);
         showSuccess(`Đã cập nhật role cho ${selectedUsers.length} người dùng thành công`);
       } else {
+        // Revert optimistic update nếu API call thất bại
+        if (originalData) {
+          setUsersData(originalData);
+        }
         showError(error?.message || 'Không thể cập nhật role cho người dùng');
       }
     } catch (err: any) {
+      // Revert optimistic update nếu có lỗi
+      if (originalData) {
+        setUsersData(originalData);
+      }
       showError(err?.message || 'Có lỗi xảy ra khi cập nhật role');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedUsers.length === 0) return;
+
+    const confirmMessage = `⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedUsers.length} người dùng đã chọn?\n\nHành động này KHÔNG THỂ HOÀN TÁC!`;
+
+    if (!confirm(confirmMessage)) return;
+
+    // Double confirmation for safety
+    if (!confirm(`Xác nhận lần cuối: XÓA ${selectedUsers.length} người dùng?`)) return;
+
+    // Optimistic UI update - xóa users khỏi UI ngay lập tức
+    const originalData = usersData;
+    if (usersData) {
+      const remainingUsers = usersData.users.filter(user => !selectedUsers.includes(user.id));
+      setUsersData({
+        ...usersData,
+        users: remainingUsers,
+        totalUsers: usersData.totalUsers - selectedUsers.length
+      });
+    }
+
+    setActionLoading('bulk-delete');
+    try {
+      const { success, error } = await UsersService.bulkDeleteUsers(selectedUsers);
+
+      if (success) {
+        // Clear cache để đảm bảo data fresh
+        cache.current.clear();
+        cacheWithTTL.current.clear();
+
+        // Refresh stats
+        await fetchStats();
+
+        setSelectedUsers([]);
+        setShowBulkActions(false);
+        showSuccess(`Đã xóa ${selectedUsers.length} người dùng thành công`);
+      } else {
+        // Revert optimistic update nếu API call thất bại
+        if (originalData) {
+          setUsersData(originalData);
+        }
+        showError(error?.message || 'Không thể xóa người dùng');
+      }
+    } catch (err: any) {
+      // Revert optimistic update nếu có lỗi
+      if (originalData) {
+        setUsersData(originalData);
+      }
+      showError(err?.message || 'Có lỗi xảy ra khi xóa người dùng');
     } finally {
       setActionLoading('');
     }
@@ -390,8 +705,15 @@ export default function UsersList() {
 
   // Handle edit user success
   const handleEditUserSuccess = () => {
-    // Clear cache to ensure fresh data on next fetch
-    cache.current.clear();
+    // Smart cache invalidation - only clear current page cache
+    const currentCacheKey = getCacheKey(currentPage, filters, limit);
+    cache.current.delete(currentCacheKey);
+    cacheWithTTL.current.delete(currentCacheKey);
+
+    // Refresh current page data
+    fetchUsers(currentPage);
+    fetchStats();
+
     // Show success toast
     showSuccess('Cập nhật thông tin người dùng thành công!');
   };
@@ -417,17 +739,62 @@ export default function UsersList() {
   const handleCreateUserSuccess = () => {
     // Clear cache and refresh data
     cache.current.clear();
+    cacheWithTTL.current.clear();
     fetchUsers(1); // Reset to first page
     fetchStats();
     setCurrentPage(1);
+    updateURL(1, filters); // Update URL to reflect page change
   };
 
   // Handle delete user
-  const handleDeleteUser = (userId: string) => {
-    console.log('Delete user:', userId);
-    // TODO: Implement delete user functionality
-    if (confirm('Bạn có chắc chắn muốn xóa user này?')) {
-      alert(`Chức năng xóa user ${userId} sẽ được triển khai sau`);
+  const handleDeleteUser = async (userId: string) => {
+    const user = usersData?.users.find(u => u.id === userId);
+    if (!user) {
+      showError('Lỗi', 'Không tìm thấy người dùng');
+      return;
+    }
+
+    const confirmMessage = `⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN người dùng "${user.username || user.full_name}"?\n\nHành động này KHÔNG THỂ HOÀN TÁC!`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setActionLoading(`delete-${userId}`);
+
+    // Optimistic UI update
+    const originalData = usersData;
+    if (usersData) {
+      const remainingUsers = usersData.users.filter(u => u.id !== userId);
+      setUsersData({
+        ...usersData,
+        users: remainingUsers,
+        total: usersData.total - 1
+      });
+    }
+
+    try {
+      const { success, error } = await UsersService.bulkDeleteUsers([userId]);
+
+      if (success) {
+        // Clear cache
+        cache.current.clear();
+        cacheWithTTL.current.clear();
+        await fetchStats();
+        showSuccess('Đã xóa người dùng thành công');
+      } else {
+        // Revert optimistic update
+        if (originalData) {
+          setUsersData(originalData);
+        }
+        showError('Không thể xóa người dùng', error?.message || 'Vui lòng thử lại sau');
+      }
+    } catch (err: any) {
+      // Revert optimistic update
+      if (originalData) {
+        setUsersData(originalData);
+      }
+      showError('Có lỗi xảy ra', err?.message || 'Không thể xóa người dùng');
+    } finally {
+      setActionLoading('');
     }
   };
 
@@ -512,17 +879,6 @@ export default function UsersList() {
   };
 
   // Skeleton components
-  const SkeletonStatsCard = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
-          <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
-        </div>
-        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
-      </div>
-    </div>
-  );
 
   const SkeletonTableRow = () => (
     <tr className="animate-pulse">
@@ -560,6 +916,11 @@ export default function UsersList() {
         <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
       </td>
 
+      {/* Tuổi (hidden sm:table-cell) */}
+      <td className="hidden sm:table-cell px-6 py-4">
+        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
+      </td>
+
       {/* Số lần test IQ */}
       <td className="px-6 py-4">
         <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-8"></div>
@@ -589,67 +950,91 @@ export default function UsersList() {
     <div className="space-y-6">
 
 
-      {/* Stats Cards - Progressive Loading */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {/* Compact Stats Bar - Modern Design */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         {stats ? (
-          [
-            {
-              title: 'Tổng người dùng',
-              value: stats.total.toString(),
-              icon: '👥',
-              bgColor: 'bg-blue-50 dark:bg-blue-900/30',
-              textColor: 'text-blue-600 dark:text-blue-400'
-            },
-            {
-              title: 'Đã đăng ký',
-              value: stats.registered.toString(),
-              icon: '✅',
-              bgColor: 'bg-green-50 dark:bg-green-900/30',
-              textColor: 'text-green-600 dark:text-green-400'
-            },
-            {
-              title: 'Chưa đăng ký',
-              value: stats.anonymous.toString(),
-              icon: '👤',
-              bgColor: 'bg-orange-50 dark:bg-orange-900/30',
-              textColor: 'text-orange-600 dark:text-orange-400'
-            },
-            {
-              title: 'Đã xác thực',
-              value: stats.verified.toString(),
-              icon: '🔐',
-              bgColor: 'bg-purple-50 dark:bg-purple-900/30',
-              textColor: 'text-purple-600 dark:text-purple-400'
-            }
-          ].map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.title}</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                title: 'Tổng người dùng',
+                value: stats.total.toString(),
+                icon: (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                ),
+                color: 'text-blue-600 dark:text-blue-400'
+              },
+              {
+                title: 'Đã đăng ký',
+                value: stats.registered.toString(),
+                icon: (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ),
+                color: 'text-green-600 dark:text-green-400'
+              },
+              {
+                title: 'Chưa đăng ký',
+                value: stats.anonymous.toString(),
+                icon: (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                ),
+                color: 'text-orange-600 dark:text-orange-400'
+              },
+              {
+                title: 'Đã xác thực',
+                value: stats.verified.toString(),
+                icon: (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                ),
+                color: 'text-purple-600 dark:text-purple-400'
+              }
+            ].map((stat, index) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="flex items-center space-x-3"
+              >
+                <div className={`${stat.color} flex-shrink-0`}>
+                  {stat.icon}
                 </div>
-                <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center ${stat.textColor}`}>
-                  <span className="text-2xl">{stat.icon}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                    {stat.title}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          // Compact skeleton loading
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="flex items-center space-x-3 animate-pulse">
+                <div className="w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                <div className="min-w-0 flex-1">
+                  <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-12 mb-1"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
                 </div>
               </div>
-            </motion.div>
-          ))
-        ) : (
-          // Skeleton stats cards
-          <>
-            <SkeletonStatsCard />
-            <SkeletonStatsCard />
-            <SkeletonStatsCard />
-            <SkeletonStatsCard />
-          </>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Users Chart */}
+      <UsersChart className="w-full" />
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -745,7 +1130,7 @@ export default function UsersList() {
                 <select
                   onChange={(e) => {
                     if (e.target.value) {
-                      handleBulkRoleUpdate(e.target.value as 'admin' | 'editor' | 'author' | 'reviewer');
+                      handleBulkRoleUpdate(e.target.value as 'admin' | 'editor' | 'author' | 'reviewer' | 'user');
                       e.target.value = '';
                     }
                   }}
@@ -757,6 +1142,7 @@ export default function UsersList() {
                   <option value="editor">Editor</option>
                   <option value="author">Author</option>
                   <option value="reviewer">Reviewer</option>
+                  <option value="user">User</option>
                 </select>
               </div>
 
@@ -774,6 +1160,27 @@ export default function UsersList() {
                 className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed"
               >
                 {actionLoading === 'bulk-verification' ? 'Đang xử lý...' : 'Hủy xác thực'}
+              </button>
+
+              {/* Delete Action */}
+              <button
+                onClick={handleBulkDelete}
+                disabled={actionLoading === 'bulk-delete'}
+                className="px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-1"
+              >
+                {actionLoading === 'bulk-delete' ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Đang xóa...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Xóa</span>
+                  </>
+                )}
               </button>
 
               {/* Close button */}
@@ -873,7 +1280,7 @@ export default function UsersList() {
                     <div className="flex items-center space-x-3">
                       <input
                         type="checkbox"
-                        checked={selectedUsers.length > 0 && selectedUsers.length === usersData?.users.filter(user => !isAnonymousUser(user)).length}
+                        checked={selectedUsers.length > 0 && selectedUsers.length === usersData?.users.length}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                       />
@@ -891,6 +1298,9 @@ export default function UsersList() {
                   </th>
                   <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Giới tính
+                  </th>
+                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Tuổi
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Số lần test IQ
@@ -916,24 +1326,20 @@ export default function UsersList() {
                     {/* User Info */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {/* Checkbox - only for non-anonymous users */}
+                        {/* Checkbox - for all users */}
                         <div className="flex-shrink-0 mr-3">
-                          {!isAnonymousUser(user) ? (
-                            <input
-                              type="checkbox"
-                              checked={selectedUsers.includes(user.id)}
-                              onChange={(e) => handleUserSelect(user.id, e.target.checked)}
-                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
-                            />
-                          ) : (
-                            <div className="h-4 w-4"></div>
-                          )}
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user.id)}
+                            onChange={(e) => handleUserSelect(user.id, e.target.checked)}
+                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
+                          />
                         </div>
-                        <div className="flex-shrink-0 h-12 w-12 mr-4">
-                          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+                        <div className="flex-shrink-0 h-10 w-10 mr-4">
+                          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
                             isAnonymousUser(user) ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-primary-100 dark:bg-primary-900/30'
                           }`}>
-                            <span className={`text-lg font-semibold ${
+                            <span className={`text-base font-semibold ${
                               isAnonymousUser(user) ? 'text-orange-700 dark:text-orange-400' : 'text-primary-700 dark:text-primary-400'
                             }`}>
                               {(user.username || user.full_name).charAt(0).toUpperCase()}
@@ -950,11 +1356,6 @@ export default function UsersList() {
                           <div className="text-sm text-gray-500 dark:text-gray-400">
                             {user.email}
                           </div>
-                          {user.age && (
-                            <div className="text-xs text-gray-400 dark:text-gray-500">
-                              Tuổi: {user.age}{user.country_name && `, ${user.country_name}`}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -1018,45 +1419,45 @@ export default function UsersList() {
                           {/* Flag */}
                           <div className="flex-shrink-0">
                             {(() => {
-                              // ✅ CÁCH ĐÚNG: Sử dụng country_code trực tiếp (chuẩn quốc tế)
+                              // Lấy country_code từ database hoặc fallback mapping
                               let code = user.country_code;
 
-                              // Fallback: Nếu không có country_code, map từ country_name
+                              // FALLBACK: Nếu backend chưa có country_code, map từ country_name
                               if (!code && user.country_name) {
-                                // Tạo mapping từ Country.json
-                                const countryNameToCode: { [key: string]: string } = {};
+                                const nameToCode: { [key: string]: string } = {};
                                 countryData.forEach((country: any) => {
-                                  countryNameToCode[country.name.toLowerCase()] = country.code;
+                                  nameToCode[country.name.toLowerCase()] = country.code;
                                 });
 
-                                // Thêm variations phổ biến
-                                countryNameToCode['viet nam'] = 'VN';
-                                countryNameToCode['vietnam'] = 'VN';
-                                countryNameToCode['antigua and barbuda'] = 'AG';
-                                countryNameToCode['trinidad and tobago'] = 'TT';
-                                countryNameToCode['united states'] = 'US';
-                                countryNameToCode['usa'] = 'US';
-                                countryNameToCode['uk'] = 'GB';
-                                countryNameToCode['united kingdom'] = 'GB';
+                                // Thêm variations
+                                nameToCode['viet nam'] = 'VN';
+                                nameToCode['vietnam'] = 'VN';
+                                nameToCode['antigua and barbuda'] = 'AG';
+                                nameToCode['united states'] = 'US';
+                                nameToCode['united kingdom'] = 'GB';
 
-                                code = countryNameToCode[user.country_name.toLowerCase()];
+                                code = nameToCode[user.country_name.toLowerCase()];
                               }
 
-                              if (code) {
-                                return (
-                                  <img
-                                    src={`/flag/${code.toUpperCase()}.svg`}
-                                    alt={`${user.country_name} flag`}
-                                    className="w-5 h-4 object-cover rounded-sm"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                    }}
-                                  />
-                                );
-                              } else {
-                                return <span className="text-sm text-gray-400">🏳️</span>;
-                              }
+
+
+                              return code ? (
+                                <img
+                                  src={`/flag/${code}.svg`}
+                                  alt={`${user.country_name} flag`}
+                                  className="w-5 h-4 object-cover rounded-sm"
+                                  onError={(e) => {
+                                    console.error('❌ Flag failed:', `/flag/${code}.svg`);
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                  onLoad={() => {
+                                    // Flag loaded successfully
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-sm text-gray-400">🏳️</span>
+                              );
                             })()}
                           </div>
                           {/* Country name */}
@@ -1072,6 +1473,17 @@ export default function UsersList() {
                     {/* Gender */}
                     <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {formatGender(user.gender)}
+                    </td>
+
+                    {/* Age */}
+                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      {user.age ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
+                          {user.age} tuổi
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 dark:text-gray-400">Chưa có</span>
+                      )}
                     </td>
 
                     {/* Test Count */}
@@ -1098,36 +1510,35 @@ export default function UsersList() {
 
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {isAnonymousUser(user) ? (
-                        <div className="flex justify-end">
-                          <span className="text-xs text-gray-400 dark:text-gray-500 italic">Chỉ xem</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end space-x-2">
-                          {/* Edit Button */}
-                          <button
-                            onClick={() => handleEditUser(user.id)}
-                            onMouseEnter={handleEditHover}
-                            className="text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                            title="Sửa thông tin"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
+                      <div className="flex items-center justify-end space-x-2">
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => handleEditUser(user.id)}
+                          onMouseEnter={handleEditHover}
+                          className="text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                          title="Sửa thông tin"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
 
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                            title="Xóa người dùng"
-                          >
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={actionLoading === `delete-${user.id}`}
+                          className="text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Xóa người dùng"
+                        >
+                          {actionLoading === `delete-${user.id}` ? (
+                            <div className="w-4 h-4 border border-current border-r-transparent rounded-full animate-spin"></div>
+                          ) : (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                          </button>
-                        </div>
-                      )}
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1172,7 +1583,7 @@ export default function UsersList() {
             {/* Left: Results Info */}
             <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
               <span>
-                Hiển thị {Math.min(currentPage * limit, usersData.total)}/{usersData.total} người dùng
+                Hiển thị {Math.min(displayCurrentPage * limit, usersData.total)}/{usersData.total} người dùng
               </span>
 
               {/* Items Per Page Selector - Compact */}
@@ -1192,13 +1603,13 @@ export default function UsersList() {
               </div>
             </div>
 
-            {/* Right: Pagination Controls - Only show if more than 1 page */}
-            {usersData.totalPages > 1 && (
+            {/* Right: Pagination Controls - Only show if more than 1 page and data exists */}
+            {usersData.totalPages > 1 && usersData.total > 0 && (
               <nav className="flex items-center space-x-1">
             {/* First Page - Hidden on mobile */}
             <button
               onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
+              disabled={displayCurrentPage === 1}
               className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang đầu"
             >
@@ -1207,7 +1618,7 @@ export default function UsersList() {
 
             {/* Previous Page */}
             <button
-              onClick={() => handlePageChange(currentPage - 1)}
+              onClick={() => handlePageChange(displayCurrentPage - 1)}
               disabled={!usersData.hasPrev}
               className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang trước"
@@ -1217,27 +1628,27 @@ export default function UsersList() {
             
             {/* Page Numbers - Responsive count */}
             <div className="flex items-center space-x-1">
-              {Array.from({ 
+              {Array.from({
                 length: Math.min(
                   isMobile ? 3 : 5, // 3 on mobile, 5 on desktop
                   usersData.totalPages
-                ) 
+                )
               }, (_, i) => {
                 const maxVisible = isMobile ? 3 : 5;
-                const page = i + Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                const page = i + Math.max(1, displayCurrentPage - Math.floor(maxVisible / 2));
                 if (page > usersData.totalPages) return null;
-                
+
                 return (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
                     className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg ${
-                      page === currentPage
+                      page === displayCurrentPage
                         ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
                         : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                     aria-label={`Trang ${page}`}
-                    aria-current={page === currentPage ? 'page' : undefined}
+                    aria-current={page === displayCurrentPage ? 'page' : undefined}
                   >
                     {page}
                   </button>
@@ -1247,7 +1658,7 @@ export default function UsersList() {
             
             {/* Next Page */}
             <button
-              onClick={() => handlePageChange(currentPage + 1)}
+              onClick={() => handlePageChange(displayCurrentPage + 1)}
               disabled={!usersData.hasNext}
               className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang sau"
@@ -1258,7 +1669,7 @@ export default function UsersList() {
             {/* Last Page - Hidden on mobile */}
             <button
               onClick={() => handlePageChange(usersData.totalPages)}
-              disabled={currentPage === usersData.totalPages}
+              disabled={displayCurrentPage === usersData.totalPages}
               className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Trang cuối"
             >
