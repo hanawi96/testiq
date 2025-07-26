@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UsersService } from '../../../../backend';
+import { UsersService } from '../../../../../backend';
 
 interface CountryStats {
   country_name: string;
@@ -14,7 +14,7 @@ interface UsersByCountryProps {
   className?: string;
 }
 
-export default function UsersByCountry({ className = '' }: UsersByCountryProps) {
+export const UsersByCountry = ({ className = '' }: UsersByCountryProps) => {
   const [data, setData] = useState<CountryStats[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -250,4 +250,4 @@ export default function UsersByCountry({ className = '' }: UsersByCountryProps) 
       </div>
     </div>
   );
-}
+};

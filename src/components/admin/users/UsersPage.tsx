@@ -1,8 +1,8 @@
-import React from 'react';
-import UsersList from './UsersList';
-import UsersByCountry from './UsersByCountry';
+// React import removed - not needed in React 17+
+import { UsersList } from './UsersList';
+import { UsersByCountry } from './components';
 
-export default function UsersPage() {
+export const UsersPage = () => {
   return (
     <div className="space-y-6">
       {/* Users List */}
@@ -12,4 +12,4 @@ export default function UsersPage() {
       <UsersByCountry />
     </div>
   );
-}
+};

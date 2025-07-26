@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { UsersFilters as UsersFiltersType } from '../../../../backend';
+import type { UsersFilters as UsersFiltersType } from '../../../../../backend';
 
 interface Props {
   onFiltersChange?: (filters: UsersFiltersType) => void;

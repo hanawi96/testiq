@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UsersService } from '../../../../backend';
-import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
-import CreateUserModal from './CreateUserModal';
-import EditUserModal from './EditUserModal';
+import { UsersService } from '../../../../../backend';
+import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../../backend';
+import { CreateUserModal } from './modals';
+import { EditUserModal } from './modals';
 import QuickRoleEditor from './QuickRoleEditor';
-import { ToastContainer, useToast } from '../common/Toast';
-import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
-import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
-import countryData from '../../../../Country.json';
+import { ToastContainer, useToast } from '../../common/Toast';
+import { preloadTriggers } from '../../../../utils/admin/preloaders/country-preloader';
+import { getCountryFlag, getCountryFlagSvgByCode } from '../../../../utils/country-flags';
+import countryData from '../../../../../Country.json';
 
 interface Props {
   filters?: UsersFilters;

@@ -1,707 +1,177 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+// React import removed - not needed in React 17+
 import { motion, AnimatePresence } from 'framer-motion';
 import { UsersService } from '../../../../backend';
 import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
-import CreateUserModal from './CreateUserModal';
-import EditUserModal from './EditUserModal';
-import QuickRoleEditor from './QuickRoleEditor';
-import { ToastContainer, useToast } from '../common/Toast';
+import { CreateUserModal, EditUserModal } from './components/modals';
+import { QuickRoleEditor, UsersChart } from './components';
+import { ToastContainer } from '../common/Toast';
 import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 import countryData from '../../../../Country.json';
-import UsersChart from './UsersChart';
+import { formatDate, formatGender, formatTestCount, getRoleBadge, getUserTypeBadge, isAnonymousUser } from './utils/formatters';
+import {
+  useUsersState,
+  useUsersEffects,
+  useUsersData,
+  useUsersActions,
+  useUsersBulkActions
+} from './hooks';
+import { SkeletonTableRow } from './components/SkeletonComponents';
+import { UsersStats } from './components/UsersStats';
+import { UsersBulkActions } from './components/UsersBulkActions';
+import { UsersPagination } from './components/UsersPagination';
 
-export default function UsersList() {
+export const UsersList = () => {
+  // Initialize state hook
+  const {
+    usersData,
+    setUsersData,
+    isLoading,
+    setIsLoading,
+    error,
+    setError,
+    currentPage,
+    setCurrentPage,
+    displayCurrentPage,
+    filters,
+    setFilters,
+    isInitialized,
+    setIsInitialized,
+    searchInput,
+    setSearchInput,
+    stats,
+    setStats,
+    actionLoading,
+    setActionLoading,
+    isMobile,
+    setIsMobile,
+    showCreateModal,
+    setShowCreateModal,
+    showEditModal,
+    setShowEditModal,
+    selectedUser,
+    setSelectedUser,
+    selectedUsers,
+    setSelectedUsers,
+    showBulkActions,
+    setShowBulkActions,
+    limit,
+    setLimit,
+    toasts,
+    removeToast,
+    showSuccess,
+    showError,
+    cache,
+    cacheWithTTL,
+    prefetchQueue,
+    searchTimeoutRef,
+    aggressivePrefetchDone,
+    usersDataRef,
+    CACHE_TTL
+  } = useUsersState();
 
-
-  // State management - Start with defaults, sync with URL in useEffect
-  const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<UsersFilters>({
-    role: 'all',
-    search: '',
-    verified: undefined,
-    user_type: undefined
+  // Initialize effects hook
+  const { updateURL } = useUsersEffects({
+    setFilters,
+    setIsInitialized,
+    setIsMobile,
+    setCurrentPage,
+    searchInput,
+    searchTimeoutRef,
+    usersDataRef,
+    usersData
   });
 
-  // Computed current page from URL with validation
-  const displayCurrentPage = useMemo(() => {
-    if (typeof window === 'undefined') return currentPage;
-    const params = new URLSearchParams(window.location.search);
-    const urlPage = Math.max(1, parseInt(params.get('page') || '1'));
-
-    // Validate against totalPages if available
-    if (usersData?.totalPages && urlPage > usersData.totalPages) {
-      console.warn('🚨 INVALID PAGE: URL page', urlPage, 'exceeds totalPages', usersData.totalPages);
-      // Redirect to last valid page
-      if (typeof window !== 'undefined') {
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('page', usersData.totalPages.toString());
-        window.history.replaceState({}, '', newUrl.toString());
-      }
-      return usersData.totalPages;
-    }
-
-    return urlPage;
-  }, [currentPage, usersData?.totalPages, typeof window !== 'undefined' ? window.location.search : '']);
-
-  // URL sync state
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Toast notifications
-  const { toasts, removeToast, showSuccess, showError } = useToast();
-  const [searchInput, setSearchInput] = useState(''); // Separate search input for debouncing
-  const [stats, setStats] = useState<any>(null);
-  const [actionLoading, setActionLoading] = useState<string>('');
-
-  const [isMobile, setIsMobile] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
-
-  // Bulk actions state
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
-  
-  // Enhanced cache with TTL for stale-while-revalidate
-  const cache = useRef<Map<string, UsersListResponse>>(new Map());
-  const cacheWithTTL = useRef<Map<string, {
-    data: UsersListResponse;
-    timestamp: number;
-    ttl: number;
-  }>>(new Map());
-  const prefetchQueue = useRef<Set<number>>(new Set());
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
-  const aggressivePrefetchDone = useRef<Set<string>>(new Set()); // Track completed aggressive prefetches
-  const usersDataRef = useRef<UsersListResponse | null>(null); // Track usersData without dependency
-
-
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-  const [limit, setLimit] = useState(10);
-
-  // 🚀 URL Sync Utilities
-  const updateURL = useCallback((page: number, newFilters: UsersFilters) => {
-    if (typeof window === 'undefined') return;
-
-    const params = new URLSearchParams();
-
-    // Only add non-default values to keep URL clean
-    if (page > 1) params.set('page', page.toString());
-    if (newFilters.role !== 'all') params.set('role', newFilters.role);
-    if (newFilters.search) params.set('search', newFilters.search);
-    if (newFilters.verified !== undefined) params.set('verified', newFilters.verified.toString());
-    if (newFilters.user_type) params.set('user_type', newFilters.user_type);
-
-    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-
-    // Use pushState to update URL without page reload
-    window.history.pushState({}, '', newUrl);
-
-    console.log('🔗 URL updated:', newUrl);
-  }, []);
-
-  // 🚀 Simple URL sync on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Parse URL and sync filters only (page handled by displayCurrentPage)
-    const params = new URLSearchParams(window.location.search);
-    const urlRole = params.get('role') || 'all';
-    const urlSearch = params.get('search') || '';
-    const urlVerified = params.get('verified') ? params.get('verified') === 'true' : undefined;
-    const urlUserType = params.get('user_type') || undefined;
-
-    const urlFilters = {
-      role: urlRole as UsersFilters['role'],
-      search: urlSearch,
-      verified: urlVerified,
-      user_type: urlUserType as UsersFilters['user_type']
-    };
-
-    setFilters(urlFilters);
-    setIsInitialized(true);
-
-    // Handle browser back/forward
-    const handlePopState = () => {
-      window.location.reload(); // Simple reload on navigation
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  // Detect screen size
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
-
-  // Sync usersDataRef with usersData state
-  useEffect(() => {
-    usersDataRef.current = usersData;
-  }, [usersData]);
-
-
-
-  // Debounced search effect
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      setFilters(prev => ({ ...prev, search: searchInput }));
-      setCurrentPage(1);
-    }, 300); // 300ms debounce
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchInput]);
-
-  // Generate cache key
-  const getCacheKey = (page: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
-    return `${page}-${pageLimit}-${JSON.stringify(currentFilters)}`;
-  };
-
-  // Prefetch data for instant pagination
-  const prefetchPage = useCallback(async (page: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
-    const cacheKey = getCacheKey(page, currentFilters, pageLimit);
-
-    // Check both caches
-    if (cacheWithTTL.current.has(cacheKey) || cache.current.has(cacheKey)) {
-      return;
-    }
-
-    if (prefetchQueue.current.has(page)) {
-      return;
-    }
-
-    prefetchQueue.current.add(page);
-
-    try {
-      const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, currentFilters);
-      if (!fetchError && data) {
-        // Store in both caches
-        cache.current.set(cacheKey, data);
-        cacheWithTTL.current.set(cacheKey, {
-          data,
-          timestamp: Date.now(),
-          ttl: CACHE_TTL
-        });
-        console.log(`✅ Prefetch SUCCESS page ${page}`);
-      }
-    } catch (err) {
-      console.log(`❌ Prefetch ERROR page ${page}`);
-    } finally {
-      prefetchQueue.current.delete(page);
-    }
-  }, []);
-
-  // Smart aggressive prefetch - ONCE ONLY per filter set
-  const smartAggressivePrefetch = useCallback(async (totalPages: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
-    const filterKey = `${JSON.stringify(currentFilters)}-${pageLimit}`;
-
-    if (aggressivePrefetchDone.current.has(filterKey)) {
-      return; // Already done for this filter set
-    }
-
-    console.log(`🚀 SMART AGGRESSIVE PREFETCH: ${totalPages} pages (ONCE ONLY)`);
-    aggressivePrefetchDone.current.add(filterKey);
-
-    // Prefetch all pages with smart timing
-    for (let page = 1; page <= totalPages; page++) {
-      const cacheKey = getCacheKey(page, currentFilters, pageLimit);
-
-      // Check both caches before prefetching
-      if (!cacheWithTTL.current.has(cacheKey) && !cache.current.has(cacheKey)) {
-        setTimeout(() => prefetchPage(page, currentFilters, pageLimit), page * 50); // Faster 50ms
-      }
-    }
-  }, [prefetchPage]);
-
-  // Fetch users data with stale-while-revalidate
-  const fetchUsers = useCallback(async (page: number = currentPage, pageLimit: number = limit) => {
-    const cacheKey = getCacheKey(page, filters, pageLimit);
-
-    console.log(`🔍 Fetch page ${page}`);
-
-    // 🚀 STEP 3: Stale-while-revalidate strategy
-    const cached = cacheWithTTL.current.get(cacheKey);
-
-    // Serve stale data immediately if available
-    if (cached) {
-      console.log(`⚡ INSTANT page ${page} (${cached.data.users.length} users)`);
-      setUsersData(cached.data);
-      setError('');
-
-      // Check if data is stale
-      const isStale = Date.now() - cached.timestamp > cached.ttl;
-      if (!isStale) {
-        console.log(`✅ Data is fresh, no revalidation needed`);
-        // Smart aggressive prefetch - ONCE ONLY
-        smartAggressivePrefetch(cached.data.totalPages, filters, pageLimit);
-        return; // Fresh data, no need to revalidate
-      }
-
-      // Data is stale, revalidate in background
-      console.log(`🔄 Data is stale, revalidating page ${page} in background...`);
-    } else {
-      // No cached data, show loading
-      console.log(`🔄 Loading page ${page}...`);
-      // Use ref to check current usersData without adding it to dependencies
-      if (page === 1 && !usersDataRef.current) setIsLoading(true);
-    }
-
-    setError('');
-
-    try {
-      const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, filters);
-
-      if (fetchError || !data) {
-        // Only show error if no stale data was served
-        if (!cached) {
-          setError('Không thể tải danh sách users');
-        }
-        return;
-      }
-
-      console.log(`✅ Loaded fresh page ${page}`);
-
-      // Handle boundary condition: if current page is empty but there are other pages
-      if (data.users.length === 0 && data.totalPages > 0 && page > data.totalPages) {
-        console.log('🔧 BOUNDARY: Current page is empty, redirecting to last valid page');
-        const lastValidPage = Math.max(1, data.totalPages);
-        setCurrentPage(lastValidPage);
-        updateURL(lastValidPage, filters);
-        fetchUsers(lastValidPage, pageLimit);
-        return;
-      }
-
-      // Update cache with TTL
-      cacheWithTTL.current.set(cacheKey, {
-        data,
-        timestamp: Date.now(),
-        ttl: CACHE_TTL
-      });
-
-      // Also update old cache for backward compatibility
-      cache.current.set(cacheKey, data);
-
-      // Update UI only if no stale data was served
-      if (!cached) {
-        setUsersData(data);
-        console.log('🔍 UsersList: First user data:', data.users[0]); // Debug username
-      }
-
-      // Smart aggressive prefetch - ONCE ONLY
-      smartAggressivePrefetch(data.totalPages, filters, pageLimit);
-
-    } catch (err) {
-      // Only show error if no stale data was served
-      if (!cached) {
-        setError('Có lỗi xảy ra khi tải dữ liệu');
-      }
-    } finally {
-      // Use ref to check current usersData without adding it to dependencies
-      if (page === 1 && !usersDataRef.current) setIsLoading(false);
-    }
-  }, [currentPage, limit, filters]); // Remove usersData and smartAggressivePrefetch dependencies
-
-  // Fetch stats
-  const fetchStats = useCallback(async () => {
-    try {
-      const { data: statsData, error: statsError } = await UsersService.getUserStats();
-      if (!statsError && statsData) {
-        setStats(statsData);
-      }
-    } catch (err) {
-      console.warn('Could not fetch user stats:', err);
-    }
-  }, []);
-
-  // Clear cache when filters change
-  const prevFiltersRef = useRef<UsersFilters>(filters);
-  useEffect(() => {
-    const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
-    if (filtersChanged) {
-      console.log('🧹 CACHE CLEAR: Filters changed');
-      cache.current.clear();
-      cacheWithTTL.current.clear();
-      prefetchQueue.current.clear();
-      aggressivePrefetchDone.current.clear();
-      prevFiltersRef.current = filters;
-    }
-  }, [filters]);
-
-  // Initial load with SSR hydration - Simplified
-  useEffect(() => {
-    // Wait for URL initialization
-    if (!isInitialized) return;
-
-
-
-    // 🚀 Hydrate from SSR data if available
-    if (typeof window !== 'undefined' && (window as any).__USERS_INITIAL_DATA__) {
-      const initialData = (window as any).__USERS_INITIAL_DATA__;
-      const initialStats = (window as any).__USERS_INITIAL_STATS__;
-
-      console.log('⚡ SSR HYDRATION: Using pre-loaded data', {
-        page: initialData?.page,
-        usersCount: initialData?.users?.length,
-        totalPages: initialData?.totalPages
-      });
-
-      // Set data immediately (0ms)
-      setUsersData(initialData);
-      if (initialStats) setStats(initialStats);
-      setIsLoading(false);
-      setError('');
-
-      // Cache the initial data with TTL
-      const cacheKey = getCacheKey(initialData.page, filters, limit);
-      cache.current.set(cacheKey, initialData);
-      cacheWithTTL.current.set(cacheKey, {
-        data: initialData,
-        timestamp: Date.now(),
-        ttl: CACHE_TTL
-      });
-
-      // Start aggressive prefetch for remaining pages
-      smartAggressivePrefetch(initialData.totalPages, filters, limit);
-
-      // Clear the global data to prevent reuse
-      delete (window as any).__USERS_INITIAL_DATA__;
-      delete (window as any).__USERS_INITIAL_STATS__;
-
-      return; // Skip API call
-    }
-
-    // Fallback to API if no SSR data
-    console.log('🔄 CLIENT-SIDE: Loading data via API for page', displayCurrentPage);
-    fetchUsers(displayCurrentPage);
-    fetchStats();
-  }, [filters, isInitialized, displayCurrentPage]);
-
-
-
-  // Handle page change - Simple and reliable
-  const handlePageChange = (newPage: number) => {
-    // Validate page bounds
-    if (newPage < 1 || (usersData?.totalPages && newPage > usersData.totalPages)) {
-      return;
-    }
-
-    console.log(`🔄 PAGE CHANGE: → ${newPage}`);
-
-    // Update URL and let displayCurrentPage handle the rest
-    updateURL(newPage, filters);
-
-    // Simple cache check for instant display
-    const cacheKey = getCacheKey(newPage, filters, limit);
-    const cached = cacheWithTTL.current.get(cacheKey);
-
-    if (cached && Date.now() - cached.timestamp < cached.ttl) {
-      setUsersData(cached.data);
-      setError('');
-    } else {
-      setIsLoading(true);
-      fetchUsers(newPage);
-    }
-  };
-
-  // Handle limit change - Reset to page 1
-  const handleLimitChange = (newLimit: number) => {
-    console.log(`🔄 LIMIT CHANGE: ${limit} → ${newLimit}`);
-    setLimit(newLimit);
-    setCurrentPage(1);
-    // Clear cache since page size changed
-    cache.current.clear();
-    cacheWithTTL.current.clear();
-    aggressivePrefetchDone.current.clear();
-    fetchUsers(1, newLimit);
-  };
-
-  // Handle filter change - OPTIMIZED + URL SYNC
-  const handleFilterChange = useCallback((newFilters: Partial<UsersFilters>) => {
-    const updatedFilters = { ...filters, ...newFilters };
-
-    // 🚀 Update URL with new filters and reset to page 1
-    updateURL(1, updatedFilters);
-
-    setFilters(updatedFilters);
-    setCurrentPage(1);
-  }, [filters, updateURL]);
-
-  // Handle role update with validation - only show error toast, no success toast
-  const handleRoleUpdate = async (userId: string, newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'user') => {
-    // Find user and validate
-    const user = usersData?.users.find(u => u.id === userId);
-    if (!user) {
-      showError('Lỗi', 'Không tìm thấy người dùng');
-      return;
-    }
-
-    // Optimistic update - update UI ngay lập tức
-    if (usersData) {
-      const updatedUsers = usersData.users.map(user =>
-        user.id === userId ? { ...user, role: newRole } : user
-      );
-      setUsersData({ ...usersData, users: updatedUsers });
-    }
-
-    try {
-      const { success, error: updateError } = await UsersService.updateUserRole(userId, newRole);
-
-      if (success) {
-        // Clear cache và fetch stats
-        cache.current.clear();
-        await fetchStats();
-        // No success toast - loading state on badge is sufficient feedback
-      } else {
-        // Revert về role cũ nếu fail
-        await fetchUsers(currentPage);
-        showError(
-          'Không thể cập nhật vai trò',
-          updateError?.message || 'Vui lòng thử lại sau'
-        );
-      }
-    } catch (err) {
-      // Revert về role cũ nếu fail
-      await fetchUsers(currentPage);
-      showError(
-        'Có lỗi xảy ra',
-        'Không thể cập nhật vai trò. Vui lòng thử lại sau'
-      );
-    }
-  };
-
-  // Handle verification toggle with validation
-  const handleVerificationToggle = async (userId: string) => {
-    // Find user and validate
-    const user = usersData?.users.find(u => u.id === userId);
-    if (!user) {
-      showError('Lỗi', 'Không tìm thấy người dùng');
-      return;
-    }
-
-    setActionLoading(`verify-${userId}`);
-
-    // Optimistic update - update UI ngay lập tức
-    if (usersData) {
-      const updatedUsers = usersData.users.map(user =>
-        user.id === userId ? { ...user, is_verified: !user.is_verified } : user
-      );
-      setUsersData({ ...usersData, users: updatedUsers });
-    }
-    
-    try {
-      const { success, error: updateError } = await UsersService.toggleUserVerification(userId);
-      
-      if (success) {
-        // Clear cache và fetch stats
-        cache.current.clear();
-        await fetchStats();
-      } else {
-        // Revert về status cũ nếu fail
-        await fetchUsers(currentPage);
-        setError('Không thể cập nhật verification');
-      }
-    } catch (err) {
-      // Revert về status cũ nếu fail
-      await fetchUsers(currentPage);
-      setError('Có lỗi xảy ra khi cập nhật verification');
-    } finally {
-      setActionLoading('');
-    }
-  };
-
-  // Handle edit user with validation
-  const handleEditUser = (userId: string) => {
-    const user = usersData?.users.find(u => u.id === userId);
-    if (!user) {
-      setError('Không tìm thấy người dùng');
-      return;
-    }
-
-    setSelectedUser(user);
-    setShowEditModal(true);
-  };
-
-  // Handle edit button hover - preload country data
-  const handleEditHover = useCallback(() => {
-    preloadTriggers.onUserInteraction();
-  }, []);
-
-  // Handle edit user modal close
-  const handleEditUserClose = () => {
-    setShowEditModal(false);
-    setSelectedUser(null);
-  };
-
-  // Handle user selection
-  const handleUserSelect = (userId: string, checked: boolean) => {
-    setSelectedUsers(prev => {
-      const newSelection = checked
-        ? [...prev, userId]
-        : prev.filter(id => id !== userId);
-      setShowBulkActions(newSelection.length > 0);
-      return newSelection;
-    });
-  };
-
-  // Handle select all users
-  const handleSelectAll = (checked: boolean) => {
-    if (checked && usersData) {
-      // Select all users for bulk actions
-      setSelectedUsers(usersData.users.map(user => user.id));
-      setShowBulkActions(usersData.users.length > 0);
-    } else {
-      setSelectedUsers([]);
-      setShowBulkActions(false);
-    }
-  };
-
-  // Handle bulk role update
-  const handleBulkRoleUpdate = async (newRole: 'admin' | 'editor' | 'author' | 'reviewer' | 'user') => {
-    if (selectedUsers.length === 0) return;
-
-    if (!confirm(`Bạn có chắc chắn muốn cập nhật role thành "${newRole}" cho ${selectedUsers.length} người dùng đã chọn?`)) return;
-
-    // Optimistic UI update - cập nhật UI ngay lập tức
-    const originalData = usersData;
-    if (usersData) {
-      const updatedUsers = usersData.users.map(user =>
-        selectedUsers.includes(user.id)
-          ? { ...user, role: newRole, updated_at: new Date().toISOString() }
-          : user
-      );
-      setUsersData({ ...usersData, users: updatedUsers });
-    }
-
-    setActionLoading('bulk-role');
-    try {
-      const { success, error } = await UsersService.bulkUpdateUserRole(selectedUsers, newRole);
-      if (success) {
-        // Clear cache để đảm bảo data fresh cho lần fetch tiếp theo
-        cache.current.clear();
-        cacheWithTTL.current.clear();
-
-        // Refresh stats (không cần fetch lại users vì đã optimistic update)
-        await fetchStats();
-
-        setSelectedUsers([]);
-        setShowBulkActions(false);
-        showSuccess(`Đã cập nhật role cho ${selectedUsers.length} người dùng thành công`);
-      } else {
-        // Revert optimistic update nếu API call thất bại
-        if (originalData) {
-          setUsersData(originalData);
-        }
-        showError(error?.message || 'Không thể cập nhật role cho người dùng');
-      }
-    } catch (err: any) {
-      // Revert optimistic update nếu có lỗi
-      if (originalData) {
-        setUsersData(originalData);
-      }
-      showError(err?.message || 'Có lỗi xảy ra khi cập nhật role');
-    } finally {
-      setActionLoading('');
-    }
-  };
-
-  // Handle bulk delete
-  const handleBulkDelete = async () => {
-    if (selectedUsers.length === 0) return;
-
-    const confirmMessage = `⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedUsers.length} người dùng đã chọn?\n\nHành động này KHÔNG THỂ HOÀN TÁC!`;
-
-    if (!confirm(confirmMessage)) return;
-
-    // Double confirmation for safety
-    if (!confirm(`Xác nhận lần cuối: XÓA ${selectedUsers.length} người dùng?`)) return;
-
-    // Optimistic UI update - xóa users khỏi UI ngay lập tức
-    const originalData = usersData;
-    if (usersData) {
-      const remainingUsers = usersData.users.filter(user => !selectedUsers.includes(user.id));
-      setUsersData({
-        ...usersData,
-        users: remainingUsers,
-        totalUsers: usersData.totalUsers - selectedUsers.length
-      });
-    }
-
-    setActionLoading('bulk-delete');
-    try {
-      const { success, error } = await UsersService.bulkDeleteUsers(selectedUsers);
-
-      if (success) {
-        // Clear cache để đảm bảo data fresh
-        cache.current.clear();
-        cacheWithTTL.current.clear();
-
-        // Refresh stats
-        await fetchStats();
-
-        setSelectedUsers([]);
-        setShowBulkActions(false);
-        showSuccess(`Đã xóa ${selectedUsers.length} người dùng thành công`);
-      } else {
-        // Revert optimistic update nếu API call thất bại
-        if (originalData) {
-          setUsersData(originalData);
-        }
-        showError(error?.message || 'Không thể xóa người dùng');
-      }
-    } catch (err: any) {
-      // Revert optimistic update nếu có lỗi
-      if (originalData) {
-        setUsersData(originalData);
-      }
-      showError(err?.message || 'Có lỗi xảy ra khi xóa người dùng');
-    } finally {
-      setActionLoading('');
-    }
-  };
-
-  // Handle bulk verification toggle
-  const handleBulkVerificationToggle = async (verified: boolean) => {
-    if (selectedUsers.length === 0) return;
-
-    const action = verified ? 'xác thực' : 'hủy xác thực';
-    if (!confirm(`Bạn có chắc chắn muốn ${action} ${selectedUsers.length} người dùng đã chọn?`)) return;
-
-    setActionLoading('bulk-verification');
-    try {
-      const { success, error } = await UsersService.bulkUpdateUserVerification(selectedUsers, verified);
-      if (success) {
-        // Clear cache và refresh data
-        cache.current.clear();
-        await Promise.all([fetchUsers(currentPage), fetchStats()]);
-        setSelectedUsers([]);
-        setShowBulkActions(false);
-        showSuccess(`Đã ${action} ${selectedUsers.length} người dùng thành công`);
-      } else {
-        showError(error?.message || `Không thể ${action} người dùng`);
-      }
-    } catch (err: any) {
-      showError(err?.message || `Có lỗi xảy ra khi ${action}`);
-    } finally {
-      setActionLoading('');
-    }
-  };
+  // Initialize data hook
+  const {
+    getCacheKey,
+    fetchUsers,
+    fetchStats
+  } = useUsersData({
+    filters,
+    limit,
+    currentPage,
+    displayCurrentPage,
+    isInitialized,
+    setUsersData,
+    setIsLoading,
+    setError,
+    setStats,
+    setCurrentPage,
+    updateURL,
+    usersDataRef,
+    cache,
+    cacheWithTTL,
+    prefetchQueue,
+    aggressivePrefetchDone,
+    CACHE_TTL
+  });
+
+  // Initialize actions hook
+  const {
+    handlePageChange,
+    handleLimitChange,
+    handleFilterChange,
+    handleRoleUpdate,
+    handleVerificationToggle,
+    handleEditUser,
+    handleEditHover,
+    handleEditUserClose,
+    handleUserSelect,
+    handleSelectAll,
+    handleClearSelection
+  } = useUsersActions({
+    usersData,
+    setUsersData,
+    currentPage,
+    setCurrentPage,
+    filters,
+    setFilters,
+    limit,
+    setLimit,
+    selectedUsers,
+    setSelectedUsers,
+    setShowBulkActions,
+    actionLoading,
+    setActionLoading,
+    setError,
+    setShowEditModal,
+    setSelectedUser,
+    showSuccess,
+    showError,
+    updateURL,
+    fetchUsers,
+    fetchStats,
+    getCacheKey,
+    cache,
+    cacheWithTTL,
+    aggressivePrefetchDone,
+    setIsLoading,
+    CACHE_TTL,
+    preloadTriggers
+  });
+
+  // Initialize bulk actions hook
+  const {
+    handleBulkRoleUpdate,
+    handleBulkDelete,
+    handleBulkVerificationToggle
+  } = useUsersBulkActions({
+    selectedUsers,
+    setSelectedUsers,
+    setShowBulkActions,
+    usersData,
+    setUsersData,
+    actionLoading,
+    setActionLoading,
+    currentPage,
+    showSuccess,
+    showError,
+    fetchUsers,
+    fetchStats,
+    cache,
+    cacheWithTTL
+  });
 
   // Handle edit user success
   const handleEditUserSuccess = () => {
@@ -800,238 +270,16 @@ export default function UsersList() {
 
 
 
-  // Format date
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Chưa có';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
 
-  // Get role badge - updated for new roles
-  const getRoleBadge = (role: string) => {
-    const styles = {
-      admin: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
-      editor: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-      author: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
-      reviewer: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800',
-      mod: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-      user: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
-    };
-    return styles[role as keyof typeof styles] || styles.user;
-  };
 
-  // Get user type badge
-  const getUserTypeBadge = (userType: 'registered' | 'anonymous' | undefined) => {
-    if (userType === 'anonymous') {
-      return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800';
-    }
-    return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
-  };
 
-  // Check if user is anonymous
-  const isAnonymousUser = (user: UserWithProfile) => {
-    return user.user_type === 'anonymous';
-  };
-
-  // Helper functions để format dữ liệu
-
-  const formatGender = (gender: string | null | undefined): string => {
-    if (!gender || gender.trim() === '') return 'Chưa có';
-    // Chuyển đổi giá trị tiếng Anh sang tiếng Việt
-    switch (gender.toLowerCase()) {
-      case 'male':
-        return 'Nam';
-      case 'female':
-        return 'Nữ';
-      case 'other':
-        return 'Khác';
-      default:
-        return gender;
-    }
-  };
-
-  const formatTestCount = (count: number | undefined): { text: string; className: string } => {
-    const testCount = count || 0;
-    if (testCount === 0) {
-      return {
-        text: 'Chưa có',
-        className: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-      };
-    } else if (testCount === 1) {
-      return {
-        text: '1 lần',
-        className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-      };
-    } else if (testCount <= 5) {
-      return {
-        text: `${testCount} lần`,
-        className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      };
-    } else {
-      return {
-        text: `${testCount} lần`,
-        className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-      };
-    }
-  };
-
-  // Skeleton components
-
-  const SkeletonTableRow = () => (
-    <tr className="animate-pulse">
-      {/* Người dùng */}
-      <td className="px-6 py-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-32"></div>
-            <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
-          </div>
-        </div>
-      </td>
-
-      {/* Vai trò */}
-      <td className="px-6 py-4">
-        <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded-full w-20"></div>
-      </td>
-
-      {/* Trạng thái */}
-      <td className="px-6 py-4">
-        <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded-full w-24"></div>
-      </td>
-
-      {/* Quốc gia (hidden lg:table-cell) */}
-      <td className="hidden lg:table-cell px-6 py-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-5 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
-        </div>
-      </td>
-
-      {/* Giới tính (hidden md:table-cell) */}
-      <td className="hidden md:table-cell px-6 py-4">
-        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
-      </td>
-
-      {/* Tuổi (hidden sm:table-cell) */}
-      <td className="hidden sm:table-cell px-6 py-4">
-        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
-      </td>
-
-      {/* Số lần test IQ */}
-      <td className="px-6 py-4">
-        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-8"></div>
-      </td>
-
-      {/* Ngày tham gia */}
-      <td className="px-6 py-4">
-        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
-      </td>
-
-      {/* Đăng nhập cuối */}
-      <td className="px-6 py-4">
-        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
-      </td>
-
-      {/* Hành động */}
-      <td className="px-6 py-4">
-        <div className="flex space-x-2">
-          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
-          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
-        </div>
-      </td>
-    </tr>
-  );
 
   return (
     <div className="space-y-6">
 
 
       {/* Compact Stats Bar - Modern Design */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        {stats ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                title: 'Tổng người dùng',
-                value: stats.total.toString(),
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                ),
-                color: 'text-blue-600 dark:text-blue-400'
-              },
-              {
-                title: 'Đã đăng ký',
-                value: stats.registered.toString(),
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ),
-                color: 'text-green-600 dark:text-green-400'
-              },
-              {
-                title: 'Chưa đăng ký',
-                value: stats.anonymous.toString(),
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                ),
-                color: 'text-orange-600 dark:text-orange-400'
-              },
-              {
-                title: 'Đã xác thực',
-                value: stats.verified.toString(),
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                ),
-                color: 'text-purple-600 dark:text-purple-400'
-              }
-            ].map((stat, index) => (
-              <motion.div
-                key={stat.title}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-center space-x-3"
-              >
-                <div className={`${stat.color} flex-shrink-0`}>
-                  {stat.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                    {stat.title}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          // Compact skeleton loading
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="flex items-center space-x-3 animate-pulse">
-                <div className="w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                <div className="min-w-0 flex-1">
-                  <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-12 mb-1"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <UsersStats stats={stats} />
 
       {/* Users Chart */}
       <UsersChart className="w-full" />
@@ -1108,97 +356,14 @@ export default function UsersList() {
 
       {/* Bulk Actions */}
       {showBulkActions && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Đã chọn {selectedUsers.length} người dùng
-              </span>
-              <button
-                onClick={() => {
-                  setSelectedUsers([]);
-                  setShowBulkActions(false);
-                }}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-              >
-                Bỏ chọn tất cả
-              </button>
-            </div>
-            <div className="flex items-center space-x-2">
-              {/* Role Update Dropdown */}
-              <div className="relative">
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleBulkRoleUpdate(e.target.value as 'admin' | 'editor' | 'author' | 'reviewer' | 'user');
-                      e.target.value = '';
-                    }
-                  }}
-                  disabled={actionLoading === 'bulk-role'}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Cập nhật role</option>
-                  <option value="admin">Admin</option>
-                  <option value="editor">Editor</option>
-                  <option value="author">Author</option>
-                  <option value="reviewer">Reviewer</option>
-                  <option value="user">User</option>
-                </select>
-              </div>
-
-              {/* Verification Actions */}
-              <button
-                onClick={() => handleBulkVerificationToggle(true)}
-                disabled={actionLoading === 'bulk-verification'}
-                className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed"
-              >
-                {actionLoading === 'bulk-verification' ? 'Đang xử lý...' : 'Xác thực'}
-              </button>
-              <button
-                onClick={() => handleBulkVerificationToggle(false)}
-                disabled={actionLoading === 'bulk-verification'}
-                className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed"
-              >
-                {actionLoading === 'bulk-verification' ? 'Đang xử lý...' : 'Hủy xác thực'}
-              </button>
-
-              {/* Delete Action */}
-              <button
-                onClick={handleBulkDelete}
-                disabled={actionLoading === 'bulk-delete'}
-                className="px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-1"
-              >
-                {actionLoading === 'bulk-delete' ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Đang xóa...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>Xóa</span>
-                  </>
-                )}
-              </button>
-
-              {/* Close button */}
-              <button
-                onClick={() => {
-                  setSelectedUsers([]);
-                  setShowBulkActions(false);
-                }}
-                className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors ml-2"
-                title="Đóng thanh công cụ"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
+        <UsersBulkActions
+          selectedUsers={selectedUsers}
+          actionLoading={actionLoading}
+          onClearSelection={handleClearSelection}
+          onBulkRoleUpdate={handleBulkRoleUpdate}
+          onBulkVerificationToggle={handleBulkVerificationToggle}
+          onBulkDelete={handleBulkDelete}
+        />
       )}
 
       {/* Error */}
@@ -1577,129 +742,15 @@ export default function UsersList() {
 
 
       {/* Unified Pagination - Single Row Design */}
-      {usersData && usersData.users.length > 0 && (
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <div className="flex items-center justify-between">
-            {/* Left: Results Info */}
-            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-              <span>
-                Hiển thị {Math.min(displayCurrentPage * limit, usersData.total)}/{usersData.total} người dùng
-              </span>
-
-              {/* Items Per Page Selector - Compact */}
-              <div className="flex items-center space-x-2">
-                <select
-                  value={limit}
-                  onChange={(e) => handleLimitChange(Number(e.target.value))}
-                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <span className="text-xs text-gray-500 dark:text-gray-400">/ trang</span>
-              </div>
-            </div>
-
-            {/* Right: Pagination Controls - Only show if more than 1 page and data exists */}
-            {usersData.totalPages > 1 && usersData.total > 0 && (
-              <nav className="flex items-center space-x-1">
-            {/* First Page - Hidden on mobile */}
-            <button
-              onClick={() => handlePageChange(1)}
-              disabled={displayCurrentPage === 1}
-              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Trang đầu"
-            >
-              ⇤
-            </button>
-
-            {/* Previous Page */}
-            <button
-              onClick={() => handlePageChange(displayCurrentPage - 1)}
-              disabled={!usersData.hasPrev}
-              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Trang trước"
-            >
-              ←
-            </button>
-            
-            {/* Page Numbers - Responsive count */}
-            <div className="flex items-center space-x-1">
-              {Array.from({
-                length: Math.min(
-                  isMobile ? 3 : 5, // 3 on mobile, 5 on desktop
-                  usersData.totalPages
-                )
-              }, (_, i) => {
-                const maxVisible = isMobile ? 3 : 5;
-                const page = i + Math.max(1, displayCurrentPage - Math.floor(maxVisible / 2));
-                if (page > usersData.totalPages) return null;
-
-                return (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg ${
-                      page === displayCurrentPage
-                        ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
-                        : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                    aria-label={`Trang ${page}`}
-                    aria-current={page === displayCurrentPage ? 'page' : undefined}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* Next Page */}
-            <button
-              onClick={() => handlePageChange(displayCurrentPage + 1)}
-              disabled={!usersData.hasNext}
-              className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Trang sau"
-            >
-              →
-            </button>
-
-            {/* Last Page - Hidden on mobile */}
-            <button
-              onClick={() => handlePageChange(usersData.totalPages)}
-              disabled={displayCurrentPage === usersData.totalPages}
-              className="hidden sm:flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Trang cuối"
-            >
-              ⇥
-            </button>
-
-                {/* Mobile-only: Jump to page input */}
-                {usersData.totalPages > 5 && (
-                  <div className="flex sm:hidden items-center ml-2 space-x-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Đến:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max={usersData.totalPages}
-                      value={currentPage}
-                      onChange={(e) => {
-                        const page = parseInt(e.target.value);
-                        if (page >= 1 && page <= usersData.totalPages) {
-                          handlePageChange(page);
-                        }
-                      }}
-                      className="w-12 h-8 text-xs text-center border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    />
-                  </div>
-                )}
-              </nav>
-            )}
-          </div>
-        </div>
-      )}
+      <UsersPagination
+        usersData={usersData}
+        currentPage={currentPage}
+        displayCurrentPage={displayCurrentPage}
+        limit={limit}
+        isMobile={isMobile}
+        onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
+      />
 
       {/* Create User Modal */}
       <CreateUserModal
@@ -1721,4 +772,4 @@ export default function UsersList() {
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
-}
+};

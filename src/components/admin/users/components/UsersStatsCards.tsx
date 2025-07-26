@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UsersService } from '../../../../backend';
-import type { UsersStats } from '../../../../backend';
+import { UsersService } from '../../../../../backend';
+import type { UsersStats } from '../../../../../backend';
 
 // Skeleton component for loading state
 const SkeletonStatsCard = () => (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { NewUsersStats, NewUsersTimeRange } from '../../../../backend';
+import type { NewUsersStats, NewUsersTimeRange } from '../../../../../backend';
 
 interface Props {
   className?: string;
@@ -40,11 +40,11 @@ export default function UsersChart({ className = '', defaultTimeRange = '1m' }: 
       setError('');
 
       if (forceRefresh) {
-        const { AdminService } = await import('../../../../backend');
+        const { AdminService } = await import('../../../../../backend');
         AdminService.clearNewUsersStatsCache(timeRange);
       }
 
-      const { AdminService } = await import('../../../../backend');
+      const { AdminService } = await import('../../../../../backend');
       const { data: usersData, error: usersError } = await AdminService.getNewUsersStats(timeRange);
       
       if (usersError) {
