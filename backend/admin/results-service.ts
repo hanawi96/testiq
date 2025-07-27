@@ -93,23 +93,13 @@ export class ResultsService {
       if (filters.date_from) {
         // Convert date-only to start of day in local timezone
         const fromDate = new Date(filters.date_from + 'T00:00:00');
-        const fromISO = fromDate.toISOString();
-        console.log('ResultsService: Date filter FROM', {
-          original: filters.date_from,
-          converted: fromISO
-        });
-        query = query.gte('tested_at', fromISO);
+        query = query.gte('tested_at', fromDate.toISOString());
       }
 
       if (filters.date_to) {
         // Convert date-only to end of day in local timezone
         const toDate = new Date(filters.date_to + 'T23:59:59.999');
-        const toISO = toDate.toISOString();
-        console.log('ResultsService: Date filter TO', {
-          original: filters.date_to,
-          converted: toISO
-        });
-        query = query.lte('tested_at', toISO);
+        query = query.lte('tested_at', toDate.toISOString());
       }
 
       if (filters.country) {

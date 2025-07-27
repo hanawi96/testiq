@@ -5,12 +5,13 @@ import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-
 import type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from '../../../../backend';
 import ResultsTestChart from './ResultsTestChart';
 import DateRangeFilter from './DateRangeFilter';
+import { useResultsData } from './hooks/useResultsData';
 
 export default function AdminResults() {
   const [resultsData, setResultsData] = useState<ResultsListResponse | null>(null);
   const [stats, setStats] = useState<ResultsStats | null>(null);
   const [scoreDistribution, setScoreDistribution] = useState<Array<{ range: string; count: number }> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Start with false for instant display
   const [error, setError] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<ResultsFilters>({
@@ -82,29 +83,30 @@ export default function AdminResults() {
     }
   };
 
-  // Fetch results data
+  // Advanced data fetching with caching and prefetching
+  const {
+    fetchResults: fetchResultsAdvanced,
+    prefetchPage,
+    cacheWithTTL
+  } = useResultsData({
+    filters,
+    limit,
+    currentPage,
+    setResultsData,
+    setIsLoading,
+    setError
+  });
+
+  // Optimized wrapper - no unnecessary operations
   const fetchResults = useCallback(async (page: number = currentPage, pageLimit: number = limit) => {
-    console.log(`🔍 Fetch results page ${page} with limit ${pageLimit}`);
-    setError('');
+    console.log(`🔍 Advanced fetch results page ${page} with limit ${pageLimit}`);
 
-    try {
-      const { data, error: fetchError } = await ResultsService.getResults(page, pageLimit, filters);
+    // Clear selection when loading new page (non-blocking)
+    setSelectedResults(new Set());
 
-      if (fetchError || !data) {
-        setError('Không thể tải danh sách kết quả test');
-        return;
-      }
-
-      console.log(`✅ Loaded results page ${page}`);
-      setResultsData(data);
-
-      // Clear selection when loading new page
-      setSelectedResults(new Set());
-
-    } catch (err) {
-      setError('Có lỗi xảy ra khi tải dữ liệu');
-    }
-  }, [currentPage, limit, filters]);
+    // Use advanced fetch with caching (this handles loading states internally)
+    await fetchResultsAdvanced(page, pageLimit);
+  }, [currentPage, limit, fetchResultsAdvanced]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -130,26 +132,44 @@ export default function AdminResults() {
     }
   }, []);
 
-  // Initial load
+  // Instant hydration + non-blocking loading
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await Promise.all([
-        fetchResults(1),
-        fetchStats(),
-        fetchScoreDistribution()
-      ]);
-      setIsLoading(false);
-    };
-    
-    loadData();
+    // Check for pre-loaded data (SSR-style)
+    if (typeof window !== 'undefined' && (window as any).__RESULTS_INITIAL_DATA__) {
+      const initialData = (window as any).__RESULTS_INITIAL_DATA__;
+      console.log('⚡ SSR RESULTS HYDRATION: Using pre-loaded data', initialData);
+      setResultsData(initialData);
+      delete (window as any).__RESULTS_INITIAL_DATA__;
+    } else {
+      // Priority 1: Load results immediately
+      fetchResults(1);
+    }
+
+    // Priority 2: Load stats in background (non-blocking)
+    fetchStats();
+
+    // Priority 3: Load score distribution in background (non-blocking)
+    fetchScoreDistribution();
   }, [filters]);
 
-  // Handle page change - INSTANT
+  // Handle page change - INSTANT with cache check
   const handlePageChange = (page: number) => {
     console.log(`🔄 PAGE CHANGE: ${currentPage} → ${page}`);
+
+    // Validate page bounds
+    if (resultsData && page > resultsData.totalPages) return;
+    if (page < 1) return;
+
     setCurrentPage(page);
     fetchResults(page);
+  };
+
+  // Handle page hover - Prefetch for instant navigation
+  const handlePageHover = (page: number) => {
+    if (page !== currentPage && page >= 1 && (!resultsData || page <= resultsData.totalPages)) {
+      console.log(`👆 PAGE HOVER: Prefetching page ${page}`);
+      prefetchPage(page, filters, limit);
+    }
   };
 
   // Handle limit change - Reset to page 1
@@ -848,7 +868,8 @@ export default function AdminResults() {
                           <button
                             key={page}
                             onClick={() => handlePageChange(page)}
-                            className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg ${
+                            onMouseEnter={() => handlePageHover(page)}
+                            className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-colors ${
                               page === currentPage
                                 ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
                                 : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
