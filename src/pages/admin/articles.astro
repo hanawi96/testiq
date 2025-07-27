@@ -1,8 +1,83 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { AdminArticles } from '../../components/admin/articles';
+
+// 🚀 SSR: Pre-fetch initial data for instant load
+let initialData = null;
+let initialStats = null;
+
+try {
+  console.log('🔄 SSR: Fetching initial articles data...');
+
+  // Import backend service
+  console.log('🔄 SSR: Importing ArticlesService...');
+  const { ArticlesService } = await import('../../../backend');
+  console.log('✅ SSR: ArticlesService imported successfully');
+
+  // Parse URL params to get the correct page and filters
+  const url = new URL(Astro.request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
+  const status = url.searchParams.get('status') || 'all';
+  const search = url.searchParams.get('search') || '';
+  const category = url.searchParams.get('category') || '';
+  const author = url.searchParams.get('author') || '';
+  const featured = url.searchParams.get('featured') || 'all';
+  const sort = url.searchParams.get('sort'); // Don't set default here
+
+  const filters: any = {
+    status: status as 'all' | 'draft' | 'published',
+    search,
+    category,
+    author,
+    featured: featured as 'all' | 'true' | 'false'
+  };
+
+  // Only add sort if it exists in URL
+  if (sort) {
+    filters.sort = sort as 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc';
+  }
+
+
+
+  // Parallel fetch for better performance
+  const [articlesResult, statsResult] = await Promise.all([
+    ArticlesService.getArticles(page, 10, filters),
+    ArticlesService.getStats()
+  ]);
+
+  if (!articlesResult.error && articlesResult.data) {
+    initialData = articlesResult.data;
+    console.log(`✅ SSR: Loaded ${articlesResult.data.articles.length} articles`);
+  } else {
+    console.error('❌ SSR: Error loading articles:', articlesResult.error);
+  }
+
+  if (!statsResult.error && statsResult.data) {
+    initialStats = statsResult.data;
+    console.log('✅ SSR: Loaded article stats');
+  } else {
+    console.error('❌ SSR: Error loading stats:', statsResult.error);
+  }
+
+} catch (error) {
+  console.error('❌ SSR: Error fetching initial data:', error);
+  // Continue without initial data - will fallback to client-side loading
+}
 ---
 
 <AdminLayout title="Quản lý bài viết - Admin">
+  <!-- 🚀 SSR: Inject initial data for instant hydration -->
+  <script define:vars={{ initialData, initialStats }}>
+    // Make data available globally for React component
+    window.__ARTICLES_INITIAL_DATA__ = initialData;
+    window.__ARTICLES_INITIAL_STATS__ = initialStats;
+
+    if (initialData) {
+      console.log('✅ SSR: Initial data injected, articles count:', initialData.articles.length);
+    } else {
+      console.log('⚠️ SSR: No initial data, will use client-side loading');
+    }
+  </script>
+
   <AdminArticles client:load />
 </AdminLayout>

@@ -22,7 +22,10 @@ export default function UsersChart({ className = '', defaultTimeRange = '1m' }: 
   const timeRangeOptions = [
     { value: '7d' as NewUsersTimeRange, label: '7 ngày', description: 'Tuần này' },
     { value: '1m' as NewUsersTimeRange, label: '30 ngày', description: 'Tháng này' },
-    { value: '3m' as NewUsersTimeRange, label: '90 ngày', description: '3 tháng' }
+    { value: '60d' as NewUsersTimeRange, label: '60 ngày', description: '2 tháng' },
+    { value: '3m' as NewUsersTimeRange, label: '90 ngày', description: '3 tháng' },
+    { value: '120d' as NewUsersTimeRange, label: '120 ngày', description: '4 tháng' },
+    { value: '6m' as NewUsersTimeRange, label: '180 ngày', description: '6 tháng' }
   ];
 
   const getTimeRangeLabel = (range: NewUsersTimeRange): string => {

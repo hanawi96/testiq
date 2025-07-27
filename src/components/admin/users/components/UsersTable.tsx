@@ -9,6 +9,7 @@ import { ToastContainer, useToast } from '../../common/Toast';
 import { preloadTriggers } from '../../../../utils/admin/preloaders/country-preloader';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../../utils/country-flags';
 import countryData from '../../../../../Country.json';
+import { formatGender } from '../utils/formatters';
 
 interface Props {
   filters?: UsersFilters;
@@ -466,15 +467,23 @@ export default function UsersTable({ filters: externalFilters, onFiltersChange }
                           )}
                         </div>
                         <div className="flex-shrink-0 h-12 w-12 mr-4">
-                          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-                            isAnonymousUser(user) ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-primary-100 dark:bg-primary-900/30'
-                          }`}>
-                            <span className={`text-lg font-semibold ${
-                              isAnonymousUser(user) ? 'text-orange-700 dark:text-orange-400' : 'text-primary-700 dark:text-primary-400'
+                          {user.avatar_url ? (
+                            <img
+                              src={user.avatar_url}
+                              alt={user.username || user.full_name}
+                              className="h-12 w-12 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                            />
+                          ) : (
+                            <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+                              isAnonymousUser(user) ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-primary-100 dark:bg-primary-900/30'
                             }`}>
-                              {(user.username || user.full_name).charAt(0).toUpperCase()}
-                            </span>
-                          </div>
+                              <span className={`text-lg font-semibold ${
+                                isAnonymousUser(user) ? 'text-orange-700 dark:text-orange-400' : 'text-primary-700 dark:text-primary-400'
+                              }`}>
+                                {(user.username || user.full_name).charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
@@ -552,7 +561,17 @@ export default function UsersTable({ filters: externalFilters, onFiltersChange }
                     {/* Gender */}
                     <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-gray-100">
-                        {user.gender === 'male' ? 'Nam' : user.gender === 'female' ? 'Nữ' : 'Chưa có'}
+                        {(() => {
+                          const genderInfo = formatGender(user.gender);
+                          return (
+                            <div className="flex items-center space-x-1">
+                              {genderInfo.icon && (
+                                <span className="text-base">{genderInfo.icon}</span>
+                              )}
+                              <span>{genderInfo.text}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </td>
 

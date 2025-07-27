@@ -71,30 +71,10 @@ export default function ArticlesFilters({
           {/* Sort & View Count Filter */}
           <div className="min-w-[160px]">
             <select
-              value={(() => {
-                if (filters.sort_by === 'views' && filters.sort_order === 'desc') return 'views_desc';
-                if (filters.sort_by === 'views' && filters.sort_order === 'asc') return 'views_asc';
-                if (filters.sort_by === 'created_at' && filters.sort_order === 'desc') return 'created_desc';
-                if (filters.sort_by === 'created_at' && filters.sort_order === 'asc') return 'created_asc';
-                if (filters.sort_by === 'updated_at' && filters.sort_order === 'desc') return 'updated_desc';
-                if (filters.sort_by === 'updated_at' && filters.sort_order === 'asc') return 'updated_asc';
-                return 'created_desc';
-              })()}
+              value={filters.sort || 'created_desc'}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value === 'views_desc') {
-                  onFilterChange({ sort_by: 'views', sort_order: 'desc' });
-                } else if (value === 'views_asc') {
-                  onFilterChange({ sort_by: 'views', sort_order: 'asc' });
-                } else if (value === 'created_desc') {
-                  onFilterChange({ sort_by: 'created_at', sort_order: 'desc' });
-                } else if (value === 'created_asc') {
-                  onFilterChange({ sort_by: 'created_at', sort_order: 'asc' });
-                } else if (value === 'updated_desc') {
-                  onFilterChange({ sort_by: 'updated_at', sort_order: 'desc' });
-                } else if (value === 'updated_asc') {
-                  onFilterChange({ sort_by: 'updated_at', sort_order: 'asc' });
-                }
+                onFilterChange({ sort: value as any });
               }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             >

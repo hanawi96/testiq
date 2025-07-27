@@ -1,4 +1,19 @@
 import { supabase, supabaseAdmin, TABLES } from '../config/supabase';
+import countryData from '../../Country.json';
+
+// Create country code to name mapping for consistent display
+const countryCodeToName = new Map<string, string>();
+countryData.forEach((country: any) => {
+  countryCodeToName.set(country.code, country.name);
+});
+
+// Helper function to get standard country name from code
+const getStandardCountryName = (countryCode: string | null, fallbackName?: string): string => {
+  if (countryCode && countryCodeToName.has(countryCode)) {
+    return countryCodeToName.get(countryCode)!;
+  }
+  return fallbackName || 'Không rõ';
+};
 
 export interface UserWithProfile {
   id: string;
@@ -15,6 +30,7 @@ export interface UserWithProfile {
   country_name?: string;
   country_code?: string; // 🔥 Thêm country_code field
   user_type?: 'registered' | 'anonymous';
+  avatar_url?: string; // 🔥 Thêm avatar_url field
   // Thêm 3 trường mới cho các cột bảng
   gender?: string | null;
   country?: string | null;
@@ -85,7 +101,7 @@ export class UsersService {
 
       console.log('UsersService: Fetching users from user_profiles and anonymous_players...');
       const [registeredResult, anonymousResult, testCountsResult] = await Promise.all([
-        // Query registered users directly from user_profiles với gender
+        // Query registered users directly from user_profiles với gender và avatar_url
         supabase
           .from(TABLES.PROFILES)
           .select(`
@@ -100,6 +116,7 @@ export class UsersService {
             country_name,
             country_code,
             gender,
+            avatar_url,
             created_at,
             updated_at
           `)
@@ -170,25 +187,30 @@ export class UsersService {
       }));
 
       // Transform registered users và thêm user_type
-      const transformedRegistered: UserWithProfile[] = (registeredUsers || []).map((user: any) => ({
-        id: user.id,
-        email: user.email || `user-${user.id.slice(0, 8)}@unknown.local`,
-        email_confirmed_at: null, // Not available from user_profiles
-        created_at: user.created_at,
-        last_sign_in_at: user.last_login, // Use last_login as approximation
-        full_name: user.full_name || 'Unknown User',
-        username: user.username, // 🔥 Thêm username field
-        role: user.role || 'user',
-        is_verified: user.is_verified || false,
-        last_login: user.last_login,
-        age: user.age,
-        country_name: user.country_name,
-        user_type: 'registered' as const,
-        // Thêm 3 trường mới
-        gender: user.gender || null,
-        country: user.country_name || null, // Sử dụng country_name làm country cho registered users
-        test_count: testCountMap.get(user.id) || 0
-      }));
+      const transformedRegistered: UserWithProfile[] = (registeredUsers || []).map((user: any) => {
+        console.log('🔍 Debug user data:', { id: user.id, avatar_url: user.avatar_url, full_name: user.full_name });
+        return {
+          id: user.id,
+          email: user.email || `user-${user.id.slice(0, 8)}@unknown.local`,
+          email_confirmed_at: null, // Not available from user_profiles
+          created_at: user.created_at,
+          last_sign_in_at: user.last_login, // Use last_login as approximation
+          full_name: user.full_name || 'Unknown User',
+          username: user.username, // 🔥 Thêm username field
+          role: user.role || 'user',
+          is_verified: user.is_verified || false,
+          last_login: user.last_login,
+          age: user.age,
+          country_name: user.country_name,
+          country_code: user.country_code,
+          avatar_url: user.avatar_url, // 🔥 Thêm avatar_url field
+          user_type: 'registered' as const,
+          // Thêm 3 trường mới
+          gender: user.gender || null,
+          country: user.country_name || null, // Sử dụng country_name làm country cho registered users
+          test_count: testCountMap.get(user.id) || 0
+        };
+      });
 
       // Merge cả 2 lists
       let allUsers = [...transformedRegistered, ...transformedAnonymous];
@@ -405,15 +427,16 @@ export class UsersService {
       console.log('UsersService: Fetching users by country statistics');
 
       // Fetch both registered and anonymous users with country info
+      // Lấy users có country_code HOẶC country_name (không bỏ sót)
       const [registeredResult, anonymousResult] = await Promise.all([
         supabase
           .from(TABLES.PROFILES)
           .select('country_name, country_code')
-          .not('country_name', 'is', null),
+          .or('country_code.not.is.null,country_name.not.is.null'),
         supabase
           .from('anonymous_players')
           .select('country_name, country_code')
-          .not('country_name', 'is', null)
+          .or('country_code.not.is.null,country_name.not.is.null')
       ]);
 
       const { data: registeredData, error: registeredError } = registeredResult;
@@ -429,7 +452,7 @@ export class UsersService {
         return { data: null, error: anonymousError };
       }
 
-      // Aggregate data by country
+      // Aggregate data by country_code (chuẩn hơn country_name)
       const countryMap = new Map<string, {
         country_name: string;
         country_code: string | null;
@@ -439,10 +462,13 @@ export class UsersService {
 
       // Process registered users
       (registeredData || []).forEach(user => {
-        const key = user.country_name;
+        // Sử dụng country_code làm key, fallback về country_name nếu không có code
+        const key = user.country_code || user.country_name || 'Unknown';
         if (!countryMap.has(key)) {
+          // Lấy tên chuẩn từ country_code, fallback về country_name
+          const standardName = getStandardCountryName(user.country_code, user.country_name);
           countryMap.set(key, {
-            country_name: user.country_name,
+            country_name: standardName,
             country_code: user.country_code,
             registered_users: 0,
             anonymous_users: 0
@@ -453,10 +479,13 @@ export class UsersService {
 
       // Process anonymous users
       (anonymousData || []).forEach(user => {
-        const key = user.country_name;
+        // Sử dụng country_code làm key, fallback về country_name nếu không có code
+        const key = user.country_code || user.country_name || 'Unknown';
         if (!countryMap.has(key)) {
+          // Lấy tên chuẩn từ country_code, fallback về country_name
+          const standardName = getStandardCountryName(user.country_code, user.country_name);
           countryMap.set(key, {
-            country_name: user.country_name,
+            country_name: standardName,
             country_code: user.country_code,
             registered_users: 0,
             anonymous_users: 0

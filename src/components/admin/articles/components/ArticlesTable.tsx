@@ -31,6 +31,7 @@ interface ArticlesTableProps {
   currentPage: number;
   limit: number;
   onPageChange: (page: number) => void;
+  onPageHover?: (page: number) => void;
   onLimitChange: (limit: number) => void;
   
   // Actions
@@ -59,6 +60,7 @@ export default function ArticlesTable({
   currentPage,
   limit,
   onPageChange,
+  onPageHover,
   onLimitChange,
   onDeleteArticle,
   onQuickTagsEdit,
@@ -638,6 +640,7 @@ export default function ArticlesTable({
                       <button
                         key={page}
                         onClick={() => onPageChange(page)}
+                        onMouseEnter={() => onPageHover?.(page)}
                         className={`flex items-center justify-center w-8 h-8 text-sm font-medium rounded-lg ${
                           page === currentPage
                             ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm'
@@ -655,6 +658,7 @@ export default function ArticlesTable({
                 {/* Next Page */}
                 <button
                   onClick={() => onPageChange(currentPage + 1)}
+                  onMouseEnter={() => onPageHover?.(currentPage + 1)}
                   disabled={currentPage >= articlesData.totalPages}
                   className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Trang sau"

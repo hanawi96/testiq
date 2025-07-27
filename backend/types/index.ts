@@ -65,7 +65,7 @@ export interface NewUsersStats {
 }
 
 // Time range options for new users stats
-export type NewUsersTimeRange = '7d' | '1m' | '3m' | '6m';
+export type NewUsersTimeRange = '7d' | '1m' | '60d' | '3m' | '120d' | '6m';
 
 // Time range options for test stats
 export type TestTimeRange = '7d' | '1m' | '3m' | '6m';

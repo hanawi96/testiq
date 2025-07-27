@@ -3,6 +3,8 @@ import { ArticlesService } from '../../../../../backend';
 import type { ArticlesFilters, ArticlesListResponse } from '../../../../../backend';
 import { SmartPreloader } from '../../../../utils/admin/preloaders/preload-manager';
 import type { UseToastResult } from '../../common/Toast';
+import { useArticlesData } from './useArticlesData';
+import { useArticlesEffects } from './useArticlesEffects';
 
 interface ArticlesOperationsConfig {
   // State
@@ -31,133 +33,143 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
     setLoading,
     toast
   } = config;
-  
+
   // Destructure toast methods
   const { showSuccess, showError, showInfo } = toast;
 
-  // Fetch stats
-  const fetchStats = useCallback(async () => {
-    dispatch({ type: 'SET_LOADING', payload: { stats: true } });
-    try {
-      const { data: statsData, error: statsError } = await ArticlesService.getStats();
-      if (!statsError && statsData) {
-        dispatch({ type: 'SET_STATS', payload: statsData });
-      }
-    } catch (err) {
-      console.warn('Could not fetch articles stats:', err);
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: { stats: false } });
-    }
-  }, [dispatch]);
+  // Initialize articles data hook with cache and SSR support
+  const {
+    fetchArticles,
+    fetchStats,
+    hydrateFromSSR,
+    getCacheKey,
+    cacheWithTTL,
+    prefetchPage,
+    initialLoadDone
+  } = useArticlesData({
+    filters,
+    limit,
+    currentPage,
+    dispatch,
+    setLoading
+  });
 
-  // Fetch articles data
-  const fetchArticles = useCallback(async (page: number = currentPage) => {
-    dispatch({ type: 'SET_ERROR', payload: '' });
-    dispatch({ type: 'SET_LOADING', payload: { articles: true } });
+  // Initialize effects hook for URL sync and browser history
+  const { updateURL } = useArticlesEffects({
+    dispatch,
+    filters,
+    currentPage
+  });
 
-    try {
-      const { data, error: fetchError } = await ArticlesService.getArticles(page, limit, filters);
+  // Note: fetchStats and fetchArticles are now provided by useArticlesData hook
 
-      if (fetchError || !data) {
-        dispatch({ type: 'SET_ERROR', payload: 'Không thể tải danh sách bài viết' });
-        return;
-      }
-
-      // Auto-redirect to valid page if current page is out of range
-      if (data.articles.length === 0 && data.total > 0 && page > 1) {
-        const maxPage = Math.ceil(data.total / limit);
-        const validPage = Math.min(page, maxPage);
-        if (validPage !== page) {
-          dispatch({ type: 'SET_UI', payload: { currentPage: validPage } });
-          return fetchArticles(validPage);
-        }
-      }
-
-      dispatch({ type: 'SET_ARTICLES_DATA', payload: data });
-      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
-
-    } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi tải dữ liệu' });
-      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
-      console.error('Frontend: Error fetching articles:', err);
-    }
-  }, [currentPage, filters, dispatch, limit]);
-
-  // Initial load
+  // Initial load with SSR hydration support
   useEffect(() => {
+    // Prevent infinite loops - only run once for initial load
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
     const loadData = async () => {
-      await Promise.all([
-        fetchArticles(1),
-        fetchStats()
-      ]);
+      // Try SSR hydration first
+      const { articlesUsed, statsUsed } = hydrateFromSSR();
+
+      // Fetch missing data
+      const promises = [];
+      if (!articlesUsed) {
+        promises.push(fetchArticles(1));
+      }
+      if (!statsUsed) {
+        promises.push(fetchStats());
+      }
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+      }
     };
 
     loadData();
 
     // SMART PRELOADING: Trigger intelligent preload on navigation
     SmartPreloader.triggerSmartPreload('navigation');
-  }, [filters, fetchArticles, fetchStats]);
+  }, [fetchArticles, fetchStats, hydrateFromSSR]);
 
-  // Handle page change
+
+
+  // Handle page change - SIMPLIFIED: Let fetchArticles handle all cache logic
   const handlePageChange = useCallback((page: number) => {
     // Validate page before changing
     if (articlesData && page > articlesData.totalPages) {
+      console.log(`❌ PAGE CHANGE: Invalid page ${page} > ${articlesData.totalPages}`);
       return; // Don't allow navigation to invalid pages
     }
     if (page < 1) {
+      console.log(`❌ PAGE CHANGE: Invalid page ${page} < 1`);
       return; // Don't allow navigation to pages less than 1
     }
 
-    dispatch({ type: 'SET_UI', payload: { currentPage: page } });
-    fetchArticles(page);
-  }, [dispatch, fetchArticles, articlesData]);
 
-  // Handle filter change
-  const handleFilterChange = useCallback((newFilters: Partial<ArticlesFilters>) => {
+
+    // Update current page and URL immediately
+    dispatch({ type: 'SET_UI', payload: { currentPage: page } });
+    updateURL(page, filters);
+
+    // Double check cache before calling fetchArticles
+    const cacheKey = getCacheKey(page, filters, limit);
+    const cached = cacheWithTTL.current.get(cacheKey);
+
+    if (cached) {
+      // Instant display from cache
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: cached.data });
+      dispatch({ type: 'SET_ERROR', payload: '' });
+      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
+    } else {
+      // No cache, fetch from API
+      fetchArticles(page);
+    }
+  }, [dispatch, fetchArticles, articlesData, updateURL, filters, currentPage]);
+
+  // Proactive prefetch on hover
+  const handlePageHover = useCallback((page: number) => {
+    const cacheKey = getCacheKey(page, filters, limit);
+    if (!cacheWithTTL.current.has(cacheKey)) {
+      prefetchPage(page, filters, limit);
+    }
+  }, [getCacheKey, cacheWithTTL, prefetchPage, filters, limit]);
+
+  // Handle filter change with URL sync and immediate fetch
+  const handleFilterChange = useCallback(async (newFilters: Partial<ArticlesFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
 
     dispatch({
       type: 'SET_UI',
       payload: {
         filters: updatedFilters,
-        currentPage: 1
+        currentPage: 1 // Reset to page 1 when filters change
       }
     });
 
-    // Update URL to maintain state
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
+    // Update URL immediately
+    updateURL(1, updatedFilters);
 
-      // Update or remove category parameter
-      if (updatedFilters.category) {
-        url.searchParams.set('category', updatedFilters.category);
-      } else {
-        url.searchParams.delete('category');
+    // Fetch data immediately with new filters
+    dispatch({ type: 'SET_LOADING', payload: { articles: true } });
+    dispatch({ type: 'SET_ERROR', payload: '' });
+
+    try {
+      const { data, error: fetchError } = await ArticlesService.getArticles(1, limit, updatedFilters);
+
+      if (fetchError || !data) {
+        dispatch({ type: 'SET_ERROR', payload: 'Không thể tải danh sách bài viết' });
+        return;
       }
 
-      // Update or remove other filters
-      if (updatedFilters.search) {
-        url.searchParams.set('search', updatedFilters.search);
-      } else {
-        url.searchParams.delete('search');
-      }
-
-      if (updatedFilters.status && updatedFilters.status !== 'all') {
-        url.searchParams.set('status', updatedFilters.status);
-      } else {
-        url.searchParams.delete('status');
-      }
-
-      if (updatedFilters.author) {
-        url.searchParams.set('author', updatedFilters.author);
-      } else {
-        url.searchParams.delete('author');
-      }
-
-      // Update URL without page reload
-      window.history.replaceState({}, '', url.toString());
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: data });
+    } catch (err) {
+      dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi tải dữ liệu' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
     }
-  }, [dispatch, filters]);
+  }, [dispatch, filters, updateURL, limit]);
 
   // Handle limit change
   const handleLimitChange = useCallback((newLimit: number) => {
@@ -276,6 +288,7 @@ export function useArticlesOperations(config: ArticlesOperationsConfig) {
 
     // Event handlers
     handlePageChange,
+    handlePageHover,
     handleFilterChange,
     handleLimitChange,
     handleSelectArticle,

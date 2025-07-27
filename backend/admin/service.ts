@@ -76,6 +76,14 @@ export class AdminService {
           days = 30;
           sampleInterval = 1;
           break;
+        case '60d':
+          days = 60;
+          sampleInterval = 2; // Sample every 2 days
+          break;
+        case '120d':
+          days = 120;
+          sampleInterval = 4; // Sample every 4 days
+          break;
         case '3m':
           days = 90;
           sampleInterval = 3; // Sample every 3 days

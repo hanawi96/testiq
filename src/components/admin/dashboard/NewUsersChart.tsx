@@ -84,6 +84,8 @@ export default function NewUsersChart({ className = '' }: Props) {
     const labels = {
       '7d': '7 ngày qua',
       '1m': '1 tháng qua',
+      '60d': '60 ngày qua',
+      '120d': '120 ngày qua',
       '3m': '3 tháng qua',
       '6m': '6 tháng qua'
     };
@@ -92,9 +94,11 @@ export default function NewUsersChart({ className = '' }: Props) {
 
   const getTimeRangeOptions = (): Array<{ value: NewUsersTimeRange; label: string }> => [
     { value: '7d', label: '7 ngày' },
-    { value: '1m', label: '1 tháng' },
-    { value: '3m', label: '3 tháng' },
-    { value: '6m', label: '6 tháng' }
+    { value: '1m', label: '30 ngày' },
+    { value: '60d', label: '60 ngày' },
+    { value: '3m', label: '90 ngày' },
+    { value: '120d', label: '120 ngày' },
+    { value: '6m', label: '180 ngày' }
   ];
 
   const handleTimeRangeChange = (newRange: NewUsersTimeRange) => {

@@ -67,9 +67,8 @@ export type AdminArticlesAction =
 function getInitialFilters(): ArticlesFilters {
   const defaultFilters: ArticlesFilters = {
     status: 'all',
-    search: '',
-    sort_by: 'created_at',
-    sort_order: 'desc'
+    search: ''
+    // Don't set default sort here - let backend handle it
   };
 
   // Only read URL on client-side to avoid SSR mismatch
@@ -95,6 +94,16 @@ function getInitialFilters(): ArticlesFilters {
 
     const author = urlParams.get('author');
     if (author) urlFilters.author = author;
+
+    const featured = urlParams.get('featured');
+    if (featured && ['true', 'false'].includes(featured)) {
+      urlFilters.featured = featured as 'true' | 'false';
+    }
+
+    const sort = urlParams.get('sort');
+    if (sort && ['created_desc', 'created_asc', 'updated_desc', 'updated_asc', 'title_asc', 'title_desc', 'views_desc', 'views_asc'].includes(sort)) {
+      urlFilters.sort = sort as any;
+    }
 
     return { ...defaultFilters, ...urlFilters };
   } catch {

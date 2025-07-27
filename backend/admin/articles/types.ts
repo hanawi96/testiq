@@ -239,8 +239,8 @@ export interface ArticlesFilters {
   readonly tag?: TagId;
   readonly date_from?: string; // ISO date string
   readonly date_to?: string; // ISO date string
-  readonly sort_by?: SortField;
-  readonly sort_order?: SortOrder;
+  readonly featured?: 'all' | 'true' | 'false';
+  readonly sort?: 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc' | 'views_desc' | 'views_asc';
 }
 
 // OPTIMIZED: Lightweight list response - chỉ essential fields

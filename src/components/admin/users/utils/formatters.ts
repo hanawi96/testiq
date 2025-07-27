@@ -15,20 +15,29 @@ export const formatDate = (dateString: string | null): string => {
   });
 };
 
-// Format gender
-export const formatGender = (gender: string | null | undefined): string => {
-  if (!gender || gender.trim() === '') return 'Chưa có';
-  // Chuyển đổi giá trị tiếng Anh sang tiếng Việt
+// Format gender with icon
+export const formatGender = (gender: string | null | undefined): { text: string; icon: string | null } => {
+  if (!gender || gender.trim() === '') {
+    return { text: 'Chưa có', icon: null };
+  }
+
+  // Chuyển đổi giá trị tiếng Anh sang tiếng Việt với icon
   switch (gender.toLowerCase()) {
     case 'male':
-      return 'Nam';
+      return { text: 'Nam', icon: '♂️' };
     case 'female':
-      return 'Nữ';
+      return { text: 'Nữ', icon: '♀️' };
     case 'other':
-      return 'Khác';
+      return { text: 'Khác', icon: '⚧️' };
     default:
-      return gender;
+      return { text: gender, icon: null };
   }
+};
+
+// Format gender text only (for backward compatibility)
+export const formatGenderText = (gender: string | null | undefined): string => {
+  const formatted = formatGender(gender);
+  return formatted.text;
 };
 
 // Format test count with styling

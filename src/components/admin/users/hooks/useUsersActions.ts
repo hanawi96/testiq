@@ -184,10 +184,10 @@ export const useUsersActions = ({
       );
       setUsersData({ ...usersData, users: updatedUsers });
     }
-    
+
     try {
       const { success, error: updateError } = await UsersService.toggleUserVerification(userId);
-      
+
       if (success) {
         // Clear cache và fetch stats
         cache.current.clear();

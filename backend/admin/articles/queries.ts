@@ -260,11 +260,14 @@ export class ArticleQueries {
       query = query.lte('created_at', filters.date_to);
     }
 
-    // Apply sorting with field mapping
-    const sortBy = filters.sort_by || 'created_at';
-    const sortField = sortBy === 'views' ? 'view_count' : sortBy;
-    const ascending = filters.sort_order === 'asc';
-    return query.order(sortField, { ascending });
+    // Apply sorting with new combined sort format
+    const sort = filters.sort || 'created_desc';
+    const [sortField, sortOrder] = sort.split('_');
+    const dbField = sortField === 'views' ? 'view_count' :
+                   sortField === 'title' ? 'title' :
+                   sortField === 'updated' ? 'updated_at' : 'created_at';
+    const ascending = sortOrder === 'asc';
+    return query.order(dbField, { ascending });
   }
 
   /**
@@ -994,7 +997,7 @@ export class ArticleQueries {
       console.log('🔥 ArticleQueries: Warming up cache...');
 
       // Pre-load first page of articles
-      await this.getArticles(1, 20, { status: 'all', sort_by: 'created_at', sort_order: 'desc' });
+      await this.getArticles(1, 20, { status: 'all', sort: 'created_desc' });
 
       // Pre-load stats
       await this.getArticlesStats();

@@ -1,10 +1,11 @@
-// React import removed - not needed in React 17+
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UsersService } from '../../../../backend';
 import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
 import { CreateUserModal, EditUserModal } from './components/modals';
 import { QuickRoleEditor, UsersChart } from './components';
 import { ToastContainer } from '../common/Toast';
+import QuickVerificationEditor from './components/QuickVerificationEditor';
 import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 import countryData from '../../../../Country.json';
@@ -516,15 +517,38 @@ export const UsersList = () => {
                           />
                         </div>
                         <div className="flex-shrink-0 h-10 w-10 mr-4">
-                          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                            isAnonymousUser(user) ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-primary-100 dark:bg-primary-900/30'
-                          }`}>
-                            <span className={`text-base font-semibold ${
-                              isAnonymousUser(user) ? 'text-orange-700 dark:text-orange-400' : 'text-primary-700 dark:text-primary-400'
-                            }`}>
-                              {(user.username || user.full_name).charAt(0).toUpperCase()}
-                            </span>
-                          </div>
+                          {(() => {
+                            console.log('🖼️ Avatar check:', {
+                              userId: user.id,
+                              avatar_url: user.avatar_url,
+                              full_name: user.full_name,
+                              hasAvatar: !!user.avatar_url
+                            });
+
+                            if (user.avatar_url) {
+                              return (
+                                <img
+                                  src={user.avatar_url}
+                                  alt={user.username || user.full_name}
+                                  className="h-10 w-10 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                                  onLoad={() => console.log('✅ Avatar loaded:', user.avatar_url)}
+                                  onError={() => console.log('❌ Avatar failed:', user.avatar_url)}
+                                />
+                              );
+                            } else {
+                              return (
+                                <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                                  isAnonymousUser(user) ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-primary-100 dark:bg-primary-900/30'
+                                }`}>
+                                  <span className={`text-base font-semibold ${
+                                    isAnonymousUser(user) ? 'text-orange-700 dark:text-orange-400' : 'text-primary-700 dark:text-primary-400'
+                                  }`}>
+                                    {(user.username || user.full_name).charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              );
+                            }
+                          })()}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
@@ -567,28 +591,13 @@ export const UsersList = () => {
                           Không áp dụng
                         </span>
                       ) : (
-                        <button
-                          onClick={() => handleVerificationToggle(user.id)}
-                          disabled={actionLoading === `verify-${user.id}`}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border outline-none ${
-                            user.is_verified
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800'
-                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
-                          } ${actionLoading === `verify-${user.id}` ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80 hover:scale-105'}`}
-                        >
-                          {actionLoading === `verify-${user.id}` ? (
-                            <div className="w-3 h-3 border border-current border-r-transparent rounded-full animate-spin mr-1"></div>
-                          ) : user.is_verified ? (
-                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                          {user.is_verified ? 'Đã xác thực' : 'Chưa xác thực'}
-                        </button>
+                        <QuickVerificationEditor
+                          userId={user.id}
+                          userName={user.username || user.full_name}
+                          currentStatus={user.is_verified}
+                          onStatusUpdate={handleVerificationToggle}
+                          isLoading={actionLoading === `verify-${user.id}`}
+                        />
                       )}
                     </td>
 
@@ -652,7 +661,17 @@ export const UsersList = () => {
 
                     {/* Gender */}
                     <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {formatGender(user.gender)}
+                      {(() => {
+                        const genderInfo = formatGender(user.gender);
+                        return (
+                          <div className="flex items-center space-x-1">
+                            {genderInfo.icon && (
+                              <span className="text-base">{genderInfo.icon}</span>
+                            )}
+                            <span>{genderInfo.text}</span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Age */}

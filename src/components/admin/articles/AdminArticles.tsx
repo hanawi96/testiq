@@ -56,6 +56,7 @@ export default function AdminArticles() {
   const {
     fetchStats,
     handlePageChange,
+    handlePageHover,
     handleFilterChange,
     handleLimitChange,
     handleSelectArticle,
@@ -130,6 +131,7 @@ export default function AdminArticles() {
         loading={loading.stats}
       />
 
+
       {/* Filters */}
       <ArticlesFiltersComponent
         filters={filters}
@@ -162,6 +164,7 @@ export default function AdminArticles() {
         currentPage={currentPage}
         limit={limit}
         onPageChange={handlePageChange}
+        onPageHover={handlePageHover}
         onLimitChange={handleLimitChange}
         onDeleteArticle={handleDeleteArticle}
         onQuickTagsEdit={handleQuickTagsEdit}
