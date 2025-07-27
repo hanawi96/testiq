@@ -1,12 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CategoriesService } from '../../../../../backend';
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  is_active: boolean;
-}
+import { CategoriesService, type Category } from '../../../../../backend';
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);

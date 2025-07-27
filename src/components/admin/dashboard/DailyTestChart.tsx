@@ -125,6 +125,20 @@ export default function DailyTestChart({ className = '', defaultTimeRange = '7d'
       setIsLoading(true);
       setError('');
 
+      // 🚀 Try SSR hydration first for instant display (only for default 7d range)
+      if (!forceRefresh && timeRange === '7d' && typeof window !== 'undefined' && (window as any).__ADMIN_TEST_STATS_DATA__) {
+        const ssrData = (window as any).__ADMIN_TEST_STATS_DATA__;
+
+        if (ssrData) {
+          console.log('⚡ SSR TEST STATS HYDRATION: Using pre-loaded data');
+          setData(ssrData);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fallback to client-side loading
+      console.log('🔄 DailyTestChart: Loading client-side data for', timeRange);
       if (forceRefresh) {
         AdminService.clearDailyTestStatsCache(timeRange);
       }

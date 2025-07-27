@@ -19,19 +19,33 @@ export default function EnhancedStatsCards({ className = '' }: Props) {
     try {
       setIsLoading(true);
       setError('');
-      
+
+      // 🚀 Try SSR hydration first for instant display
+      if (!forceRefresh && typeof window !== 'undefined' && (window as any).__ADMIN_STATS_DATA__) {
+        const ssrData = (window as any).__ADMIN_STATS_DATA__;
+
+        if (ssrData) {
+          console.log('⚡ SSR STATS HYDRATION: Using pre-loaded data');
+          setData(ssrData);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fallback to client-side loading
+      console.log('🔄 EnhancedStatsCards: Loading client-side data');
       if (forceRefresh) {
         AdminService.clearDailyComparisonStatsCache();
       }
-      
+
       const { data: dailyData, error: dailyError } = await AdminService.getDailyComparisonStats();
-      
+
       if (dailyError) {
         console.error('EnhancedStatsCards: Error loading data:', dailyError);
         setError('Không thể tải dữ liệu thống kê');
         return;
       }
-      
+
       if (dailyData) {
         setData(dailyData);
       }

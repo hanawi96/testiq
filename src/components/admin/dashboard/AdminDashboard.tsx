@@ -5,10 +5,17 @@ import NewUsersChart from './NewUsersChart';
 import WeeklyNewUsersChart from './WeeklyNewUsersChart';
 import WeeklyTestChart from './WeeklyTestChart';
 import DailyTestChart from './DailyTestChart';
+import DailyArticleLikesChart from './DailyArticleLikesChart';
 import EnhancedStatsCards from './EnhancedStatsCards';
 import ArticleViewsChart from './ArticleViewsChart';
+import TopArticlesWidget from './TopArticlesWidget';
+import { UsersByCountry } from '../users/components/UsersByCountry';
 
 export default function AdminDashboard() {
+  console.log('🎬 AdminDashboard: Component mounting/rendering', {
+    timestamp: new Date().toISOString()
+  });
+
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -23,6 +30,22 @@ export default function AdminDashboard() {
     try {
       console.log('AdminDashboard: loading dashboard data');
 
+      // 🚀 Try SSR hydration first for instant display
+      if (typeof window !== 'undefined' && (window as any).__ADMIN_DASHBOARD_DATA__) {
+        const ssrData = (window as any).__ADMIN_DASHBOARD_DATA__;
+
+        if (ssrData && ssrData.isAuthorized) {
+          console.log('⚡ SSR DASHBOARD HYDRATION: Using pre-loaded data');
+          setUser(ssrData.user);
+          setProfile(ssrData.profile);
+          setStats(ssrData.stats);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fallback to client-side loading if no SSR data
+      console.log('🔄 AdminDashboard: No SSR data, loading client-side');
       const dashboardData = await AdminService.getDashboardData();
 
       if (!dashboardData.isAuthorized) {
@@ -100,8 +123,14 @@ export default function AdminDashboard() {
       {/* Enhanced Stats Cards with Daily Comparison */}
       <EnhancedStatsCards />
 
-      {/* Article Views Analytics */}
-      <ArticleViewsChart className="mb-6 lg:mb-8 2xl:mb-10" />
+      {/* Top Articles Widget */}
+      <TopArticlesWidget className="mb-6 lg:mb-8 2xl:mb-10" />
+
+      {/* Test Charts Grid - Daily and Weekly Test Charts (Moved up - Higher Priority) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 2xl:gap-6 mb-6 lg:mb-8 2xl:mb-10">
+        <DailyTestChart />
+        <WeeklyTestChart />
+      </div>
 
       {/* New Users Charts Grid - Daily and Weekly */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 2xl:gap-6 mb-4">
@@ -109,32 +138,14 @@ export default function AdminDashboard() {
         <WeeklyNewUsersChart />
       </div>
 
-      {/* Test Charts Grid - Daily and Weekly Test Charts */}
+      {/* Article Analytics Grid - Views and Likes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 2xl:gap-6 mb-6 lg:mb-8 2xl:mb-10">
-        <DailyTestChart />
-        <WeeklyTestChart />
+        <ArticleViewsChart className="" />
+        <DailyArticleLikesChart />
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">Hoạt động gần đây</h3>
-        <div className="space-y-4">
-          {[
-            { action: 'Người dùng mới đăng ký', time: '2 phút trước', icon: '👤' },
-            { action: 'Test IQ được hoàn thành', time: '5 phút trước', icon: '📊' },
-            { action: 'Cập nhật câu hỏi', time: '10 phút trước', icon: '✏️' },
-            { action: 'Backup dữ liệu', time: '1 giờ trước', icon: '💾' }
-          ].map((activity, index) => (
-            <div key={index} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <div className="text-2xl">{activity.icon}</div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{activity.action}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Users by Country */}
+      <UsersByCountry />
     </div>
   );
 } 

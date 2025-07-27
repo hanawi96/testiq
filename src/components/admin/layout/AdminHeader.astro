@@ -135,7 +135,7 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
         id="user-menu-toggle"
         class="flex items-center space-x-2 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
       >
-        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+        <div id="admin-avatar-container" class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
           <span id="admin-avatar" class="text-white text-sm font-medium">A</span>
         </div>
         <span id="admin-name" class="hidden md:block font-medium truncate max-w-32">admin</span>
@@ -292,18 +292,27 @@ const { title = 'Dashboard', breadcrumbs = [] } = Astro.props;
         // Get user profile
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('full_name, role')
+          .select('full_name, role, avatar_url')
           .eq('id', user.id)
           .single();
 
         const adminInfo = {
           email: user.email || 'admin@example.com',
           fullName: profile?.full_name || user.email?.split('@')[0] || 'Admin',
-          role: profile?.role || 'admin'
+          role: profile?.role || 'admin',
+          avatarUrl: profile?.avatar_url || null
         };
 
         // Update UI elements
-        if (adminAvatar) adminAvatar.textContent = adminInfo.fullName.charAt(0).toUpperCase();
+        const avatarContainer = document.getElementById('admin-avatar-container');
+        if (adminInfo.avatarUrl && avatarContainer) {
+          // Replace with real avatar image
+          avatarContainer.innerHTML = `<img src="${adminInfo.avatarUrl}" alt="${adminInfo.fullName}" class="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600">`;
+        } else if (adminAvatar) {
+          // Fallback to initials
+          adminAvatar.textContent = adminInfo.fullName.charAt(0).toUpperCase();
+        }
+
         if (adminName) adminName.textContent = adminInfo.fullName;
         if (adminEmail) adminEmail.textContent = adminInfo.email;
         if (adminRole) adminRole.textContent = adminInfo.role === 'admin' ? 'Quản trị viên' : adminInfo.role;

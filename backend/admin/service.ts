@@ -1,11 +1,12 @@
 import { supabase, TABLES } from '../config/supabase';
 import { AuthService } from '../auth/service';
-import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats, WeeklyNewUsersStats, NewUsersTimeRange, TestTimeRange } from '../types';
+import type { AdminStats, AdminAction, NewUsersStats, WeeklyTestStats, DailyTestStats, DailyComparisonStats, WeeklyNewUsersStats, NewUsersTimeRange, TestTimeRange, DailyArticleLikesStats } from '../types';
 
 // Cache for stats (5 minutes) - separate cache for each time range
 let newUsersStatsCache: Record<string, { data: NewUsersStats; timestamp: number }> = {};
 let weeklyTestStatsCache: { data: WeeklyTestStats; timestamp: number } | null = null;
 let dailyTestStatsCache: Record<string, { data: DailyTestStats; timestamp: number }> = {};
+let dailyArticleLikesStatsCache: Record<string, { data: DailyArticleLikesStats; timestamp: number }> = {};
 let dailyComparisonStatsCache: { data: DailyComparisonStats; timestamp: number } | null = null;
 let weeklyNewUsersStatsCache: { data: WeeklyNewUsersStats; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -485,6 +486,223 @@ export class AdminService {
     } else {
       dailyTestStatsCache = {};
       console.log('AdminService: All daily test stats cache cleared');
+    }
+  }
+
+  /**
+   * Clear daily article likes stats cache
+   */
+  static clearDailyArticleLikesStatsCache(timeRange?: TestTimeRange): void {
+    if (timeRange) {
+      delete dailyArticleLikesStatsCache[timeRange];
+      console.log(`AdminService: Daily article likes stats cache cleared for ${timeRange}`);
+    } else {
+      dailyArticleLikesStatsCache = {};
+      console.log('AdminService: All daily article likes stats cache cleared');
+    }
+  }
+
+  /**
+   * Get daily article likes statistics with time range support
+   */
+  static async getDailyArticleLikesStats(timeRange: TestTimeRange = '7d'): Promise<{
+    data: DailyArticleLikesStats | null;
+    error: any
+  }> {
+    try {
+      console.log(`AdminService: Fetching daily article likes stats for ${timeRange}`);
+
+      // Check cache first
+      const now = Date.now();
+      const cacheKey = timeRange;
+      if (dailyArticleLikesStatsCache[cacheKey] && (now - dailyArticleLikesStatsCache[cacheKey].timestamp) < CACHE_DURATION) {
+        console.log(`AdminService: Using cached daily article likes stats for ${timeRange}`);
+        return { data: dailyArticleLikesStatsCache[cacheKey].data, error: null };
+      }
+
+      // Calculate date range based on time range
+      let days: number;
+      switch (timeRange) {
+        case '7d':
+          days = 7;
+          break;
+        case '1m':
+          days = 30;
+          break;
+        case '3m':
+          days = 90;
+          break;
+        case '6m':
+          days = 180;
+          break;
+        default:
+          days = 7;
+      }
+
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - (days - 1));
+
+      // Format dates for SQL queries
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      const startDateStr = formatDate(startDate);
+      const endDateStr = formatDate(endDate);
+
+      console.log(`AdminService: Querying daily article likes from ${startDateStr} to ${endDateStr}`);
+
+      // Query articles with their like_count and updated_at
+      const { data: articles, error: articlesError } = await supabase
+        .from('articles')
+        .select('like_count, updated_at, created_at')
+        .eq('status', 'published')
+        .gte('updated_at', startDateStr)
+        .lte('updated_at', endDateStr + 'T23:59:59.999Z')
+        .order('updated_at', { ascending: true });
+
+      if (articlesError) {
+        console.error('AdminService: Error fetching articles:', articlesError);
+        return { data: null, error: articlesError };
+      }
+
+      console.log(`AdminService: Found ${articles?.length || 0} articles with likes data`);
+
+      // Process data by day or week based on time range
+      const dailyData: Array<{ date: string; dateLabel: string; likesCount: number }> = [];
+
+      // Determine if we should aggregate by week for longer periods
+      const shouldAggregateByWeek = timeRange === '3m' || timeRange === '6m';
+
+      if (shouldAggregateByWeek) {
+        // Weekly aggregation for 3m and 6m
+        const weeklyData: Map<string, { likes: number; startDate: Date; endDate: Date }> = new Map();
+
+        // First, create all weeks in the time range
+        const currentWeekStart = new Date(startDate);
+        // Get Monday of the start week
+        const dayOfWeek = currentWeekStart.getDay();
+        const diff = currentWeekStart.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        currentWeekStart.setDate(diff);
+        currentWeekStart.setHours(0, 0, 0, 0);
+
+        // Generate all weeks in the range
+        while (currentWeekStart <= endDate) {
+          const weekKey = formatDate(currentWeekStart);
+          const sunday = new Date(currentWeekStart);
+          sunday.setDate(currentWeekStart.getDate() + 6);
+
+          weeklyData.set(weekKey, {
+            likes: 0,
+            startDate: new Date(currentWeekStart),
+            endDate: sunday
+          });
+
+          // Move to next week
+          currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        }
+
+        // Then, group articles by week
+        articles?.forEach(article => {
+          const articleDate = new Date(article.updated_at);
+
+          // Get Monday of the week (ISO week)
+          const monday = new Date(articleDate);
+          const dayOfWeek = monday.getDay();
+          const diff = monday.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+          monday.setDate(diff);
+          monday.setHours(0, 0, 0, 0);
+
+          const weekKey = formatDate(monday);
+
+          // Add likes to existing week if it exists in our range
+          if (weeklyData.has(weekKey)) {
+            weeklyData.get(weekKey)!.likes += article.like_count || 0;
+          }
+        });
+
+        // Convert to array and sort
+        const sortedWeeks = Array.from(weeklyData.entries())
+          .sort(([a], [b]) => a.localeCompare(b));
+
+        sortedWeeks.forEach(([weekStart, weekData]) => {
+          const startDateObj = weekData.startDate;
+          const endDateObj = weekData.endDate;
+
+          // Format week label
+          const dateLabel = `${startDateObj.getDate()}/${startDateObj.getMonth() + 1} - ${endDateObj.getDate()}/${endDateObj.getMonth() + 1}`;
+
+          dailyData.push({
+            date: weekStart,
+            dateLabel,
+            likesCount: weekData.likes
+          });
+        });
+      } else {
+        // Daily aggregation for 7d and 1m
+        for (let i = 0; i < days; i++) {
+          const currentDate = new Date(startDate);
+          currentDate.setDate(startDate.getDate() + i);
+          const dateStr = formatDate(currentDate);
+
+          // Format date label based on time range
+          let dateLabel: string;
+          if (timeRange === '7d') {
+            dateLabel = currentDate.toLocaleDateString('vi-VN', {
+              weekday: 'short',
+              day: 'numeric',
+              month: 'numeric'
+            });
+          } else {
+            dateLabel = currentDate.toLocaleDateString('vi-VN', {
+              day: 'numeric',
+              month: 'numeric'
+            });
+          }
+
+          // Count total likes for articles updated on this day
+          const likesForDay = articles?.filter(article => {
+            const articleDate = formatDate(new Date(article.updated_at));
+            return articleDate === dateStr;
+          }).reduce((sum, article) => sum + (article.like_count || 0), 0) || 0;
+
+          dailyData.push({
+            date: dateStr,
+            dateLabel,
+            likesCount: likesForDay
+          });
+        }
+      }
+
+      // Calculate total likes and average
+      const totalLikes = dailyData.reduce((sum, day) => sum + day.likesCount, 0);
+      const averagePerDay = shouldAggregateByWeek
+        ? Math.round(totalLikes / dailyData.length) // Average per week
+        : Math.round(totalLikes / days); // Average per day
+
+      console.log('AdminService: Daily article likes stats calculated successfully', {
+        totalLikes,
+        averagePerDay,
+        dailyDataLength: dailyData.length
+      });
+
+      const result = {
+        totalLikes,
+        averagePerDay,
+        dailyData
+      };
+
+      // Cache the result
+      dailyArticleLikesStatsCache[cacheKey] = {
+        data: result,
+        timestamp: now
+      };
+
+      return {
+        data: result,
+        error: null
+      };
+    } catch (err) {
+      console.error('AdminService: Error fetching daily article likes stats:', err);
+      return { data: null, error: err };
     }
   }
 

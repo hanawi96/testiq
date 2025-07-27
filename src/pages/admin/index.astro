@@ -5,8 +5,89 @@ export const prerender = false;
 // Admin dashboard page
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import AdminDashboard from '@/components/admin/dashboard/AdminDashboard.tsx';
+import { AdminService } from '../../../backend';
+
+// 🚀 SSR: Pre-load critical dashboard data for instant display
+let initialDashboardData = null;
+let initialStatsData = null;
+let initialNewUsersData = null;
+let initialTestStatsData = null;
+let initialArticleLikesData = null;
+
+try {
+  console.log('🔄 SSR: Starting parallel dashboard data fetch');
+
+  // Parallel fetch all critical data for instant display
+  const [
+    dashboardResult,
+    statsResult,
+    newUsersResult,
+    testStatsResult,
+    articleLikesResult
+  ] = await Promise.all([
+    AdminService.getDashboardData(),
+    AdminService.getDailyComparisonStats(),
+    AdminService.getNewUsersStats('7d'),
+    AdminService.getDailyTestStats('7d'),
+    AdminService.getDailyArticleLikesStats('7d')
+  ]);
+
+  // Store successful results
+  if (!dashboardResult.error && dashboardResult.isAuthorized) {
+    initialDashboardData = dashboardResult;
+    console.log('✅ SSR: Dashboard auth data loaded');
+  }
+
+  if (!statsResult.error && statsResult.data) {
+    initialStatsData = statsResult.data;
+    console.log('✅ SSR: Stats data loaded');
+  }
+
+  if (!newUsersResult.error && newUsersResult.data) {
+    initialNewUsersData = newUsersResult.data;
+    console.log('✅ SSR: New users data loaded');
+  }
+
+  if (!testStatsResult.error && testStatsResult.data) {
+    initialTestStatsData = testStatsResult.data;
+    console.log('✅ SSR: Test stats data loaded');
+  }
+
+  if (!articleLikesResult.error && articleLikesResult.data) {
+    initialArticleLikesData = articleLikesResult.data;
+    console.log('✅ SSR: Article likes data loaded');
+  }
+
+  console.log('🚀 SSR: Dashboard data pre-loading completed');
+} catch (error) {
+  console.error('❌ SSR: Error pre-loading dashboard data:', error);
+}
 ---
 
 <AdminLayout title="Admin Dashboard">
+  <!-- 🚀 SSR: Inject initial data for instant hydration -->
+  <script define:vars={{
+    initialDashboardData,
+    initialStatsData,
+    initialNewUsersData,
+    initialTestStatsData,
+    initialArticleLikesData
+  }}>
+    // Make data available globally for React components
+    window.__ADMIN_DASHBOARD_DATA__ = initialDashboardData;
+    window.__ADMIN_STATS_DATA__ = initialStatsData;
+    window.__ADMIN_NEW_USERS_DATA__ = initialNewUsersData;
+    window.__ADMIN_TEST_STATS_DATA__ = initialTestStatsData;
+    window.__ADMIN_ARTICLE_LIKES_DATA__ = initialArticleLikesData;
+
+    console.log('✅ SSR DASHBOARD INJECTION: Data injected for instant hydration', {
+      hasAuth: !!initialDashboardData,
+      hasStats: !!initialStatsData,
+      hasNewUsers: !!initialNewUsersData,
+      hasTestStats: !!initialTestStatsData,
+      hasArticleLikes: !!initialArticleLikesData
+    });
+  </script>
+
   <AdminDashboard client:load />
-</AdminLayout> 
+</AdminLayout>

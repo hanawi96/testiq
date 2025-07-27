@@ -92,6 +92,17 @@ export interface DailyTestStats {
   }>;
 }
 
+// Daily article likes statistics for dashboard
+export interface DailyArticleLikesStats {
+  totalLikes: number;
+  averagePerDay: number;
+  dailyData: Array<{
+    date: string;
+    dateLabel: string;
+    likesCount: number;
+  }>;
+}
+
 // Weekly new users statistics for dashboard (6 weeks)
 export interface WeeklyNewUsersStats {
   totalNewUsers: number;

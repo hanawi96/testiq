@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArticlesService } from '../../../../backend';
 import { ViewTrackingService } from '../../../../backend/utils/view-tracking-service';
 
 interface DailyViews {
@@ -30,38 +29,28 @@ interface ArticleViewsChartProps {
   className?: string;
 }
 
-type TimeRange = 7 | 14 | 30 | 60 | 90;
-type TopArticlesTimeRange = 1 | 7 | 14 | 30;
+type TimeRange = '7d' | '1m' | '3m' | '6m';
 
 const TIME_RANGE_OPTIONS = [
-  { value: 7, label: '7 ngày' },
-  { value: 14, label: '14 ngày' },
-  { value: 30, label: '30 ngày' },
-  { value: 60, label: '60 ngày' },
-  { value: 90, label: '90 ngày' }
-] as const;
-
-const TOP_ARTICLES_TIME_RANGE_OPTIONS = [
-  { value: 1, label: '1 ngày' },
-  { value: 7, label: '7 ngày' },
-  { value: 14, label: '14 ngày' },
-  { value: 30, label: '30 ngày' }
+  { value: '7d', label: '7 ngày' },
+  { value: '1m', label: '1 tháng' },
+  { value: '3m', label: '3 tháng' },
+  { value: '6m', label: '6 tháng' }
 ] as const;
 
 // Smart aggregation configuration
-function getAggregationConfig(days: TimeRange) {
-  switch (days) {
-    case 7:
-    case 14:
-      return { groupSize: 1, maxPoints: days }; // Daily
-    case 30:
-      return { groupSize: 2, maxPoints: 15 }; // 2-day groups
-    case 60:
-      return { groupSize: 3, maxPoints: 20 }; // 3-day groups
-    case 90:
-      return { groupSize: 5, maxPoints: 18 }; // 5-day groups
+function getAggregationConfig(timeRange: TimeRange) {
+  switch (timeRange) {
+    case '7d':
+      return { groupSize: 1, maxPoints: 7, aggregateByWeek: false }; // Daily
+    case '1m':
+      return { groupSize: 1, maxPoints: 30, aggregateByWeek: false }; // Daily
+    case '3m':
+      return { groupSize: 1, maxPoints: 12, aggregateByWeek: true }; // Weekly
+    case '6m':
+      return { groupSize: 1, maxPoints: 24, aggregateByWeek: true }; // Weekly
     default:
-      return { groupSize: 1, maxPoints: days };
+      return { groupSize: 1, maxPoints: 7, aggregateByWeek: false };
   }
 }
 
@@ -69,96 +58,141 @@ function getAggregationConfig(days: TimeRange) {
 function aggregateViewsData(
   rawData: any[],
   totalDays: number,
-  config: { groupSize: number; maxPoints: number }
+  config: { groupSize: number; maxPoints: number; aggregateByWeek: boolean },
+  timeRange: TimeRange
 ) {
-  // First, create complete daily data (fill missing days)
-  const completeData = [];
-  for (let i = totalDays - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
+  // Helper function to format date
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
-    const existingData = rawData.find(d => d.date === dateStr);
-    completeData.push({
-      date: dateStr,
-      views: existingData ? existingData.views : 0,
-      dateObj: new Date(date)
-    });
-  }
+  // Calculate date range
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  startDate.setDate(endDate.getDate() - totalDays + 1);
 
-  // If no grouping needed, return daily data
-  if (config.groupSize === 1) {
-    return completeData.map(item => ({
-      date: item.date,
-      views: item.views,
-      dateLabel: item.dateObj.toLocaleDateString('vi-VN', {
-        weekday: 'short',
-        day: '2-digit',
-        month: '2-digit'
-      })
-    }));
-  }
+  if (config.aggregateByWeek) {
+    // Weekly aggregation for 3m and 6m
+    const weeklyData: Map<string, { views: number; startDate: Date; endDate: Date }> = new Map();
 
-  // Group data by groupSize
-  const groupedData = [];
-  for (let i = 0; i < completeData.length; i += config.groupSize) {
-    const group = completeData.slice(i, i + config.groupSize);
-    const totalViews = group.reduce((sum, item) => sum + item.views, 0);
-    const startDate = group[0].dateObj;
-    const endDate = group[group.length - 1].dateObj;
+    // First, create all weeks in the time range
+    const currentWeekStart = new Date(startDate);
+    // Get Monday of the start week
+    const dayOfWeek = currentWeekStart.getDay();
+    const diff = currentWeekStart.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    currentWeekStart.setDate(diff);
+    currentWeekStart.setHours(0, 0, 0, 0);
 
-    // Create label based on group size
-    let dateLabel;
-    if (config.groupSize <= 3) {
-      // For 2-3 day groups: "01/12 - 02/12"
-      dateLabel = `${startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - ${endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`;
-    } else {
-      // For 5+ day groups: "W1 Dec", "W2 Dec"
-      const weekNum = Math.floor(i / config.groupSize) + 1;
-      const monthName = startDate.toLocaleDateString('vi-VN', { month: 'short' });
-      dateLabel = `T${weekNum} ${monthName}`;
+    // Generate all weeks in the range
+    while (currentWeekStart <= endDate) {
+      const weekKey = formatDate(currentWeekStart);
+      const sunday = new Date(currentWeekStart);
+      sunday.setDate(currentWeekStart.getDate() + 6);
+
+      weeklyData.set(weekKey, {
+        views: 0,
+        startDate: new Date(currentWeekStart),
+        endDate: sunday
+      });
+
+      // Move to next week
+      currentWeekStart.setDate(currentWeekStart.getDate() + 7);
     }
 
-    groupedData.push({
-      date: group[0].date, // Use first date as reference
-      views: totalViews,
-      dateLabel,
-      groupSize: group.length,
-      period: `${startDate.toLocaleDateString('vi-VN')} - ${endDate.toLocaleDateString('vi-VN')}`
-    });
-  }
+    // Then, map raw data to weeks
+    rawData.forEach(item => {
+      const itemDate = new Date(item.date);
 
-  return groupedData;
+      // Get Monday of the week (ISO week)
+      const monday = new Date(itemDate);
+      const dayOfWeek = monday.getDay();
+      const diff = monday.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      monday.setDate(diff);
+      monday.setHours(0, 0, 0, 0);
+
+      const weekKey = formatDate(monday);
+
+      // Add views to existing week if it exists in our range
+      if (weeklyData.has(weekKey)) {
+        weeklyData.get(weekKey)!.views += item.views || 0;
+      }
+    });
+
+    // Convert to array and sort
+    const sortedWeeks = Array.from(weeklyData.entries())
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    return sortedWeeks.map(([weekStart, weekData]) => {
+      const startDateObj = weekData.startDate;
+      const endDateObj = weekData.endDate;
+
+      // Format week label
+      const dateLabel = `${startDateObj.getDate()}/${startDateObj.getMonth() + 1} - ${endDateObj.getDate()}/${endDateObj.getMonth() + 1}`;
+
+      return {
+        date: weekStart,
+        dateLabel,
+        views: weekData.views
+      };
+    });
+  } else {
+    // Daily aggregation for 7d and 1m
+    const dailyData = [];
+    for (let i = 0; i < totalDays; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = formatDate(currentDate);
+
+      // Format date label based on time range
+      let dateLabel: string;
+      if (timeRange === '7d') {
+        dateLabel = currentDate.toLocaleDateString('vi-VN', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'numeric'
+        });
+      } else {
+        dateLabel = currentDate.toLocaleDateString('vi-VN', {
+          day: 'numeric',
+          month: 'numeric'
+        });
+      }
+
+      // Find views for this day
+      const existingData = rawData.find(d => d.date === dateStr);
+      const views = existingData ? existingData.views : 0;
+
+      dailyData.push({
+        date: dateStr,
+        dateLabel,
+        views
+      });
+    }
+
+    return dailyData;
+  }
 }
 
 export default function ArticleViewsChart({ className = '' }: ArticleViewsChartProps) {
   const [data, setData] = useState<ViewsAnalytics | null>(null);
-  const [topArticlesData, setTopArticlesData] = useState<TopArticle[] | null>(null);
   const [isChartLoading, setIsChartLoading] = useState(true);
-  const [isTopArticlesLoading, setIsTopArticlesLoading] = useState(true);
   const [chartError, setChartError] = useState<string | null>(null);
-  const [topArticlesError, setTopArticlesError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>(7);
-  const [topArticlesTimeRange, setTopArticlesTimeRange] = useState<TopArticlesTimeRange>(1);
+  const [timeRange, setTimeRange] = useState<TimeRange>('7d');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isTopArticlesDropdownOpen, setIsTopArticlesDropdownOpen] = useState(false);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const topArticlesDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
-      if (topArticlesDropdownRef.current && !topArticlesDropdownRef.current.contains(event.target as Node)) {
-        setIsTopArticlesDropdownOpen(false);
-      }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
 
   // Helper functions for dropdowns
   const getTimeRangeLabel = (range: TimeRange) => {
@@ -166,46 +200,16 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
     return option?.label || '7 ngày';
   };
 
-  const getTopArticlesTimeRangeLabel = (range: TopArticlesTimeRange) => {
-    const option = TOP_ARTICLES_TIME_RANGE_OPTIONS.find(opt => opt.value === range);
-    return option?.label || '1 ngày';
-  };
 
-  // Fetch top articles data separately
-  const fetchTopArticles = useCallback(async (days: TopArticlesTimeRange) => {
-    try {
-      setIsTopArticlesLoading(true);
-      setTopArticlesError(null);
-
-      // Get top articles data from ViewTrackingService
-      const { data: analyticsData, error: analyticsError } = await ViewTrackingService.getArticleViewsAnalytics(days);
-
-      if (analyticsError || !analyticsData) {
-        throw new Error('Không thể tải dữ liệu top bài viết');
-      }
-
-      // Process top articles
-      const topArticles: TopArticle[] = analyticsData.topArticles.map(article => ({
-        title: article.title.length > 30 ? article.title.substring(0, 30) + '...' : article.title,
-        views: article.views,
-        slug: article.slug
-      }));
-
-      setTopArticlesData(topArticles);
-
-    } catch (err) {
-      console.error('Error fetching top articles:', err);
-      setTopArticlesError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
-    } finally {
-      setIsTopArticlesLoading(false);
-    }
-  }, []);
 
   // Fetch analytics data
-  const fetchAnalytics = useCallback(async (days: TimeRange) => {
+  const fetchAnalytics = useCallback(async (timeRange: TimeRange) => {
     try {
       setIsChartLoading(true);
       setChartError(null);
+
+      // Convert time range to days for backend
+      const days = timeRange === '7d' ? 7 : timeRange === '1m' ? 30 : timeRange === '3m' ? 90 : 180;
 
       // Get real analytics data from ViewTrackingService
       const { data: analyticsData, error: analyticsError } = await ViewTrackingService.getArticleViewsAnalytics(days);
@@ -215,8 +219,8 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
       }
 
       // Smart aggregation based on time range
-      const aggregationConfig = getAggregationConfig(days);
-      const dailyViewsData = aggregateViewsData(analyticsData.dailyViews, days, aggregationConfig);
+      const aggregationConfig = getAggregationConfig(timeRange);
+      const dailyViewsData = aggregateViewsData(analyticsData.dailyViews, days, aggregationConfig, timeRange);
 
       // Process top articles
       const topArticles: TopArticle[] = analyticsData.topArticles.map(article => ({
@@ -256,16 +260,8 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
     fetchAnalytics(timeRange);
   }, [timeRange, fetchAnalytics]);
 
-  useEffect(() => {
-    fetchTopArticles(topArticlesTimeRange);
-  }, [topArticlesTimeRange, fetchTopArticles]);
-
   const handleTimeRangeChange = (newTimeRange: TimeRange) => {
     setTimeRange(newTimeRange);
-  };
-
-  const handleTopArticlesTimeRangeChange = (newTimeRange: TopArticlesTimeRange) => {
-    setTopArticlesTimeRange(newTimeRange);
   };
 
   // State for responsive recalculation
@@ -283,47 +279,112 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Responsive chart dimensions - use container width like DailyTestChart
-  const chartDimensions = useMemo(() => {
-    if (!data?.dailyViews.length) return { width: 800, height: 240 };
+  // Calculate visible label indices for smart sampling
+  const visibleLabelIndices = useMemo(() => {
+    if (!data?.dailyViews.length) return [];
 
-    // Responsive chart dimensions - use container width like DailyTestChart
-    const containerWidth = windowWidth > 1280 ? windowWidth - 400 : // XL screens: subtract sidebar + padding
-                           windowWidth > 1024 ? windowWidth - 350 : // LG screens: subtract sidebar + padding
-                           windowWidth > 768 ? windowWidth - 100 :  // MD screens: subtract padding
-                           windowWidth - 60; // SM screens: minimal padding
+    // Use same logic as DailyArticleLikesChart
+    const dataLength = data.dailyViews.length;
+    const timeRangeForSampling = timeRange;
 
-    const width = Math.max(600, Math.min(containerWidth, 1400)); // Min 600px, max 1400px
-    return { width, height: 240 };
+    if (dataLength === 0) return [];
+
+    // For 7 days, show all labels (current behavior is fine)
+    if (timeRangeForSampling === '7d') {
+      return Array.from({ length: dataLength }, (_, i) => i);
+    }
+
+    // Target optimal label count based on time range and screen size
+    let targetLabels: number;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+    switch (timeRangeForSampling) {
+      case '1m':
+        targetLabels = isMobile ? 4 : 6;
+        break;
+      case '3m':
+        targetLabels = isMobile ? 5 : 7;
+        break;
+      case '6m':
+        targetLabels = isMobile ? 5 : 8;
+        break;
+      default:
+        targetLabels = isMobile ? 5 : 7;
+        break;
+    }
+
+    // Always include first and last indices
+    const visibleIndices = new Set<number>();
+    visibleIndices.add(0); // First
+    if (dataLength > 1) {
+      visibleIndices.add(dataLength - 1); // Last
+    }
+
+    // If we have very few data points, show all
+    if (dataLength <= targetLabels) {
+      for (let i = 0; i < dataLength; i++) {
+        visibleIndices.add(i);
+      }
+    } else {
+      // Calculate evenly distributed intermediate points
+      const intermediateCount = targetLabels - 2; // Subtract first and last
+
+      if (intermediateCount > 0) {
+        const step = (dataLength - 1) / (intermediateCount + 1);
+
+        for (let i = 1; i <= intermediateCount; i++) {
+          const index = Math.round(step * i);
+          // Ensure we don't duplicate first or last and stay within bounds
+          if (index > 0 && index < dataLength - 1) {
+            visibleIndices.add(index);
+          }
+        }
+      }
+    }
+
+    return Array.from(visibleIndices).sort((a, b) => a - b);
   }, [data?.dailyViews.length, timeRange, windowWidth]);
 
-  // Line Chart Component (reusing pattern from existing charts)
+  // SVG Line Chart Component
   const LineChart = useCallback(() => {
-    if (!data?.dailyViews.length) return null;
+    if (!data?.dailyViews.length) {
+      return (
+        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 flex items-center justify-center h-60 lg:h-72 xl:h-80 2xl:h-96">
+          <div className="text-center">
+            <svg className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Chưa có dữ liệu lượt xem</p>
+          </div>
+        </div>
+      );
+    }
 
     const chartData = data.dailyViews;
-    const { width, height } = chartDimensions;
-    const padding = 50;
+
+    // Dashboard responsive chart dimensions - optimized for 2-column grid
+    const containerWidth = windowWidth > 1280 ? (windowWidth - 400) / 2 - 20 : // XL screens: half width minus gap
+                           windowWidth > 1024 ? (windowWidth - 350) / 2 - 20 : // LG screens: half width minus gap
+                           windowWidth > 768 ? windowWidth - 100 :  // MD screens: full width
+                           windowWidth - 60; // SM screens: full width
+
+    const width = Math.max(400, Math.min(containerWidth, 800)); // Cap at 800px for dashboard
+    const baseHeight = 260;
+    const height = baseHeight;
+    const padding = 45;
     const chartWidth = width - (padding * 2);
     const chartHeight = height - (padding * 2);
 
     const maxValue = Math.max(...chartData.map(d => d.views)) || 1;
-    const minValue = Math.min(...chartData.map(d => d.views)) || 0;
-    const valueRange = maxValue - minValue || 1;
-
-    // Calculate Y-axis labels (4 levels)
-    const yAxisLabels = [];
-    for (let i = 0; i <= 4; i++) {
-      const value = minValue + (valueRange * (4 - i) / 4);
-      yAxisLabels.push(Math.round(value));
-    }
 
     // Calculate points for the line
     const points = chartData.map((d, i) => {
       const x = padding + (i * (chartWidth / (chartData.length - 1)));
-      const y = padding + chartHeight - (((d.views - minValue) / valueRange) * chartHeight);
+      const y = padding + chartHeight - ((d.views / maxValue) * chartHeight);
       return { x, y, data: d };
     });
+
+
 
     // Create path string for the line
     const pathData = points.reduce((path, point, i) => {
@@ -338,9 +399,9 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
       <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 w-full">
         <svg
           width="100%"
-          height="240"
+          height="260"
           viewBox={`0 0 ${width} ${height}`}
-          className="overflow-visible w-full"
+          className="overflow-visible h-60 lg:h-72 xl:h-80 2xl:h-96 w-full"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Gradient definition */}
@@ -351,34 +412,24 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
             </linearGradient>
           </defs>
 
-          {/* Grid lines and Y-axis labels */}
-          {yAxisLabels.map((value, i) => {
+          {/* Background */}
+          <rect width="100%" height="100%" fill="transparent" />
+
+          {/* Grid lines */}
+          {[0, 1, 2, 3, 4].map(i => {
             const y = padding + (chartHeight / 4) * i;
             return (
-              <g key={`grid-${i}`}>
-                {/* Grid line */}
-                <line
-                  x1={padding}
-                  y1={y}
-                  x2={width - padding}
-                  y2={y}
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  className="text-gray-200 dark:text-gray-700"
-                  opacity="0.3"
-                />
-                {/* Y-axis label */}
-                <text
-                  x={padding - 10}
-                  y={y + 4}
-                  textAnchor="end"
-                  fontSize="11"
-                  fill="currentColor"
-                  className="text-gray-600 dark:text-gray-400"
-                >
-                  {value.toLocaleString()}
-                </text>
-              </g>
+              <line
+                key={`grid-${i}`}
+                x1={padding}
+                y1={y}
+                x2={width - padding}
+                y2={y}
+                stroke="currentColor"
+                strokeWidth="1"
+                className="text-gray-200 dark:text-gray-700"
+                opacity="0.3"
+              />
             );
           })}
 
@@ -401,430 +452,292 @@ export default function ArticleViewsChart({ className = '' }: ArticleViewsChartP
           {/* Data points with tooltips */}
           {points.map((point, i) => (
             <g key={i}>
-              {/* Invisible hover area (larger than visible circle) */}
+              {/* Point circle */}
               <circle
                 cx={point.x}
                 cy={point.y}
-                r="12"
-                fill="transparent"
-                className="cursor-pointer"
-                onMouseEnter={(e) => {
-                  // Show tooltip
-                  const tooltip = e.currentTarget.nextElementSibling as SVGElement;
-                  if (tooltip) tooltip.style.opacity = '1';
-                  // Enlarge visible circle
-                  const visibleCircle = e.currentTarget.parentElement?.querySelector('.data-point') as SVGCircleElement;
-                  if (visibleCircle) visibleCircle.setAttribute('r', '6');
-                }}
-                onMouseLeave={(e) => {
-                  // Hide tooltip
-                  const tooltip = e.currentTarget.nextElementSibling as SVGElement;
-                  if (tooltip) tooltip.style.opacity = '0';
-                  // Reset visible circle
-                  const visibleCircle = e.currentTarget.parentElement?.querySelector('.data-point') as SVGCircleElement;
-                  if (visibleCircle) visibleCircle.setAttribute('r', '4');
-                }}
-              />
-
-              {/* Tooltip (initially hidden) */}
-              <g style={{ opacity: 0, transition: 'opacity 200ms', pointerEvents: 'none' }}>
-                {/* Dynamic tooltip size based on content */}
-                {(() => {
-                  // Simplified tooltip - no groupSize needed for daily views
-                  const tooltipWidth = 80;
-                  const tooltipHeight = 32;
-
-                  return (
-                    <>
-                      <rect
-                        x={point.x - tooltipWidth/2}
-                        y={point.y - tooltipHeight - 8}
-                        width={tooltipWidth}
-                        height={tooltipHeight}
-                        fill="rgba(0,0,0,0.9)"
-                        rx="6"
-                        stroke="rgba(255,255,255,0.2)"
-                        strokeWidth="1"
-                      />
-                      <text
-                        x={point.x}
-                        y={point.y - 20}
-                        textAnchor="middle"
-                        fontSize="11"
-                        fill="white"
-                        fontWeight="500"
-                      >
-                        {point.data.views.toLocaleString()} views
-                      </text>
-                      <text
-                        x={point.x}
-                        y={point.y - 8}
-                        textAnchor="middle"
-                        fontSize="9"
-                        fill="rgba(255,255,255,0.7)"
-                      >
-                        {point.data.dateLabel}
-                      </text>
-                    </>
-                  );
-                })()}
-              </g>
-
-              {/* Visible data point */}
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r="4"
+                r={hoveredPoint === i ? "6" : "4"}
                 fill="#3B82F6"
                 stroke="white"
                 strokeWidth="2"
-                className="data-point"
-                style={{ transition: 'r 200ms' }}
-                pointerEvents="none"
+                className="cursor-pointer transition-all duration-200 drop-shadow-sm"
+                onMouseEnter={() => setHoveredPoint(i)}
+                onMouseLeave={() => setHoveredPoint(null)}
               />
 
-              {/* Date labels - Smart sampling based on chart width and data density */}
-              {(() => {
-                const totalPoints = points.length;
-
-                // Simplified label sampling based on time range and data points
-                const calculateOptimalSampling = () => {
-                  // Since we're using fixed viewBox with auto-scaling SVG,
-                  // we can use simpler logic based on time range and data density
-
-                  if (timeRange >= 90) {
-                    // For 90 days: show every 10-12th point to avoid crowding
-                    return Math.max(10, Math.ceil(totalPoints / 8));
-                  }
-                  if (timeRange >= 60) {
-                    // For 60 days: show every 6-8th point
-                    return Math.max(6, Math.ceil(totalPoints / 10));
-                  }
-                  if (timeRange >= 30) {
-                    // For 30 days: show every 3-4th point
-                    return Math.max(3, Math.ceil(totalPoints / 12));
-                  }
-                  if (timeRange >= 14) {
-                    // For 14 days: show every 2nd point
-                    return Math.max(2, Math.ceil(totalPoints / 14));
-                  }
-
-                  // For 7 days: show all or every other
-                  return totalPoints > 10 ? 2 : 1;
-                };
-
-                const showEveryNth = calculateOptimalSampling();
-
-                // Smart label selection: always show first, last, and evenly distributed points
-                const shouldShowLabel = (() => {
-                  // Always show first and last
-                  if (i === 0 || i === totalPoints - 1) return true;
-
-                  // For regular sampling, ensure we don't show labels too close to first/last
-                  if (i % showEveryNth === 0) {
-                    // Don't show if too close to first label (within 2 positions)
-                    if (i <= 2) return false;
-                    // Don't show if too close to last label (within 2 positions)
-                    if (i >= totalPoints - 3) return false;
-                    return true;
-                  }
-
-                  return false;
-                })();
-
-                return shouldShowLabel ? (
+              {/* Value label on hover */}
+              {hoveredPoint === i && (
+                <g>
+                  {/* Tooltip background */}
+                  <rect
+                    x={point.x - 30}
+                    y={point.y - 40}
+                    width="60"
+                    height="30"
+                    fill="rgba(0, 0, 0, 0.9)"
+                    rx="6"
+                  />
+                  {/* Tooltip text - count */}
                   <text
                     x={point.x}
-                    y={height - 10}
-                    textAnchor={
-                      // Adjust text anchor to prevent clipping at edges
-                      i === 0 ? "start" :
-                      i === totalPoints - 1 ? "end" :
-                      "middle"
-                    }
-                    fontSize={timeRange >= 14 ? "11" : "10"}
-                    fill="currentColor"
-                    className="text-gray-600 dark:text-gray-400"
-                    pointerEvents="none"
+                    y={point.y - 28}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill="white"
+                    fontWeight="bold"
+                  >
+                    {point.data.views}
+                  </text>
+                  {/* Tooltip text - date */}
+                  <text
+                    x={point.x}
+                    y={point.y - 16}
+                    textAnchor="middle"
+                    fontSize="9"
+                    fill="rgba(255, 255, 255, 0.8)"
                   >
                     {point.data.dateLabel}
                   </text>
-                ) : null;
-              })()}
+                </g>
+              )}
+
+              {/* Date label - Smart sampling for readability */}
+              {visibleLabelIndices.includes(i) && (
+                <text
+                  x={point.x}
+                  y={height - 10}
+                  textAnchor="middle"
+                  fontSize={timeRange === '1m' || timeRange === '3m' || timeRange === '6m' ? "11" : "10"}
+                  fill="currentColor"
+                  className="text-gray-600 dark:text-gray-400"
+                  pointerEvents="none"
+                >
+                  {point.data.dateLabel}
+                </text>
+              )}
             </g>
           ))}
+
+          {/* Y-axis labels */}
+          {[0, 1, 2, 3, 4].map(i => {
+            const value = Math.round((maxValue / 4) * (4 - i));
+            const y = padding + (chartHeight / 4) * i;
+            return (
+              <text
+                key={`y-label-${i}`}
+                x={padding - 10}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="12"
+                fill="currentColor"
+                className="text-gray-600 dark:text-gray-400"
+              >
+                {value.toLocaleString()}
+              </text>
+            );
+          })}
         </svg>
       </div>
     );
-  }, [data, chartDimensions, timeRange]);
+  }, [data, timeRange, windowWidth, hoveredPoint, visibleLabelIndices]);
 
-  // Bar Chart for Top Articles
-  const TopArticlesChart = useCallback(() => {
-    if (!topArticlesData?.length) return null;
 
-    const articles = topArticlesData;
-    const maxViews = Math.max(...articles.map(a => a.views)) || 1;
-
-    return (
-      <div className="space-y-3">
-        {articles.map((article, index) => {
-          const percentage = (article.views / maxViews) * 100;
-          
-          return (
-            <div key={index} className="flex items-center space-x-3">
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {article.title}
-                  </span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                    {article.views.toLocaleString()}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }, [topArticlesData]);
 
   // Remove global loading state - use individual loading states for each section
 
+  // Simple loading skeleton
+  if (isChartLoading) {
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse"></div>
+          </div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+        </div>
+        <div className="h-60 lg:h-72 xl:h-80 2xl:h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {[1, 2].map(i => (
+            <div key={i} className="text-center p-2 sm:p-3">
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 mx-auto mb-2 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (chartError) {
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 ${className}`}>
+        <div className="text-center">
+          <div className="text-red-500 dark:text-red-400 mb-2">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Lỗi tải dữ liệu</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{chartError}</p>
+          <button
+            onClick={() => fetchAnalytics(timeRange)}
+            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
-      {/* Header removed - no longer needed */}
+    <div className={`w-full ${className}`}>
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-green-50/50 via-emerald-50/30 to-teal-50/50 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/20 rounded-t-lg p-4 border border-green-100 dark:border-green-800/30 border-b-0 w-full">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* Icon */}
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
 
-      {/* Main Content Grid - Dynamic Layout Based on Time Range */}
-      <div className={`grid grid-cols-1 gap-6 ${
-        timeRange >= 14
-          ? 'xl:grid-cols-4' // For 14+ days: wider chart takes more space
-          : 'lg:grid-cols-3'  // For 7 days: normal layout
-      }`}>
-        {/* Chart Component - Dynamic width based on time range */}
-        <div className={`w-full ${
-          timeRange >= 14
-            ? 'xl:col-span-3' // Takes 3/4 width for longer periods
-            : 'lg:col-span-2'  // Takes 2/3 width for 7 days
-        }`}>
-          {/* Header Section */}
-          <div className="bg-gradient-to-r from-green-50/50 via-emerald-50/30 to-teal-50/50 dark:from-green-950/20 dark:via-emerald-950/10 dark:to-teal-950/20 rounded-t-lg p-4 border border-green-100 dark:border-green-800/30 border-b-0 w-full">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Icon */}
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
-
-                {/* Title and Description */}
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    Xu hướng lượt xem
-                    {timeRange > 14 && (
-                      <span className="text-sm text-gray-500 ml-2 font-normal">
-                        ({getAggregationConfig(timeRange).groupSize} ngày/điểm)
-                      </span>
-                    )}
-                  </h3>
-                  {data && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Tổng: {data.dailyViews.reduce((sum, day) => sum + day.views, 0).toLocaleString()} views
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Chart Time Range Filter & Refresh */}
-              <div className="flex items-center space-x-2">
-              {/* Time Range Filter */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  disabled={isChartLoading}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
-                  title="Chọn khoảng thời gian"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="hidden sm:inline">{getTimeRangeLabel(timeRange)}</span>
-                  <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
-                    >
-                      {TIME_RANGE_OPTIONS.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            handleTimeRangeChange(option.value);
-                            setIsDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/30 first:rounded-t-lg last:rounded-b-lg ${
-                            timeRange === option.value
-                              ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Refresh Button */}
-              <button
-                onClick={() => fetchAnalytics(timeRange)}
-                disabled={isChartLoading}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
-                title="Làm mới"
+            {/* Title and Description */}
+            <div className="flex-1">
+              <h3
+                id="article-views-chart-title"
+                className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-              </div>
+                Xu hướng lượt xem
+                {(timeRange === '3m' || timeRange === '6m') && (
+                  <span className="text-sm text-gray-500 ml-2 font-normal">
+                    (theo tuần)
+                  </span>
+                )}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {timeRange === '3m' || timeRange === '6m'
+                  ? 'Thống kê lượt xem bài viết theo tuần'
+                  : 'Thống kê lượt xem bài viết theo ngày'}
+              </p>
             </div>
           </div>
 
-          {/* Chart Content Section */}
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border border-green-100 dark:border-green-800/30 border-t-0 p-6 w-full">
-            {isChartLoading ? (
-            <div className="h-60 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-          ) : chartError ? (
-            <div className="text-center py-8">
-              <svg className="w-12 h-12 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="flex items-center space-x-2">
+          {/* Time Range Filter */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              disabled={isChartLoading}
+              className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
+              title="Chọn khoảng thời gian"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <p className="text-red-600 dark:text-red-400 mb-2">Không thể tải biểu đồ</p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">{chartError}</p>
-              <button
-                onClick={() => fetchAnalytics(timeRange)}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Thử lại
-              </button>
-            </div>
-          ) : (
-            <LineChart />
-          )}
+              <span className="hidden sm:inline">{getTimeRangeLabel(timeRange)}</span>
+              <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <AnimatePresence>
+              {isDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                >
+                  {TIME_RANGE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        handleTimeRangeChange(option.value);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/30 first:rounded-t-lg last:rounded-b-lg ${
+                        timeRange === option.value
+                          ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                          : 'text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <button
+            onClick={() => fetchAnalytics(timeRange)}
+            disabled={isChartLoading}
+            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
+            title="Làm mới dữ liệu"
+          >
+            <svg className={`w-4 h-4 ${isChartLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="hidden sm:inline">{isChartLoading ? 'Đang tải...' : 'Làm mới'}</span>
+          </button>
           </div>
         </div>
+      </div>
 
-        {/* Top Articles Component - Takes 1/3 width */}
-        <div className="lg:col-span-1">
-          {/* Header Section */}
-          <div className="bg-gradient-to-r from-amber-50/50 via-orange-50/30 to-yellow-50/50 dark:from-amber-950/20 dark:via-orange-950/10 dark:to-yellow-950/20 rounded-t-lg p-4 border border-amber-100 dark:border-amber-800/30 border-b-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Icon */}
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center shadow-sm">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                  </svg>
-                </div>
+      {/* Content Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-green-100 dark:border-green-800/30 border-t-0 p-4 w-full">
+        {/* Chart */}
+        <div
+          className="mb-4 w-full"
+          role="img"
+          aria-labelledby="article-views-chart-title"
+          aria-describedby="article-views-chart-description"
+        >
+        <div id="article-views-chart-description" className="sr-only">
+          Biểu đồ đường thể hiện lượt xem bài viết trong {getTimeRangeLabel(timeRange)} gần nhất.
+          Tổng cộng có {data?.dailyViews.reduce((sum, day) => sum + day.views, 0) || 0} lượt xem được ghi nhận.
+        </div>
+        <LineChart />
+      </div>
 
-                {/* Title and Description */}
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    Top 5 bài viết
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Bài viết được xem nhiều nhất
-                  </p>
-                </div>
-              </div>
-
-              {/* Top Articles Time Range Filter */}
-              <div className="relative" ref={topArticlesDropdownRef}>
-              <button
-                onClick={() => setIsTopArticlesDropdownOpen(!isTopArticlesDropdownOpen)}
-                disabled={isTopArticlesLoading}
-                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50"
-                title="Chọn khoảng thời gian"
-              >
-                <span>{getTopArticlesTimeRangeLabel(topArticlesTimeRange)}</span>
-                <svg className={`w-3 h-3 transition-transform ${isTopArticlesDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              <AnimatePresence>
-                {isTopArticlesDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
-                  >
-                    {TOP_ARTICLES_TIME_RANGE_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => {
-                          handleTopArticlesTimeRangeChange(option.value);
-                          setIsTopArticlesDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700/30 first:rounded-t-lg last:rounded-b-lg ${
-                          topArticlesTimeRange === option.value
-                            ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                            : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              </div>
-            </div>
+      {/* Summary Stats */}
+      <div
+        className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
+        role="region"
+        aria-label="Tóm tắt thống kê lượt xem"
+      >
+        <div
+          className="text-center p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20"
+          role="group"
+          aria-label={`Tổng số lượt xem: ${data?.dailyViews.reduce((sum, day) => sum + day.views, 0) || 0}`}
+        >
+          <div
+            className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400"
+            aria-label={`${data?.dailyViews.reduce((sum, day) => sum + day.views, 0) || 0} lượt xem tổng cộng`}
+          >
+            {data?.dailyViews.reduce((sum, day) => sum + day.views, 0).toLocaleString() || 0}
           </div>
-
-          {/* Content Section */}
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border border-amber-100 dark:border-amber-800/30 border-t-0 p-6">
-            {isTopArticlesLoading ? (
-            <div className="space-y-3">
-              {[1,2,3,4,5].map(i => (
-                <div key={i} className="space-y-2">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"></div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                </div>
-              ))}
-            </div>
-          ) : topArticlesError ? (
-            <div className="text-center py-8">
-              <p className="text-red-600 dark:text-red-400 text-sm">{topArticlesError}</p>
-              <button
-                onClick={() => fetchTopArticles(topArticlesTimeRange)}
-                className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-              >
-                Thử lại
-              </button>
-            </div>
-          ) : (
-            <TopArticlesChart />
-          )}
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Tổng xem</div>
+        </div>
+        <div
+          className="text-center p-2 sm:p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20"
+          role="group"
+          aria-label={`Trung bình mỗi ngày: ${data ? Math.round((data.dailyViews.reduce((sum, day) => sum + day.views, 0)) / data.dailyViews.length) : 0}`}
+        >
+          <div
+            className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400"
+            aria-label={`${data ? Math.round((data.dailyViews.reduce((sum, day) => sum + day.views, 0)) / data.dailyViews.length) : 0} lượt xem trung bình mỗi ngày`}
+          >
+            {data ? Math.round((data.dailyViews.reduce((sum, day) => sum + day.views, 0)) / data.dailyViews.length) : 0}
           </div>
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            {timeRange === '3m' || timeRange === '6m' ? 'TB/tuần' : 'TB/ngày'}
+          </div>
+        </div>
         </div>
       </div>
     </div>

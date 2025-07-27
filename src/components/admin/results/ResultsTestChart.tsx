@@ -39,24 +39,25 @@ export default function ResultsTestChart({ className = '', defaultTimeRange = '1
     }
   };
 
-  // Helper function for smart label sampling - responsive
+  // Smart label sampling - optimized for readability
   const getVisibleLabelIndices = (dataLength: number, timeRange: TestTimeRange, screenWidth: number) => {
     if (dataLength <= 7) return Array.from({ length: dataLength }, (_, i) => i);
 
     const isMobile = screenWidth < 640;
     const isTablet = screenWidth >= 640 && screenWidth < 1024;
 
-    let skipFactor = 3; // Default for desktop
+    // Smart skip factor based on data length and screen size
+    let maxLabels = isMobile ? 4 : isTablet ? 6 : 8;
+    let skipFactor = Math.max(1, Math.floor(dataLength / maxLabels));
 
-    if (isMobile) {
-      skipFactor = timeRange === '7d' ? 1 : timeRange === '1m' ? 5 : timeRange === '3m' ? 10 : 15;
-    } else if (isTablet) {
-      skipFactor = timeRange === '7d' ? 1 : timeRange === '1m' ? 4 : timeRange === '3m' ? 8 : 12;
-    } else {
-      skipFactor = timeRange === '7d' ? 1 : timeRange === '1m' ? 3 : timeRange === '3m' ? 7 : 14;
+    // Always include first and last
+    const indices = [0];
+    for (let i = skipFactor; i < dataLength - 1; i += skipFactor) {
+      indices.push(i);
     }
+    if (dataLength > 1) indices.push(dataLength - 1);
 
-    return Array.from({ length: dataLength }, (_, i) => i).filter((_, i) => i % skipFactor === 0 || i === dataLength - 1);
+    return indices;
   };
 
   // Click outside handler

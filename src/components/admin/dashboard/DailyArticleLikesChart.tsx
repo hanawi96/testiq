@@ -1,127 +1,53 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminService } from '../../../../backend';
-import type { NewUsersStats, NewUsersTimeRange } from '../../../../backend';
+import type { DailyArticleLikesStats, TestTimeRange } from '../../../../backend';
 
 interface Props {
   className?: string;
+  defaultTimeRange?: TestTimeRange;
 }
 
-export default function NewUsersChart({ className = '' }: Props) {
-  const [data, setData] = useState<NewUsersStats | null>(null);
+export default function DailyArticleLikesChart({ className = '', defaultTimeRange = '7d' }: Props) {
+  console.log('🎬 DailyArticleLikesChart: Component mounting/rendering', {
+    className,
+    defaultTimeRange,
+    timestamp: new Date().toISOString()
+  });
+
+  const [data, setData] = useState<DailyArticleLikesStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
-  const [timeRange, setTimeRange] = useState<NewUsersTimeRange>('7d');
-  const [showTimeFilter, setShowTimeFilter] = useState(false);
+  const [timeRange, setTimeRange] = useState<TestTimeRange>(defaultTimeRange);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadNewUsersData();
-  }, [timeRange]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showTimeFilter) {
-        const target = event.target as Element;
-        if (!target.closest('[data-time-filter]')) {
-          setShowTimeFilter(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showTimeFilter]);
-
-  const loadNewUsersData = useCallback(async (forceRefresh = false, retryAttempt = 0) => {
-    const maxRetries = 3;
-    const retryDelay = 1000 * (retryAttempt + 1); // 1s, 2s, 3s
-
-    try {
-      setIsLoading(true);
-      setError('');
-
-      // 🚀 Try SSR hydration first for instant display (only for default 7d range)
-      if (!forceRefresh && timeRange === '7d' && typeof window !== 'undefined' && (window as any).__ADMIN_NEW_USERS_DATA__) {
-        const ssrData = (window as any).__ADMIN_NEW_USERS_DATA__;
-
-        if (ssrData && ssrData.timeRange === '7d') {
-          console.log('⚡ SSR NEW USERS HYDRATION: Using pre-loaded data');
-          setData(ssrData);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Fallback to client-side loading
-      console.log('🔄 NewUsersChart: Loading client-side data for', timeRange);
-      if (forceRefresh) {
-        AdminService.clearNewUsersStatsCache(timeRange);
-      }
-
-      const { data: newUsersData, error: newUsersError } = await AdminService.getNewUsersStats(timeRange);
-
-      if (newUsersError) {
-        console.error('NewUsersChart: Error loading data:', newUsersError);
-
-        if (retryAttempt < maxRetries && (
-          newUsersError.message?.includes('network') ||
-          newUsersError.message?.includes('timeout') ||
-          newUsersError.code === 'PGRST301'
-        )) {
-          console.log(`NewUsersChart: Retrying in ${retryDelay}ms (attempt ${retryAttempt + 1}/${maxRetries})`);
-          setTimeout(() => {
-            loadNewUsersData(forceRefresh, retryAttempt + 1);
-          }, retryDelay);
-          return;
-        }
-
-        setError('Không thể tải dữ liệu người dùng mới');
-        return;
-      }
-
-      if (newUsersData) {
-        console.log('NewUsersChart: Data loaded successfully', newUsersData);
-        setData(newUsersData);
-      }
-    } catch (err) {
-      console.error('NewUsersChart: Exception loading data:', err);
-      setError('Có lỗi xảy ra khi tải dữ liệu');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [timeRange]);
-
-  // Time range helper functions
-  const getTimeRangeLabel = (range: NewUsersTimeRange): string => {
-    const labels = {
-      '7d': '7 ngày qua',
-      '1m': '1 tháng qua',
-      '60d': '60 ngày qua',
-      '120d': '120 ngày qua',
-      '3m': '3 tháng qua',
-      '6m': '6 tháng qua'
-    };
-    return labels[range];
-  };
-
-  const getTimeRangeOptions = (): Array<{ value: NewUsersTimeRange; label: string }> => [
-    { value: '7d', label: '7 ngày' },
-    { value: '1m', label: '30 ngày' },
-    { value: '60d', label: '60 ngày' },
-    { value: '3m', label: '90 ngày' },
-    { value: '120d', label: '120 ngày' },
-    { value: '6m', label: '180 ngày' }
+  // Time range options
+  const getTimeRangeOptions = () => [
+    { value: '7d' as TestTimeRange, label: '7 ngày' },
+    { value: '1m' as TestTimeRange, label: '1 tháng' },
+    { value: '3m' as TestTimeRange, label: '3 tháng' },
+    { value: '6m' as TestTimeRange, label: '6 tháng' }
   ];
 
-  const handleTimeRangeChange = (newRange: NewUsersTimeRange) => {
-    setTimeRange(newRange);
-    setShowTimeFilter(false);
+  const getTimeRangeLabel = (range: TestTimeRange) => {
+    const option = getTimeRangeOptions().find(opt => opt.value === range);
+    return option?.label || '7 ngày';
+  };
+
+  const getChartTitle = (range: TestTimeRange) => {
+    switch (range) {
+      case '7d': return 'Lượt thích (7 ngày qua)';
+      case '1m': return 'Lượt thích (1 tháng qua)';
+      case '3m': return 'Lượt thích (3 tháng qua - theo tuần)';
+      case '6m': return 'Lượt thích (6 tháng qua - theo tuần)';
+      default: return 'Lượt thích (7 ngày qua)';
+    }
   };
 
   // Smart label sampling function with responsive considerations
-  const getVisibleLabelIndices = (dataLength: number, timeRange: NewUsersTimeRange) => {
+  const getVisibleLabelIndices = (dataLength: number, timeRange: TestTimeRange) => {
     if (dataLength === 0) return [];
 
     // For 7 days, show all labels (current behavior is fine)
@@ -181,27 +107,137 @@ export default function NewUsersChart({ className = '' }: Props) {
     return Array.from(visibleIndices).sort((a, b) => a - b);
   };
 
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    console.log('🚀 DailyArticleLikesChart: useEffect triggered', { timeRange });
+    loadDailyLikesData();
+  }, [timeRange]);
+
+  const loadDailyLikesData = useCallback(async (forceRefresh = false, retryAttempt = 0) => {
+    const maxRetries = 3;
+    const retryDelay = 1000 * (retryAttempt + 1); // 1s, 2s, 3s
+
+    console.log('🔄 DailyArticleLikesChart: loadDailyLikesData called', {
+      forceRefresh,
+      timeRange,
+      retryAttempt,
+      windowExists: typeof window !== 'undefined'
+    });
+
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // 🚀 Try SSR hydration first for instant display (only for default 7d range)
+      if (!forceRefresh && timeRange === '7d' && typeof window !== 'undefined') {
+        console.log('🔍 DailyArticleLikesChart: Checking for SSR data...', {
+          hasWindow: typeof window !== 'undefined',
+          hasSSRData: !!(window as any).__ADMIN_ARTICLE_LIKES_DATA__,
+          ssrDataType: typeof (window as any).__ADMIN_ARTICLE_LIKES_DATA__
+        });
+
+        const ssrData = (window as any).__ADMIN_ARTICLE_LIKES_DATA__;
+
+        if (ssrData) {
+          console.log('⚡ SSR ARTICLE LIKES HYDRATION: Using pre-loaded data', {
+            totalLikes: ssrData.totalLikes,
+            averagePerDay: ssrData.averagePerDay,
+            dailyDataLength: ssrData.dailyData?.length,
+            timeRange: ssrData.timeRange || 'unknown'
+          });
+          setData(ssrData);
+          setIsLoading(false);
+          console.log('✅ DailyArticleLikesChart: SSR hydration completed successfully');
+          return;
+        } else {
+          console.log('❌ DailyArticleLikesChart: No SSR data found, falling back to client-side');
+        }
+      } else {
+        console.log('🔄 DailyArticleLikesChart: Skipping SSR check', {
+          forceRefresh,
+          timeRange,
+          isDefault7d: timeRange === '7d'
+        });
+      }
+
+      // Fallback to client-side loading
+      console.log('🔄 DailyArticleLikesChart: Loading client-side data for', timeRange);
+      if (forceRefresh) {
+        console.log('🗑️ DailyArticleLikesChart: Clearing cache due to forceRefresh');
+        AdminService.clearDailyArticleLikesStatsCache(timeRange);
+      }
+
+      console.log('📡 DailyArticleLikesChart: Calling AdminService.getDailyArticleLikesStats...');
+      const { data: dailyData, error: dailyError } = await AdminService.getDailyArticleLikesStats(timeRange);
+      
+      console.log('📊 DailyArticleLikesChart: AdminService response received', {
+        hasData: !!dailyData,
+        hasError: !!dailyError,
+        dataType: typeof dailyData,
+        errorType: typeof dailyError
+      });
+
+      if (dailyError) {
+        console.error('❌ DailyArticleLikesChart: Error loading data:', dailyError);
+
+        if (retryAttempt < maxRetries && (
+          dailyError.message?.includes('network') ||
+          dailyError.message?.includes('timeout') ||
+          dailyError.code === 'PGRST301'
+        )) {
+          console.log(`🔄 DailyArticleLikesChart: Retrying in ${retryDelay}ms (attempt ${retryAttempt + 1}/${maxRetries})`);
+          setTimeout(() => {
+            loadDailyLikesData(forceRefresh, retryAttempt + 1);
+          }, retryDelay);
+          return;
+        }
+
+        console.log('💥 DailyArticleLikesChart: Max retries reached or non-retryable error');
+        setError('Không thể tải dữ liệu thống kê lượt thích');
+        return;
+      }
+
+      if (dailyData) {
+        console.log('✅ DailyArticleLikesChart: Client-side data loaded successfully', {
+          totalLikes: dailyData.totalLikes,
+          averagePerDay: dailyData.averagePerDay,
+          dailyDataLength: dailyData.dailyData?.length,
+          currentTimeRange: timeRange
+        });
+        setData(dailyData);
+        console.log('🎯 DailyArticleLikesChart: State updated with client-side data');
+      } else {
+        console.log('⚠️ DailyArticleLikesChart: No data received from AdminService');
+      }
+    } catch (err) {
+      console.error('💥 DailyArticleLikesChart: Exception loading data:', err);
+      setError('Có lỗi xảy ra khi tải dữ liệu');
+    } finally {
+      console.log('🏁 DailyArticleLikesChart: loadDailyLikesData completed, setting isLoading to false');
+      setIsLoading(false);
+    }
+  }, [timeRange]);
+
   // Chart calculations
   const chartData = useMemo(() => {
     if (!data?.dailyData) return [];
-
-    return data.dailyData.map(item => {
-      const date = new Date(item.date);
-      // Create date label (e.g., "T2 15/1", "T3 16/1")
-      const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-      const dayName = dayNames[date.getDay()];
-      const dateLabel = `${dayName} ${date.getDate()}/${date.getMonth() + 1}`;
-
-      return {
-        ...item,
-        dateLabel
-      };
-    });
+    return data.dailyData;
   }, [data]);
 
   const maxValue = useMemo(() => {
     if (!chartData.length) return 10;
-    const max = Math.max(...chartData.map(d => d.total));
+    const max = Math.max(...chartData.map(d => d.likesCount));
     return Math.max(max, 1); // Ensure minimum of 1
   }, [chartData]);
 
@@ -225,20 +261,6 @@ export default function NewUsersChart({ className = '' }: Props) {
     return getVisibleLabelIndices(chartData.length, timeRange);
   }, [chartData.length, timeRange, windowWidth]);
 
-  // Dashboard responsive chart dimensions - optimized for 2-column grid
-  const chartDimensions = useMemo(() => {
-    if (!chartData.length) return { width: 800, height: 260 };
-
-    // Dashboard context: in 2-column grid, so use smaller dimensions
-    const containerWidth = windowWidth > 1280 ? (windowWidth - 400) / 2 - 20 : // XL screens: half width minus gap
-                           windowWidth > 1024 ? (windowWidth - 350) / 2 - 20 : // LG screens: half width minus gap
-                           windowWidth > 768 ? windowWidth - 100 :  // MD screens: full width
-                           windowWidth - 60; // SM screens: full width
-
-    const width = Math.max(400, Math.min(containerWidth, 800)); // Cap at 800px for dashboard
-    return { width, height: 260 };
-  }, [chartData.length, timeRange, windowWidth]);
-
   // SVG Line Chart Component
   const LineChart = useCallback(() => {
     if (!chartData.length) {
@@ -246,25 +268,31 @@ export default function NewUsersChart({ className = '' }: Props) {
         <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 flex items-center justify-center h-60 lg:h-72 xl:h-80 2xl:h-96">
           <div className="text-center">
             <svg className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Chưa có dữ liệu người dùng</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Chưa có dữ liệu lượt thích</p>
           </div>
         </div>
       );
     }
 
-    // Use responsive viewBox dimensions with reasonable limits for font rendering
-    const { width, height } = chartDimensions;
-    const viewBoxWidth = Math.min(width, 1000); // Cap at 1000px to prevent excessive scaling
+    // Dashboard responsive chart dimensions - optimized for 2-column grid
+    const containerWidth = windowWidth > 1280 ? (windowWidth - 400) / 2 - 20 : // XL screens: half width minus gap
+                           windowWidth > 1024 ? (windowWidth - 350) / 2 - 20 : // LG screens: half width minus gap
+                           windowWidth > 768 ? windowWidth - 100 :  // MD screens: full width
+                           windowWidth - 60; // SM screens: full width
+
+    const width = Math.max(400, Math.min(containerWidth, 800)); // Cap at 800px for dashboard
+    const baseHeight = 260;
+    const height = baseHeight;
     const padding = 45;
-    const chartWidth = viewBoxWidth - (padding * 2);
+    const chartWidth = width - (padding * 2);
     const chartHeight = height - (padding * 2);
 
     // Calculate points for the line
     const points = chartData.map((d, i) => {
       const x = padding + (i * (chartWidth / (chartData.length - 1)));
-      const y = padding + chartHeight - ((d.total / maxValue) * chartHeight);
+      const y = padding + chartHeight - ((d.likesCount / maxValue) * chartHeight);
       return { x, y, data: d };
     });
 
@@ -282,13 +310,13 @@ export default function NewUsersChart({ className = '' }: Props) {
         <svg
           width="100%"
           height="260"
-          viewBox={`0 0 ${Math.min(chartDimensions.width, 1000)} ${height}`}
+          viewBox={`0 0 ${width} ${height}`}
           className="overflow-visible h-60 lg:h-72 xl:h-80 2xl:h-96 w-full"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Background */}
           <rect width="100%" height="100%" fill="transparent" />
-
+          
           {/* Grid lines */}
           {[0, 1, 2, 3, 4].map(i => {
             const y = padding + (chartHeight / 4) * i;
@@ -297,7 +325,7 @@ export default function NewUsersChart({ className = '' }: Props) {
                 key={`grid-${i}`}
                 x1={padding}
                 y1={y}
-                x2={viewBoxWidth - padding}
+                x2={width - padding}
                 y2={y}
                 stroke="currentColor"
                 strokeWidth="1"
@@ -306,33 +334,33 @@ export default function NewUsersChart({ className = '' }: Props) {
               />
             );
           })}
-
+          
           {/* Area under the line */}
           <path
             d={areaPath}
-            fill="url(#gradient)"
+            fill="url(#likesGradient)"
             opacity="0.3"
           />
-
+          
           {/* Gradient definition */}
           <defs>
-            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.1" />
+            <linearGradient id="likesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#EC4899" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#EC4899" stopOpacity="0.1" />
             </linearGradient>
           </defs>
-
+          
           {/* Main line */}
           <path
             d={pathData}
             fill="none"
-            stroke="#8B5CF6"
+            stroke="#EC4899"
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
             className="drop-shadow-sm"
           />
-
+          
           {/* Data points */}
           {points.map((point, i) => (
             <g key={i}>
@@ -341,74 +369,52 @@ export default function NewUsersChart({ className = '' }: Props) {
                 cx={point.x}
                 cy={point.y}
                 r={hoveredPoint === i ? "6" : "4"}
-                fill="#8B5CF6"
+                fill="#EC4899"
                 stroke="white"
                 strokeWidth="2"
                 className="cursor-pointer transition-all duration-200 drop-shadow-sm"
                 onMouseEnter={() => setHoveredPoint(i)}
                 onMouseLeave={() => setHoveredPoint(null)}
               />
-
-              {/* Tooltip on hover */}
+              
+              {/* Value label on hover */}
               {hoveredPoint === i && (
                 <g>
                   {/* Tooltip background */}
                   <rect
-                    x={point.x - 40}
-                    y={point.y - 70}
-                    width="80"
-                    height="60"
+                    x={point.x - 30}
+                    y={point.y - 40}
+                    width="60"
+                    height="30"
                     fill="rgba(0, 0, 0, 0.9)"
                     rx="6"
                     className="animate-in fade-in duration-200 drop-shadow-lg"
                   />
-                  {/* Tooltip text - total */}
+                  {/* Tooltip text - count */}
                   <text
                     x={point.x}
-                    y={point.y - 50}
+                    y={point.y - 28}
                     textAnchor="middle"
                     fontSize="12"
                     fill="white"
                     className="font-bold animate-in fade-in duration-200"
                   >
-                    Tổng: {point.data.total}
-                  </text>
-                  {/* Tooltip text - registered */}
-                  <text
-                    x={point.x}
-                    y={point.y - 35}
-                    textAnchor="middle"
-                    fontSize="11"
-                    fill="rgba(255, 255, 255, 0.8)"
-                    className="animate-in fade-in duration-200"
-                  >
-                    Đã ĐK: {point.data.registeredUsers}
-                  </text>
-                  {/* Tooltip text - anonymous */}
-                  <text
-                    x={point.x}
-                    y={point.y - 22}
-                    textAnchor="middle"
-                    fontSize="11"
-                    fill="rgba(255, 255, 255, 0.8)"
-                    className="animate-in fade-in duration-200"
-                  >
-                    Chưa ĐK: {point.data.anonymousUsers}
+                    {point.data.likesCount}
                   </text>
                   {/* Tooltip text - date */}
                   <text
                     x={point.x}
-                    y={point.y - 10}
+                    y={point.y - 16}
                     textAnchor="middle"
                     fontSize="9"
-                    fill="rgba(255, 255, 255, 0.6)"
+                    fill="rgba(255, 255, 255, 0.8)"
                     className="animate-in fade-in duration-200"
                   >
                     {point.data.dateLabel}
                   </text>
                 </g>
               )}
-
+              
               {/* Date label - Smart sampling for readability */}
               {visibleLabelIndices.includes(i) && (
                 <text
@@ -425,7 +431,7 @@ export default function NewUsersChart({ className = '' }: Props) {
               )}
             </g>
           ))}
-
+          
           {/* Y-axis labels */}
           {[0, 1, 2, 3, 4].map(i => {
             const value = Math.round((maxValue / 4) * (4 - i));
@@ -447,7 +453,7 @@ export default function NewUsersChart({ className = '' }: Props) {
         </svg>
       </div>
     );
-  }, [chartData, maxValue, hoveredPoint, chartDimensions, visibleLabelIndices]);
+  }, [chartData, maxValue, hoveredPoint]);
 
   // Simple loading skeleton
   if (isLoading) {
@@ -461,8 +467,8 @@ export default function NewUsersChart({ className = '' }: Props) {
           <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
         </div>
         <div className="h-60 lg:h-72 xl:h-80 2xl:h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          {[1, 2, 3, 4].map(i => (
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {[1, 2].map(i => (
             <div key={i} className="text-center p-2 sm:p-3">
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 mx-auto mb-2 animate-pulse"></div>
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto animate-pulse"></div>
@@ -485,7 +491,7 @@ export default function NewUsersChart({ className = '' }: Props) {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Lỗi tải dữ liệu</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
           <button
-            onClick={() => loadNewUsersData(true)}
+            onClick={() => loadDailyLikesData(true)}
             className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
           >
             Thử lại
@@ -498,35 +504,37 @@ export default function NewUsersChart({ className = '' }: Props) {
   return (
     <div className={`w-full ${className}`}>
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-purple-50/50 via-indigo-50/30 to-blue-50/50 dark:from-purple-950/20 dark:via-indigo-950/10 dark:to-blue-950/20 rounded-t-lg p-4 border border-purple-100 dark:border-purple-800/30 border-b-0">
+      <div className="bg-gradient-to-r from-pink-50/50 via-rose-50/30 to-red-50/50 dark:from-pink-950/20 dark:via-rose-950/10 dark:to-red-950/20 rounded-t-lg p-4 border border-pink-100 dark:border-pink-800/30 border-b-0 w-full">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {/* Icon */}
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg flex items-center justify-center shadow-sm">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </div>
 
             {/* Title and Description */}
             <div className="flex-1">
               <h3
-                id="new-users-chart-title"
+                id="daily-likes-chart-title"
                 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1"
               >
-                Người dùng mới ({getTimeRangeLabel(timeRange)})
+                {getChartTitle(timeRange)}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Thống kê số lượng người dùng mới theo ngày
+                {timeRange === '3m' || timeRange === '6m'
+                  ? 'Thống kê số lượt thích bài viết theo tuần'
+                  : 'Thống kê số lượt thích bài viết theo ngày'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
           {/* Time Range Filter */}
-          <div className="relative" data-time-filter>
+          <div className="relative" ref={dropdownRef}>
             <button
-              onClick={() => setShowTimeFilter(!showTimeFilter)}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               disabled={isLoading}
               className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
               title="Chọn khoảng thời gian"
@@ -534,30 +542,32 @@ export default function NewUsersChart({ className = '' }: Props) {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span className="hidden sm:inline">{getTimeRangeOptions().find(opt => opt.value === timeRange)?.label}</span>
-              <svg className={`w-3 h-3 transition-transform duration-200 ${showTimeFilter ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="hidden sm:inline">{getTimeRangeLabel(timeRange)}</span>
+              <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
-            {/* Time Filter Dropdown */}
             <AnimatePresence>
-              {showTimeFilter && (
+              {isDropdownOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
+                  className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
                 >
                   {getTimeRangeOptions().map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => handleTimeRangeChange(option.value)}
-                      className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
+                      onClick={() => {
+                        setTimeRange(option.value);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/30 first:rounded-t-lg last:rounded-b-lg ${
                         timeRange === option.value
-                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                          : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
                       {option.label}
@@ -568,9 +578,8 @@ export default function NewUsersChart({ className = '' }: Props) {
             </AnimatePresence>
           </div>
 
-          {/* Refresh Button */}
           <button
-            onClick={() => loadNewUsersData(true)}
+            onClick={() => loadDailyLikesData(true)}
             disabled={isLoading}
             className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             title="Làm mới dữ liệu"
@@ -585,81 +594,57 @@ export default function NewUsersChart({ className = '' }: Props) {
       </div>
 
       {/* Content Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-purple-100 dark:border-purple-800/30 border-t-0 p-4 w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-b-lg border border-pink-100 dark:border-pink-800/30 border-t-0 p-4 w-full">
         {/* Chart */}
         <div
           className="mb-4 w-full"
           role="img"
-          aria-labelledby="new-users-chart-title"
-          aria-describedby="new-users-chart-description"
+          aria-labelledby="daily-likes-chart-title"
+          aria-describedby="daily-likes-chart-description"
         >
-        <div id="new-users-chart-description" className="sr-only">
-          Biểu đồ đường thể hiện số lượng người dùng mới trong 7 ngày gần nhất.
-          Tổng cộng có {data?.totalNewUsers || 0} người dùng mới.
+        <div id="daily-likes-chart-description" className="sr-only">
+          Biểu đồ đường thể hiện số lượt thích bài viết trong {getTimeRangeLabel(timeRange)} gần nhất.
+          Tổng cộng có {data?.totalLikes || 0} lượt thích được ghi nhận.
         </div>
         <LineChart />
       </div>
 
       {/* Summary Stats */}
       <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
+        className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
         role="region"
-        aria-label="Tóm tắt thống kê người dùng mới"
+        aria-label="Tóm tắt thống kê lượt thích"
       >
         <div
-          className="text-center p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20"
+          className="text-center p-2 sm:p-3 rounded-lg bg-pink-50 dark:bg-pink-900/20"
           role="group"
-          aria-label={`Tổng số người dùng mới: ${data?.totalNewUsers || 0}`}
+          aria-label={`Tổng số lượt thích: ${data?.totalLikes || 0}`}
         >
           <div
-            className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400"
-            aria-label={`${data?.totalNewUsers || 0} người dùng mới tổng cộng`}
+            className="text-lg sm:text-2xl font-bold text-pink-600 dark:text-pink-400"
+            aria-label={`${data?.totalLikes || 0} lượt thích tổng cộng`}
           >
-            {data?.totalNewUsers || 0}
+            {data?.totalLikes || 0}
           </div>
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Tổng mới</div>
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Tổng thích</div>
         </div>
         <div
-          className="text-center p-2 sm:p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20"
+          className="text-center p-2 sm:p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20"
           role="group"
-          aria-label={`Trung bình mỗi ngày: ${Math.round((data?.totalNewUsers || 0) / 7)}`}
+          aria-label={`Trung bình mỗi ngày: ${data?.averagePerDay || 0}`}
         >
           <div
-            className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400"
-            aria-label={`${Math.round((data?.totalNewUsers || 0) / 7)} người dùng trung bình mỗi ngày`}
+            className="text-lg sm:text-2xl font-bold text-rose-600 dark:text-rose-400"
+            aria-label={`${data?.averagePerDay || 0} lượt thích trung bình mỗi ngày`}
           >
-            {Math.round((data?.totalNewUsers || 0) / 7)}
+            {data?.averagePerDay || 0}
           </div>
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">TB/ngày</div>
-        </div>
-        <div
-          className="text-center p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20"
-          role="group"
-          aria-label={`Số người dùng đăng ký: ${data?.dailyData?.reduce((sum, day) => sum + day.registeredUsers, 0) || 0}`}
-        >
-          <div
-            className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400"
-            aria-label={`${data?.dailyData?.reduce((sum, day) => sum + day.registeredUsers, 0) || 0} người dùng đăng ký`}
-          >
-            {data?.dailyData?.reduce((sum, day) => sum + day.registeredUsers, 0) || 0}
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            {timeRange === '3m' || timeRange === '6m' ? 'TB/tuần' : 'TB/ngày'}
           </div>
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Đăng ký</div>
-        </div>
-        <div
-          className="text-center p-2 sm:p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20"
-          role="group"
-          aria-label={`Số người dùng chưa đăng ký: ${data?.dailyData?.reduce((sum, day) => sum + day.anonymousUsers, 0) || 0}`}
-        >
-          <div
-            className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400"
-            aria-label={`${data?.dailyData?.reduce((sum, day) => sum + day.anonymousUsers, 0) || 0} người dùng chưa đăng ký`}
-          >
-            {data?.dailyData?.reduce((sum, day) => sum + day.anonymousUsers, 0) || 0}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Chưa đăng ký</div>
         </div>
         </div>
       </div>
     </div>
   );
-};
+}

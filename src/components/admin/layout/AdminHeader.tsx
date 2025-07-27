@@ -12,6 +12,7 @@ interface AdminInfo {
   email: string;
   fullName: string;
   role: string;
+  avatarUrl?: string;
   isLoading: boolean;
 }
 
@@ -24,6 +25,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
     email: '',
     fullName: '',
     role: 'admin',
+    avatarUrl: undefined,
     isLoading: true
   });
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -51,6 +53,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             email: fallbackEmail,
             fullName: fallbackEmail.split('@')[0],
             role: 'admin',
+            avatarUrl: undefined,
             isLoading: false
           });
           return;
@@ -68,6 +71,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             email: user.email || 'admin@example.com',
             fullName: user.email?.split('@')[0] || 'Admin',
             role: 'admin',
+            avatarUrl: undefined,
             isLoading: false
           });
           return;
@@ -80,6 +84,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
           email: user.email || profile.email || 'admin@example.com',
           fullName: profile.full_name || user.email?.split('@')[0] || 'Admin',
           role: profile.role || 'admin',
+          avatarUrl: profile.avatar_url || undefined,
           isLoading: false
         });
 
@@ -91,6 +96,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
           email: fallbackEmail,
           fullName: fallbackEmail.split('@')[0],
           role: 'admin',
+          avatarUrl: undefined,
           isLoading: false
         });
       }
@@ -237,15 +243,23 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center space-x-2 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
           >
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              {adminInfo.isLoading ? (
+            {adminInfo.isLoading ? (
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
+              </div>
+            ) : adminInfo.avatarUrl ? (
+              <img
+                src={adminInfo.avatarUrl}
+                alt={adminInfo.fullName || adminInfo.email}
+                className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {adminInfo.fullName.charAt(0).toUpperCase() || adminInfo.email.charAt(0).toUpperCase()}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
             <span className="hidden md:block font-medium truncate max-w-32">
               {adminInfo.isLoading ? 'Đang tải...' : (adminInfo.fullName || adminInfo.email.split('@')[0])}
             </span>
