@@ -1,9 +1,79 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import AdminResults from '@/components/admin/results/AdminResults.tsx';
+
+// 🚀 SSR: Pre-fetch initial data for instant load
+let initialData = null;
+let initialStats = null;
+
+try {
+  console.log('🔄 SSR: Fetching initial results data...');
+
+  // Import backend service
+  const { ResultsService } = await import('../../../backend');
+
+  // Parse URL params for correct page and filters
+  const url = new URL(Astro.request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
+  const search = url.searchParams.get('search') || '';
+  const user_type = url.searchParams.get('user_type') || 'all';
+  const score_min = url.searchParams.get('score_min') ? parseInt(url.searchParams.get('score_min')!) : undefined;
+  const score_max = url.searchParams.get('score_max') ? parseInt(url.searchParams.get('score_max')!) : undefined;
+  const date_from = url.searchParams.get('date_from') || undefined;
+  const date_to = url.searchParams.get('date_to') || undefined;
+
+  const filters = {
+    search,
+    user_type: user_type as 'all' | 'registered' | 'anonymous',
+    score_min,
+    score_max,
+    date_from,
+    date_to,
+    test_type: 'iq'
+  };
+
+  console.log('🔄 SSR: Fetching page', page, 'with filters:', filters);
+
+  // Parallel fetch for instant display
+  const [resultsResult, statsResult] = await Promise.all([
+    ResultsService.getResults(page, 10, filters),
+    ResultsService.getStats()
+  ]);
+
+  if (!resultsResult.error && resultsResult.data) {
+    initialData = resultsResult.data;
+    console.log(`✅ SSR: Loaded ${resultsResult.data.results.length} results`);
+  } else {
+    console.error('❌ SSR: Error loading results:', resultsResult.error);
+  }
+
+  if (!statsResult.error && statsResult.data) {
+    initialStats = statsResult.data;
+    console.log('✅ SSR: Loaded results stats');
+  } else {
+    console.error('❌ SSR: Error loading stats:', statsResult.error);
+  }
+
+} catch (error) {
+  console.error('❌ SSR: Error fetching initial data:', error);
+  // Continue without initial data - will fallback to client-side loading
+}
 ---
 
 <AdminLayout title="Quản lý kết quả test">
+  <!-- 🚀 SSR: Inject initial data for instant hydration -->
+  <script define:vars={{ initialData, initialStats }}>
+    // Make data available globally for React component
+    window.__RESULTS_INITIAL_DATA__ = initialData;
+    window.__RESULTS_INITIAL_STATS__ = initialStats;
+
+    if (initialData) {
+      console.log('✅ SSR: Initial data injected, results count:', initialData.results.length);
+    } else {
+      console.log('⚠️ SSR: No initial data, will use client-side loading');
+    }
+  </script>
+
   <AdminResults client:load />
 </AdminLayout>
 

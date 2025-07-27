@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ResultsService } from '../../../../backend';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 import type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from '../../../../backend';
@@ -10,6 +9,7 @@ import { useResultsData } from './hooks/useResultsData';
 export default function AdminResults() {
   const [resultsData, setResultsData] = useState<ResultsListResponse | null>(null);
   const [stats, setStats] = useState<ResultsStats | null>(null);
+  const [estimatedStats, setEstimatedStats] = useState<ResultsStats | null>(null);
   const [scoreDistribution, setScoreDistribution] = useState<Array<{ range: string; count: number }> | null>(null);
   const [isLoading, setIsLoading] = useState(false); // Start with false for instant display
   const [error, setError] = useState<string>('');
@@ -132,24 +132,86 @@ export default function AdminResults() {
     }
   }, []);
 
-  // Instant hydration + non-blocking loading
+  // Generate estimated stats from results data for instant display
   useEffect(() => {
-    // Check for pre-loaded data (SSR-style)
-    if (typeof window !== 'undefined' && (window as any).__RESULTS_INITIAL_DATA__) {
-      const initialData = (window as any).__RESULTS_INITIAL_DATA__;
-      console.log('⚡ SSR RESULTS HYDRATION: Using pre-loaded data', initialData);
-      setResultsData(initialData);
-      delete (window as any).__RESULTS_INITIAL_DATA__;
-    } else {
-      // Priority 1: Load results immediately
-      fetchResults(1);
+    if (resultsData && resultsData.results.length > 0) {
+      const results = resultsData.results;
+      const avgScore = Math.round(results.reduce((sum, r) => sum + r.score, 0) / results.length);
+      const today = new Date().toISOString().split('T')[0];
+      const testsToday = results.filter(r => r.tested_at.startsWith(today)).length;
+
+      // Generate estimated stats for instant display
+      const estimated: ResultsStats = {
+        totalTests: resultsData.total, // Exact from pagination
+        averageScore: avgScore, // Estimated from current page
+        totalParticipants: Math.round(resultsData.total * 0.8), // Estimated
+        testsToday: testsToday, // Estimated from current page
+        highestScore: Math.max(...results.map(r => r.score)),
+        geniusCount: results.filter(r => r.score >= 140).length,
+        averageDuration: Math.round(results.reduce((sum, r) => sum + (r.duration_seconds || 0), 0) / results.length),
+        topCountries: []
+      };
+
+      console.log('⚡ INSTANT STATS: Generated from results data', estimated);
+      setEstimatedStats(estimated);
+    }
+  }, [resultsData]);
+
+  // SSR hydration + instant loading with performance tracking
+  useEffect(() => {
+    const startTime = performance.now();
+    let dataLoaded = false;
+    let statsLoaded = false;
+
+    // Check for pre-loaded data (SSR)
+    if (typeof window !== 'undefined') {
+      if ((window as any).__RESULTS_INITIAL_DATA__) {
+        const initialData = (window as any).__RESULTS_INITIAL_DATA__;
+        const hydrationTime = performance.now() - startTime;
+        console.log('⚡ SSR RESULTS HYDRATION: Using pre-loaded data', {
+          page: initialData?.page,
+          resultsCount: initialData?.results?.length,
+          totalPages: initialData?.totalPages,
+          hydrationTime: `${hydrationTime.toFixed(2)}ms`
+        });
+        setResultsData(initialData);
+        delete (window as any).__RESULTS_INITIAL_DATA__;
+        dataLoaded = true;
+      }
+
+      if ((window as any).__RESULTS_INITIAL_STATS__) {
+        const initialStats = (window as any).__RESULTS_INITIAL_STATS__;
+        const statsTime = performance.now() - startTime;
+        console.log('⚡ SSR STATS HYDRATION: Using pre-loaded stats', {
+          hydrationTime: `${statsTime.toFixed(2)}ms`
+        });
+        setStats(initialStats);
+        delete (window as any).__RESULTS_INITIAL_STATS__;
+        statsLoaded = true;
+      }
     }
 
-    // Priority 2: Load stats in background (non-blocking)
-    fetchStats();
+    // Fallback to client-side loading if no SSR data
+    if (!dataLoaded) {
+      const fallbackStart = performance.now();
+      console.log('🌐 CLIENT FALLBACK: Loading results data');
+      fetchResults(1).then(() => {
+        const fallbackTime = performance.now() - fallbackStart;
+        console.log(`📊 CLIENT LOAD TIME: ${fallbackTime.toFixed(2)}ms`);
+      });
+    }
 
-    // Priority 3: Load score distribution in background (non-blocking)
+    if (!statsLoaded) {
+      console.log('🌐 CLIENT FALLBACK: Loading stats data');
+      fetchStats();
+    }
+
+    // Always load score distribution (not critical)
     fetchScoreDistribution();
+
+    // Performance summary
+    const totalTime = performance.now() - startTime;
+    console.log(`🎯 TOTAL LOAD TIME: ${totalTime.toFixed(2)}ms (SSR: ${dataLoaded}, Stats: ${statsLoaded})`);
   }, [filters]);
 
   // Handle page change - INSTANT with cache check
@@ -345,52 +407,57 @@ export default function AdminResults() {
         </div>
       )}
 
-      {/* Stats Cards - Progressive Loading */}
+      {/* Stats Cards - Instant Display */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {stats ? (
-          [
-            { 
-              title: 'Tổng số test', 
-              value: stats.totalTests.toLocaleString(), 
+        {(stats || estimatedStats) ? (() => {
+          const currentStats = stats || estimatedStats!;
+          const isEstimated = !stats && estimatedStats;
+
+          return [
+            {
+              title: 'Tổng số test',
+              value: currentStats.totalTests.toLocaleString(),
               icon: '📊',
               color: 'from-blue-500 to-blue-600'
             },
-            { 
-              title: 'Điểm trung bình', 
-              value: stats.averageScore.toString(), 
+            {
+              title: 'Điểm trung bình',
+              value: currentStats.averageScore.toString(),
               icon: '🎯',
               color: 'from-green-500 to-green-600'
             },
-            { 
-              title: 'Người tham gia', 
-              value: stats.totalParticipants.toLocaleString(), 
+            {
+              title: 'Người tham gia',
+              value: currentStats.totalParticipants.toLocaleString(),
               icon: '👥',
               color: 'from-purple-500 to-purple-600'
             },
-            { 
-              title: 'Test hôm nay', 
-              value: stats.testsToday.toString(), 
+            {
+              title: 'Test hôm nay',
+              value: currentStats.testsToday.toString(),
               icon: '📅',
               color: 'from-orange-500 to-orange-600'
             }
-          ].map((stat, index) => (
-            <motion.div
+          ].map((stat) => (
+            <div
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg"
+              className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow ${
+                isEstimated ? 'opacity-90' : 'opacity-100'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.title}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {stat.title}
+                    {isEstimated && <span className="ml-1 text-xs text-blue-500">~</span>}
+                  </p>
                   <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
                 </div>
                 <div className="text-3xl">{stat.icon}</div>
               </div>
-            </motion.div>
-          ))
-        ) : (
+            </div>
+          ));
+        })() : (
           // Skeleton stats cards
           <>
             <SkeletonStatsCard />
@@ -595,6 +662,7 @@ export default function AdminResults() {
 
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              {/* Table body with fixed min-height to prevent layout shift */}
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left">
@@ -628,7 +696,7 @@ export default function AdminResults() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" style={{ minHeight: '600px' }}>
                 {/* Real results */}
                 {resultsData?.results.map((result) => (
                   <tr key={result.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -761,31 +829,12 @@ export default function AdminResults() {
                   </tr>
                 ))}
 
-                {/* Skeleton rows while loading */}
-                {isLoading && (
-                  <>
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                    <SkeletonTableRow />
-                  </>
-                )}
+                {/* Skeleton rows - Match limit to prevent layout shift */}
+                {(!resultsData || resultsData.results.length === 0) &&
+                  Array.from({ length: limit }, (_, i) => (
+                    <SkeletonTableRow key={`skeleton-${i}`} />
+                  ))
+                }
               </tbody>
             </table>
 
@@ -954,11 +1003,9 @@ export default function AdminResults() {
                     <div className="w-16 text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">{item.range}</div>
                     <div className="flex-1 mx-3">
                       <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-3 relative overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(item.count / Math.max(...scoreDistribution.map(s => s.count))) * 100}%` }}
-                          transition={{ delay: index * 0.1, duration: 0.8 }}
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full"
+                        <div
+                          style={{ width: `${(item.count / Math.max(...scoreDistribution.map(s => s.count))) * 100}%` }}
+                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-300"
                         />
                       </div>
                     </div>
