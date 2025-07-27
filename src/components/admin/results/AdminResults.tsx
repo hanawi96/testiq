@@ -4,6 +4,7 @@ import { ResultsService } from '../../../../backend';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 import type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from '../../../../backend';
 import ResultsTestChart from './ResultsTestChart';
+import DateRangeFilter from './DateRangeFilter';
 
 export default function AdminResults() {
   const [resultsData, setResultsData] = useState<ResultsListResponse | null>(null);
@@ -159,8 +160,25 @@ export default function AdminResults() {
     fetchResults(1, newLimit);
   };
 
-  // Handle filter change
+  // Handle filter change with date validation
   const handleFilterChange = (newFilters: Partial<ResultsFilters>) => {
+    // Smart date validation
+    if (newFilters.date_from || newFilters.date_to) {
+      const updatedFilters = { ...filters, ...newFilters };
+
+      // If both dates exist, ensure from <= to
+      if (updatedFilters.date_from && updatedFilters.date_to) {
+        if (updatedFilters.date_from > updatedFilters.date_to) {
+          // Auto-fix: swap dates
+          newFilters = {
+            ...newFilters,
+            date_from: updatedFilters.date_to,
+            date_to: updatedFilters.date_from
+          };
+        }
+      }
+    }
+
     setFilters(prev => ({ ...prev, ...newFilters }));
     setCurrentPage(1);
   };
@@ -366,61 +384,101 @@ export default function AdminResults() {
       {/* Results Test Chart */}
       <ResultsTestChart className="mb-6" defaultTimeRange="1m" />
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Bộ lọc</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tìm kiếm</label>
-            <input
-              type="text"
-              value={filters.search || ''}
-              onChange={(e) => handleFilterChange({ search: e.target.value })}
-              placeholder="Tên, email, quốc gia..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
+      {/* Compact Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
+          {/* Left Side - Title & Active Filters Summary */}
+          <div className="flex items-center space-x-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Bộ lọc</h3>
+
+            {/* Active Filters Count */}
+            {(() => {
+              const activeFilters = [
+                filters.search,
+                filters.user_type && filters.user_type !== 'all',
+                filters.date_from || filters.date_to,
+                filters.score_min,
+                filters.score_max
+              ].filter(Boolean).length;
+
+              return activeFilters > 0 ? (
+                <div className="flex items-center space-x-2">
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
+                    {activeFilters} bộ lọc đang áp dụng
+                  </span>
+                  <button
+                    onClick={() => {
+                      setFilters({ test_type: 'iq' }); // Keep test_type
+                      setCurrentPage(1);
+                    }}
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                  >
+                    Xóa tất cả
+                  </button>
+                </div>
+              ) : (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Hiển thị tất cả kết quả
+                </span>
+              );
+            })()}
           </div>
 
-          {/* User Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại user</label>
+          {/* Right Side - Filter Controls */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search - Priority 1 */}
+            <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+              <input
+                type="text"
+                value={filters.search || ''}
+                onChange={(e) => handleFilterChange({ search: e.target.value })}
+                placeholder="Tìm kiếm tên, email, quốc gia..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Date Range Filter - Priority 2 */}
+            <DateRangeFilter
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
+
+            {/* User Type - Priority 3 */}
             <select
               value={filters.user_type || 'all'}
               onChange={(e) => handleFilterChange({ user_type: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">Tất cả</option>
+              <option value="all">Tất cả user</option>
               <option value="registered">Đã đăng ký</option>
               <option value="anonymous">Ẩn danh</option>
             </select>
-          </div>
 
-          {/* Score Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Điểm tối thiểu</label>
-            <input
-              type="number"
-              value={filters.score_min || ''}
-              onChange={(e) => handleFilterChange({ score_min: e.target.value ? parseInt(e.target.value) : undefined })}
-              placeholder="70"
-              min="0"
-              max="200"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Điểm tối đa</label>
-            <input
-              type="number"
-              value={filters.score_max || ''}
-              onChange={(e) => handleFilterChange({ score_max: e.target.value ? parseInt(e.target.value) : undefined })}
-              placeholder="200"
-              min="0"
-              max="200"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
+            {/* Score Range - Priority 4 */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="number"
+                value={filters.score_min || ''}
+                onChange={(e) => handleFilterChange({ score_min: e.target.value ? parseInt(e.target.value) : undefined })}
+                placeholder="Min"
+                min="0"
+                max="200"
+                className="w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              <span className="text-gray-400 text-sm">-</span>
+              <input
+                type="number"
+                value={filters.score_max || ''}
+                onChange={(e) => handleFilterChange({ score_max: e.target.value ? parseInt(e.target.value) : undefined })}
+                placeholder="Max"
+                min="0"
+                max="200"
+                className="w-20 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -456,9 +514,23 @@ export default function AdminResults() {
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   Kết quả test
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                  Phân tích {resultsData ? resultsData.total.toLocaleString() : '0'} kết quả test IQ
-                </p>
+                <div className="flex items-center space-x-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Phân tích {resultsData ? resultsData.total.toLocaleString() : '0'} kết quả test IQ
+                  </p>
+                  {(filters.date_from || filters.date_to) && (
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
+                      {filters.date_from && filters.date_to
+                        ? filters.date_from === filters.date_to
+                          ? new Date(filters.date_from).toLocaleDateString('vi-VN')
+                          : `${new Date(filters.date_from).toLocaleDateString('vi-VN')} - ${new Date(filters.date_to).toLocaleDateString('vi-VN')}`
+                        : filters.date_from
+                        ? `Từ ${new Date(filters.date_from).toLocaleDateString('vi-VN')}`
+                        : `Đến ${new Date(filters.date_to!).toLocaleDateString('vi-VN')}`
+                      }
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
