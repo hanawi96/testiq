@@ -34,8 +34,9 @@ export interface UsersListResponse {
 export interface UsersFilters {
   role?: 'user' | 'admin' | 'mod' | 'editor' | 'author' | 'reviewer' | 'all' | 'anonymous';
   search?: string;
-  verified?: boolean;
-  user_type?: 'registered' | 'anonymous';
+  user_status?: 'registered_verified' | 'registered_unverified' | 'anonymous' | 'all';
+  gender?: 'male' | 'female' | 'other' | 'unknown';
+  sort?: 'age_asc' | 'age_desc' | 'created_asc' | 'created_desc';
 }
 
 export interface CreateUserData {
@@ -211,18 +212,53 @@ export class UsersService {
         }
       }
 
-      // Apply verified filter nếu có  
-      if (filters.verified !== undefined) {
-        allUsers = allUsers.filter(user => user.is_verified === filters.verified);
+      // Apply user status filter (combines user_type and verified)
+      if (filters.user_status && filters.user_status !== 'all') {
+        switch (filters.user_status) {
+          case 'registered_verified':
+            allUsers = allUsers.filter(user => user.user_type === 'registered' && user.is_verified === true);
+            break;
+          case 'registered_unverified':
+            allUsers = allUsers.filter(user => user.user_type === 'registered' && user.is_verified === false);
+            break;
+          case 'anonymous':
+            allUsers = allUsers.filter(user => user.user_type === 'anonymous');
+            break;
+        }
       }
 
-      // Apply user type filter nếu có
-      if (filters.user_type) {
-        allUsers = allUsers.filter(user => user.user_type === filters.user_type);
+      // Apply gender filter nếu có
+      if (filters.gender) {
+        if (filters.gender === 'unknown') {
+          // Filter for users with no gender, 'other', or null/undefined
+          allUsers = allUsers.filter(user => !user.gender || user.gender === 'other');
+        } else {
+          allUsers = allUsers.filter(user => user.gender === filters.gender);
+        }
       }
 
-      // Sort by created_at desc
-      allUsers.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      // Apply sorting
+      if (filters.sort) {
+        switch (filters.sort) {
+          case 'age_asc':
+            allUsers.sort((a, b) => (a.age || 0) - (b.age || 0));
+            break;
+          case 'age_desc':
+            allUsers.sort((a, b) => (b.age || 0) - (a.age || 0));
+            break;
+          case 'created_asc':
+            allUsers.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            break;
+          case 'created_desc':
+            allUsers.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            break;
+          default:
+            allUsers.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        }
+      } else {
+        // Default sort by created_at desc
+        allUsers.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
 
       // Apply pagination
       const total = allUsers.length;

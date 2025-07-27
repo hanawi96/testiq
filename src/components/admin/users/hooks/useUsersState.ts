@@ -16,8 +16,9 @@ export const useUsersState = () => {
   const [filters, setFilters] = useState<UsersFilters>({
     role: 'all',
     search: '',
-    verified: undefined,
-    user_type: undefined
+    user_status: 'all',
+    gender: undefined,
+    sort: undefined
   });
 
   // Computed current page from URL with validation

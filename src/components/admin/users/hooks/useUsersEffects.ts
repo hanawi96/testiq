@@ -42,8 +42,9 @@ export const useUsersEffects = ({
     if (page > 1) params.set('page', page.toString());
     if (newFilters.role !== 'all') params.set('role', newFilters.role);
     if (newFilters.search) params.set('search', newFilters.search);
-    if (newFilters.verified !== undefined) params.set('verified', newFilters.verified.toString());
-    if (newFilters.user_type) params.set('user_type', newFilters.user_type);
+    if (newFilters.user_status && newFilters.user_status !== 'all') params.set('user_status', newFilters.user_status);
+    if (newFilters.gender) params.set('gender', newFilters.gender);
+    if (newFilters.sort) params.set('sort', newFilters.sort);
 
     const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
 
@@ -61,14 +62,16 @@ export const useUsersEffects = ({
     const params = new URLSearchParams(window.location.search);
     const urlRole = params.get('role') || 'all';
     const urlSearch = params.get('search') || '';
-    const urlVerified = params.get('verified') ? params.get('verified') === 'true' : undefined;
-    const urlUserType = params.get('user_type') || undefined;
+    const urlUserStatus = params.get('user_status') || 'all';
+    const urlGender = params.get('gender') || undefined;
+    const urlSort = params.get('sort') || undefined;
 
     const urlFilters = {
       role: urlRole as UsersFilters['role'],
       search: urlSearch,
-      verified: urlVerified,
-      user_type: urlUserType as UsersFilters['user_type']
+      user_status: urlUserStatus as UsersFilters['user_status'],
+      gender: urlGender as UsersFilters['gender'],
+      sort: urlSort as UsersFilters['sort']
     };
 
     setFilters(urlFilters);

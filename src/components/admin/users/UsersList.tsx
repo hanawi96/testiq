@@ -288,7 +288,7 @@ export const UsersList = () => {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tìm kiếm</label>
             <div className="relative">
@@ -309,14 +309,15 @@ export const UsersList = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại người dùng</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Trạng thái người dùng</label>
             <select
-              value={filters.user_type || 'all'}
-              onChange={(e) => handleFilterChange({ user_type: e.target.value === 'all' ? undefined : e.target.value as any })}
+              value={filters.user_status || 'all'}
+              onChange={(e) => handleFilterChange({ user_status: e.target.value === 'all' ? 'all' : e.target.value as any })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">Tất cả</option>
-              <option value="registered">Đã đăng ký</option>
+              <option value="registered_verified">Đã đăng ký & xác thực</option>
+              <option value="registered_unverified">Đã đăng ký & chưa xác thực</option>
               <option value="anonymous">Ẩn danh</option>
             </select>
           </div>
@@ -339,20 +340,30 @@ export const UsersList = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Trạng thái</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Giới tính</label>
             <select
-              value={filters.verified === undefined ? 'all' : filters.verified.toString()}
-              onChange={(e) => {
-                const value = e.target.value;
-                handleFilterChange({
-                  verified: value === 'all' ? undefined : value === 'true'
-                });
-              }}
+              value={filters.gender || 'all'}
+              onChange={(e) => handleFilterChange({ gender: e.target.value === 'all' ? undefined : e.target.value as any })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">Tất cả</option>
-              <option value="true">Đã xác thực</option>
-              <option value="false">Chưa xác thực</option>
+              <option value="male">Nam</option>
+              <option value="female">Nữ</option>
+              <option value="unknown">Không xác định</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sắp xếp</label>
+            <select
+              value={filters.sort || 'created_desc'}
+              onChange={(e) => handleFilterChange({ sort: e.target.value === 'created_desc' ? undefined : e.target.value as any })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="created_desc">Tham gia gần nhất</option>
+              <option value="created_asc">Tham gia sớm nhất</option>
+              <option value="age_asc">Tuổi thấp đến cao</option>
+              <option value="age_desc">Tuổi cao đến thấp</option>
             </select>
           </div>
         </div>
