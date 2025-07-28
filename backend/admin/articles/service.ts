@@ -339,11 +339,16 @@ export class ArticlesService {
           await this.processRelationships(draftResult.data.id, contentData);
         }
 
+        // 🔧 FIX: Invalidate ALL cache layers khi tạo bài viết mới
+        ArticleQueries.clearCache(); // Backend cache
+
         // Trả về article data để frontend có thể redirect
         return {
           data: {
             ...articleResult.data,
-            draft_id: draftResult.data?.id
+            draft_id: draftResult.data?.id,
+            // 🔧 FIX: Signal để frontend clear client cache
+            _shouldClearCache: true
           },
           error: null
         };
@@ -628,12 +633,18 @@ export class ArticlesService {
     articleId: string,
     status: 'published' | 'draft' | 'archived' | 'scheduled'
   ): Promise<{ data: Article | null; error: any }> {
+    console.log('📊 QUICK EDIT: updateStatus called', { articleId, status });
     const updateData: any = { status, updated_at: nowISO() };
     if (status === 'published') updateData.published_at = nowISO();
 
     return serviceWrapper(async () => {
       const result = await ArticleQueries.updateArticle(articleId, updateData);
-      if (!result.error) ArticleQueries.clearCache();
+      if (!result.error) {
+        console.log('✅ QUICK EDIT: updateStatus success, clearing cache...');
+        this.clearAllCaches();
+      } else {
+        console.log('❌ QUICK EDIT: updateStatus failed', result.error);
+      }
       return result;
     }, ERROR_MESSAGES.STATUS_UPDATE_FAILED, true);
   }
@@ -665,38 +676,65 @@ export class ArticlesService {
   }
 
   static async updateTags(articleId: string, tags: string[]): Promise<{ data?: { tags: any[], tag_names: string[] }; error: any }> {
+    console.log('🏷️ QUICK EDIT: updateTags called', { articleId, tags });
     const result = await RelationshipsUtils.updateTags(articleId, tags);
-    if (!result.error) ArticleQueries.clearCache();
+    if (!result.error) {
+      console.log('✅ QUICK EDIT: updateTags success, clearing cache...');
+      this.clearAllCaches();
+    } else {
+      console.log('❌ QUICK EDIT: updateTags failed', result.error);
+    }
     return result;
   }
 
   static async updateAuthorById(articleId: string, authorId: string): Promise<{ error: any }> {
+    console.log('👤 QUICK EDIT: updateAuthorById called', { articleId, authorId });
     const result = await RelationshipsUtils.updateAuthorById(articleId, authorId);
     if (!result.error) {
-      // Clear ALL cache to ensure fresh data on next request
-      ArticleQueries.clearCache();
+      console.log('✅ QUICK EDIT: updateAuthorById success, clearing cache...');
+      this.clearAllCaches();
+    } else {
+      console.log('❌ QUICK EDIT: updateAuthorById failed', result.error);
     }
     return result;
   }
 
   static async updateTitle(articleId: string, title: string): Promise<{ error: any }> {
+    console.log('📝 QUICK EDIT: updateTitle called', { articleId, title });
     const updateData = { title: title.trim(), updated_at: nowISO() };
     return serviceWrapper(async () => {
       const result = await ArticleQueries.updateArticle(articleId, updateData);
-      if (!result.error) ArticleQueries.clearCache();
+      if (!result.error) {
+        console.log('✅ QUICK EDIT: updateTitle success, clearing cache...');
+        this.clearAllCaches();
+      } else {
+        console.log('❌ QUICK EDIT: updateTitle failed', result.error);
+      }
       return { data: true, error: result.error };
     }, undefined, true).then(result => ({ error: result.error }));
   }
 
   static async updateCategory(articleId: string, categoryId: string | null): Promise<{ error: any }> {
+    console.log('📂 QUICK EDIT: updateCategory called', { articleId, categoryId });
     const result = await RelationshipsUtils.updateCategory(articleId, categoryId);
-    if (!result.error) ArticleQueries.clearCache();
+    if (!result.error) {
+      console.log('✅ QUICK EDIT: updateCategory success, clearing cache...');
+      this.clearAllCaches();
+    } else {
+      console.log('❌ QUICK EDIT: updateCategory failed', result.error);
+    }
     return result;
   }
 
   static async updateCategories(articleId: string, categoryIds: string[]): Promise<{ error: any }> {
+    console.log('📂 QUICK EDIT: updateCategories called', { articleId, categoryIds });
     const result = await RelationshipsUtils.updateCategories(articleId, categoryIds);
-    if (!result.error) ArticleQueries.clearCache();
+    if (!result.error) {
+      console.log('✅ QUICK EDIT: updateCategories success, clearing cache...');
+      this.clearAllCaches();
+    } else {
+      console.log('❌ QUICK EDIT: updateCategories failed', result.error);
+    }
     return result;
   }
 
@@ -737,6 +775,19 @@ export class ArticlesService {
 
   static clearCachePattern(pattern: string): void {
     ArticleQueries.clearCachePattern(pattern);
+  }
+
+  // ✅ SIMPLE: Chỉ clear cache, không làm gì thêm
+  private static clearAllCaches(): void {
+    console.log('🗑️ SIMPLE CACHE CLEAR: Starting to clear all caches...');
+    const beforeStats = ArticleQueries.getCacheStats();
+    console.log('🗑️ SIMPLE CACHE CLEAR: Cache stats before clear:', beforeStats);
+
+    ArticleQueries.clearCache();
+
+    const afterStats = ArticleQueries.getCacheStats();
+    console.log('✅ SIMPLE CACHE CLEAR: Cache stats after clear:', afterStats);
+    console.log('✅ SIMPLE CACHE CLEAR: All caches cleared successfully');
   }
 
   static async analyzeArticleLinks(articleId: string): Promise<{ data: LinkAnalysis | null; error: any }> {

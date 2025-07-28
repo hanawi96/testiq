@@ -44,12 +44,17 @@ export const useArticlesData = ({
   // Track if initial load has been done to prevent infinite loops
   const initialLoadDone = useRef(false);
 
-  // ===== CACHE MANAGEMENT =====
-  const cache = useRef<Map<string, {
-    data: ArticlesListResponse;
-    timestamp: number;
-    ttl: number;
-  }>>(new Map());
+  // ===== PERSISTENT CACHE MANAGEMENT =====
+  // 🔧 FIX: Sử dụng global cache để persist qua component unmount
+  const getGlobalCache = () => {
+    if (typeof window === 'undefined') return new Map();
+    if (!(window as any).__ARTICLES_CACHE__) {
+      (window as any).__ARTICLES_CACHE__ = new Map();
+    }
+    return (window as any).__ARTICLES_CACHE__;
+  };
+
+  const cache = useRef(getGlobalCache());
   const prefetchQueue = useRef<Set<number>>(new Set());
   const aggressivePrefetchDone = useRef<Set<string>>(new Set());
   const activeRequests = useRef<Map<string, Promise<void>>>(new Map());
@@ -73,26 +78,42 @@ export const useArticlesData = ({
   }, [isCacheValid]);
 
   const setCacheData = useCallback((cacheKey: string, data: ArticlesListResponse, ttl: number = CACHE_TTL) => {
+    console.log(`🔍 CLIENT CACHE SET: Setting cache for key: ${cacheKey}`);
+    console.log(`🔍 CLIENT CACHE SET: Data to cache:`, {
+      articlesCount: data.articles?.length || 0,
+      page: data.page,
+      totalPages: data.totalPages,
+      ttl: ttl
+    });
+
     cache.current.set(cacheKey, {
       data,
       timestamp: Date.now(),
       ttl
     });
+
+    console.log(`✅ CLIENT CACHE SET: Successfully cached data for key: ${cacheKey}`);
+    console.log(`✅ CLIENT CACHE SET: Current cache size: ${cache.current.size}`);
   }, [CACHE_TTL]);
 
   const clearCache = useCallback(() => {
     const cacheSize = cache.current.size;
-    console.log('🗑️ CLEAR CACHE START - Current cache size:', cacheSize);
-    console.log('🗑️ Cache keys before clear:', Array.from(cache.current.keys()));
+    const cacheKeys = Array.from(cache.current.keys());
+    console.log('🗑️ CLIENT CACHE CLEAR: Starting cache clear...');
+    console.log('🗑️ CLIENT CACHE CLEAR: Current cache size:', cacheSize);
+    console.log('🗑️ CLIENT CACHE CLEAR: Cache keys before clear:', cacheKeys);
 
     cache.current.clear();
     prefetchQueue.current.clear();
     aggressivePrefetchDone.current.clear();
     activeRequests.current.clear();
 
-    console.log('✅ CLEAR CACHE COMPLETE - Cache size after clear:', cache.current.size);
+    console.log('✅ CLIENT CACHE CLEAR: Cache cleared successfully');
+    console.log('✅ CLIENT CACHE CLEAR: Cache size after clear:', cache.current.size);
     debug.cache('Client cache cleared manually');
   }, []);
+
+
 
 
 
@@ -186,14 +207,29 @@ export const useArticlesData = ({
       return;
     }
 
-    // Check cache first using unified system
+    // 🔍 TRACE: Check cache first using unified system
     const cachedData = getCachedData(cacheKey);
     console.log('🔍 FETCH ARTICLES - Cache check:', {
       cacheKey,
       hasCachedData: !!cachedData,
       isValid: cachedData?.isValid,
-      cacheSize: cache.current.size
+      cacheSize: cache.current.size,
+      allCacheKeys: Array.from(cache.current.keys())
     });
+
+    if (cachedData && cachedData.isValid) {
+      console.log('🔍 FETCH ARTICLES - Using cached data:', {
+        articlesCount: cachedData.data.articles?.length || 0,
+        page: cachedData.data.page,
+        sampleArticle: cachedData.data.articles?.[0] ? {
+          id: cachedData.data.articles[0].id,
+          title: cachedData.data.articles[0].title,
+          author_name: cachedData.data.articles[0].author_name
+        } : null
+      });
+    } else {
+      console.log('🔍 FETCH ARTICLES - No valid cache, will fetch from API');
+    }
 
     if (cachedData) {
       // Instant display from cache
@@ -292,7 +328,27 @@ export const useArticlesData = ({
     }
   }, [dispatch]);
 
+  // 🔧 FIX: Listen for cache clear events từ autosave
+  useEffect(() => {
+    const handleCacheClear = () => {
+      console.log('🔔 CLIENT CACHE CLEAR: Received cache clear event');
+      console.log('🔍 CLIENT CACHE CLEAR: Current cache size before clear:', cache.current.size);
+      clearCache();
+      console.log('🔍 CLIENT CACHE CLEAR: Cache size after clear:', cache.current.size);
+      // Refetch current page để có data mới
+      console.log('🔄 CLIENT CACHE CLEAR: Refetching articles for page', currentPage);
+      fetchArticles(currentPage);
+    };
 
+    if (typeof window !== 'undefined') {
+      window.addEventListener('articles-cache-clear', handleCacheClear);
+      console.log('👂 CLIENT CACHE CLEAR: Event listener registered');
+      return () => {
+        window.removeEventListener('articles-cache-clear', handleCacheClear);
+        console.log('👂 CLIENT CACHE CLEAR: Event listener removed');
+      };
+    }
+  }, [clearCache, fetchArticles, currentPage]);
 
   // SSR Hydration - Load initial data and stats from window object
   const hydrateFromSSR = useCallback(() => {
@@ -340,10 +396,34 @@ export const useArticlesData = ({
       dispatch({ type: 'SET_LOADING', payload: { articles: false } });
       dispatch({ type: 'SET_ERROR', payload: '' });
 
-      // Cache the initial data with unified cache - use filters from SSR data if available
+      // 🔍 TRACE: Cache the initial data with unified cache
       const ssrFilters = initialData.filters || filters;
       const cacheKey = getCacheKey(initialData.page || 1, ssrFilters, limit);
+      console.log(`🔍 CLIENT CACHE: About to cache SSR data with key: ${cacheKey}`);
+      console.log(`🔍 CLIENT CACHE: SSR data to cache:`, {
+        articlesCount: initialData.articles?.length || 0,
+        page: initialData.page,
+        totalPages: initialData.totalPages,
+        sampleArticle: initialData.articles?.[0] ? {
+          id: initialData.articles[0].id,
+          title: initialData.articles[0].title,
+          author_name: initialData.articles[0].author_name,
+          author_id: initialData.articles[0].author_id
+        } : null
+      });
+
+      // 🔍 TRACE: Log tất cả author names để kiểm tra
+      console.log(`🔍 CLIENT CACHE: All author names in SSR data:`,
+        initialData.articles?.map(article => ({
+          id: article.id,
+          title: article.title?.substring(0, 30) + '...',
+          author_name: article.author_name,
+          author_id: article.author_id
+        })) || []
+      );
+
       setCacheData(cacheKey, initialData);
+      console.log(`✅ CLIENT CACHE: Successfully cached SSR data with key: ${cacheKey}`);
       debug.ssr(`Cached SSR data with key: ${cacheKey}`);
 
       // Start aggressive prefetch for remaining pages (background)
@@ -351,7 +431,7 @@ export const useArticlesData = ({
         smartAggressivePrefetch(initialData.totalPages, ssrFilters, limit, initialData.page || 1);
       }, 100); // Small delay to ensure UI is stable first
 
-      // Clear the global data to prevent reuse
+      // Clear the global data to prevent reuse (restored)
       delete (window as any).__ARTICLES_INITIAL_DATA__;
       articlesUsed = true;
     }
@@ -371,13 +451,14 @@ export const useArticlesData = ({
 
   // ===== CLEANUP =====
   // Cleanup cache and refs on unmount to prevent memory leaks
+  // 🔧 FIX: Cleanup on unmount - KHÔNG XÓA PERSISTENT CACHE
   useEffect(() => {
     return () => {
-      cache.current.clear();
+      // Chỉ clear temporary state, giữ lại cache
       prefetchQueue.current.clear();
       aggressivePrefetchDone.current.clear();
       activeRequests.current.clear();
-      debug.cache('Cache and active requests cleared on unmount');
+      debug.cache('Temporary state cleared on unmount, cache preserved');
     };
   }, []);
 

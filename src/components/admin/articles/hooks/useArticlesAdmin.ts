@@ -62,7 +62,9 @@ export function useArticlesAdmin(toast: UseToastResult) {
     fetchArticles,
     fetchStats,
     hydrateFromSSR,
-    initialLoadDone
+    initialLoadDone,
+    getCacheKey,  // ← Thêm getCacheKey
+    cache        // ← Thêm cache
   } = useArticlesData({
     filters: state.filters,
     limit: state.limit,
@@ -286,7 +288,10 @@ export function useArticlesAdmin(toast: UseToastResult) {
     dispatch,
     setLoading,
     setModal,
-    toast
+    toast,
+    fetchArticles,  // ← Pass fetchArticles để có thể refetch sau khi clear cache
+    getCacheKey,    // ← Pass getCacheKey để clear specific cache
+    cache          // ← Pass cache để clear trực tiếp như Users
   });
 
   // Simplified initial load with SSR hydration

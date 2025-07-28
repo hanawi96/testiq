@@ -238,7 +238,12 @@ function enrichArticles(articles: any[], authorsData: any[], relationshipsData: 
 function cacheAndReturn(cacheKey: string, data: any[], count: number) {
   const result = { data, error: null, count };
   const cacheData = data.length > 0 ? createCacheableData(data, count) : { data: [], count, timestamp: Date.now() };
+
+  // 🔍 TRACE: Cache set operation
+  console.log(`💾 CACHE SET: Caching ${data.length} articles with key ${cacheKey}`);
   queryCache.set(cacheKey, cacheData, 3 * 60 * 1000); // 3 minutes cache - balance between speed and freshness
+  console.log(`✅ CACHE SET: Successfully cached data for ${cacheKey}`);
+
   return result;
 }
 
@@ -290,10 +295,18 @@ export class ArticleQueries {
       const startTime = Date.now();
       const cacheKey = createHashedCacheKey('articles', { page, limit, filters });
 
-      // Check cache first (skip if requested)
+      // 🔍 TRACE: Check cache first (skip if requested)
+      console.log(`🔍 CACHE CHECK: skipCache=${skipCache}, cacheKey=${cacheKey}`);
       if (!skipCache) {
         const cached = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
-        if (cached) return { data: cached.data, error: null, count: cached.count || 0 };
+        if (cached) {
+          console.log(`✅ CACHE HIT: Using cached data for ${cacheKey}`);
+          return { data: cached.data, error: null, count: cached.count || 0 };
+        } else {
+          console.log(`❌ CACHE MISS: No cached data for ${cacheKey}`);
+        }
+      } else {
+        console.log(`⏭️ CACHE SKIP: Skipping cache as requested for ${cacheKey}`);
       }
 
       // Resolve category slug to article IDs if needed (simple approach)
@@ -395,7 +408,12 @@ export class ArticleQueries {
 
 
       console.log(`✅ ArticleQueries: ${enrichedArticles.length} articles in ${Date.now() - startTime}ms`);
-      return cacheAndReturn(cacheKey, enrichedArticles, totalCount);
+      console.log(`🔍 BACKEND CACHE: About to cache result with skipCache=${skipCache}`);
+
+      const result = cacheAndReturn(cacheKey, enrichedArticles, totalCount);
+
+      console.log(`✅ BACKEND CACHE: Returned result, cache size now: ${queryCache.getStats().size}`);
+      return result;
 
     } catch (err) {
       console.error('ArticleQueries: Error fetching articles:', err);
@@ -663,9 +681,12 @@ export class ArticleQueries {
     try {
       const startTime = Date.now();
 
+      // 🔧 FIX: Thêm .select() để Supabase trả về data sau khi insert
       const { data: insertedData, error } = await supabase
         .from('articles')
-        .insert(articleData);
+        .insert(articleData)
+        .select()
+        .single();
 
       if (!error) {
         // Invalidate caches
@@ -919,8 +940,15 @@ export class ArticleQueries {
    * Clear all caches
    */
   static clearCache() {
+    const cacheStats = queryCache.getStats();
+    console.log('🗑️ BACKEND CACHE CLEAR: Starting cache clear...', cacheStats);
+    console.log('🗑️ BACKEND CACHE CLEAR: Cache keys before clear:', cacheStats.keys);
+
     queryCache.invalidate();
-    console.log('✅ ArticleQueries: All caches cleared - category_names fix applied');
+
+    const newCacheStats = queryCache.getStats();
+    console.log('✅ BACKEND CACHE CLEAR: All caches cleared', { before: cacheStats, after: newCacheStats });
+    console.log('✅ BACKEND CACHE CLEAR: Cache keys after clear:', newCacheStats.keys);
   }
 
   /**

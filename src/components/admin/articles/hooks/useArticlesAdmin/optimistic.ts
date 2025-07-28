@@ -4,10 +4,10 @@
  * Single pattern for all field updates with consistent behavior
  */
 
-import { useCallback } from 'react';
+import { useCallback, startTransition } from 'react';
 import { ArticlesService } from '../../../../../../backend';
 import type { UseToastResult } from '../../../common/Toast';
-import type { AdminArticlesState, LoadingStates, ModalStates, FIELD_NAMES } from './types';
+import type { AdminArticlesState, LoadingStates, ModalStates } from './types';
 import { getInstantCategoriesData } from '../../../../../utils/admin/preloaders/categories-preloader';
 
 interface QuickEditConfig {
@@ -16,6 +16,9 @@ interface QuickEditConfig {
   setLoading: (payload: Partial<LoadingStates>) => void;
   setModal: (payload: Partial<ModalStates>) => void;
   toast: UseToastResult;
+  fetchArticles: (page: number, limit?: number) => Promise<void>;
+  getCacheKey: (page: number, filters: any, limit: number) => string;  // ← Thêm getCacheKey
+  cache: React.MutableRefObject<Map<string, any>>;  // ← Thêm cache ref
 }
 
 // ===== UNIFIED OPTIMISTIC UPDATE PATTERN =====
@@ -30,7 +33,7 @@ interface OptimisticUpdateConfig<T> {
 }
 
 function createOptimisticUpdate<T>(config: QuickEditConfig) {
-  const { state, dispatch, setLoading, setModal, toast } = config;
+  const { state, dispatch, setLoading, setModal, toast, fetchArticles, getCacheKey, cache } = config;
   const { showError } = toast;
 
   return async <T>(updateConfig: OptimisticUpdateConfig<T>) => {
@@ -62,9 +65,13 @@ function createOptimisticUpdate<T>(config: QuickEditConfig) {
     const updatedArticles = state.articlesData.articles.map(article =>
       article.id === articleId ? fieldUpdater(article, newValue) : article
     );
-    dispatch({
-      type: 'SET_ARTICLES_DATA',
-      payload: { ...state.articlesData, articles: updatedArticles }
+
+    // 🔧 FIX: Wrap trong startTransition để tránh hydration error
+    startTransition(() => {
+      dispatch({
+        type: 'SET_ARTICLES_DATA',
+        payload: { ...state.articlesData, articles: updatedArticles }
+      });
     });
 
     try {
@@ -76,21 +83,49 @@ function createOptimisticUpdate<T>(config: QuickEditConfig) {
         const rolledBackArticles = state.articlesData.articles.map(article =>
           article.id === articleId ? originalArticle : article
         );
-        dispatch({
-          type: 'SET_ARTICLES_DATA',
-          payload: { ...state.articlesData, articles: rolledBackArticles }
+
+        // 🔧 FIX: Wrap rollback trong startTransition
+        startTransition(() => {
+          dispatch({
+            type: 'SET_ARTICLES_DATA',
+            payload: { ...state.articlesData, articles: rolledBackArticles }
+          });
         });
         showError(errorMessage);
+      } else {
+        // ✅ COPY USERS EXACTLY: Smart cache invalidation - only clear current page cache
+        console.log('✅ OPTIMISTIC UPDATE: Quick edit success, clearing cache exactly like Users...');
+
+        const currentCacheKey = getCacheKey(state.currentPage, state.filters, state.limit);
+        console.log('🗑️ OPTIMISTIC UPDATE: Clearing cache key:', currentCacheKey);
+
+        // Clear cache trực tiếp như Users
+        cache.current.delete(currentCacheKey);
+        console.log('🗑️ OPTIMISTIC UPDATE: Cache cleared for current page');
+
+        // Refresh current page data như Users
+        console.log('🔄 OPTIMISTIC UPDATE: Refreshing current page data...');
+        try {
+          await fetchArticles(state.currentPage);
+          console.log('✅ OPTIMISTIC UPDATE: Data refreshed successfully');
+        } catch (error) {
+          console.error('❌ OPTIMISTIC UPDATE: Failed to refresh data:', error);
+        }
+
+        console.log('✅ OPTIMISTIC UPDATE: Process completed like Users module');
       }
-      // SUCCESS - Keep optimistic update, no toast needed (UI already updated)
     } catch (err) {
       // 3. ROLLBACK - Revert to original state on exception
       const rolledBackArticles = state.articlesData.articles.map(article =>
         article.id === articleId ? originalArticle : article
       );
-      dispatch({
-        type: 'SET_ARTICLES_DATA',
-        payload: { ...state.articlesData, articles: rolledBackArticles }
+
+      // 🔧 FIX: Wrap rollback trong startTransition
+      startTransition(() => {
+        dispatch({
+          type: 'SET_ARTICLES_DATA',
+          payload: { ...state.articlesData, articles: rolledBackArticles }
+        });
       });
       showError(errorMessage);
     } finally {

@@ -223,6 +223,31 @@ export const useSaveHandlers = ({
           ArticlesService.clearCachePattern(`article:edit:${data.id}`);
         }
 
+        // 🔧 FIX: Clear ALL cache layers cho MỌI thay đổi (không chỉ tạo mới)
+        console.log('🔍 CACHE CLEAR: Starting comprehensive cache clearing...');
+        if (typeof window !== 'undefined') {
+          // 1. Clear persistent cache
+          if ((window as any).__ARTICLES_CACHE__) {
+            const cacheSize = (window as any).__ARTICLES_CACHE__.size;
+            (window as any).__ARTICLES_CACHE__.clear();
+            console.log(`🗑️ CACHE CLEAR: Cleared persistent cache (${cacheSize} entries)`);
+          } else {
+            console.log('🗑️ CACHE CLEAR: No persistent cache found');
+          }
+
+          // 2. Clear SSR data để force fresh fetch
+          const hadSSRData = !!(window as any).__ARTICLES_INITIAL_DATA__;
+          const hadSSRStats = !!(window as any).__ARTICLES_INITIAL_STATS__;
+          delete (window as any).__ARTICLES_INITIAL_DATA__;
+          delete (window as any).__ARTICLES_INITIAL_STATS__;
+          console.log(`🗑️ CACHE CLEAR: Cleared SSR data (data: ${hadSSRData}, stats: ${hadSSRStats})`);
+
+          // 3. Trigger cache clear event cho useArticlesData
+          window.dispatchEvent(new CustomEvent('articles-cache-clear'));
+          console.log('🗑️ CACHE CLEAR: Triggered cache clear event');
+        }
+        console.log('✅ CACHE CLEAR: Comprehensive cache clearing completed');
+
         // Force clear browser cache for blog pages
         if ('caches' in window) {
           caches.keys().then(cacheNames => {
