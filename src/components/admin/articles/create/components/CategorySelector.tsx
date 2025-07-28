@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CategoriesService, type Category } from '../../../../../../backend/admin/categories-service';
+import { loadCategoriesService, type Category } from '../../../../../../backend';
 
 interface CategorySelectorProps {
   value: string[];
@@ -30,6 +30,7 @@ export default function CategorySelector({
       try {
         console.log('CategorySelector: Loading categories from database...');
 
+        const CategoriesService = await loadCategoriesService();
         const { data: categoriesData, error } = await CategoriesService.getAllCategories();
 
         if (error) {

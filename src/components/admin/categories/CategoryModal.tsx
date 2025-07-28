@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CategoriesService } from '../../../../backend';
+import { loadCategoriesService } from '../../../../backend';
 import type { Category } from '../../../../backend';
 
 interface CategoryModalProps {
@@ -133,6 +133,8 @@ export default function CategoryModal({ isOpen, onClose, onSuccess, onOptimistic
     
     try {
       let result;
+
+      const CategoriesService = await loadCategoriesService();
 
       if (isEdit && category) {
         // Update existing category

@@ -136,7 +136,14 @@ function createCacheableData(articles: any[], count: number): any {
       author: article.author,
       category: article.category,
       tag_names: article.tag_names,
-      category_ids: article.category_ids
+      category_ids: article.category_ids,
+      category_names: article.category_names,
+      // User profile data
+      user_profiles: article.user_profiles,
+      // Draft info
+      hasActiveDraft: article.hasActiveDraft,
+      draftCount: article.draftCount,
+      lastDraftUpdate: article.lastDraftUpdate
     })),
     count,
     timestamp: Date.now()
@@ -153,7 +160,7 @@ function getOptimizedFields(context: 'admin' | 'public' | 'preview' | 'search' =
 
   switch (context) {
     case 'admin':
-      // ADMIN: Bao gồm SEO fields cho monitoring và optimization
+      // ADMIN: All necessary fields for full functionality
       return `${baseFields}, excerpt, view_count, published_at, reading_time, internal_links, external_links`;
     case 'public':
       // PUBLIC: Minimal fields cho frontend display
@@ -231,7 +238,7 @@ function enrichArticles(articles: any[], authorsData: any[], relationshipsData: 
 function cacheAndReturn(cacheKey: string, data: any[], count: number) {
   const result = { data, error: null, count };
   const cacheData = data.length > 0 ? createCacheableData(data, count) : { data: [], count, timestamp: Date.now() };
-  queryCache.set(cacheKey, cacheData, 2 * 60 * 1000);
+  queryCache.set(cacheKey, cacheData, 3 * 60 * 1000); // 3 minutes cache - balance between speed and freshness
   return result;
 }
 
@@ -276,15 +283,18 @@ export class ArticleQueries {
   static async getArticles(
     page: number = 1,
     limit: number = 20,
-    filters: ArticlesFilters = {}
+    filters: ArticlesFilters = {},
+    skipCache: boolean = false
   ): Promise<{ data: any[] | null; error: any; count: number }> {
     try {
       const startTime = Date.now();
       const cacheKey = createHashedCacheKey('articles', { page, limit, filters });
 
-      // Check cache first
-      const cached = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
-      if (cached) return { data: cached.data, error: null, count: cached.count || 0 };
+      // Check cache first (skip if requested)
+      if (!skipCache) {
+        const cached = queryCache.get<{ data: any[] | null; error: any; count: number }>(cacheKey);
+        if (cached) return { data: cached.data, error: null, count: cached.count || 0 };
+      }
 
       // Resolve category slug to article IDs if needed (simple approach)
       let resolvedFilters = { ...filters };
@@ -318,7 +328,7 @@ export class ArticleQueries {
         }
       }
 
-      // Execute main query with count + draft info
+      // Execute main query with count + essential draft info
       const offset = (page - 1) * limit;
       let query = supabase
         .from('articles')
@@ -381,6 +391,8 @@ export class ArticleQueries {
         console.log(`✅ ArticleQueries: ${validArticles.length} articles in ${Date.now() - startTime}ms`);
         return cacheAndReturn(cacheKey, validArticles, validArticles.length);
       }
+
+
 
       console.log(`✅ ArticleQueries: ${enrichedArticles.length} articles in ${Date.now() - startTime}ms`);
       return cacheAndReturn(cacheKey, enrichedArticles, totalCount);
@@ -653,13 +665,11 @@ export class ArticleQueries {
 
       const { data: insertedData, error } = await supabase
         .from('articles')
-        .insert(articleData)
-        .select()
-        .single();
+        .insert(articleData);
 
-      if (!error && insertedData) {
+      if (!error) {
         // Invalidate caches
-        queryCache.invalidate('articles:');
+        queryCache.invalidate('articles');
         queryCache.invalidate('stats');
 
         const queryTime = Date.now() - startTime;
@@ -684,12 +694,12 @@ export class ArticleQueries {
         .from('articles')
         .update(updateData)
         .eq('id', articleId)
-        .select()
+        .select('*')
         .single();
 
-      if (!error && updatedData) {
+      if (!error) {
         // Invalidate caches
-        queryCache.invalidate('articles:');
+        queryCache.invalidate('articles');
         queryCache.invalidate('stats');
         queryCache.invalidate(`article:edit:${articleId}`);
 
@@ -718,7 +728,7 @@ export class ArticleQueries {
 
       if (!error) {
         // Invalidate caches
-        queryCache.invalidate('articles:');
+        queryCache.invalidate('articles');
         queryCache.invalidate('stats');
         queryCache.invalidate(`article:edit:${articleId}`);
 
@@ -768,7 +778,7 @@ export class ArticleQueries {
       }
 
       // PERFORMANCE: Invalidate relevant caches
-      queryCache.invalidate('articles:');
+      queryCache.invalidate('articles');
       queryCache.invalidate('stats');
 
       // Invalidate specific article caches
@@ -910,7 +920,7 @@ export class ArticleQueries {
    */
   static clearCache() {
     queryCache.invalidate();
-    console.log('✅ ArticleQueries: All caches cleared');
+    console.log('✅ ArticleQueries: All caches cleared - category_names fix applied');
   }
 
   /**
@@ -921,14 +931,7 @@ export class ArticleQueries {
     console.log(`✅ ArticleQueries: Cleared caches matching pattern: ${pattern}`);
   }
 
-  /**
-   * OPTIMIZED: Smart cache invalidation
-   */
-  static invalidateArticlesCacheOptimized() {
-    // Chỉ invalidate articles cache, giữ lại stats cache
-    queryCache.invalidate('articles:');
-    console.log('✅ ArticleQueries: Smart cache invalidation completed');
-  }
+
 
   /**
    * SEO HELPER: Extract link metrics từ articles data

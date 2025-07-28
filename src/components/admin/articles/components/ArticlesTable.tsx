@@ -71,14 +71,20 @@ export default function ArticlesTable({
   onLinkAnalysis,
   searchTerm = ''
 }: ArticlesTableProps) {
-  
-  if (loading.articles) {
+
+  // Show loading only if no data exists at all
+  if (loading.articles && !articlesData) {
     return <SkeletonTable rows={10} />;
   }
 
+  // Don't render if no data (prevents flash of empty state)
   if (!articlesData) {
     return null;
   }
+
+  // Validate current page against total pages to prevent display issues
+  const validCurrentPage = Math.min(currentPage, articlesData.totalPages || 1);
+  const isPageOutOfBounds = currentPage > articlesData.totalPages && articlesData.totalPages > 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -199,30 +205,41 @@ export default function ArticlesTable({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start space-x-2">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 flex-1">
-                            <SearchHighlight
-                              text={article.title}
-                              searchTerm={searchTerm}
-                            />
-                          </div>
-                          <button
-                            onClick={(e) => onQuickTitleEdit(e, article.id)}
-                            disabled={loading.titleIds.has(article.id)}
-                            className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Chỉnh sửa tiêu đề"
-                            data-quick-edit-button="title"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </button>
+                          {loading.titleIds.has(article.id) ? (
+                            <div className="flex items-center space-x-2 animate-pulse flex-1">
+                              <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="text-sm text-primary-600 dark:text-primary-400 font-medium">
+                                Đang cập nhật tiêu đề...
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 flex-1">
+                                <SearchHighlight
+                                  text={article.title}
+                                  searchTerm={searchTerm}
+                                />
+                              </div>
+                              <button
+                                onClick={(e) => onQuickTitleEdit(e, article.id)}
+                                disabled={loading.titleIds.has(article.id)}
+                                className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Chỉnh sửa tiêu đề"
+                                data-quick-edit-button="title"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                            </>
+                          )}
                         </div>
                         {/* Category info for mobile */}
                         <div className="sm:hidden mt-2 flex items-center">
                           {loading.categoryIds.has(article.id) ? (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center space-x-2 animate-pulse">
+                              <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="text-sm text-primary-600 dark:text-primary-400 font-medium">
                                 Đang cập nhật danh mục...
                               </div>
                             </div>
@@ -251,9 +268,9 @@ export default function ArticlesTable({
                         </div>
                         <div className="flex items-center space-x-2 mt-2">
                           {loading.tagIds.has(article.id) ? (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center space-x-2 animate-pulse">
+                              <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="text-sm text-primary-600 dark:text-primary-400 font-medium">
                                 Đang cập nhật tags...
                               </div>
                             </div>
@@ -358,10 +375,10 @@ export default function ArticlesTable({
                   {/* Category Column - Desktop */}
                   <td className="hidden sm:table-cell px-6 py-4">
                     {loading.categoryIds.has(article.id) ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Đang cập nhật...
+                      <div className="flex items-center space-x-2 animate-pulse">
+                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="text-sm text-primary-600 dark:text-primary-400 font-medium">
+                          Đang cập nhật danh mục...
                         </div>
                       </div>
                     ) : (
@@ -391,10 +408,10 @@ export default function ArticlesTable({
                   {/* Author Column */}
                   <td className="px-6 py-4">
                     {loading.authorIds.has(article.id) ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Đang cập nhật...
+                      <div className="flex items-center space-x-2 animate-pulse">
+                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="text-sm text-primary-600 dark:text-primary-400 font-medium">
+                          Đang cập nhật tác giả...
                         </div>
                       </div>
                     ) : (
@@ -423,33 +440,43 @@ export default function ArticlesTable({
 
                   {/* Status Column */}
                   <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex flex-col space-y-1">
-                        <span className={getStatusBadge(article.status) + " relative"}>
-                          {/* Dấu chấm tròn ở góc trên phải của badge */}
-                          {article.status === 'published' && (article as any).hasActiveDraft && (
-                            <span className="absolute -top-1 -right-1 group">
-                              <span className="block w-3 h-3 bg-orange-500 rounded-full border border-white dark:border-gray-800 animate-pulse"></span>
-                              <span className="absolute bottom-full right-0 mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                                Đang chỉnh sửa
-                              </span>
-                            </span>
-                          )}
-                          {getStatusLabel(article.status)}
-                        </span>
-                        {/* Đã xóa badge "Đang chỉnh sửa" riêng biệt */}
+                    {loading.statusIds.has(article.id) ? (
+                      <div className="flex items-center space-x-2 animate-pulse">
+                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="text-sm text-primary-600 dark:text-primary-400 font-medium">
+                          Đang cập nhật trạng thái...
+                        </div>
                       </div>
-                      <button
-                        onClick={(e) => onQuickStatusEdit(e, article.id)}
-                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <div className="flex flex-col space-y-1">
+                          <span className={getStatusBadge(article.status) + " relative"}>
+                            {/* Dấu chấm tròn ở góc trên phải của badge */}
+                            {article.status === 'published' && (article as any).hasActiveDraft && (
+                              <span className="absolute -top-1 -right-1 group">
+                                <span className="block w-3 h-3 bg-orange-500 rounded-full border border-white dark:border-gray-800 animate-pulse"></span>
+                                <span className="absolute bottom-full right-0 mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                                  Đang chỉnh sửa
+                                </span>
+                              </span>
+                            )}
+                            {getStatusLabel(article.status)}
+                          </span>
+                          {/* Đã xóa badge "Đang chỉnh sửa" riêng biệt */}
+                        </div>
+                        <button
+                          onClick={(e) => onQuickStatusEdit(e, article.id)}
+                          disabled={loading.statusIds.has(article.id)}
+                          className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Chỉnh sửa trạng thái"
                         data-quick-edit-button="status"
                       >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                    </div>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </td>
 
                   {/* Stats Column - Desktop */}
@@ -583,7 +610,12 @@ export default function ArticlesTable({
             {/* Left: Results Info + Limit Selector */}
             <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
               <span>
-                Hiển thị {Math.min(currentPage * limit, articlesData.total)}/{articlesData.total} bài viết
+                Hiển thị {Math.min(validCurrentPage * limit, articlesData.total)}/{articlesData.total} bài viết
+                {isPageOutOfBounds && (
+                  <span className="ml-2 text-orange-600 dark:text-orange-400 text-xs">
+                    (Trang {currentPage} không tồn tại, hiển thị trang {validCurrentPage})
+                  </span>
+                )}
               </span>
 
               {/* Items Per Page Selector - Compact */}
@@ -611,7 +643,7 @@ export default function ArticlesTable({
                 {/* First Page */}
                 <button
                   onClick={() => onPageChange(1)}
-                  disabled={currentPage === 1}
+                  disabled={validCurrentPage === 1}
                   className="hidden sm:flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Trang đầu"
                 >
@@ -620,8 +652,8 @@ export default function ArticlesTable({
 
                 {/* Previous Page */}
                 <button
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage <= 1}
+                  onClick={() => onPageChange(validCurrentPage - 1)}
+                  disabled={validCurrentPage <= 1}
                   className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Trang trước"
                 >
@@ -642,12 +674,12 @@ export default function ArticlesTable({
                         onClick={() => onPageChange(page)}
                         onMouseEnter={() => onPageHover?.(page)}
                         className={`flex items-center justify-center w-8 h-8 text-sm font-medium rounded-lg ${
-                          page === currentPage
+                          page === validCurrentPage
                             ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm'
                             : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                         aria-label={`Trang ${page}`}
-                        aria-current={page === currentPage ? 'page' : undefined}
+                        aria-current={page === validCurrentPage ? 'page' : undefined}
                       >
                         {page}
                       </button>
@@ -657,9 +689,9 @@ export default function ArticlesTable({
 
                 {/* Next Page */}
                 <button
-                  onClick={() => onPageChange(currentPage + 1)}
-                  onMouseEnter={() => onPageHover?.(currentPage + 1)}
-                  disabled={currentPage >= articlesData.totalPages}
+                  onClick={() => onPageChange(validCurrentPage + 1)}
+                  onMouseEnter={() => onPageHover?.(validCurrentPage + 1)}
+                  disabled={validCurrentPage >= articlesData.totalPages}
                   className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Trang sau"
                 >
@@ -669,7 +701,7 @@ export default function ArticlesTable({
                 {/* Last Page */}
                 <button
                   onClick={() => onPageChange(articlesData.totalPages)}
-                  disabled={currentPage === articlesData.totalPages}
+                  disabled={validCurrentPage === articlesData.totalPages}
                   className="hidden sm:flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Trang cuối"
                 >
@@ -684,7 +716,7 @@ export default function ArticlesTable({
                       type="number"
                       min="1"
                       max={articlesData.totalPages}
-                      value={currentPage}
+                      value={validCurrentPage}
                       onChange={(e) => {
                         const page = parseInt(e.target.value);
                         if (page >= 1 && page <= articlesData.totalPages) {

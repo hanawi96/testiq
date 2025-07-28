@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TagsService } from '../../../../backend';
+import { loadTagsService } from '../../../../backend';
 import type { Tag } from '../../../../backend';
 import { generateSlug } from '../../../utils/slug-generator';
 
@@ -112,6 +112,8 @@ export default function TagModal({ isOpen, onClose, onSuccess, onOptimisticUpdat
 
       // Close modal immediately for better UX
       onClose();
+
+      const TagsService = await loadTagsService();
 
       let result;
       if (isEdit && tag) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CategoriesService, type Category } from '../../../../../backend';
+import { loadCategoriesService, type Category } from '../../../../../backend';
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -11,7 +11,10 @@ export function useCategories() {
       try {
         setLoading(true);
         setError(null);
-        
+
+        // Lazy load categories service
+        const CategoriesService = await loadCategoriesService();
+
         // Fetch all active categories
         const { data, error: fetchError } = await CategoriesService.getCategories(1, 100, {
           status: 'active',

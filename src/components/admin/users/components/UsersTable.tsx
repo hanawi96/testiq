@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UsersService } from '../../../../../backend';
+import { loadUsersService } from '../../../../../backend';
 import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../../backend';
 import { CreateUserModal } from './modals';
 import { EditUserModal } from './modals';
@@ -141,6 +141,7 @@ export default function UsersTable({ filters: externalFilters, onFiltersChange }
       }
 
       console.log('🔄 Fetching users:', { page, limit: pageLimit, filters });
+      const UsersService = await loadUsersService();
       const response = await UsersService.getUsers({
         page,
         limit: pageLimit,
@@ -272,6 +273,7 @@ export default function UsersTable({ filters: externalFilters, onFiltersChange }
       handleOptimisticUserUpdate(updatedUser);
 
       // API call
+      const UsersService = await loadUsersService();
       await UsersService.updateUserRole(userId, newRole);
 
     } catch (error) {
@@ -307,6 +309,7 @@ export default function UsersTable({ filters: externalFilters, onFiltersChange }
       handleOptimisticUserUpdate(updatedUser);
 
       // API call
+      const UsersService = await loadUsersService();
       await UsersService.toggleUserVerification(userId);
 
     } catch (error) {

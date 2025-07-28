@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TagsService } from '../../../../backend';
+import { loadTagsService } from '../../../../backend';
 import type { Tag, TagStats, TagsFilters, TagsListResponse } from '../../../../backend';
 import TagModal from './TagModal';
 
@@ -31,6 +31,7 @@ export default function AdminTags() {
     setError('');
 
     try {
+      const TagsService = await loadTagsService();
       const { data, error: fetchError } = await TagsService.getTags(page, limit, filters);
 
       if (fetchError || !data) {
@@ -49,6 +50,7 @@ export default function AdminTags() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
+      const TagsService = await loadTagsService();
       const { data, error: statsError } = await TagsService.getTagStats();
       if (!statsError && data) {
         setStats(data);

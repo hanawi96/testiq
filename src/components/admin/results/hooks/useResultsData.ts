@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { ResultsService } from '../../../../../backend';
+import { loadResultsService } from '../../../../../backend';
 import type { ResultsFilters, ResultsListResponse } from '../../../../../backend';
 
 interface UseResultsDataProps {
@@ -59,6 +59,7 @@ export const useResultsData = ({
     console.log(`🚀 PREFETCH START: Page ${page}`);
 
     try {
+      const ResultsService = await loadResultsService();
       const { data, error } = await ResultsService.getResults(page, pageLimit, currentFilters);
       
       if (error || !data) {
@@ -138,6 +139,7 @@ export const useResultsData = ({
     setIsLoading(true);
 
     try {
+      const ResultsService = await loadResultsService();
       const { data, error } = await ResultsService.getResults(page, pageLimit, filters);
 
       if (error || !data) {

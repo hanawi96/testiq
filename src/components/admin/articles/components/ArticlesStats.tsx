@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import type { ArticleStats } from '../../../../../backend';
 import { SkeletonStats } from '../../common/Skeleton';
 import { formatNumber } from '../utils/articleHelpers';
@@ -56,12 +55,10 @@ export default function ArticlesStats({ stats, loading }: ArticlesStatsProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
       {statsData.map((stat, index) => (
-        <motion.div
+        <div
           key={stat.title}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg rounded-lg"
+          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300"
+          style={{ animationDelay: `${index * 100}ms` }}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -72,7 +69,7 @@ export default function ArticlesStats({ stats, loading }: ArticlesStatsProps) {
               <span className="text-2xl">{stat.icon}</span>
             </div>
           </div>
-        </motion.div>
+        </div>
       ))}
     </div>
   );

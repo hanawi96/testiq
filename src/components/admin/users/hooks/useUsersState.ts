@@ -10,7 +10,7 @@ import { useToast } from '../../common/Toast';
 export const useUsersState = () => {
   // State management - Start with defaults, sync with URL in useEffect
   const [usersData, setUsersData] = useState<UsersListResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<UsersFilters>({

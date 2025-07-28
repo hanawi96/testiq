@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UsersService } from '../../../../../backend';
+import { loadUsersService } from '../../../../../backend';
 import type { UsersStats } from '../../../../../backend';
 
 // Skeleton component for loading state
@@ -37,6 +37,7 @@ export default function UsersStatsCards() {
 
         // Fallback to client-side fetch
         console.log('🔄 Fetching stats from client...');
+        const UsersService = await loadUsersService();
         const response = await UsersService.getStats();
         setStats(response);
       } catch (error) {

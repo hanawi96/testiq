@@ -1,18 +1,22 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { lazy, Suspense } from 'react';
 import ArticlesStats from './components/ArticlesStats';
 import ArticlesFiltersComponent from './components/ArticlesFilters';
 import ArticlesBulkActions from './components/ArticlesBulkActions';
 import ArticlesTable from './components/ArticlesTable';
-import QuickEditorsContainer from './components/QuickEditorsContainer';
 import { ToastContainer, useToast } from '../common/Toast';
 
-import { useAdminArticlesState } from './hooks/useAdminArticlesState';
+// Lazy load heavy components that are only needed when editing
+const QuickEditorsContainer = lazy(() => import('./components/QuickEditorsContainer'));
+
+import { useArticlesAdmin } from './hooks/useArticlesAdmin';
 import { useQuickEditHandlers } from './hooks/useQuickEditHandlers';
-import { useOptimisticUpdates } from './hooks/useOptimisticUpdates';
-import { useArticlesOperations } from './hooks/useArticlesOperations';
 
 export default function AdminArticles() {
+  // Toast system
+  const toast = useToast();
+  const { toasts, removeToast } = toast;
+
+  // ===== UNIFIED ARTICLES ADMIN HOOK =====
   const {
     // State
     articlesData,
@@ -20,30 +24,40 @@ export default function AdminArticles() {
     error,
     loading,
     modals,
-    // UI State
     currentPage,
     limit,
     filters,
     selectedArticles,
     showBulkActions,
-    // Modal State
-    quickTagsEditor,
-    quickAuthorEditor,
-    quickCategoryEditor,
-    quickStatusEditor,
-    quickTitleEditor,
-    linkAnalysisModal,
+
     // Actions
     dispatch,
     setModal,
-    setLoading
-  } = useAdminArticlesState();
 
-  // Toast system
-  const toast = useToast();
-  const { toasts, removeToast } = toast;
+    // Page operations
+    handlePageChange,
+    handlePageHover,
+    handleFilterChange,
+    handleLimitChange,
 
-  // Quick Edit Handlers
+    // Selection operations
+    handleSelectArticle,
+    handleSelectAll,
+
+    // Quick edit functions
+    handleTagsUpdate,
+    handleAuthorUpdate,
+    handleStatusUpdate,
+    handleCategoryUpdate,
+    handleTitleUpdate,
+
+    // Bulk operations
+    handleBulkStatusUpdate,
+    handleBulkDelete,
+    handleDeleteArticle
+  } = useArticlesAdmin(toast);
+
+  // Quick Edit Handlers (kept separate as it's pure and reusable)
   const {
     handleQuickTagsEdit,
     handleQuickAuthorEdit,
@@ -52,44 +66,15 @@ export default function AdminArticles() {
     handleQuickTitleEdit
   } = useQuickEditHandlers(modals, setModal);
 
-  // Articles Operations
+  // Destructure modal states for easier access
   const {
-    fetchStats,
-    handlePageChange,
-    handlePageHover,
-    handleFilterChange,
-    handleLimitChange,
-    handleSelectArticle,
-    handleSelectAll,
-    handleBulkStatusUpdate,
-    handleBulkDelete,
-    handleDeleteArticle
-  } = useArticlesOperations({
-    currentPage,
-    limit,
-    filters,
-    selectedArticles,
-    articlesData,
-    dispatch,
-    setLoading,
-    toast
-  });
-
-  // Optimistic Update Handlers
-  const {
-    handleTagsUpdate,
-    handleAuthorUpdate,
-    handleStatusUpdateOptimistic,
-    handleCategoryUpdate,
-    handleTitleUpdate
-  } = useOptimisticUpdates({
-    articlesData,
-    loading,
-    setLoading,
-    setModal,
-    dispatch,
-    fetchStats
-  });
+    quickTagsEditor,
+    quickAuthorEditor,
+    quickCategoryEditor,
+    quickStatusEditor,
+    quickTitleEditor,
+    linkAnalysisModal
+  } = modals;
 
   // Loading state removed - show content immediately
 
@@ -109,11 +94,7 @@ export default function AdminArticles() {
 
       {/* Error */}
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
-        >
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <div className="flex">
             <svg className="h-5 w-5 text-red-400 dark:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -122,7 +103,7 @@ export default function AdminArticles() {
               <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Stats Cards */}
@@ -178,22 +159,24 @@ export default function AdminArticles() {
         searchTerm={filters.search || ''}
       />
 
-      {/* Quick Editors Container */}
-      <QuickEditorsContainer
-        quickTagsEditor={quickTagsEditor}
-        quickAuthorEditor={quickAuthorEditor}
-        quickCategoryEditor={quickCategoryEditor}
-        quickStatusEditor={quickStatusEditor}
-        quickTitleEditor={quickTitleEditor}
-        linkAnalysisModal={linkAnalysisModal}
-        articlesData={articlesData}
-        handleTagsUpdate={handleTagsUpdate}
-        handleAuthorUpdate={handleAuthorUpdate}
-        handleCategoryUpdate={handleCategoryUpdate}
-        handleTitleUpdate={handleTitleUpdate}
-        handleStatusUpdateOptimistic={handleStatusUpdateOptimistic}
-        setModal={setModal}
-      />
+      {/* Quick Editors Container - Lazy Loaded */}
+      <Suspense fallback={<div className="text-center py-4 text-gray-500">Đang tải editor...</div>}>
+        <QuickEditorsContainer
+          quickTagsEditor={quickTagsEditor}
+          quickAuthorEditor={quickAuthorEditor}
+          quickCategoryEditor={quickCategoryEditor}
+          quickStatusEditor={quickStatusEditor}
+          quickTitleEditor={quickTitleEditor}
+          linkAnalysisModal={linkAnalysisModal}
+          articlesData={articlesData}
+          handleTagsUpdate={handleTagsUpdate}
+          handleAuthorUpdate={handleAuthorUpdate}
+          handleCategoryUpdate={handleCategoryUpdate}
+          handleTitleUpdate={handleTitleUpdate}
+          handleStatusUpdate={handleStatusUpdate}
+          setModal={setModal}
+        />
+      </Suspense>
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onClose={removeToast} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserProfilesService } from '../../../../../backend';
+import { loadUserProfilesService } from '../../../../../backend';
 
 interface Author {
   id: string;
@@ -17,7 +17,10 @@ export function useAuthors() {
       try {
         setLoading(true);
         setError(null);
-        
+
+        // Lazy load user profiles service
+        const UserProfilesService = await loadUserProfilesService();
+
         // Fetch author options (admin, editor, author roles)
         const { data, error: fetchError } = await UserProfilesService.getAuthorOptions();
 

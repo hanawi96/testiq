@@ -77,7 +77,8 @@ const INSTANT_CATEGORIES: Category[] = [
 async function loadCategoriesData(): Promise<Category[]> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { CategoriesService } = await import('../../../../backend/admin/categories-service');
+    const { loadCategoriesService } = await import('../../../../backend');
+    const CategoriesService = await loadCategoriesService();
     const result = await CategoriesService.getAllCategories();
 
     if (result.data && result.data.length > 0) {

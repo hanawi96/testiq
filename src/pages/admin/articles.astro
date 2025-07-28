@@ -1,18 +1,31 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { AdminArticles } from '../../components/admin/articles';
+// Import only the list component, not the entire articles module
+import AdminArticles from '../../components/admin/articles/AdminArticles';
+
+// ===== DEBUG UTILITY =====
+const debug = {
+  ssr: (msg: string, data?: any) => {
+    if (import.meta.env.DEV) {
+      console.log(`⚡ SSR ARTICLES: ${msg}`, data || '');
+    }
+  },
+  error: (msg: string, error?: any) => {
+    console.error(`❌ SSR ARTICLES: ${msg}`, error || '');
+  }
+};
 
 // 🚀 SSR: Pre-fetch initial data for instant load
 let initialData = null;
 let initialStats = null;
 
 try {
-  console.log('🔄 SSR: Fetching initial articles data...');
+  debug.ssr('Fetching initial articles data...');
 
   // Import backend service
-  console.log('🔄 SSR: Importing ArticlesService...');
+  debug.ssr('Importing ArticlesService...');
   const { ArticlesService } = await import('../../../backend');
-  console.log('✅ SSR: ArticlesService imported successfully');
+  debug.ssr('ArticlesService imported successfully');
 
   // Parse URL params to get the correct page and filters
   const url = new URL(Astro.request.url);
@@ -39,24 +52,35 @@ try {
 
 
 
+  // ALWAYS skip cache for SSR to ensure fresh data after quick edits
+  // This makes Articles behave like Users management (which works perfectly)
+  const shouldSkipCache = true; // Always fresh data
+
+  debug.ssr(`Cache strategy: ALWAYS SKIP CACHE (like Users management)`);
+
   // Parallel fetch for better performance
   const [articlesResult, statsResult] = await Promise.all([
-    ArticlesService.getArticles(page, 10, filters),
+    ArticlesService.getArticles(page, 10, filters, shouldSkipCache), // Always skip cache
     ArticlesService.getStats()
   ]);
 
   if (!articlesResult.error && articlesResult.data) {
-    initialData = articlesResult.data;
-    console.log(`✅ SSR: Loaded ${articlesResult.data.articles.length} articles`);
+    // Inject page and filters info into SSR data for client sync
+    initialData = {
+      ...articlesResult.data,
+      page: page,
+      filters: filters
+    };
+    debug.ssr(`Loaded ${articlesResult.data.articles.length} articles for page ${page}`);
   } else {
-    console.error('❌ SSR: Error loading articles:', articlesResult.error);
+    debug.error('Error loading articles', articlesResult.error);
   }
 
   if (!statsResult.error && statsResult.data) {
     initialStats = statsResult.data;
-    console.log('✅ SSR: Loaded article stats');
+    debug.ssr('Loaded article stats');
   } else {
-    console.error('❌ SSR: Error loading stats:', statsResult.error);
+    debug.error('Error loading stats', statsResult.error);
   }
 
 } catch (error) {
@@ -73,9 +97,9 @@ try {
     window.__ARTICLES_INITIAL_STATS__ = initialStats;
 
     if (initialData) {
-      console.log('✅ SSR: Initial data injected, articles count:', initialData.articles.length);
+      console.log('⚡ SSR ARTICLES: Initial data injected, articles count:', initialData.articles.length);
     } else {
-      console.log('⚠️ SSR: No initial data, will use client-side loading');
+      console.log('⚠️ SSR ARTICLES: No initial data, will use client-side loading');
     }
   </script>
 

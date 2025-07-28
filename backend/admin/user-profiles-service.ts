@@ -9,8 +9,8 @@ export interface UserProfile {
 
 export interface AuthorOption {
   id: string;
-  full_name: string;
-  email?: string;
+  full_name: string | null;
+  email?: string | null;
   role: string;
   role_badge_color: string;
   role_display_name: string;

@@ -17,7 +17,8 @@ let preloadPromise: Promise<{ tags: any[]; stats: any }> | null = null;
 async function loadAdminTagsData(): Promise<{ tags: any[]; stats: any }> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { TagsService } = await import('../../../../backend');
+    const { loadTagsService } = await import('../../../../backend');
+    const TagsService = await loadTagsService();
     
     // Load both tags and stats in parallel
     const [tagsResult, statsResult] = await Promise.all([

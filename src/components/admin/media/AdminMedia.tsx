@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MediaService } from '../../../../backend';
+import { loadMediaService } from '../../../../backend';
 import type { MediaFile, MediaFolder, MediaStats, MediaFilters, MediaListResponse } from '../../../../backend';
 import UploadModal from './UploadModal';
 
@@ -29,8 +29,9 @@ export default function AdminMedia() {
   const fetchMedia = useCallback(async (page: number = currentPage) => {
     console.log(`🔍 Fetch media page ${page}`);
     setError('');
-    
+
     try {
+      const MediaService = await loadMediaService();
       const { data, error: fetchError } = await MediaService.getMediaFiles(page, limit, filters);
       
       if (fetchError || !data) {
@@ -49,6 +50,7 @@ export default function AdminMedia() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
+      const MediaService = await loadMediaService();
       const { data: statsData, error: statsError } = await MediaService.getStats();
       if (!statsError && statsData) {
         setStats(statsData);

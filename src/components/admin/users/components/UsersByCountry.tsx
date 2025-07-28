@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UsersService } from '../../../../../backend';
+import { loadUsersService } from '../../../../../backend';
 
 interface CountryStats {
   country_name: string;
@@ -26,6 +26,7 @@ export const UsersByCountry = ({ className = '' }: UsersByCountryProps) => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const UsersService = await loadUsersService();
       const { data: countryData, error } = await UsersService.getUsersByCountry();
       
       if (error) {

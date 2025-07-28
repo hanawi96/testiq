@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 
 interface CategoryDisplayProps {
   categories: readonly string[] | string[];
@@ -19,8 +19,14 @@ const CategoryDisplay: React.FC<CategoryDisplayProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Memoize categories để tránh re-render không cần thiết
+  const memoizedCategories = useMemo(() => categories, [categories?.join(',')]);
+
+  // Debug log để xem categories data (chỉ khi thực sự thay đổi)
+  console.log('🏷️ CategoryDisplay render:', { categories: memoizedCategories, length: memoizedCategories?.length });
+
   // Nếu không có danh mục hoặc ít hơn maxVisible, hiển thị bình thường
-  if (!categories || categories.length === 0) {
+  if (!memoizedCategories || memoizedCategories.length === 0) {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
         {showIcon && `${iconPrefix} `}Chưa phân loại
@@ -28,10 +34,10 @@ const CategoryDisplay: React.FC<CategoryDisplayProps> = ({
     );
   }
 
-  if (categories.length <= maxVisible) {
+  if (memoizedCategories.length <= maxVisible) {
     return (
       <div className={`flex flex-wrap gap-1 ${className}`}>
-        {categories.map((categoryName, index) => (
+        {memoizedCategories.map((categoryName, index) => (
           <span
             key={index}
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(categoryName)}`}
@@ -44,8 +50,8 @@ const CategoryDisplay: React.FC<CategoryDisplayProps> = ({
   }
 
   // Có nhiều hơn maxVisible danh mục
-  const visibleCategories = isExpanded ? categories : categories.slice(0, maxVisible);
-  const hiddenCount = categories.length - maxVisible;
+  const visibleCategories = isExpanded ? memoizedCategories : memoizedCategories.slice(0, maxVisible);
+  const hiddenCount = memoizedCategories.length - maxVisible;
 
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
@@ -92,4 +98,4 @@ const CategoryDisplay: React.FC<CategoryDisplayProps> = ({
   );
 };
 
-export default CategoryDisplay;
+export default memo(CategoryDisplay);

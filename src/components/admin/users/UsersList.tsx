@@ -1,13 +1,12 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { UsersService } from '../../../../backend';
-import type { UserWithProfile, UsersListResponse, UsersFilters } from '../../../../backend';
+import { motion } from 'framer-motion';
+import { loadUsersService } from '../../../../backend';
+import type { UserWithProfile } from '../../../../backend';
 import { CreateUserModal, EditUserModal } from './components/modals';
 import { QuickRoleEditor, UsersChart } from './components';
 import { ToastContainer } from '../common/Toast';
 import QuickVerificationEditor from './components/QuickVerificationEditor';
 import { preloadTriggers } from '../../../utils/admin/preloaders/country-preloader';
-import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
+
 import countryData from '../../../../Country.json';
 import { formatDate, formatGender, formatTestCount, getRoleBadge, getUserTypeBadge, isAnonymousUser } from './utils/formatters';
 import {
@@ -245,6 +244,7 @@ export const UsersList = () => {
     }
 
     try {
+      const UsersService = await loadUsersService();
       const { success, error } = await UsersService.bulkDeleteUsers([userId]);
 
       if (success) {
@@ -742,8 +742,8 @@ export const UsersList = () => {
                   </tr>
                 ))}
 
-                {/* Skeleton rows while loading */}
-                {isLoading && (
+                {/* Skeleton rows while loading - Only show when no data is available */}
+                {isLoading && !usersData?.users?.length && (
                   <>
                     <SkeletonTableRow />
                     <SkeletonTableRow />

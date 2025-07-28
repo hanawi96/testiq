@@ -59,12 +59,16 @@ export default defineConfig({
   },
   vite: {
     build: {
-      cssCodeSplit: false,
+      cssCodeSplit: true,
       rollupOptions: {
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom'],
-            ui: ['framer-motion']
+            editor: ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-image', '@tiptap/extension-link'],
+            ui: ['framer-motion'],
+            'articles-list': ['src/components/admin/articles/AdminArticles.tsx'],
+            'articles-editor': ['src/components/admin/articles/editors-entry.ts'],
+            'quick-editors': ['src/components/admin/articles/components/QuickEditorsContainer.tsx']
           }
         }
       }

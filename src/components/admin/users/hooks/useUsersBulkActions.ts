@@ -3,7 +3,7 @@
  * Hook quản lý các bulk actions cho Users module
  */
 
-import { UsersService } from '../../../../../backend';
+import { loadUsersService } from '../../../../../backend';
 import type { UsersListResponse } from '../../../../../backend';
 
 interface UseUsersBulkActionsProps {
@@ -63,6 +63,7 @@ export const useUsersBulkActions = ({
 
     setActionLoading('bulk-role');
     try {
+      const UsersService = await loadUsersService();
       const { success, error } = await UsersService.bulkUpdateUserRole(selectedUsers, newRole);
       if (success) {
         // Clear cache để đảm bảo data fresh cho lần fetch tiếp theo
@@ -117,6 +118,7 @@ export const useUsersBulkActions = ({
 
     setActionLoading('bulk-delete');
     try {
+      const UsersService = await loadUsersService();
       const { success, error } = await UsersService.bulkDeleteUsers(selectedUsers);
 
       if (success) {
@@ -157,6 +159,7 @@ export const useUsersBulkActions = ({
 
     setActionLoading('bulk-verification');
     try {
+      const UsersService = await loadUsersService();
       const { success, error } = await UsersService.bulkUpdateUserVerification(selectedUsers, verified);
       if (success) {
         // Clear cache và refresh data

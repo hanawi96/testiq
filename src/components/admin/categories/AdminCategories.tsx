@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CategoriesService } from '../../../../backend';
+import { loadCategoriesService } from '../../../../backend';
 import type { Category, CategoryStats, CategoriesFilters, CategoriesListResponse } from '../../../../backend';
 import CategoryModal from './CategoryModal';
 import CategoryCreationLoader from './CategoryCreationLoader';
@@ -51,6 +51,7 @@ export default function AdminCategories() {
     setError('');
 
     try {
+      const CategoriesService = await loadCategoriesService();
       const { data, error: fetchError } = await CategoriesService.getCategories(page, limit, filters);
 
       if (fetchError || !data) {
@@ -69,6 +70,7 @@ export default function AdminCategories() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
+      const CategoriesService = await loadCategoriesService();
       const { data: statsData, error: statsError } = await CategoriesService.getStats();
       if (!statsError && statsData) {
         setStats(statsData);
@@ -153,6 +155,7 @@ export default function AdminCategories() {
 
     try {
       // 2. BACKGROUND API CALL
+      const CategoriesService = await loadCategoriesService();
       const { data: deletedCount, error } = await CategoriesService.bulkDeleteCategories(selectedCategories);
 
       if (!error) {
@@ -211,6 +214,7 @@ export default function AdminCategories() {
 
     try {
       // 2. BACKGROUND API CALL
+      const CategoriesService = await loadCategoriesService();
       const { data: updatedCount, error } = await CategoriesService.bulkUpdateStatus(selectedCategories, status);
 
       if (!error) {

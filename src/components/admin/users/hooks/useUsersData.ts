@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef } from 'react';
-import { UsersService } from '../../../../../backend';
+import { loadUsersService } from '../../../../../backend';
 import type { UsersFilters, UsersListResponse } from '../../../../../backend';
 
 interface UseUsersDataProps {
@@ -52,6 +52,7 @@ export const useUsersData = ({
 }: UseUsersDataProps) => {
   // Track if initial load has been done to prevent infinite loops
   const initialLoadDone = useRef(false);
+  const ssrHydrated = useRef(false);
 
   // Generate cache key
   const getCacheKey = (page: number, currentFilters: UsersFilters, pageLimit: number = limit) => {
@@ -74,6 +75,7 @@ export const useUsersData = ({
     prefetchQueue.current.add(page);
 
     try {
+      const UsersService = await loadUsersService();
       const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, currentFilters);
       if (!fetchError && data) {
         // Store in both caches
@@ -143,13 +145,14 @@ export const useUsersData = ({
     } else {
       // No cached data, show loading
       console.log(`🔄 Loading page ${page}...`);
-      // Use ref to check current usersData without adding it to dependencies
-      if (page === 1 && !usersDataRef.current) setIsLoading(true);
+      // Show loading only if no data is available
+      if (!usersDataRef.current) setIsLoading(true);
     }
 
     setError('');
 
     try {
+      const UsersService = await loadUsersService();
       const { data, error: fetchError } = await UsersService.getUsers(page, pageLimit, filters);
 
       if (fetchError || !data) {
@@ -197,14 +200,15 @@ export const useUsersData = ({
         setError('Có lỗi xảy ra khi tải dữ liệu');
       }
     } finally {
-      // Use ref to check current usersData without adding it to dependencies
-      if (page === 1 && !usersDataRef.current) setIsLoading(false);
+      // Always turn off loading after fetch attempt
+      setIsLoading(false);
     }
   }, [currentPage, limit, filters, getCacheKey, cacheWithTTL, setUsersData, setError, smartAggressivePrefetch, usersDataRef, setIsLoading, setCurrentPage, updateURL, cache, CACHE_TTL]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
+      const UsersService = await loadUsersService();
       const { data: statsData, error: statsError } = await UsersService.getUserStats();
       if (!statsError && statsData) {
         setStats(statsData);
@@ -215,11 +219,29 @@ export const useUsersData = ({
   }, [setStats]);
 
   // Clear cache when filters change and trigger refetch
-  const prevFiltersRef = useRef<UsersFilters>(filters);
+  const prevFiltersRef = useRef<UsersFilters | null>(null);
   useEffect(() => {
+    // Skip on first run (when prevFiltersRef is null)
+    if (prevFiltersRef.current === null) {
+      prevFiltersRef.current = filters;
+      return;
+    }
+
     const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
+
     if (filtersChanged && isInitialized) {
-      console.log('🧹 FILTERS CHANGED: Clearing cache and refetching data');
+      // Skip refetch if SSR hydration just happened
+      if (ssrHydrated.current) {
+        prevFiltersRef.current = filters;
+        ssrHydrated.current = false; // Reset flag
+        return;
+      }
+
+      // Skip refetch if we have SSR data that matches current filters
+      if (typeof window !== 'undefined' && (window as any).__USERS_INITIAL_DATA__) {
+        prevFiltersRef.current = filters;
+        return;
+      }
       cache.current.clear();
       cacheWithTTL.current.clear();
       prefetchQueue.current.clear();
@@ -257,8 +279,19 @@ export const useUsersData = ({
       setIsLoading(false);
       setError('');
 
-      // Cache the initial data with TTL
-      const cacheKey = `${initialData.page}-${limit}-${JSON.stringify(filters)}`;
+      // Mark SSR as hydrated to prevent race conditions
+      ssrHydrated.current = true;
+
+      // Cache the initial data with TTL - Use SSR filters to ensure cache key matches
+      const ssrFilters = {
+        role: initialData.filters?.role || filters.role,
+        search: initialData.filters?.search || filters.search,
+        user_status: initialData.filters?.user_status || filters.user_status,
+        gender: initialData.filters?.gender || filters.gender,
+        sort: initialData.filters?.sort || filters.sort
+      };
+
+      const cacheKey = `${initialData.page}-${limit}-${JSON.stringify(ssrFilters)}`;
       cache.current.set(cacheKey, initialData);
       cacheWithTTL.current.set(cacheKey, {
         data: initialData,

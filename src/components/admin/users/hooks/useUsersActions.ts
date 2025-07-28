@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { UsersService } from '../../../../../backend';
+import { loadUsersService } from '../../../../../backend';
 import type { UsersFilters, UsersListResponse, UserWithProfile } from '../../../../../backend';
 
 interface UseUsersActionsProps {
@@ -141,6 +141,7 @@ export const useUsersActions = ({
     }
 
     try {
+      const UsersService = await loadUsersService();
       const { success, error: updateError } = await UsersService.updateUserRole(userId, newRole);
 
       if (success) {
@@ -186,6 +187,7 @@ export const useUsersActions = ({
     }
 
     try {
+      const UsersService = await loadUsersService();
       const { success, error: updateError } = await UsersService.toggleUserVerification(userId);
 
       if (success) {

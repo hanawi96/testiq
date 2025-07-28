@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArticlesService, CategoriesService } from '../../../../../backend';
+import { ArticlesService, loadCategoriesService } from '../../../../../backend';
 import type { Category } from '../../../../../backend';
 
 interface QuickCategoryEditorProps {
@@ -31,6 +31,7 @@ export default function QuickCategoryEditor({
   useEffect(() => {
     const loadCategories = async () => {
       try {
+        const CategoriesService = await loadCategoriesService();
         const { data: categories, error: categoriesError } = await CategoriesService.getAllCategories();
         
         if (categoriesError) {

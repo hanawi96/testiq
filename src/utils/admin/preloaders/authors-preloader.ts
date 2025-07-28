@@ -47,7 +47,8 @@ const INSTANT_AUTHORS: AuthorOption[] = [
 async function loadAuthorsData(): Promise<AuthorOption[]> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { UserProfilesService } = await import('../../../../backend');
+    const { loadUserProfilesService } = await import('../../../../backend');
+    const UserProfilesService = await loadUserProfilesService();
     const result = await UserProfilesService.getAuthorOptions();
     
     if (result.data && result.data.length > 0) {

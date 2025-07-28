@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ResultsService } from '../../../../backend';
+import { loadResultsService } from '../../../../backend';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
 import type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from '../../../../backend';
 import ResultsTestChart from './ResultsTestChart';
@@ -65,6 +65,7 @@ export default function AdminResults() {
 
     setIsDeleting(true);
     try {
+      const ResultsService = await loadResultsService();
       const { data, error } = await ResultsService.deleteResults(Array.from(selectedResults));
       if (error) {
         console.error('Error deleting results:', error);
@@ -111,6 +112,7 @@ export default function AdminResults() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
+      const ResultsService = await loadResultsService();
       const { data: statsData, error: statsError } = await ResultsService.getStats();
       if (!statsError && statsData) {
         setStats(statsData);
@@ -123,6 +125,7 @@ export default function AdminResults() {
   // Fetch score distribution
   const fetchScoreDistribution = useCallback(async () => {
     try {
+      const ResultsService = await loadResultsService();
       const { data: distData, error: distError } = await ResultsService.getScoreDistribution();
       if (!distError && distData) {
         setScoreDistribution(distData);
@@ -269,6 +272,7 @@ export default function AdminResults() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
+      const ResultsService = await loadResultsService();
       const { data: exportData, error: exportError } = await ResultsService.exportResults(filters);
       
       if (exportError || !exportData) {

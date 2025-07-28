@@ -20,62 +20,88 @@ async function updateRelationships(config: {
 }): Promise<{ error: any }> {
   try {
     const { articleId, tableName, foreignKeyColumn, newIds, primaryUpdate } = config;
+    console.log('🔧 updateRelationships START:', { articleId, tableName, foreignKeyColumn, newIds, primaryUpdate });
 
     // 1. Update primary field if specified (for categories)
     if (primaryUpdate) {
+      console.log('📝 Updating primary field:', primaryUpdate);
       const { error: updateError } = await ArticleQueries.updateArticle(articleId, {
         [primaryUpdate.column]: primaryUpdate.value,
         updated_at: new Date().toISOString()
       });
-      if (updateError) return { error: updateError };
+      if (updateError) {
+        console.log('❌ Primary field update error:', updateError);
+        return { error: updateError };
+      }
+      console.log('✅ Primary field updated successfully');
     }
 
     // 2. Get existing relationships
+    console.log('🔍 Getting existing relationships from:', tableName);
     const { data: existing } = await supabase
       .from(tableName)
       .select(foreignKeyColumn)
       .eq('article_id', articleId);
 
     const existingIds = existing?.map((item: any) => item[foreignKeyColumn]) || [];
+    console.log('📊 Existing IDs:', existingIds);
 
-    // 3. Calculate diff
+    // 3. Calculate diff and check order
     const toAdd = newIds.filter(id => !existingIds.includes(id));
     const toRemove = existingIds.filter(id => !newIds.includes(id));
 
-    // 4. Remove old relationships
-    if (toRemove.length > 0) {
-      await supabase
+    // Check if order has changed (important for categories)
+    const orderChanged = JSON.stringify(existingIds) !== JSON.stringify(newIds);
+    console.log('📈 Diff calculation:', { toAdd, toRemove, orderChanged });
+
+    // 4. If order changed or there are changes, recreate all relationships
+    if (orderChanged || toAdd.length > 0 || toRemove.length > 0) {
+      console.log('🔄 Recreating relationships due to changes or order change');
+
+      // Remove ALL existing relationships
+      const { error: deleteAllError } = await supabase
         .from(tableName)
         .delete()
-        .eq('article_id', articleId)
-        .in(foreignKeyColumn, toRemove);
-    }
+        .eq('article_id', articleId);
 
-    // 5. Add new relationships
-    if (toAdd.length > 0) {
-      const relations = toAdd.map(id => ({
-        article_id: articleId,
-        [foreignKeyColumn]: id
-      }));
+      if (deleteAllError) {
+        console.log('❌ Delete all error:', deleteAllError);
+        return { error: deleteAllError };
+      }
+      console.log('✅ All old relationships removed');
 
-      const { error: insertError } = await supabase
-        .from(tableName)
-        .upsert(relations, {
-          onConflict: `article_id,${foreignKeyColumn}`,
-          ignoreDuplicates: true
-        });
+      // Add ALL new relationships in correct order
+      if (newIds.length > 0) {
+        console.log('➕ Adding all relationships in correct order:', newIds);
+        const relations = newIds.map(id => ({
+          article_id: articleId,
+          [foreignKeyColumn]: id
+        }));
 
-      if (insertError) return { error: insertError };
+        const { error: insertError } = await supabase
+          .from(tableName)
+          .insert(relations);
+
+        if (insertError) {
+          console.log('❌ Insert error:', insertError);
+          return { error: insertError };
+        }
+        console.log('✅ All new relationships added in correct order');
+      }
+    } else {
+      console.log('⏭️ No changes needed - relationships already correct');
     }
 
     // 6. Update article timestamp if no primary update was done
     if (!primaryUpdate) {
+      console.log('⏰ Updating article timestamp');
       await supabase
         .from('articles')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', articleId);
     }
 
+    console.log('✅ updateRelationships COMPLETE - no errors');
     return { error: null };
   } catch (err) {
     return { error: err };
@@ -220,16 +246,22 @@ export class RelationshipsUtils {
    * REFACTORED: Update article categories - Compact & Reusable
    */
   static async updateCategories(articleId: string, categoryIds: string[]): Promise<{ error: any }> {
+    console.log('🔧 RelationshipsUtils.updateCategories START:', { articleId, categoryIds });
+
     const primaryCategoryId = categoryIds.length > 0 ? categoryIds[0] : null;
+    console.log('📝 Primary category ID:', primaryCategoryId);
 
     // Use generic relationship updater with primary category update
-    return updateRelationships({
+    const result = await updateRelationships({
       articleId,
       tableName: 'article_categories',
       foreignKeyColumn: 'category_id',
       newIds: categoryIds,
       primaryUpdate: { column: 'category_id', value: primaryCategoryId }
     });
+
+    console.log('✅ RelationshipsUtils.updateCategories RESULT:', result);
+    return result;
   }
 
   /**

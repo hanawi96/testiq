@@ -7,6 +7,15 @@
 import { useEffect, useCallback, useRef } from 'react';
 import type { ArticlesFilters } from '../../../../../backend';
 
+// ===== DEBUG UTILITY =====
+const debug = {
+  url: (msg: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔄 ARTICLES URL: ${msg}`, data || '');
+    }
+  }
+};
+
 interface UseArticlesEffectsProps {
   dispatch: (action: any) => void;
   filters: ArticlesFilters;
@@ -52,9 +61,22 @@ export const useArticlesEffects = ({
     window.history.replaceState({}, '', url.toString());
   }, []);
 
-  // Initialize from URL params on mount
+  // Initialize from URL params on mount - ONLY if no SSR data
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Check if SSR data exists AND will be used (not skipped by force fresh flag)
+    const hasSSRData = (window as any).__ARTICLES_INITIAL_DATA__;
+    const forceFresh = localStorage.getItem('articles_force_fresh');
+    const willUseSSR = hasSSRData && !forceFresh;
+
+    if (willUseSSR) {
+      debug.url('SSR data will be used - skipping URL initialization to prevent conflicts');
+      initialLoadDone.current = true;
+      return;
+    }
+
+    debug.url('No SSR data or force fresh - initializing from URL', { hasSSRData, forceFresh });
 
     const url = new URL(window.location.href);
     const urlPage = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
@@ -79,7 +101,7 @@ export const useArticlesEffects = ({
     const pageChanged = urlPage !== currentPage;
 
     if (filtersChanged || pageChanged) {
-      console.log('🔄 Articles URL Sync: Initializing from URL params', {
+      debug.url('Initializing from URL params (no SSR data)', {
         page: urlPage,
         filters: urlFilters
       });
@@ -120,7 +142,7 @@ export const useArticlesEffects = ({
         sort: sort as 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'
       };
 
-      console.log('🔄 Articles Browser Navigation: Syncing state from URL', {
+      debug.url('Browser navigation - syncing state from URL', {
         page,
         filters: newFilters
       });

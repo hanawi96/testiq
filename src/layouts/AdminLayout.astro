@@ -268,18 +268,7 @@ import AdminHeader from '../components/admin/layout/AdminHeader.astro';
     // Admin layout is now handled by Astro components
     console.log('Admin layout initialized');
 
-    // INTELLIGENT PRELOADING: Start preloading critical data on app init
-    try {
-      // Use dynamic import without .js extension for Astro compatibility
-      import('../utils/admin/preloaders/preload-manager').then(({ SmartPreloader }) => {
-        SmartPreloader.triggerSmartPreload('init');
-        console.log('✅ Smart preloader initialized');
-      }).catch(error => {
-        console.warn('⚠️ Failed to load preload manager:', error);
-      });
-    } catch (error) {
-      console.warn('⚠️ Preload manager not available:', error);
-    }
+    // Removed aggressive preloading for better initial load performance
   </script>
 </body>
 </html> 

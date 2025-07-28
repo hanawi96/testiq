@@ -4,39 +4,97 @@
  * Pattern based on useUsersData.ts
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { ArticlesService } from '../../../../../backend';
 import type { ArticlesFilters, ArticlesListResponse } from '../../../../../backend';
+
+// ===== DEBUG UTILITY =====
+const debug = {
+  prefetch: (msg: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`⚡ ARTICLES PREFETCH: ${msg}`, data || '');
+    }
+  },
+  cache: (msg: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🗄️ ARTICLES CACHE: ${msg}`, data || '');
+    }
+  },
+  ssr: (msg: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`⚡ SSR ARTICLES: ${msg}`, data || '');
+    }
+  }
+};
 
 interface UseArticlesDataProps {
   filters: ArticlesFilters;
   limit: number;
   currentPage: number;
   dispatch: (action: any) => void;
-  setLoading: (payload: any) => void;
+  setLoading?: (payload: any) => void; // Optional for backward compatibility
 }
 
 export const useArticlesData = ({
   filters,
   limit,
   currentPage,
-  dispatch,
-  setLoading
+  dispatch
 }: UseArticlesDataProps) => {
   // Track if initial load has been done to prevent infinite loops
   const initialLoadDone = useRef(false);
 
-  // Enhanced cache with TTL for stale-while-revalidate
-  const cache = useRef<Map<string, ArticlesListResponse>>(new Map());
-  const cacheWithTTL = useRef<Map<string, {
+  // ===== CACHE MANAGEMENT =====
+  const cache = useRef<Map<string, {
     data: ArticlesListResponse;
     timestamp: number;
     ttl: number;
   }>>(new Map());
   const prefetchQueue = useRef<Set<number>>(new Set());
-  const aggressivePrefetchDone = useRef<Set<string>>(new Set()); // Track completed aggressive prefetches
+  const aggressivePrefetchDone = useRef<Set<string>>(new Set());
+  const activeRequests = useRef<Map<string, Promise<void>>>(new Map());
 
+  // ===== CACHE UTILITIES =====
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  const isCacheValid = useCallback((entry: { timestamp: number; ttl: number }) => {
+    return Date.now() - entry.timestamp < entry.ttl;
+  }, []);
+
+  const getCachedData = useCallback((cacheKey: string) => {
+    const entry = cache.current.get(cacheKey);
+    if (!entry) return null;
+
+    return {
+      data: entry.data,
+      isValid: isCacheValid(entry),
+      isStale: !isCacheValid(entry)
+    };
+  }, [isCacheValid]);
+
+  const setCacheData = useCallback((cacheKey: string, data: ArticlesListResponse, ttl: number = CACHE_TTL) => {
+    cache.current.set(cacheKey, {
+      data,
+      timestamp: Date.now(),
+      ttl
+    });
+  }, [CACHE_TTL]);
+
+  const clearCache = useCallback(() => {
+    const cacheSize = cache.current.size;
+    console.log('🗑️ CLEAR CACHE START - Current cache size:', cacheSize);
+    console.log('🗑️ Cache keys before clear:', Array.from(cache.current.keys()));
+
+    cache.current.clear();
+    prefetchQueue.current.clear();
+    aggressivePrefetchDone.current.clear();
+    activeRequests.current.clear();
+
+    console.log('✅ CLEAR CACHE COMPLETE - Cache size after clear:', cache.current.size);
+    debug.cache('Client cache cleared manually');
+  }, []);
+
+
 
   // Generate cache key
   const getCacheKey = (page: number, currentFilters: ArticlesFilters, pageLimit: number = limit) => {
@@ -47,60 +105,56 @@ export const useArticlesData = ({
   const prefetchPage = useCallback(async (page: number, currentFilters: ArticlesFilters, pageLimit: number = limit) => {
     const cacheKey = getCacheKey(page, currentFilters, pageLimit);
 
-    // Check both caches
-    if (cacheWithTTL.current.has(cacheKey) || cache.current.has(cacheKey)) {
-      console.log(`⏭️ PREFETCH SKIP: Page ${page} already cached`);
+    // Check cache using unified system
+    const cachedData = getCachedData(cacheKey);
+    if (cachedData) {
+      debug.prefetch(`Skip page ${page} - already cached`);
       return;
     }
 
     if (prefetchQueue.current.has(page)) {
-      console.log(`⏳ PREFETCH SKIP: Page ${page} already in queue`);
+      debug.prefetch(`Skip page ${page} - already in queue`);
       return;
     }
-
 
     prefetchQueue.current.add(page);
 
     try {
       const { data, error: fetchError } = await ArticlesService.getArticles(page, pageLimit, currentFilters);
       if (!fetchError && data) {
-        // Store in both caches
-        cache.current.set(cacheKey, data);
-        cacheWithTTL.current.set(cacheKey, {
-          data,
-          timestamp: Date.now(),
-          ttl: CACHE_TTL
-        });
-        console.log(`✅ PREFETCH SUCCESS: Page ${page} (${data.articles.length} articles cached)`);
+        // Store in unified cache
+        setCacheData(cacheKey, data);
+        debug.prefetch(`Success page ${page}`, `${data.articles.length} articles cached`);
       }
     } catch (err) {
-      console.warn(`Prefetch error for page ${page}:`, err);
+      debug.prefetch(`Error page ${page}`, err);
     } finally {
       prefetchQueue.current.delete(page);
     }
-  }, [limit, CACHE_TTL, getCacheKey]);
+  }, [limit, getCacheKey, getCachedData, setCacheData]);
 
   // Smart prefetch - Immediate for next page, background for others
   const smartAggressivePrefetch = useCallback(async (totalPages: number, currentFilters: ArticlesFilters, pageLimit: number = limit, currentPageNum: number = 1) => {
     const filterKey = JSON.stringify(currentFilters);
     if (aggressivePrefetchDone.current.has(filterKey)) {
-      console.log(`⏭️ PREFETCH: Already done for filter set, skipping`);
+      debug.prefetch(`Skip aggressive prefetch - already done for filter set`);
       return;
     }
 
-    console.log(`🚀 ARTICLES SMART PREFETCH: ${totalPages} pages from page ${currentPageNum}`);
+    debug.prefetch(`Smart prefetch ${totalPages} pages from page ${currentPageNum}`);
     aggressivePrefetchDone.current.add(filterKey);
 
     // Immediate prefetch for next page (no delay) - AWAIT to ensure completion
     const nextPage = currentPageNum + 1;
     if (nextPage <= totalPages) {
       const nextCacheKey = getCacheKey(nextPage, currentFilters, pageLimit);
-      if (!cacheWithTTL.current.has(nextCacheKey)) {
-        console.log(`⚡ IMMEDIATE PREFETCH: Page ${nextPage} (next page) - AWAITING...`);
+      const nextCachedData = getCachedData(nextCacheKey);
+      if (!nextCachedData) {
+        debug.prefetch(`Immediate prefetch page ${nextPage} (next page)`);
         await prefetchPage(nextPage, currentFilters, pageLimit); // AWAIT for immediate completion
-        console.log(`✅ IMMEDIATE PREFETCH COMPLETE: Page ${nextPage}`);
+        debug.prefetch(`Immediate prefetch complete page ${nextPage}`);
       } else {
-        console.log(`✅ CACHE HIT: Page ${nextPage} already cached`);
+        debug.cache(`Cache hit page ${nextPage}`);
       }
     }
 
@@ -109,11 +163,12 @@ export const useArticlesData = ({
       if (page === currentPageNum || page === nextPage) continue; // Skip current and next
 
       const cacheKey = getCacheKey(page, currentFilters, pageLimit);
-      if (!cacheWithTTL.current.has(cacheKey)) {
-        console.log(`🔄 BACKGROUND PREFETCH: Page ${page} (delay: ${page * 100}ms)`);
+      const cachedData = getCachedData(cacheKey);
+      if (!cachedData) {
+        debug.prefetch(`Background prefetch page ${page} (delay: ${page * 100}ms)`);
         setTimeout(() => prefetchPage(page, currentFilters, pageLimit), page * 100); // Slower for background
       } else {
-        console.log(`✅ CACHE HIT: Page ${page} already cached`);
+        debug.cache(`Cache hit page ${page}`);
       }
     }
   }, [prefetchPage, limit, getCacheKey]);
@@ -122,75 +177,105 @@ export const useArticlesData = ({
   const fetchArticles = useCallback(async (page: number = currentPage, pageLimit: number = limit) => {
     const cacheKey = getCacheKey(page, filters, pageLimit);
 
-    // Check cache first, show loading only if no cache
-    const cached = cacheWithTTL.current.get(cacheKey);
+    debug.cache(`Fetching articles for page ${page}`, { cacheKey });
 
-    if (cached) {
+    // Check if there's already an active request for this cache key
+    if (activeRequests.current.has(cacheKey)) {
+      debug.cache(`Request already in progress for ${cacheKey}, waiting...`);
+      await activeRequests.current.get(cacheKey);
+      return;
+    }
+
+    // Check cache first using unified system
+    const cachedData = getCachedData(cacheKey);
+    console.log('🔍 FETCH ARTICLES - Cache check:', {
+      cacheKey,
+      hasCachedData: !!cachedData,
+      isValid: cachedData?.isValid,
+      cacheSize: cache.current.size
+    });
+
+    if (cachedData) {
       // Instant display from cache
-      dispatch({ type: 'SET_ARTICLES_DATA', payload: cached.data });
+      console.log('📦 Using cached data for page', page);
+      debug.cache(`Using cached data for page ${page}`);
+      dispatch({ type: 'SET_ARTICLES_DATA', payload: cachedData.data });
       dispatch({ type: 'SET_ERROR', payload: '' });
       dispatch({ type: 'SET_LOADING', payload: { articles: false } });
 
       // Check if data is fresh
-      const isStale = Date.now() - cached.timestamp > cached.ttl;
-      if (!isStale) {
-        smartAggressivePrefetch(cached.data.totalPages, filters, pageLimit, page);
+      if (cachedData.isValid) {
+        console.log('✅ Cache is valid, no need to revalidate');
+        smartAggressivePrefetch(cachedData.data.totalPages, filters, pageLimit, page);
         return; // Fresh data, no need to revalidate
       }
+      console.log('⚠️ Cache is stale, fetching fresh data in background');
       // Continue to fetch fresh data in background (no loading shown)
     } else {
       // No cached data, show loading
+      console.log('🔄 No cache for page', page, '- showing loading');
+      debug.cache(`No cache for page ${page}, showing loading`);
       dispatch({ type: 'SET_LOADING', payload: { articles: true } });
     }
 
-    // Fetch fresh data (either initial load or background revalidation)
-    dispatch({ type: 'SET_ERROR', payload: '' });
+    // Create and track the request promise
+    const requestPromise = (async () => {
+      // Fetch fresh data (either initial load or background revalidation)
+      dispatch({ type: 'SET_ERROR', payload: '' });
 
-    try {
-      const { data, error: fetchError } = await ArticlesService.getArticles(page, pageLimit, filters);
+      try {
+        debug.cache(`API call for page ${page}`);
+        const { data, error: fetchError } = await ArticlesService.getArticles(page, pageLimit, filters);
 
-      if (fetchError || !data) {
-        if (!cached) {
-          dispatch({ type: 'SET_ERROR', payload: 'Không thể tải danh sách bài viết' });
+        if (fetchError || !data) {
+          debug.cache(`API error for page ${page}`, fetchError);
+          if (!cachedData) {
+            dispatch({ type: 'SET_ERROR', payload: 'Không thể tải danh sách bài viết' });
+          }
+          return;
         }
-        return;
-      }
 
-      // Handle boundary condition: if current page is empty but there are other pages
-      if (data.articles.length === 0 && data.totalPages > 0 && page > data.totalPages) {
-        const lastValidPage = Math.max(1, data.totalPages);
-        dispatch({ type: 'SET_UI', payload: { currentPage: lastValidPage } });
-        fetchArticles(lastValidPage, pageLimit);
-        return;
-      }
+        debug.cache(`API success for page ${page}`, { articlesCount: data.articles.length });
 
-      // Update cache with TTL
-      cacheWithTTL.current.set(cacheKey, {
-        data,
-        timestamp: Date.now(),
-        ttl: CACHE_TTL
-      });
+        // Handle boundary condition: if current page is empty but there are other pages
+        if (data.articles.length === 0 && data.totalPages > 0 && page > data.totalPages) {
+          const lastValidPage = Math.max(1, data.totalPages);
+          debug.cache(`Page ${page} out of bounds, redirecting to page ${lastValidPage}`);
+          dispatch({ type: 'SET_UI', payload: { currentPage: lastValidPage } });
+          fetchArticles(lastValidPage, pageLimit);
+          return;
+        }
 
-      // Also update old cache for backward compatibility
-      cache.current.set(cacheKey, data);
+        // Update unified cache
+        setCacheData(cacheKey, data);
 
-      // Update UI only if no stale data was served
-      if (!cached) {
+        // Always update UI with fresh data (overwrite stale cache)
         dispatch({ type: 'SET_ARTICLES_DATA', payload: data });
-      }
 
-      // Smart aggressive prefetch
-      smartAggressivePrefetch(data.totalPages, filters, pageLimit, page); // No await needed for background
+        // Smart aggressive prefetch
+        smartAggressivePrefetch(data.totalPages, filters, pageLimit, page);
 
-    } catch (err) {
-      if (!cached) {
-        dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi tải dữ liệu' });
+      } catch (err) {
+        debug.cache(`Exception for page ${page}`, err);
+        if (!cachedData) {
+          dispatch({ type: 'SET_ERROR', payload: 'Có lỗi xảy ra khi tải dữ liệu' });
+        }
+      } finally {
+        // Always turn off loading after fetch completes
+        dispatch({ type: 'SET_LOADING', payload: { articles: false } });
       }
+    })();
+
+    // Track the request
+    activeRequests.current.set(cacheKey, requestPromise);
+
+    // Execute and cleanup
+    try {
+      await requestPromise;
     } finally {
-      // Always turn off loading after fetch completes
-      dispatch({ type: 'SET_LOADING', payload: { articles: false } });
+      activeRequests.current.delete(cacheKey);
     }
-  }, [currentPage, filters, dispatch, limit, smartAggressivePrefetch]);
+  }, [currentPage, filters, dispatch, limit, smartAggressivePrefetch, getCacheKey, getCachedData, setCacheData]);
 
   // Fetch stats with caching
   const fetchStats = useCallback(async () => {
@@ -214,32 +299,57 @@ export const useArticlesData = ({
     let articlesUsed = false;
     let statsUsed = false;
 
+    // Check if we should force fresh data (skip SSR)
+    if (typeof window !== 'undefined') {
+      const forceFresh = localStorage.getItem('articles_force_fresh');
+      if (forceFresh) {
+        debug.ssr('Force fresh data - skipping SSR hydration');
+        localStorage.removeItem('articles_force_fresh');
+        // Clear SSR data to prevent any usage
+        delete (window as any).__ARTICLES_INITIAL_DATA__;
+        delete (window as any).__ARTICLES_INITIAL_STATS__;
+        return { articlesUsed: false, statsUsed: false };
+      }
+    }
+
     // Hydrate articles data
     if (typeof window !== 'undefined' && (window as any).__ARTICLES_INITIAL_DATA__) {
       const initialData = (window as any).__ARTICLES_INITIAL_DATA__;
 
-      console.log('⚡ SSR ARTICLES HYDRATION: Using pre-loaded data', {
+      debug.ssr('Hydration using pre-loaded data', {
         page: initialData?.page,
         articlesCount: initialData?.articles?.length,
         totalPages: initialData?.totalPages
       });
 
-      // Set data immediately (0ms)
+      // IMPORTANT: Sync page and filters FIRST to prevent UI conflicts
+      if (initialData.page && initialData.page !== currentPage) {
+        debug.ssr(`Syncing page from SSR: ${currentPage} -> ${initialData.page}`);
+        dispatch({ type: 'SET_UI', payload: { currentPage: initialData.page } });
+      }
+
+      // Sync filters if provided in SSR data
+      if (initialData.filters) {
+        debug.ssr('Syncing filters from SSR:', initialData.filters);
+        dispatch({ type: 'SET_FILTERS', payload: initialData.filters });
+      }
+
+      // THEN set data after state is synced
+      debug.ssr('Setting articles data after state sync');
       dispatch({ type: 'SET_ARTICLES_DATA', payload: initialData });
       dispatch({ type: 'SET_LOADING', payload: { articles: false } });
       dispatch({ type: 'SET_ERROR', payload: '' });
 
-      // Cache the initial data with TTL
-      const cacheKey = `${initialData.page}-${limit}-${JSON.stringify(filters)}`;
-      cache.current.set(cacheKey, initialData);
-      cacheWithTTL.current.set(cacheKey, {
-        data: initialData,
-        timestamp: Date.now(),
-        ttl: CACHE_TTL
-      });
+      // Cache the initial data with unified cache - use filters from SSR data if available
+      const ssrFilters = initialData.filters || filters;
+      const cacheKey = getCacheKey(initialData.page || 1, ssrFilters, limit);
+      setCacheData(cacheKey, initialData);
+      debug.ssr(`Cached SSR data with key: ${cacheKey}`);
 
-      // Start aggressive prefetch for remaining pages
-      smartAggressivePrefetch(initialData.totalPages, filters, limit, initialData.page || 1); // No await needed for background
+      // Start aggressive prefetch for remaining pages (background)
+      setTimeout(() => {
+        smartAggressivePrefetch(initialData.totalPages, ssrFilters, limit, initialData.page || 1);
+      }, 100); // Small delay to ensure UI is stable first
 
       // Clear the global data to prevent reuse
       delete (window as any).__ARTICLES_INITIAL_DATA__;
@@ -249,7 +359,7 @@ export const useArticlesData = ({
     // Hydrate stats data
     if (typeof window !== 'undefined' && (window as any).__ARTICLES_INITIAL_STATS__) {
       const initialStats = (window as any).__ARTICLES_INITIAL_STATS__;
-      console.log('⚡ SSR STATS HYDRATION: Using pre-loaded stats', initialStats);
+      debug.ssr('Stats hydration using pre-loaded stats', initialStats);
       dispatch({ type: 'SET_STATS', payload: initialStats });
       dispatch({ type: 'SET_LOADING', payload: { stats: false } });
       delete (window as any).__ARTICLES_INITIAL_STATS__;
@@ -257,13 +367,28 @@ export const useArticlesData = ({
     }
 
     return { articlesUsed, statsUsed };
-  }, [dispatch, filters, limit, smartAggressivePrefetch]);
+  }, [dispatch, filters, limit, smartAggressivePrefetch, currentPage, getCacheKey, setCacheData]);
+
+  // ===== CLEANUP =====
+  // Cleanup cache and refs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      cache.current.clear();
+      prefetchQueue.current.clear();
+      aggressivePrefetchDone.current.clear();
+      activeRequests.current.clear();
+      debug.cache('Cache and active requests cleared on unmount');
+    };
+  }, []);
 
   return {
     // Cache utilities
     getCacheKey,
     cache,
-    cacheWithTTL,
+    getCachedData,
+    setCacheData,
+    clearCache,
+    isCacheValid,
     CACHE_TTL,
 
     // Data fetching

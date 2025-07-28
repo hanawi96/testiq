@@ -3,10 +3,10 @@ import { ChevronDown, User, Check, Search, Crown, Edit } from 'lucide-react';
 
 interface AuthorOption {
   id: string;
-  full_name: string;
-  email?: string;
+  full_name: string | null;
+  email?: string | null;
   role: string;
-  role_display_name: string;
+  role_display_name: string | null;
 }
 
 interface AuthorSelectorProps {
@@ -36,9 +36,9 @@ export default function AuthorSelector({
 
   // Filter authors based on search query
   const filteredAuthors = authors.filter(author =>
-    author.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    author.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    author.role_display_name.toLowerCase().includes(searchQuery.toLowerCase())
+    (author.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (author.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (author.role_display_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Handle dropdown toggle
@@ -166,7 +166,7 @@ export default function AuthorSelector({
             }
             ${!disabled && 'group-hover:scale-110'}
           `}>
-            {selectedAuthor ? selectedAuthor.full_name?.charAt(0)?.toUpperCase() : <User size={14} />}
+            {selectedAuthor && selectedAuthor.full_name ? selectedAuthor.full_name.charAt(0).toUpperCase() : <User size={14} />}
           </div>
 
           {/* Author Info */}
@@ -174,10 +174,10 @@ export default function AuthorSelector({
             {selectedAuthor ? (
               <div>
                 <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
-                  {selectedAuthor.full_name}
+                  {selectedAuthor.full_name || 'Tên không xác định'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {selectedAuthor.role_display_name}
+                  {selectedAuthor.role_display_name || 'Vai trò không xác định'}
                 </div>
               </div>
             ) : (
@@ -242,7 +242,7 @@ export default function AuthorSelector({
                   <div className="relative">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
                       <span className="text-xs font-semibold text-white">
-                        {author.full_name?.charAt(0)?.toUpperCase() || '?'}
+                        {author.full_name ? author.full_name.charAt(0).toUpperCase() : '?'}
                       </span>
                     </div>
                     {author.id === value && (
@@ -257,15 +257,15 @@ export default function AuthorSelector({
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
-                          {author.full_name}
+                          {author.full_name || 'Tên không xác định'}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {author.email}
+                          {author.email || 'Email không xác định'}
                         </div>
                       </div>
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeStyle(author.role)}`}>
                         {getRoleIcon(author.role)}
-                        {author.role_display_name}
+                        {author.role_display_name || 'Vai trò không xác định'}
                       </span>
                     </div>
                   </div>

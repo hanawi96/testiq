@@ -56,7 +56,7 @@ async function serviceWrapper<T>(
     if (!result.data && fallbackError) return { data: null, error: new Error(fallbackError) };
 
     if (shouldInvalidateCache && !result.error) {
-      ArticleQueries.invalidateArticlesCacheOptimized();
+      ArticleQueries.clearCache();
     }
 
     return result;
@@ -65,12 +65,7 @@ async function serviceWrapper<T>(
   }
 }
 
-/**
- * OPTIMIZED: Proper backend cache invalidation
- */
-function invalidateCache() {
-  ArticleQueries.invalidateArticlesCacheOptimized();
-}
+
 
 export class ArticlesService {
 
@@ -80,10 +75,11 @@ export class ArticlesService {
   static async getArticles(
     page: number = 1,
     limit: number = 20,
-    filters: ArticlesFilters = {}
+    filters: ArticlesFilters = {},
+    skipCache: boolean = false
   ): Promise<{ data: ArticlesListResponse | null; error: any }> {
     return serviceWrapper(async () => {
-      const { data: articles, error, count } = await ArticleQueries.getArticles(page, limit, filters);
+      const { data: articles, error, count } = await ArticleQueries.getArticles(page, limit, filters, skipCache);
       if (error || !articles) {
         return { data: null, error: error || new Error('Không thể lấy danh sách bài viết') };
       }
@@ -622,7 +618,7 @@ export class ArticlesService {
 
       // Full cache invalidation for manual saves
       ArticleQueries.clearCachePattern(`article:edit:${articleId}`);
-      invalidateCache(); // Clear all caches
+      ArticleQueries.clearCache(); // Clear all caches
 
       return result;
     }, ERROR_MESSAGES.ARTICLE_UPDATE_FAILED, true);
@@ -635,11 +631,11 @@ export class ArticlesService {
     const updateData: any = { status, updated_at: nowISO() };
     if (status === 'published') updateData.published_at = nowISO();
 
-    return serviceWrapper(
-      () => ArticleQueries.updateArticle(articleId, updateData),
-      ERROR_MESSAGES.STATUS_UPDATE_FAILED,
-      true
-    );
+    return serviceWrapper(async () => {
+      const result = await ArticleQueries.updateArticle(articleId, updateData);
+      if (!result.error) ArticleQueries.clearCache();
+      return result;
+    }, ERROR_MESSAGES.STATUS_UPDATE_FAILED, true);
   }
 
   // ===== REFACTORED BULK & RELATIONSHIP - Compact & Consistent =====
@@ -649,7 +645,7 @@ export class ArticlesService {
     status: 'published' | 'draft' | 'archived' | 'scheduled'
   ): Promise<{ data: number; error: any }> {
     const result = await BulkOperationsUtils.bulkUpdateStatus(articleIds, status);
-    if (!result.error) invalidateCache();
+    if (!result.error) ArticleQueries.clearCache();
     return result;
   }
 
@@ -657,7 +653,7 @@ export class ArticlesService {
     articleIds: string[]
   ): Promise<{ data: number; error: any }> {
     const result = await BulkOperationsUtils.bulkDeleteArticles(articleIds);
-    if (!result.error) invalidateCache();
+    if (!result.error) ArticleQueries.clearCache();
     return result;
   }
 
@@ -670,13 +666,16 @@ export class ArticlesService {
 
   static async updateTags(articleId: string, tags: string[]): Promise<{ data?: { tags: any[], tag_names: string[] }; error: any }> {
     const result = await RelationshipsUtils.updateTags(articleId, tags);
-    if (!result.error) invalidateCache();
+    if (!result.error) ArticleQueries.clearCache();
     return result;
   }
 
   static async updateAuthorById(articleId: string, authorId: string): Promise<{ error: any }> {
     const result = await RelationshipsUtils.updateAuthorById(articleId, authorId);
-    if (!result.error) invalidateCache();
+    if (!result.error) {
+      // Clear ALL cache to ensure fresh data on next request
+      ArticleQueries.clearCache();
+    }
     return result;
   }
 
@@ -684,19 +683,20 @@ export class ArticlesService {
     const updateData = { title: title.trim(), updated_at: nowISO() };
     return serviceWrapper(async () => {
       const result = await ArticleQueries.updateArticle(articleId, updateData);
+      if (!result.error) ArticleQueries.clearCache();
       return { data: true, error: result.error };
     }, undefined, true).then(result => ({ error: result.error }));
   }
 
   static async updateCategory(articleId: string, categoryId: string | null): Promise<{ error: any }> {
     const result = await RelationshipsUtils.updateCategory(articleId, categoryId);
-    if (!result.error) invalidateCache();
+    if (!result.error) ArticleQueries.clearCache();
     return result;
   }
 
   static async updateCategories(articleId: string, categoryIds: string[]): Promise<{ error: any }> {
     const result = await RelationshipsUtils.updateCategories(articleId, categoryIds);
-    if (!result.error) invalidateCache();
+    if (!result.error) ArticleQueries.clearCache();
     return result;
   }
 
@@ -712,7 +712,7 @@ export class ArticlesService {
 
   static async addSampleViewData(): Promise<{ success: boolean; error?: any }> {
     const result = await BulkOperationsUtils.addSampleViewData();
-    if (result.success) invalidateCache();
+    if (result.success) ArticleQueries.clearCache();
     return result;
   }
 
