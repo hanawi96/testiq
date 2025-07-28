@@ -2,6 +2,7 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 // Import only the list component, not the entire articles module
 import AdminArticles from '../../components/admin/articles/AdminArticles';
+import { ArticlesService } from '../../../backend/admin/articles/service';
 
 // ===== DEBUG UTILITY =====
 const debug = {
@@ -15,12 +16,11 @@ const debug = {
   }
 };
 
-// ✅ GIỐNG USERS: Không có SSR data injection
-// Users module không có SSR, chỉ client-side loading
+// 🚀 SSR DATA INJECTION - TEMPORARILY DISABLED FOR TESTING
 let initialData = null;
 let initialStats = null;
 
-debug.ssr('No SSR data injection - following Users module pattern');
+debug.ssr('SSR temporarily disabled for pagination testing');
 
 
 ---
@@ -33,9 +33,13 @@ debug.ssr('No SSR data injection - following Users module pattern');
     window.__ARTICLES_INITIAL_STATS__ = initialStats;
 
     if (initialData) {
-      console.log('⚡ SSR ARTICLES: Initial data injected, articles count:', initialData.articles.length);
+      console.log('⚡ SSR ARTICLES HYDRATION: Initial data injected, articles count:', initialData.articles.length);
     } else {
-      console.log('⚠️ SSR ARTICLES: No initial data, will use client-side loading');
+      console.log('⚠️ SSR ARTICLES HYDRATION: No initial data, will use client-side loading');
+    }
+
+    if (initialStats) {
+      console.log('⚡ SSR ARTICLES HYDRATION: Initial stats injected');
     }
   </script>
 

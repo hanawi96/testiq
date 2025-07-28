@@ -625,13 +625,11 @@ export default function ArticlesTable({
                   onChange={(e) => onLimitChange(Number(e.target.value))}
                   className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
+                  <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
-                  <option value={200}>200</option>
-                  <option value={300}>300</option>
-                  <option value={500}>500</option>
                 </select>
                 <span className="text-xs text-gray-500 dark:text-gray-400">/ trang</span>
               </div>

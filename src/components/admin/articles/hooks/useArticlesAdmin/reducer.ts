@@ -9,16 +9,24 @@ import type { AdminArticlesState, AdminArticlesAction, LoadingStates, ModalState
 // ===== INITIAL STATE =====
 const getInitialFilters = (): ArticlesFilters => {
   if (typeof window === 'undefined') return { status: 'all', sort: 'created_desc' };
-  
+
   const url = new URL(window.location.href);
   return {
-    status: (url.searchParams.get('status') || 'all') as 'all' | 'draft' | 'published',
+    status: (url.searchParams.get('status') || 'all') as 'all' | 'draft' | 'published' | 'archived' | 'scheduled',
     search: url.searchParams.get('search') || '',
     category: url.searchParams.get('category') || '',
     author: url.searchParams.get('author') || '',
     featured: (url.searchParams.get('featured') || 'all') as 'all' | 'true' | 'false',
-    sort: (url.searchParams.get('sort') || 'created_desc') as 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'
+    sort: (url.searchParams.get('sort') || 'created_desc') as 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc' | 'views_desc' | 'views_asc'
   };
+};
+
+const getInitialPage = (): number => {
+  if (typeof window === 'undefined') return 1;
+
+  const url = new URL(window.location.href);
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
+  return page;
 };
 
 export const initialState: AdminArticlesState = {
@@ -31,8 +39,8 @@ export const initialState: AdminArticlesState = {
     updating: false,
     fieldUpdates: new Map() // Unified field loading system
   },
-  currentPage: 1,
-  limit: 10,
+  currentPage: getInitialPage(),
+  limit: 5,
   filters: getInitialFilters(),
   selectedArticles: [],
   showBulkActions: false,

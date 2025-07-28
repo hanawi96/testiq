@@ -47,6 +47,7 @@ export default function ArticlesFilters({
               <option value="published">Đã xuất bản</option>
               <option value="draft">Nháp</option>
               <option value="archived">Lưu trữ</option>
+              <option value="scheduled">Hẹn giờ</option>
             </select>
           </div>
 

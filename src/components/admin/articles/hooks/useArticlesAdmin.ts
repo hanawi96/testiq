@@ -63,8 +63,8 @@ export function useArticlesAdmin(toast: UseToastResult) {
     fetchStats,
     hydrateFromSSR,
     initialLoadDone,
-    getCacheKey,  // ← Thêm getCacheKey
-    cache        // ← Thêm cache
+    getCacheKey,
+    cache
   } = useArticlesData({
     filters: state.filters,
     limit: state.limit,
@@ -113,10 +113,13 @@ export function useArticlesAdmin(toast: UseToastResult) {
     // No prefetching in simple mode
   }, []);
 
-  const handleFilterChange = useCallback(async (newFilters: Partial<ArticlesFilters>) => {
+  const handleFilterChange = useCallback((newFilters: Partial<ArticlesFilters>) => {
     const updatedFilters = { ...state.filters, ...newFilters };
 
-    debug.admin('Filter change', { from: state.filters, to: updatedFilters });
+    debug.admin('🔄 FILTER CHANGE: Updating filters and resetting to page 1');
+
+    // 🚀 Update URL with new filters and reset to page 1 (like Users admin)
+    updateURL(1, updatedFilters);
 
     dispatch({ type: 'SET_UI', payload: {
       filters: updatedFilters,
@@ -125,9 +128,8 @@ export function useArticlesAdmin(toast: UseToastResult) {
       showBulkActions: false
     } });
 
-    updateURL(1, updatedFilters);
-    await fetchArticles(1);
-  }, [state.filters, dispatch, updateURL, fetchArticles]);
+    // Data will be fetched automatically by useEffect in useArticlesData
+  }, [state.filters, dispatch, updateURL]);
 
   const handleLimitChange = useCallback(async (newLimit: number) => {
     dispatch({ type: 'SET_UI', payload: {
@@ -289,9 +291,9 @@ export function useArticlesAdmin(toast: UseToastResult) {
     setLoading,
     setModal,
     toast,
-    fetchArticles,  // ← Pass fetchArticles để có thể refetch sau khi clear cache
-    getCacheKey,    // ← Pass getCacheKey để clear specific cache
-    cache          // ← Pass cache để clear trực tiếp như Users
+    fetchArticles,
+    getCacheKey,
+    cache
   });
 
   // Simplified initial load with SSR hydration
@@ -300,11 +302,12 @@ export function useArticlesAdmin(toast: UseToastResult) {
     initialLoadDone.current = true;
 
     const loadData = async () => {
-      debug.admin('Starting initial data load');
+      debug.admin('Starting initial data load', { currentPage: state.currentPage });
       const { articlesUsed, statsUsed } = hydrateFromSSR();
 
       // Load missing data only
       if (!articlesUsed) {
+        debug.admin('Fetching articles for page', state.currentPage);
         fetchArticles(state.currentPage);
       }
       if (!statsUsed) {
@@ -316,7 +319,7 @@ export function useArticlesAdmin(toast: UseToastResult) {
 
     loadData();
     // Remove aggressive preloading to improve initial load
-  }, []);
+  }, [state.currentPage, fetchArticles, fetchStats, hydrateFromSSR]);
 
   // ===== CLEANUP =====
   useEffect(() => {

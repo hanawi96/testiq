@@ -43,6 +43,7 @@ export const useArticlesData = ({
 }: UseArticlesDataProps) => {
   // Track if initial load has been done to prevent infinite loops
   const initialLoadDone = useRef(false);
+  const prevFiltersRef = useRef(filters);
 
   // ===== PERSISTENT CACHE MANAGEMENT =====
   // 🔧 FIX: Sử dụng global cache để persist qua component unmount
@@ -56,7 +57,6 @@ export const useArticlesData = ({
 
   const cache = useRef(getGlobalCache());
   const prefetchQueue = useRef<Set<number>>(new Set());
-  const aggressivePrefetchDone = useRef<Set<string>>(new Set());
   const activeRequests = useRef<Map<string, Promise<void>>>(new Map());
 
   // ===== CACHE UTILITIES =====
@@ -105,7 +105,6 @@ export const useArticlesData = ({
 
     cache.current.clear();
     prefetchQueue.current.clear();
-    aggressivePrefetchDone.current.clear();
     activeRequests.current.clear();
 
     console.log('✅ CLIENT CACHE CLEAR: Cache cleared successfully');
@@ -154,45 +153,19 @@ export const useArticlesData = ({
     }
   }, [limit, getCacheKey, getCachedData, setCacheData]);
 
-  // Smart prefetch - Immediate for next page, background for others
+  // Simplified prefetch - Only next page for instant pagination
   const smartAggressivePrefetch = useCallback(async (totalPages: number, currentFilters: ArticlesFilters, pageLimit: number = limit, currentPageNum: number = 1) => {
-    const filterKey = JSON.stringify(currentFilters);
-    if (aggressivePrefetchDone.current.has(filterKey)) {
-      debug.prefetch(`Skip aggressive prefetch - already done for filter set`);
-      return;
-    }
-
-    debug.prefetch(`Smart prefetch ${totalPages} pages from page ${currentPageNum}`);
-    aggressivePrefetchDone.current.add(filterKey);
-
-    // Immediate prefetch for next page (no delay) - AWAIT to ensure completion
+    // Only prefetch next page for instant pagination
     const nextPage = currentPageNum + 1;
     if (nextPage <= totalPages) {
       const nextCacheKey = getCacheKey(nextPage, currentFilters, pageLimit);
       const nextCachedData = getCachedData(nextCacheKey);
       if (!nextCachedData) {
-        debug.prefetch(`Immediate prefetch page ${nextPage} (next page)`);
-        await prefetchPage(nextPage, currentFilters, pageLimit); // AWAIT for immediate completion
-        debug.prefetch(`Immediate prefetch complete page ${nextPage}`);
-      } else {
-        debug.cache(`Cache hit page ${nextPage}`);
+        debug.prefetch(`Prefetch next page ${nextPage}`);
+        prefetchPage(nextPage, currentFilters, pageLimit);
       }
     }
-
-    // Background prefetch for remaining pages
-    for (let page = 1; page <= totalPages; page++) {
-      if (page === currentPageNum || page === nextPage) continue; // Skip current and next
-
-      const cacheKey = getCacheKey(page, currentFilters, pageLimit);
-      const cachedData = getCachedData(cacheKey);
-      if (!cachedData) {
-        debug.prefetch(`Background prefetch page ${page} (delay: ${page * 100}ms)`);
-        setTimeout(() => prefetchPage(page, currentFilters, pageLimit), page * 100); // Slower for background
-      } else {
-        debug.cache(`Cache hit page ${page}`);
-      }
-    }
-  }, [prefetchPage, limit, getCacheKey]);
+  }, [prefetchPage, limit, getCacheKey, getCachedData]);
 
   // Fetch articles data with stale-while-revalidate
   const fetchArticles = useCallback(async (page: number = currentPage, pageLimit: number = limit) => {
@@ -260,7 +233,7 @@ export const useArticlesData = ({
       dispatch({ type: 'SET_ERROR', payload: '' });
 
       try {
-        debug.cache(`API call for page ${page}`);
+        debug.cache(`API call for page ${page}`, { filters });
         const { data, error: fetchError } = await ArticlesService.getArticles(page, pageLimit, filters);
 
         if (fetchError || !data) {
@@ -288,7 +261,7 @@ export const useArticlesData = ({
         // Always update UI with fresh data (overwrite stale cache)
         dispatch({ type: 'SET_ARTICLES_DATA', payload: data });
 
-        // Smart aggressive prefetch
+        // Simple next page prefetch
         smartAggressivePrefetch(data.totalPages, filters, pageLimit, page);
 
       } catch (err) {
@@ -414,7 +387,7 @@ export const useArticlesData = ({
 
       // 🔍 TRACE: Log tất cả author names để kiểm tra
       console.log(`🔍 CLIENT CACHE: All author names in SSR data:`,
-        initialData.articles?.map(article => ({
+        initialData.articles?.map((article: any) => ({
           id: article.id,
           title: article.title?.substring(0, 30) + '...',
           author_name: article.author_name,
@@ -426,10 +399,10 @@ export const useArticlesData = ({
       console.log(`✅ CLIENT CACHE: Successfully cached SSR data with key: ${cacheKey}`);
       debug.ssr(`Cached SSR data with key: ${cacheKey}`);
 
-      // Start aggressive prefetch for remaining pages (background)
+      // Start next page prefetch (background)
       setTimeout(() => {
         smartAggressivePrefetch(initialData.totalPages, ssrFilters, limit, initialData.page || 1);
-      }, 100); // Small delay to ensure UI is stable first
+      }, 100);
 
       // Clear the global data to prevent reuse (restored)
       delete (window as any).__ARTICLES_INITIAL_DATA__;
@@ -456,11 +429,31 @@ export const useArticlesData = ({
     return () => {
       // Chỉ clear temporary state, giữ lại cache
       prefetchQueue.current.clear();
-      aggressivePrefetchDone.current.clear();
       activeRequests.current.clear();
       debug.cache('Temporary state cleared on unmount, cache preserved');
     };
   }, []);
+
+  // Auto-watch filters change and refetch data (like Users admin)
+  useEffect(() => {
+    if (!initialLoadDone.current) return;
+
+    const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
+
+    if (filtersChanged) {
+      debug.cache('🔄 FILTERS CHANGED: Auto-refetching data', {
+        from: prevFiltersRef.current,
+        to: filters
+      });
+
+      // Clear cache for old filter set
+      cache.current.clear();
+      prevFiltersRef.current = filters;
+
+      // Auto-fetch with new filters (always page 1 when filters change)
+      fetchArticles(1);
+    }
+  }, [filters, fetchArticles]);
 
   return {
     // Cache utilities

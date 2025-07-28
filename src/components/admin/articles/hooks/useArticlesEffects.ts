@@ -61,63 +61,11 @@ export const useArticlesEffects = ({
     window.history.replaceState({}, '', url.toString());
   }, []);
 
-  // Initialize from URL params on mount - ONLY if no SSR data
+  // Initialize URL sync tracking
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Check if SSR data exists AND will be used (not skipped by force fresh flag)
-    const hasSSRData = (window as any).__ARTICLES_INITIAL_DATA__;
-    const forceFresh = localStorage.getItem('articles_force_fresh');
-    const willUseSSR = hasSSRData && !forceFresh;
-
-    if (willUseSSR) {
-      debug.url('SSR data will be used - skipping URL initialization to prevent conflicts');
-      initialLoadDone.current = true;
-      return;
-    }
-
-    debug.url('No SSR data or force fresh - initializing from URL', { hasSSRData, forceFresh });
-
-    const url = new URL(window.location.href);
-    const urlPage = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
-    const urlStatus = url.searchParams.get('status') || 'all';
-    const urlSearch = url.searchParams.get('search') || '';
-    const urlCategory = url.searchParams.get('category') || '';
-    const urlAuthor = url.searchParams.get('author') || '';
-    const urlFeatured = url.searchParams.get('featured') || 'all';
-    const urlSort = url.searchParams.get('sort') || 'created_desc';
-
-    const urlFilters: ArticlesFilters = {
-      status: urlStatus as 'all' | 'draft' | 'published',
-      search: urlSearch,
-      category: urlCategory,
-      author: urlAuthor,
-      featured: urlFeatured as 'all' | 'true' | 'false',
-      sort: urlSort as 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'
-    };
-
-    // Only update if different from current state
-    const filtersChanged = JSON.stringify(urlFilters) !== JSON.stringify(filters);
-    const pageChanged = urlPage !== currentPage;
-
-    if (filtersChanged || pageChanged) {
-      debug.url('Initializing from URL params (no SSR data)', {
-        page: urlPage,
-        filters: urlFilters
-      });
-
-      dispatch({
-        type: 'SET_UI',
-        payload: {
-          currentPage: urlPage,
-          filters: urlFilters
-        }
-      });
-    }
-
-    // Mark initial load as done
+    // Mark as initialized after first render to enable URL sync
     initialLoadDone.current = true;
-  }, []); // Only run on mount
+  }, []);
 
   // Handle browser back/forward
   useEffect(() => {
@@ -134,12 +82,12 @@ export const useArticlesEffects = ({
       const sort = url.searchParams.get('sort') || 'created_desc';
 
       const newFilters: ArticlesFilters = {
-        status: status as 'all' | 'draft' | 'published',
+        status: status as 'all' | 'draft' | 'published' | 'archived' | 'scheduled',
         search,
         category,
         author,
         featured: featured as 'all' | 'true' | 'false',
-        sort: sort as 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'
+        sort: sort as 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc' | 'views_desc' | 'views_asc'
       };
 
       debug.url('Browser navigation - syncing state from URL', {

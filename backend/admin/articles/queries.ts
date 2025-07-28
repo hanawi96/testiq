@@ -256,6 +256,7 @@ export class ArticleQueries {
       query = query.or(`title.ilike.%${filters.search}%,content.ilike.%${filters.search}%,excerpt.ilike.%${filters.search}%`);
     }
     if (filters.status && filters.status !== 'all') {
+      console.log(`🔍 STATUS FILTER: Applying status filter: ${filters.status}`);
       query = query.eq('status', filters.status);
     }
     if (filters.author) {
