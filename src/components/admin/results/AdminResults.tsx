@@ -1,32 +1,53 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { loadResultsService } from '../../../../backend';
 import { getCountryFlag, getCountryFlagSvgByCode } from '../../../utils/country-flags';
-import type { TestResult, ResultsStats, ResultsFilters, ResultsListResponse } from '../../../../backend';
+import type { ResultsStats } from '../../../../backend';
 import ResultsTestChart from './ResultsTestChart';
 import DateRangeFilter from './DateRangeFilter';
 import { useResultsData } from './hooks/useResultsData';
+import { useResultsState } from './hooks/useResultsState';
+import { useResultsActions } from './hooks/useResultsActions';
+import { useResultsUrlSync } from './hooks/useResultsUrlSync';
+import { ToastContainer } from '../common/Toast';
 
 export default function AdminResults() {
-  const [resultsData, setResultsData] = useState<ResultsListResponse | null>(null);
-  const [stats, setStats] = useState<ResultsStats | null>(null);
-  const [estimatedStats, setEstimatedStats] = useState<ResultsStats | null>(null);
-  const [scoreDistribution, setScoreDistribution] = useState<Array<{ range: string; count: number }> | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Start with false for instant display
-  const [error, setError] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<ResultsFilters>({
-    user_type: 'all',
-    search: '',
-    test_type: 'iq'
-  });
+  // Initialize state management with URL sync
+  const {
+    resultsData,
+    setResultsData,
+    isLoading,
+    setIsLoading,
+    error,
+    setError,
+    currentPage,
+    setCurrentPage,
+    displayCurrentPage,
+    limit,
+    setLimit,
+    filters,
+    setFilters,
+    selectedResults,
+    setSelectedResults,
+    isDeleting,
+    setIsDeleting,
+    stats,
+    setStats,
+    estimatedStats,
+    setEstimatedStats,
+    scoreDistribution,
+    setScoreDistribution,
+    isMobile,
+    setIsMobile,
+    isInitialized,
+    setIsInitialized,
+    toasts,
+    removeToast,
+    showSuccess,
+    showError,
+    updateURL
+  } = useResultsState();
+
   const [isExporting, setIsExporting] = useState(false);
-
-  // Bulk selection state
-  const [selectedResults, setSelectedResults] = useState<Set<string>>(new Set());
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const [limit, setLimit] = useState(10);
-  const [isMobile, setIsMobile] = useState(false);
 
   // Mobile detection
   useEffect(() => {
@@ -35,54 +56,6 @@ export default function AdminResults() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Bulk selection helpers
-  const toggleSelectAll = () => {
-    if (selectedResults.size === resultsData?.results.length) {
-      setSelectedResults(new Set());
-    } else {
-      setSelectedResults(new Set(resultsData?.results.map(r => r.id) || []));
-    }
-  };
-
-  const toggleSelectResult = (id: string) => {
-    const newSelected = new Set(selectedResults);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedResults(newSelected);
-  };
-
-  const deleteSelectedResults = async () => {
-    if (selectedResults.size === 0) return;
-
-    // Confirm deletion
-    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedResults.size} kết quả test đã chọn?`)) {
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      const ResultsService = await loadResultsService();
-      const { data, error } = await ResultsService.deleteResults(Array.from(selectedResults));
-      if (error) {
-        console.error('Error deleting results:', error);
-        alert('Có lỗi xảy ra khi xóa kết quả test');
-        return;
-      }
-
-      console.log(`Successfully deleted ${data} results`);
-      setSelectedResults(new Set());
-      await fetchResults(currentPage);
-    } catch (err) {
-      console.error('Exception deleting results:', err);
-      alert('Có lỗi xảy ra khi xóa kết quả test');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   // Advanced data fetching with caching and prefetching
   const {
@@ -107,33 +80,59 @@ export default function AdminResults() {
 
     // Use advanced fetch with caching (this handles loading states internally)
     await fetchResultsAdvanced(page, pageLimit);
-  }, [currentPage, limit, fetchResultsAdvanced]);
+  }, [currentPage, limit, fetchResultsAdvanced, setSelectedResults]);
 
-  // Fetch stats
-  const fetchStats = useCallback(async () => {
-    try {
-      const ResultsService = await loadResultsService();
-      const { data: statsData, error: statsError } = await ResultsService.getStats();
-      if (!statsError && statsData) {
-        setStats(statsData);
-      }
-    } catch (err) {
-      console.warn('Could not fetch results stats:', err);
-    }
-  }, []);
+  // Initialize actions hook
+  const {
+    handlePageChange,
+    handleLimitChange,
+    handleFilterChange,
+    handleResultSelect,
+    handleSelectAll,
+    handleClearSelection,
+    handleDeleteSelected
+  } = useResultsActions({
+    resultsData,
+    setResultsData,
+    currentPage,
+    setCurrentPage,
+    displayCurrentPage,
+    filters,
+    setFilters,
+    limit,
+    setLimit,
+    selectedResults,
+    setSelectedResults,
+    setIsDeleting,
+    setError,
+    showSuccess,
+    showError,
+    updateURL,
+    fetchResults,
+    cacheWithTTL,
+    setIsLoading
+  });
 
-  // Fetch score distribution
-  const fetchScoreDistribution = useCallback(async () => {
-    try {
-      const ResultsService = await loadResultsService();
-      const { data: distData, error: distError } = await ResultsService.getScoreDistribution();
-      if (!distError && distData) {
-        setScoreDistribution(distData);
-      }
-    } catch (err) {
-      console.warn('Could not fetch score distribution:', err);
-    }
-  }, []);
+  // URL synchronization
+  useResultsUrlSync({
+    displayCurrentPage,
+    setCurrentPage,
+    filters,
+    setFilters,
+    isInitialized,
+    setIsInitialized,
+    fetchResults,
+    limit,
+    setResultsData,
+    setStats,
+    setScoreDistribution
+  });
+
+
+
+
+
+
 
   // Generate estimated stats from results data for instant display
   useEffect(() => {
@@ -160,112 +159,12 @@ export default function AdminResults() {
     }
   }, [resultsData]);
 
-  // SSR hydration + instant loading with performance tracking
-  useEffect(() => {
-    const startTime = performance.now();
-    let dataLoaded = false;
-    let statsLoaded = false;
-
-    // Check for pre-loaded data (SSR)
-    if (typeof window !== 'undefined') {
-      if ((window as any).__RESULTS_INITIAL_DATA__) {
-        const initialData = (window as any).__RESULTS_INITIAL_DATA__;
-        const hydrationTime = performance.now() - startTime;
-        console.log('⚡ SSR RESULTS HYDRATION: Using pre-loaded data', {
-          page: initialData?.page,
-          resultsCount: initialData?.results?.length,
-          totalPages: initialData?.totalPages,
-          hydrationTime: `${hydrationTime.toFixed(2)}ms`
-        });
-        setResultsData(initialData);
-        delete (window as any).__RESULTS_INITIAL_DATA__;
-        dataLoaded = true;
-      }
-
-      if ((window as any).__RESULTS_INITIAL_STATS__) {
-        const initialStats = (window as any).__RESULTS_INITIAL_STATS__;
-        const statsTime = performance.now() - startTime;
-        console.log('⚡ SSR STATS HYDRATION: Using pre-loaded stats', {
-          hydrationTime: `${statsTime.toFixed(2)}ms`
-        });
-        setStats(initialStats);
-        delete (window as any).__RESULTS_INITIAL_STATS__;
-        statsLoaded = true;
-      }
-    }
-
-    // Fallback to client-side loading if no SSR data
-    if (!dataLoaded) {
-      const fallbackStart = performance.now();
-      console.log('🌐 CLIENT FALLBACK: Loading results data');
-      fetchResults(1).then(() => {
-        const fallbackTime = performance.now() - fallbackStart;
-        console.log(`📊 CLIENT LOAD TIME: ${fallbackTime.toFixed(2)}ms`);
-      });
-    }
-
-    if (!statsLoaded) {
-      console.log('🌐 CLIENT FALLBACK: Loading stats data');
-      fetchStats();
-    }
-
-    // Always load score distribution (not critical)
-    fetchScoreDistribution();
-
-    // Performance summary
-    const totalTime = performance.now() - startTime;
-    console.log(`🎯 TOTAL LOAD TIME: ${totalTime.toFixed(2)}ms (SSR: ${dataLoaded}, Stats: ${statsLoaded})`);
-  }, [filters]);
-
-  // Handle page change - INSTANT with cache check
-  const handlePageChange = (page: number) => {
-    console.log(`🔄 PAGE CHANGE: ${currentPage} → ${page}`);
-
-    // Validate page bounds
-    if (resultsData && page > resultsData.totalPages) return;
-    if (page < 1) return;
-
-    setCurrentPage(page);
-    fetchResults(page);
-  };
-
   // Handle page hover - Prefetch for instant navigation
   const handlePageHover = (page: number) => {
     if (page !== currentPage && page >= 1 && (!resultsData || page <= resultsData.totalPages)) {
       console.log(`👆 PAGE HOVER: Prefetching page ${page}`);
       prefetchPage(page, filters, limit);
     }
-  };
-
-  // Handle limit change - Reset to page 1
-  const handleLimitChange = (newLimit: number) => {
-    console.log(`🔄 LIMIT CHANGE: ${limit} → ${newLimit}`);
-    setLimit(newLimit);
-    setCurrentPage(1);
-    fetchResults(1, newLimit);
-  };
-
-  // Handle filter change with date validation
-  const handleFilterChange = (newFilters: Partial<ResultsFilters>) => {
-    // Smart date validation
-    if (newFilters.date_from || newFilters.date_to) {
-      const updatedFilters = { ...filters, ...newFilters };
-
-      // If both dates exist, ensure from <= to
-      if (updatedFilters.date_from && updatedFilters.date_to) {
-        if (updatedFilters.date_from > updatedFilters.date_to) {
-          // Auto-fix: swap dates
-          newFilters = {
-            ...newFilters,
-            date_from: updatedFilters.date_to,
-            date_to: updatedFilters.date_from
-          };
-        }
-      }
-    }
-
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    setCurrentPage(1);
   };
 
   // Handle export
@@ -630,7 +529,7 @@ export default function AdminResults() {
               {/* Bulk delete button - only show when items selected */}
               {selectedResults.size > 0 && (
                 <button
-                  onClick={deleteSelectedResults}
+                  onClick={handleDeleteSelected}
                   disabled={isDeleting}
                   className="flex items-center justify-center w-10 h-10 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium shadow-lg hover:shadow-xl"
                   title={`Xóa ${selectedResults.size} kết quả đã chọn`}
@@ -674,7 +573,7 @@ export default function AdminResults() {
                       type="checkbox"
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                       checked={selectedResults.size > 0 && selectedResults.size === resultsData?.results.length}
-                      onChange={toggleSelectAll}
+                      onChange={handleSelectAll}
                     />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -710,7 +609,7 @@ export default function AdminResults() {
                         type="checkbox"
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                         checked={selectedResults.has(result.id)}
-                        onChange={() => toggleSelectResult(result.id)}
+                        onChange={() => handleResultSelect(result.id)}
                       />
                     </td>
                     {/* User Info */}
@@ -833,8 +732,8 @@ export default function AdminResults() {
                   </tr>
                 ))}
 
-                {/* Skeleton rows - Match limit to prevent layout shift */}
-                {(!resultsData || resultsData.results.length === 0) &&
+                {/* Skeleton rows - Only show when loading */}
+                {isLoading &&
                   Array.from({ length: limit }, (_, i) => (
                     <SkeletonTableRow key={`skeleton-${i}`} />
                   ))
@@ -1062,6 +961,9 @@ export default function AdminResults() {
           )}
         </div>
       )}
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 }
