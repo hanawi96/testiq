@@ -127,6 +127,7 @@ export const UsersList = () => {
     setUsersData,
     currentPage,
     setCurrentPage,
+    displayCurrentPage,
     filters,
     setFilters,
     limit,
@@ -177,13 +178,13 @@ export const UsersList = () => {
 
   // Handle edit user success
   const handleEditUserSuccess = () => {
-    // Smart cache invalidation - only clear current page cache
-    const currentCacheKey = getCacheKey(currentPage, filters, limit);
+    // Smart cache invalidation - only clear current page cache (use displayCurrentPage from URL)
+    const currentCacheKey = getCacheKey(displayCurrentPage, filters, limit);
     cache.current.delete(currentCacheKey);
     cacheWithTTL.current.delete(currentCacheKey);
 
-    // Refresh current page data
-    fetchUsers(currentPage);
+    // Refresh current page data (use displayCurrentPage to stay on the same page)
+    fetchUsers(displayCurrentPage);
     fetchStats();
 
     // Show success toast

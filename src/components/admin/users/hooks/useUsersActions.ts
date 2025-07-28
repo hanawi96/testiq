@@ -12,6 +12,7 @@ interface UseUsersActionsProps {
   setUsersData: (data: UsersListResponse | null) => void;
   currentPage: number;
   setCurrentPage: (page: number) => void;
+  displayCurrentPage: number;
   filters: UsersFilters;
   setFilters: (filters: UsersFilters | ((prev: UsersFilters) => UsersFilters)) => void;
   limit: number;
@@ -47,6 +48,7 @@ export const useUsersActions = ({
   setUsersData,
   currentPage,
   setCurrentPage,
+  displayCurrentPage,
   filters,
   setFilters,
   limit,
@@ -150,16 +152,16 @@ export const useUsersActions = ({
         await fetchStats();
         // No success toast - loading state on badge is sufficient feedback
       } else {
-        // Revert về role cũ nếu fail
-        await fetchUsers(currentPage);
+        // Revert về role cũ nếu fail (use displayCurrentPage to stay on current URL page)
+        await fetchUsers(displayCurrentPage);
         showError(
           'Không thể cập nhật vai trò',
           updateError?.message || 'Vui lòng thử lại sau'
         );
       }
     } catch (err) {
-      // Revert về role cũ nếu fail
-      await fetchUsers(currentPage);
+      // Revert về role cũ nếu fail (use displayCurrentPage to stay on current URL page)
+      await fetchUsers(displayCurrentPage);
       showError(
         'Có lỗi xảy ra',
         'Không thể cập nhật vai trò. Vui lòng thử lại sau'
@@ -195,13 +197,13 @@ export const useUsersActions = ({
         cache.current.clear();
         await fetchStats();
       } else {
-        // Revert về status cũ nếu fail
-        await fetchUsers(currentPage);
+        // Revert về status cũ nếu fail (use displayCurrentPage to stay on current URL page)
+        await fetchUsers(displayCurrentPage);
         setError('Không thể cập nhật verification');
       }
     } catch (err) {
-      // Revert về status cũ nếu fail
-      await fetchUsers(currentPage);
+      // Revert về status cũ nếu fail (use displayCurrentPage to stay on current URL page)
+      await fetchUsers(displayCurrentPage);
       setError('Có lỗi xảy ra khi cập nhật verification');
     } finally {
       setActionLoading('');

@@ -10,7 +10,8 @@ try {
   console.log('🔄 SSR: Fetching initial users data...');
 
   // Import backend service
-  const { UsersService } = await import('../../../backend');
+  const { loadUsersService } = await import('../../../backend');
+  const UsersService = await loadUsersService();
 
   // Parse URL params to get the correct page and filters
   const url = new URL(Astro.request.url);

@@ -75,7 +75,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
     const timeoutId = setTimeout(async () => {
       setIsCheckingEmail(true);
       try {
-        const { UsersService } = await import('../../../../../../backend');
+        const { loadUsersService } = await import('../../../../../../backend');
+        const UsersService = await loadUsersService();
         const { exists, error } = await UsersService.checkEmailExists(form.email.trim());
 
         if (error) {
@@ -153,8 +154,9 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   const handleConfirmCreate = async () => {
     setIsLoading(true);
     try {
-      // Import UsersService dynamically to avoid SSR issues
-      const { UsersService } = await import('../../../../../../backend');
+      // Load UsersService dynamically to avoid SSR issues
+      const { loadUsersService } = await import('../../../../../../backend');
+      const UsersService = await loadUsersService();
       
       const { success, error } = await UsersService.createUser({
         email: form.email.trim(),

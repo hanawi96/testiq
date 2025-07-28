@@ -154,8 +154,9 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, onOptimistic
     setIsLoading(true);
 
     try {
-      // Import UsersService dynamically to avoid SSR issues
-      const { UsersService } = await import('../../../../../../backend');
+      // Load UsersService dynamically to avoid SSR issues
+      const { loadUsersService } = await import('../../../../../../backend');
+      const UsersService = await loadUsersService();
 
       // Prepare update data
       const updateData = {
