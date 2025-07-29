@@ -1,48 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import type { UsersFilters as UsersFiltersType } from '../../../../../backend';
 
 interface Props {
-  onFiltersChange?: (filters: UsersFiltersType) => void;
-  initialFilters?: UsersFiltersType;
+  filters: UsersFiltersType;
+  searchInput: string;
+  onFilterChange: (newFilters: Partial<UsersFiltersType>) => void;
+  onSearchInputChange: (search: string) => void;
 }
 
-export default function UsersFilters({ onFiltersChange, initialFilters }: Props) {
-  const [filters, setFilters] = useState<UsersFiltersType>(initialFilters || {
-    role: 'all',
-    search: '',
-    verified: undefined,
-    user_type: undefined
-  });
-  const [searchInput, setSearchInput] = useState(initialFilters?.search || '');
-
-  // Debounced search effect
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchInput !== filters.search) {
-        handleFilterChange({ search: searchInput });
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchInput]);
-
-  // Handle filter changes
-  const handleFilterChange = useCallback((newFilters: Partial<UsersFiltersType>) => {
-    const updatedFilters = { ...filters, ...newFilters };
-    setFilters(updatedFilters);
-    onFiltersChange?.(updatedFilters);
-  }, [filters, onFiltersChange]);
+export default function UsersFilters({
+  filters,
+  searchInput,
+  onFilterChange,
+  onSearchInputChange
+}: Props) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tìm kiếm</label>
           <div className="relative">
             <input
               type="text"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={(e) => onSearchInputChange(e.target.value)}
               placeholder="Tên, email, địa điểm..."
               className="w-full pr-10 pl-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               style={{ textIndent: '6px' }}
@@ -56,14 +38,15 @@ export default function UsersFilters({ onFiltersChange, initialFilters }: Props)
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại người dùng</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Trạng thái người dùng</label>
           <select
-            value={filters.user_type || 'all'}
-            onChange={(e) => handleFilterChange({ user_type: e.target.value === 'all' ? undefined : e.target.value as any })}
+            value={filters.user_status || 'all'}
+            onChange={(e) => onFilterChange({ user_status: e.target.value === 'all' ? undefined : e.target.value as any })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="all">Tất cả</option>
-            <option value="registered">Đã đăng ký</option>
+            <option value="registered_verified">Đã đăng ký & xác thực</option>
+            <option value="registered_unverified">Đã đăng ký & chưa xác thực</option>
             <option value="anonymous">Ẩn danh</option>
           </select>
         </div>
@@ -72,32 +55,43 @@ export default function UsersFilters({ onFiltersChange, initialFilters }: Props)
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vai trò</label>
           <select
             value={filters.role || 'all'}
-            onChange={(e) => handleFilterChange({ role: e.target.value as any })}
+            onChange={(e) => onFilterChange({ role: e.target.value === 'all' ? undefined : e.target.value as any })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="all">Tất cả</option>
             <option value="admin">Admin</option>
-            <option value="mod">Moderator</option>
+            <option value="editor">Editor</option>
+            <option value="author">Author</option>
+            <option value="reviewer">Reviewer</option>
             <option value="user">User</option>
-            <option value="anonymous">Người chơi chưa đăng ký</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Trạng thái</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Giới tính</label>
           <select
-            value={filters.verified === undefined ? 'all' : filters.verified.toString()}
-            onChange={(e) => {
-              const value = e.target.value;
-              handleFilterChange({
-                verified: value === 'all' ? undefined : value === 'true'
-              });
-            }}
+            value={filters.gender || 'all'}
+            onChange={(e) => onFilterChange({ gender: e.target.value === 'all' ? undefined : e.target.value as any })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="all">Tất cả</option>
-            <option value="true">Đã xác thực</option>
-            <option value="false">Chưa xác thực</option>
+            <option value="male">Nam</option>
+            <option value="female">Nữ</option>
+            <option value="other">Khác</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sắp xếp</label>
+          <select
+            value={filters.sort || 'created_desc'}
+            onChange={(e) => onFilterChange({ sort: e.target.value as any })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="created_desc">Tham gia gần nhất</option>
+            <option value="created_asc">Tham gia sớm nhất</option>
+            <option value="age_asc">Tuổi thấp đến cao</option>
+            <option value="age_desc">Tuổi cao đến thấp</option>
           </select>
         </div>
       </div>

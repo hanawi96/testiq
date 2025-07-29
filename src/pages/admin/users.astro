@@ -1,73 +1,10 @@
 ---
+// Admin users page with client-side loading only
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { UsersPage } from '@/components/admin/users/UsersPage.tsx';
-
-// 🚀 SSR: Pre-fetch initial data for instant load
-let initialData = null;
-let initialStats = null;
-
-try {
-  console.log('🔄 SSR: Fetching initial users data...');
-
-  // Import backend service
-  const { loadUsersService } = await import('../../../backend');
-  const UsersService = await loadUsersService();
-
-  // Parse URL params to get the correct page and filters
-  const url = new URL(Astro.request.url);
-  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
-  const role = url.searchParams.get('role') || 'all';
-  const search = url.searchParams.get('search') || '';
-  const user_status = url.searchParams.get('user_status') || 'all';
-  const gender = url.searchParams.get('gender') || undefined;
-  const sort = url.searchParams.get('sort') || undefined;
-
-  const filters = {
-    role: role as 'all' | 'admin' | 'editor' | 'author' | 'reviewer' | 'user',
-    search,
-    user_status: user_status as 'registered_verified' | 'registered_unverified' | 'anonymous' | 'all',
-    gender: gender as 'male' | 'female' | 'other' | 'unknown' | undefined,
-    sort: sort as 'age_asc' | 'age_desc' | 'created_asc' | 'created_desc' | undefined
-  };
-
-  console.log('🔄 SSR: Fetching page', page, 'with filters:', filters);
-
-  // Parallel fetch for better performance
-  const [usersResult, statsResult] = await Promise.all([
-    UsersService.getUsers(page, 10, filters),
-    UsersService.getUserStats()
-  ]);
-
-  if (!usersResult.error && usersResult.data) {
-    initialData = usersResult.data;
-    console.log(`✅ SSR: Loaded ${usersResult.data.users.length} users`);
-  }
-
-  if (!statsResult.error && statsResult.data) {
-    initialStats = statsResult.data;
-    console.log('✅ SSR: Loaded user stats');
-  }
-
-} catch (error) {
-  console.warn('⚠️ SSR: Failed to fetch initial data, will fallback to client-side:', error);
-  // Fallback to client-side loading if SSR fails
-}
 ---
 
 <AdminLayout title="Quản lý người dùng">
-  <!-- 🚀 SSR: Inject initial data for instant hydration -->
-  <script define:vars={{ initialData, initialStats }}>
-    // Make data available globally for React component
-    window.__USERS_INITIAL_DATA__ = initialData;
-    window.__USERS_INITIAL_STATS__ = initialStats;
-
-    if (initialData) {
-      console.log('✅ SSR: Initial data injected, users count:', initialData.users.length);
-    } else {
-      console.log('⚠️ SSR: No initial data, will use client-side loading');
-    }
-  </script>
-
   <UsersPage client:load />
 </AdminLayout>
 

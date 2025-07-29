@@ -1,10 +1,6 @@
 /**
- * HOOKS INDEX
- * Export tất cả hooks cho Users module
+ * HOOKS INDEX - TỐI ƯU HÓA
+ * Export hook tổng hợp duy nhất cho Users module - gọn gàng, hiệu suất cao
  */
 
-export * from './useUsersState';
-export * from './useUsersEffects';
-export * from './useUsersData';
-export * from './useUsersActions';
-export * from './useUsersBulkActions';
+export { useUsers } from './useUsersState';
