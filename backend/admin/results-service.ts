@@ -359,6 +359,36 @@ export class ResultsService {
   }
 
   /**
+   * Delete single test result
+   */
+  static async deleteResult(resultId: string): Promise<{ data: boolean; error: any }> {
+    try {
+      console.log('ResultsService: Deleting single result:', resultId);
+
+      if (!resultId) {
+        return { data: false, error: new Error('Result ID is required') };
+      }
+
+      const { error: deleteError } = await supabase
+        .from('user_test_results')
+        .delete()
+        .eq('id', resultId);
+
+      if (deleteError) {
+        console.error('ResultsService: Error deleting result:', deleteError);
+        return { data: false, error: deleteError };
+      }
+
+      console.log('ResultsService: Single result deleted successfully:', resultId);
+      return { data: true, error: null };
+
+    } catch (err) {
+      console.error('ResultsService: Unexpected error deleting result:', err);
+      return { data: false, error: err };
+    }
+  }
+
+  /**
    * Bulk delete test results
    */
   static async deleteResults(resultIds: string[]): Promise<{ data: number; error: any }> {

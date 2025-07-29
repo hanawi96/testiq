@@ -138,41 +138,7 @@ export const useResultsActions = ({
     setSelectedResults(new Set());
   }, [setSelectedResults]);
 
-  // Handle delete selected results
-  const handleDeleteSelected = useCallback(async () => {
-    if (selectedResults.size === 0) return;
 
-    // Confirm deletion
-    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedResults.size} kết quả test đã chọn?`)) {
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      const { loadResultsService } = await import('../../../../../backend');
-      const ResultsService = await loadResultsService();
-      const { data, error } = await ResultsService.deleteResults(Array.from(selectedResults));
-      
-      if (error) {
-        console.error('Error deleting results:', error);
-        showError('Có lỗi xảy ra khi xóa kết quả test');
-        return;
-      }
-
-      console.log(`Successfully deleted ${data} results`);
-      setSelectedResults(new Set());
-      
-      // Refresh current page data (use displayCurrentPage to stay on current URL page)
-      await fetchResults(displayCurrentPage);
-      showSuccess(`Đã xóa ${data} kết quả test thành công!`);
-      
-    } catch (err) {
-      console.error('Exception deleting results:', err);
-      showError('Có lỗi xảy ra khi xóa kết quả test');
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [selectedResults, setIsDeleting, setSelectedResults, displayCurrentPage, fetchResults, showSuccess, showError]);
 
   return {
     handlePageChange,
@@ -180,7 +146,6 @@ export const useResultsActions = ({
     handleFilterChange,
     handleResultSelect,
     handleSelectAll,
-    handleClearSelection,
-    handleDeleteSelected
+    handleClearSelection
   };
 };
